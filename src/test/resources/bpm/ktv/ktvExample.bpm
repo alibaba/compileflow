@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.ktv.ktvExample" name="ktv example" type="process" description="ktv example">
+    <var name="price" description="支付价格" dataType="java.lang.Integer" inOutType="return"/>
+    <var name="totalPrice" description="实付价" dataType="java.lang.Integer" inOutType="inner"/>
+    <var name="pList" description="人员" dataType="java.util.List&lt;java.lang.String&gt;" inOutType="param"/>
+    <end id="11" name="结束" g="101,549,30,30"/>
+    <autoTask id="12" name="付款" g="72,469,88,48">
+        <transition g=":-15,20" to="11"/>
+        <action type="java">
+            <actionHandle clazz="com.allibaba.compileflow.test.mock.KtvService" method="payMoney">
+                <var name="p1" description="价格" dataType="java.lang.Integer" contextVarName="price" defaultValue=""
+                     inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <scriptTask id="9" name="原价" g="132,389,88,48">
+        <transition g=":-15,20" to="12"/>
+        <action type="ql">
+            <actionHandle expression="price*1">
+                <var name="price" description="价格" dataType="java.lang.Integer" contextVarName="totalPrice"
+                     defaultValue="" inOutType="param"/>
+                <var name="price" description="价格" dataType="java.lang.Integer" contextVarName="price" defaultValue=""
+                     inOutType="return"/>
+            </actionHandle>
+        </action>
+    </scriptTask>
+    <loopProcess id="13" name="循环节点" g="20,75,198,190" collectionVarName="pList" variableName="p" indexVarName="i"
+                 variableClass="java.lang.String" startNodeId="13-1" endNodeId="13-1">
+        <transition g=":-15,20" to="8"/>
+        <autoTask id="13-1" name="每人唱一首歌" g="70,95,88,48">
+            <action type="spring-bean">
+                <actionHandle bean="ktvService" clazz="com.allibaba.compileflow.test.mock.KtvService" method="sing">
+                    <var name="p1" description="" dataType="java.lang.String" contextVarName="p" defaultValue=""
+                         inOutType="param"/>
+                </actionHandle>
+            </action>
+        </autoTask>
+    </loopProcess>
+    <decision id="8" name="计算费用" g="72,309,88,48">
+        <transition expression="" name="不超过400" priority="1" g=":-15,20" to="9"/>
+        <transition expression="totalPrice&gt;=400" name="超过400" priority="10" g=":-15,20" to="10"/>
+        <action type="java">
+            <actionHandle clazz="com.allibaba.compileflow.test.mock.MockJavaClazz" method="calPrice">
+                <var name="p1" description="人数" dataType="java.lang.Integer" contextVarName="pList.size()"
+                     defaultValue="" inOutType="param"/>
+                <var name="p2" description="价格" dataType="java.lang.Integer" contextVarName="totalPrice" defaultValue=""
+                     inOutType="return"/>
+            </actionHandle>
+        </action>
+    </decision>
+    <start id="1" name="开始" g="105,17,30,30">
+        <transition g=":-15,20" to="13"/>
+    </start>
+    <note id="14" g="273,82,93,55" comment="外框为循环节点" visible="true">
+        <transition g=":-15,20" to="13"/>
+    </note>
+    <scriptTask id="10" name="9折优惠" g="12,389,88,48">
+        <transition g=":-15,20" to="12"/>
+        <action type="ql">
+            <actionHandle expression="(round(price*0.9,0)).intValue()">
+                <var name="price" description="价格" dataType="java.lang.Integer" contextVarName="totalPrice"
+                     defaultValue="" inOutType="param"/>
+                <var name="price" description="价格" dataType="java.lang.Integer" contextVarName="price" defaultValue=""
+                     inOutType="return"/>
+            </actionHandle>
+        </action>
+    </scriptTask>
+</bpm>

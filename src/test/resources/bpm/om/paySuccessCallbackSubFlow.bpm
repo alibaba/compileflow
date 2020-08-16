@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.om.paySuccessCallbackSubFlow" name="支付成功回调子流程" type="process">
+    <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+         contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
+    <start id="1" name="开始节点" tag="start" g="297,109,40,40">
+        <transition g=":-15,20" to="8"/>
+    </start>
+    <end id="2" name="结束节点" tag="end" g="309,600,40,40"/>
+    <autoTask id="8" name="价格计算" tag="OMPriceCalculateActivity" g="276,202,88,48">
+        <transition g=":-15,20" to="9"/>
+        <action type="spring-bean">
+            <actionHandle bean="priceCalculateActivity"
+                          clazz="com.allibaba.compileflow.test.om.activity.PriceCalculateActivity"
+                          method="execute">
+                <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+                     contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="9" name="超时取消" tag="OMTimeoutCancelActivity" g="279,283,88,48">
+        <transition g=":-15,20" to="10"/>
+        <action type="spring-bean">
+            <actionHandle bean="timeoutCancelActivity"
+                          clazz="com.allibaba.compileflow.test.om.activity.TimeoutCancelActivity"
+                          method="execute">
+                <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+                     contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="10" name="支付资金分摊" tag="OMPaymentFundApportionActivity" g="281,361,88,48">
+        <transition g=":-15,20" to="12"/>
+        <action type="spring-bean">
+            <actionHandle bean="paymentFundApportionActivity"
+                          clazz="com.allibaba.compileflow.test.om.activity.PaymentFundApportionActivity"
+                          method="execute">
+                <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+                     contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="11" name="更新支付回调信息" tag="OMPaymentCallbackInfoUpdateActivity" g="284,522,88,48">
+        <transition g=":-15,20" to="2"/>
+        <action type="spring-bean">
+            <actionHandle bean="paymentCallbackInfoUpdateActivity"
+                          clazz="com.allibaba.compileflow.test.om.activity.PaymentCallbackInfoUpdateActivity"
+                          method="execute">
+                <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+                     contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="12" name="会员已付款标更新" tag="OMUserTagUpdateActivity" g="281,444,88,48">
+        <transition g=":-15,20" to="11"/>
+        <action type="spring-bean">
+            <actionHandle bean="userTagUpdateActivity"
+                          clazz="com.allibaba.compileflow.test.om.activity.UserTagUpdateActivity"
+                          method="execute">
+                <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+                     contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+</bpm>

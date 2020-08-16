@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.route.uopOrderFullLinkRouteDecide" name="分仓路由全链路可售流程" type="process">
+    <var name="context" description="上下文信息"
+         dataType="com.ascp.uop.decision.process.route.context.FullLinkRouteDecisionContext" inOutType="param"/>
+    <decision id="58" name="是否拉式转实仓" g="945,1170,100,48">
+        <transition expression="context.getConvertToRealStore()" name="是" g=":-15,20" to="59"/>
+        <transition name="否" g="906,1212;:-15,20" to="61"/>
+    </decision>
+    <decision id="25" name="是否已补货" g="785,115,145,48">
+        <transition expression="context.getReplenishmentFinished()" name="是" g=":-15,20" to="63"/>
+        <transition name="否" g=":-15,20" to="64"/>
+    </decision>
+    <decision id="57" name="履行仓路由是否成功" g="730,1080,100,48">
+        <transition expression="context.getFulfilStoreRouteSuccess()" name="是" g="659,1040;496,1038;496,1618;:-15,20"
+                    to="31"/>
+        <transition name="否" g=":-15,20" to="65"/>
+    </decision>
+    <decision id="54" name="履行仓是否仓覆盖" g="715,720,120,48">
+        <transition expression="context.getFulfilStoreCovered()" name="是" g=":-15,20" to="55"/>
+        <transition name="否" g="760,736;864,738;865,1120;:-15,20" to="65"/>
+    </decision>
+    <autoTask id="47" name="非赠品单仓路由" g="965,1545,88,48">
+        <transition g="905,1617;:-15,20" to="31"/>
+        <action type="spring-bean">
+            <actionHandle bean="fullLinkRouteDecisionGiftDetailsSingleStoreRouteAlgorithmAction"
+                          clazz="com.ascp.uop.decision.process.route.action.fulllink.FullLinkRouteDecisionGiftDetailsSingleStoreRouteAlgorithmAction"
+                          method="execute">
+                <var name="context" dataType="com.ascp.uop.decision.process.route.context.FullLinkRouteDecisionContext"
+                     contextVarName="context" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="63" name="菜鸟仓物流要素获取" g="800,300,88,48">
+        <transition g=":-15,20" to="66"/>
+        <action type="spring-bean">
+            <actionHandle bean="fullLinkRouteDecisionLgeRouteLinesCnAction"
+                          clazz="com.ascp.uop.decision.process.route.action.fulllink.FullLinkRouteDecisionLgeRouteLinesCnAction"
+                          method="execute">
+                <var name="context" dataType="com.ascp.uop.decision.process.route.context.FullLinkRouteDecisionContext"
+                     contextVarName="context" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="61" name="过滤出履行仓路由主品结果" g="955,1385,88,48">
+        <transition g=":-15,20" to="62"/>
+        <action type="spring-bean">
+            <actionHandle bean="fullLinkRouteDecisionOriginItemFulfilStoreRouteCheckAction"
+                          clazz="com.ascp.uop.decision.process.route.action.fulllink.FullLinkRouteDecisionOriginItemFulfilStoreRouteCheckAction"
+                          method="execute">
+                <var name="context" dataType="com.ascp.uop.decision.process.route.context.FullLinkRouteDecisionContext"
+                     contextVarName="context" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="59" name="单仓路由" g="555,1275,88,48">
+        <transition g=":-15,20" to="60"/>
+        <action type="spring-bean">
+            <actionHandle bean="fullLinkRouteDecisionSingleStoreRouteAlgorithmAction"
+                          clazz="com.ascp.uop.decision.process.route.action.fulllink.FullLinkRouteDecisionSingleStoreRouteAlgorithmAction"
+                          method="execute">
+                <var name="context" dataType="com.ascp.uop.decision.process.route.context.FullLinkRouteDecisionContext"
+                     contextVarName="context" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="50" name="补货状态决策" g="665,50,88,48">
+        <transition g=":-15,20" to="25"/>
+        <action type="spring-bean">
+            <actionHandle bean="routeDecisionFullLinkReplenishExecuteStatusCheckAction"
+                          clazz="com.ascp.uop.decision.process.route.action.fulllink.RouteDecisionFullLinkReplenishExecuteStatusCheckAction"
+                          method="execute">
+                <var name="context" dataType="com.ascp.uop.decision.process.route.context.FullLinkRouteDecisionContext"
+                     contextVarName="context" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="65" name="转在仓决策" g="950,1080,88,48">
+        <transition g=":-15,20" to="58"/>
+        <action type="spring-bean">
+            <actionHandle bean="fullLinkRouteDecisionConvertToRealStoreDecisionAction"
+                          clazz="com.ascp.uop.decision.process.route.action.fulllink.FullLinkRouteDecisionConvertToRealStoreDecisionAction"
+                          method="execute">
+                <var name="context" dataType="com.ascp.uop.decision.process.route.context.FullLinkRouteDecisionContext"
+                     contextVarName="context" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <start id="1" name="开始" g="500,55,40,40">
+        <transition g=":-15,20" to="50"/>
+    </start>
+    <end id="2" name="结束" g="685,1796,40,40"/>
+    <autoTask id="31" name="结果组装" g="410,1595,88,48">
+        <transition g=":-15,20" to="2"/>
+        <action type="spring-bean">
+            <actionHandle bean="fullLinkRouteDecisionAssemblyReturnResultAction"
+                          clazz="com.ascp.uop.decision.process.route.action.fulllink.FullLinkRouteDecisionAssemblyReturnResultAction"
+                          method="execute">
+                <var name="context" dataType="com.ascp.uop.decision.process.route.context.FullLinkRouteDecisionContext"
+                     contextVarName="context" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="56" name="履行仓路由" g="735,960,88,48">
+        <transition g=":-15,20" to="57"/>
+        <action type="spring-bean">
+            <actionHandle bean="fullLinkRouteDecisionFulfilStoreRouteAction"
+                          clazz="com.ascp.uop.decision.process.route.action.fulllink.FullLinkRouteDecisionFulfilStoreRouteAction"
+                          method="execute">
+                <var name="context" dataType="com.ascp.uop.decision.process.route.context.FullLinkRouteDecisionContext"
+                     contextVarName="context" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="55" name="路由算法参数准备" g="735,845,88,48">
+        <transition g=":-15,20" to="56"/>
+        <action type="spring-bean">
+            <actionHandle bean="fullLinkRouteDecisionAlgorithmPrepareAction"
+                          clazz="com.ascp.uop.decision.process.route.action.fulllink.FullLinkRouteDecisionAlgorithmPrepareAction"
+                          method="execute">
+                <var name="context" dataType="com.ascp.uop.decision.process.route.context.FullLinkRouteDecisionContext"
+                     contextVarName="context" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="32" name="获取履行仓" g="730,630,88,48">
+        <transition g=":-15,20" to="54"/>
+        <action type="spring-bean">
+            <actionHandle bean="fullLinkRouteDecisionGetFulfilStoreAction"
+                          clazz="com.ascp.uop.decision.process.route.action.fulllink.FullLinkRouteDecisionGetFulfilStoreAction"
+                          method="execute">
+                <var name="context" dataType="com.ascp.uop.decision.process.route.context.FullLinkRouteDecisionContext"
+                     contextVarName="context" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="34" name="路由决策库存信息获取" g="895,560,88,48">
+        <transition g=":-15,20" to="32"/>
+        <action type="spring-bean">
+            <actionHandle bean="fullLinkRouteDecisionInventoryAction"
+                          clazz="com.ascp.uop.decision.process.route.action.fulllink.FullLinkRouteDecisionInventoryAction"
+                          method="execute">
+                <var name="context" dataType="com.ascp.uop.decision.process.route.context.FullLinkRouteDecisionContext"
+                     contextVarName="context" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <decision id="67" name="是否有仓覆盖" g="630,460,124,48">
+        <transition expression="context.getCover()" name="是" g=":-15,20" to="34"/>
+        <transition name="否" g="646,504;424,503;423,1619;:-15,20" to="31"/>
+    </decision>
+    <autoTask id="66" name="物流要素检查节点" g="805,400,88,48">
+        <transition g=":-15,20" to="67"/>
+        <action type="spring-bean">
+            <actionHandle bean="fullLinkRouteDecisionLgeCheckAction"
+                          clazz="com.ascp.uop.decision.process.route.action.fulllink.FullLinkRouteDecisionLgeCheckAction"
+                          method="execute">
+                <var name="context" dataType="com.ascp.uop.decision.process.route.context.FullLinkRouteDecisionContext"
+                     contextVarName="context" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <note id="46" name="注释节点" g="705,1265,235,64" comment="需要透出「操作来自改约或者改地址」的信息给预占" visible="false">
+        <transition g=":-15,20" to="59"/>
+    </note>
+    <decision id="62" name="主品是否履行仓路由成功" g="930,1455,144,48">
+        <transition expression="context.getOriginDetailFulfilStoreSatisfy()" name="是" g=":-15,20" to="47"/>
+        <transition name="否" g=":-15,20" to="31"/>
+    </decision>
+    <decision id="60" name="路由是否成功" g="550,1385,100,48">
+        <transition expression="!context.getTurnIntoStoreSingleStoreRouteSuccess()" name="否" g=":-15,20" to="61"/>
+        <transition name="是" g=":-15,20" to="31"/>
+    </decision>
+    <autoTask id="64" name="补货处理" g="400,225,88,48">
+        <transition g="1096,1617;:-15,20" to="31"/>
+        <action type="spring-bean">
+            <actionHandle bean="fullLinkRouteDecisionReplenishmentAction"
+                          clazz="com.ascp.uop.decision.process.route.action.fulllink.FullLinkRouteDecisionReplenishmentAction"
+                          method="execute">
+                <var name="context" dataType="com.ascp.uop.decision.process.route.context.FullLinkRouteDecisionContext"
+                     contextVarName="context" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+</bpm>

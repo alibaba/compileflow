@@ -1,0 +1,38 @@
+*.class
+
+# Package Files #
+*.jar
+*.war
+*.ear
+
+.DS_Store
+.project
+.classpath
+.settings
+
+.flowclasses/
+
+target
+*.com
+build
+
+# eclipse #
+.project
+.classpath
+/.settings/
+.settings/
+
+# Intellij IDEA #
+*.iws
+*.iml
+*.ipr
+*.idea
+/.idea/
+
+
+# Mac OS #
+.DS_Store
+
+# Windows #
+Thumbs.db
+*.com
