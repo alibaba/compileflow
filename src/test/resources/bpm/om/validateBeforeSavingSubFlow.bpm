@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.om.validateBeforeSavingSubFlow" type="process" name="订单保存前校验子流程">
+    <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+         contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
+    <start id="1" name="开始节点" g="297,109,40,40" tag="start">
+        <transition g=":-15,20" to="8"/>
+    </start>
+    <end id="2" name="结束节点" g="310,533,40,40" tag="end"/>
+    <autoTask id="8" tag="OrderValidateActivity" name="校验订单" g="276,202,88,48">
+        <transition g=":-15,20" to="9"/>
+        <action type="spring-bean">
+            <actionHandle bean="orderValidateActivity"
+                          clazz="com.allibaba.compileflow.test.om.activity.OrderValidateActivity"
+                          method="execute">
+                <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+                     contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="9" tag="PromotionValidateActivity" name="校验优惠" g="279,283,88,48">
+        <transition g=":-15,20" to="10"/>
+        <action type="spring-bean">
+            <actionHandle bean="promotionValidateActivity"
+                          clazz="com.allibaba.compileflow.test.om.activity.PromotionValidateActivity"
+                          method="execute">
+                <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+                     contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="10" tag="PriceValidateActivity" name="校验价格" g="281,361,88,48">
+        <transition g=":-15,20" to="11"/>
+        <action type="spring-bean">
+            <actionHandle bean="priceValidateActivity"
+                          clazz="com.allibaba.compileflow.test.om.activity.PriceValidateActivity"
+                          method="execute">
+                <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+                     contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="11" tag="DeliveryValidateActivity" name="校验物流" g="283,448,88,48">
+        <transition g=":-15,20" to="2"/>
+        <action type="spring-bean">
+            <actionHandle bean="deliveryValidateActivity"
+                          clazz="com.allibaba.compileflow.test.om.activity.DeliveryValidateActivity"
+                          method="execute">
+                <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+                     contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+</bpm>
