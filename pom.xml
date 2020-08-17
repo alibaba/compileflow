@@ -56,12 +56,12 @@
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
-            <version>1.2.65</version>
+            <version>1.2.73</version>
         </dependency>
         <dependency>
-            <groupId>com.taobao.util</groupId>
-            <artifactId>taobao-express</artifactId>
-            <version>3.1.16</version>
+            <groupId>com.alibaba</groupId>
+            <artifactId>QLExpress</artifactId>
+            <version>3.2.4</version>
         </dependency>
         <dependency>
             <groupId>org.mvel</groupId>
