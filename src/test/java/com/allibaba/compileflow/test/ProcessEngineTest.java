@@ -36,10 +36,6 @@ public class ProcessEngineTest {
         context.put("pList", pList);
 
         final ProcessEngine processEngine = ProcessEngineFactory.getProcessEngine();
-
-        final TbbpmModel tbbpmModel = (TbbpmModel) processEngine.load(code);
-        final OutputStream outputStream = TbbpmModelConverter.getInstance().convertToStream(tbbpmModel);
-        System.out.println(outputStream);
         System.out.println(processEngine.getTestCode(code));
 
         System.out.println(processEngine.start(code, context));
