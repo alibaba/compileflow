@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 if [ $# != 1 ]; then
-	echo "usage: $0 [commit id]"
+    {
+        echo "Only 1 argument for verson!"
+        echo
+        echo "usage: $0 <new version>"
+    } 1>&2
+
 	exit 1
 fi
 
-mvn versions:set -DgenerateBackupPoms=false -DnewVersion=$1
-exit 0
+mvn versions:set -DgenerateBackupPoms=false -DnewVersion="$1"
