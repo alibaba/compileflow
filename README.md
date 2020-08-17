@@ -88,10 +88,10 @@ public void testProcessEngine() {
 
 **_`compileflow`原生只支持淘宝`BPM`规范，为兼容`BPMN 2.0`规范，做了一定适配，但仅支持部分`BPMN 2.0`元素，如需其他元素支持，可在原来基础上扩展。_**
 
-# 5 更多资料
+# 5. 更多资料
 * [DEMO快速开始](https://github.com/alibaba/compileflow/wiki/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8BDEMO)
 * [原始淘宝BPM规范详细说明](https://github.com/alibaba/compileflow/wiki/%E5%8D%8F%E8%AE%AE%E8%AF%A6%E8%A7%A3)
 
-# 欢迎加入`compileflow`开发群
+# 6. 欢迎加入`compileflow`开发群
 
 1. 请钉钉联系 @余苏 @徐工 @梵度 @哲良 @无相
