@@ -12,6 +12,13 @@ language: java
 
 dist: bionic
 
+# JVM (Clojure, Groovy, Java, Scala) support
+#   https://docs.travis-ci.com/user/reference/bionic#jvm-clojure-groovy-java-scala-support
+jdk:
+  - openjdk8
+  - openjdk10
+  - openjdk11
+
 # Job Lifecycle
 #   https://docs.travis-ci.com/user/job-lifecycle/
 
