@@ -18,6 +18,7 @@ package com.alibaba.compileflow.engine.runtime.impl;
 
 import com.alibaba.compileflow.engine.ProcessEngine;
 import com.alibaba.compileflow.engine.ProcessEngineFactory;
+import com.alibaba.compileflow.engine.common.ClassWrapper;
 import com.alibaba.compileflow.engine.common.CompileFlowException;
 import com.alibaba.compileflow.engine.common.constants.FlowModelType;
 import com.alibaba.compileflow.engine.common.utils.ClassUtils;
@@ -30,7 +31,6 @@ import com.alibaba.compileflow.engine.definition.common.NodeContainer;
 import com.alibaba.compileflow.engine.definition.common.TransitionNode;
 import com.alibaba.compileflow.engine.definition.common.var.IVar;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.Compiler;
-import com.alibaba.compileflow.engine.common.ClassWrapper;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.impl.CompilerImpl;
 import com.alibaba.compileflow.engine.process.preruntime.generator.Generator;
 import com.alibaba.compileflow.engine.process.preruntime.generator.bean.BeanProvider;
@@ -43,10 +43,10 @@ import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.Mo
 import com.alibaba.compileflow.engine.process.preruntime.generator.factory.GeneratorFactory;
 import com.alibaba.compileflow.engine.process.preruntime.generator.factory.GeneratorProviderFactory;
 import com.alibaba.compileflow.engine.process.preruntime.generator.provider.NodeGeneratorProvider;
-import com.alibaba.compileflow.engine.process.preruntime.generator.script.impl.MvelExecutor;
-import com.alibaba.compileflow.engine.process.preruntime.generator.script.impl.QLExecutor;
 import com.alibaba.compileflow.engine.process.preruntime.generator.script.ScriptExecutor;
 import com.alibaba.compileflow.engine.process.preruntime.generator.script.ScriptExecutorProvider;
+import com.alibaba.compileflow.engine.process.preruntime.generator.script.impl.MvelExecutor;
+import com.alibaba.compileflow.engine.process.preruntime.generator.script.impl.QLExecutor;
 import com.alibaba.compileflow.engine.process.preruntime.validator.FlowModelValidator;
 import com.alibaba.compileflow.engine.process.preruntime.validator.ValidateMessage;
 import com.alibaba.compileflow.engine.process.preruntime.validator.factory.ModelValidatorFactory;
@@ -60,6 +60,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -69,6 +70,7 @@ import java.util.stream.Collectors;
 public abstract class AbstractProcessRuntime<T extends FlowModel> implements ProcessRuntime {
 
     private static final Compiler COMPILER = new CompilerImpl();
+    private static AtomicBoolean inited = new AtomicBoolean(false);
     private final Map<String, Class> compiledClasses = new HashMap<>();
     protected T flowModel;
     protected ClassTarget classTarget;
@@ -316,9 +318,11 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     public void init() {
         validateRuntime();
         initClassTarget();
-        initBeanProvider();
-        initScriptExecutorProvider();
         initGeneratorProvider();
+        if (inited.compareAndSet(false, true)) {
+            initBeanProvider();
+            initScriptExecutorProvider();
+        }
     }
 
     private void validateRuntime() {
@@ -344,10 +348,9 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     private void initBeanProvider() {
-        SpringBeanHolder springBeanHolder = new SpringBeanHolder();
         ApplicationContext contex = SpringApplicationContextProvider.getContext();
-        springBeanHolder.setApplicationContext(contex);
-        BeanProvider.registerBeanHolder(springBeanHolder);
+        SpringBeanHolder beanHolder = SpringBeanHolder.of(contex);
+        BeanProvider.registerBeanHolder(beanHolder);
     }
 
     private void initScriptExecutorProvider() {

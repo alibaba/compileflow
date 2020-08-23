@@ -26,6 +26,12 @@ public class SpringBeanHolder implements BeanHolder {
 
     private static ApplicationContext context;
 
+    public static SpringBeanHolder of(ApplicationContext applicationContext) {
+        SpringBeanHolder springBeanHolder = new SpringBeanHolder();
+        SpringBeanHolder.context = applicationContext;
+        return springBeanHolder;
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     public <T> T getBean(String name) {
@@ -38,10 +44,6 @@ public class SpringBeanHolder implements BeanHolder {
     @Override
     public <T> T getBean(Class<T> requiredType) {
         return context.getBean(requiredType);
-    }
-
-    public void setApplicationContext(ApplicationContext applicationContext) {
-        context = applicationContext;
     }
 
 }
