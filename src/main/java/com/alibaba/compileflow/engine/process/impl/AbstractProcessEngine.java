@@ -61,10 +61,12 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
     @Override
     public void reload(String code) {
         FlowClassLoader.getInstance().clearCache();
-        AbstractProcessRuntime runtime = getRuntimeFromSource(code);
-        if (runtime != null) {
-            RUNTIME_CACHE.put(getCacheKey(code), runtime);
-        }
+        reloadRuntime(code);
+    }
+
+    private AbstractProcessRuntime reloadRuntime(String code) {
+        RUNTIME_CACHE.remove(getCacheKey(code));
+        return getProcessRuntime(code);
     }
 
     @SuppressWarnings("unchecked")
@@ -76,6 +78,7 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
                 if (RUNTIME_CACHE.get(cacheKey) == null) {
                     runtime = getRuntimeFromSource(code);
                     if (runtime != null) {
+                        runtime.compile();
                         RUNTIME_CACHE.put(cacheKey, runtime);
                     }
                 }
@@ -88,7 +91,6 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
         T flowModel = load(code);
         AbstractProcessRuntime runtime = getRuntimeFromModel(flowModel);
         runtime.init();
-        runtime.compile();
         return runtime;
     }
 
@@ -112,13 +114,13 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
 
     @Override
     public String getJavaCode(String code) {
-        AbstractProcessRuntime runtime = getRuntime(code);
+        AbstractProcessRuntime runtime = reloadRuntime(code);
         return runtime.generateJavaCode();
     }
 
     @Override
     public String getTestCode(String code) {
-        AbstractProcessRuntime runtime = getRuntime(code);
+        AbstractProcessRuntime runtime = reloadRuntime(code);
         return runtime.generateTestCode();
     }
 
@@ -137,13 +139,6 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
             return ".bpmn20";
         }
         return ".bpm";
-    }
-
-    private AbstractProcessRuntime getRuntime(String code) {
-        T flowModel = load(code);
-        AbstractProcessRuntime runtime = getRuntimeFromModel(flowModel);
-        runtime.init();
-        return runtime;
     }
 
     private void checkContinuous(T flowModel) {
