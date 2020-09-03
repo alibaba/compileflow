@@ -62,7 +62,6 @@ demo描述：N个人去ktv唱歌，每人唱首歌，ktv消费原价为30元/人
 编写如下单元测试：
 
 ```java
-@Test
 public void testProcessEngine() {
     final String code = "bpm.ktv.ktvExample";
 
