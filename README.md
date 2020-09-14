@@ -40,13 +40,13 @@ Refer to the KTV demo below to understand the configuration of nodes and attribu
 
 Demo description: N number of people go to ktv to sing. Each person sing a song. The usual fee for the ktv seesion is 30 yuan/person, but if the total price exceeds 300 yuan, they would receive 10% off. But if the groups's total fee falls under 300 yuan, they need to pay the full price.
 
-###S3.1
+### S3.1
 Create a bpm file, as shown below:
 
 ![ktv_demo_s1](./doc/image/ktv_demo_s1.png)
 
 Note: The path of the bpm file must be consistent with the code. When the process engine executes in the file loading mode, the file will be found according to the code.
-###S3.2
+### S3.2
 Design process through plug-ins or write process xml files directly.
 
 ### S3.3 invoke process
