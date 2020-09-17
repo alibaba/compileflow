@@ -21,7 +21,7 @@ import java.util.Map;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = {
-        "classpath:bean/common.xml", "classpath:bean/ktv.xml", "classpath:bean/orderFulfillment.xml"
+    "classpath:bean/common.xml", "classpath:bean/ktv.xml", "classpath:bean/orderFulfillment.xml"
 })
 public class ProcessEngineTest {
 
@@ -56,12 +56,12 @@ public class ProcessEngineTest {
     }
 
     @Test
-    public void testTbbpmConvert() {
-        final String code = "bpm.ktv.ktvExample2";
+    public void testTbbpmModelConvert() {
+        final String code = "bpm.ktv.ktvExample";
 
-        final ProcessEngine processEngine = ProcessEngineFactory.getProcessEngine();
+        final ProcessEngine<TbbpmModel> processEngine = ProcessEngineFactory.getProcessEngine();
 
-        final TbbpmModel tbbpmModel = (TbbpmModel) processEngine.load(code);
+        final TbbpmModel tbbpmModel = processEngine.load(code);
         final OutputStream outputStream = TbbpmModelConverter.getInstance().convertToStream(tbbpmModel);
         System.out.println(outputStream.toString());
 

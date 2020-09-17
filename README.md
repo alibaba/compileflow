@@ -62,9 +62,9 @@ public void testProcessEngine() {
     pList.add("yusu");
     context.put("pList", pList);
 
-    final ProcessEngine processEngine = ProcessEngineFactory.getProcessEngine();
+    final ProcessEngine<TbbpmModel> processEngine = ProcessEngineFactory.getProcessEngine();
 
-    final TbbpmModel tbbpmModel = (TbbpmModel)processEngine.load(code);
+    final TbbpmModel tbbpmModel = processEngine.load(code);
     final OutputStream outputStream = TbbpmModelConverter.getInstance().convertToStream(tbbpmModel);
     System.out.println(outputStream);
     System.out.println(processEngine.getTestCode(code));
