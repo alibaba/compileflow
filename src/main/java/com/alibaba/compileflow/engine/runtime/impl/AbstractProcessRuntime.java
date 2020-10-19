@@ -60,6 +60,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -71,7 +72,8 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
 
     private static final Compiler COMPILER = new CompilerImpl();
     private static AtomicBoolean inited = new AtomicBoolean(false);
-    private final Map<String, Class> compiledClasses = new HashMap<>();
+    private final Map<String, String> javaCodeCache = new ConcurrentHashMap<>();
+    private final Map<String, Class> compiledClassCache = new ConcurrentHashMap<>();
     protected T flowModel;
     protected ClassTarget classTarget;
     protected NodeGeneratorProvider nodeGeneratorProvider;
@@ -84,7 +86,6 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     private List<IVar> paramVars;
     private List<IVar> returnVars;
     private List<IVar> innerVars;
-    private Map<String, String> javaCodes = new HashMap<>();
 
     @SuppressWarnings("unchecked")
     public AbstractProcessRuntime(T flowModel) {
@@ -121,17 +122,11 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     public void compile() {
-        if (compiledClasses.get(code) == null) {
-            synchronized (compiledClasses) {
-                if (compiledClasses.get(code) == null) {
-                    String source = getJavaCode(code);
-                    Class<?> clazz = compileJavaCode(source);
-                    if (clazz != null) {
-                        compiledClasses.put(code, clazz);
-                    }
-                }
-            }
-        }
+        compiledClassCache.computeIfAbsent(code, c -> compileJavaCode(getJavaCode(code)));
+    }
+
+    public void recompile(String code) {
+        compiledClassCache.computeIfPresent(code, (k, v) -> compileJavaCode(generateJavaCode()));
     }
 
     @Override
@@ -213,13 +208,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     private String getJavaCode(String code) {
-        if (javaCodes.get(code) != null) {
-            return javaCodes.get(code);
-        }
-
-        String source = generateJavaCode();
-        javaCodes.put(code, source);
-        return source;
+        return javaCodeCache.computeIfAbsent(code, c -> generateJavaCode());
     }
 
     private Map<String, Object> executeProcessInstance(Map<String, Object> context) {
@@ -235,7 +224,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
 
     @SuppressWarnings("unchecked")
     private <T extends ProcessInstance> T getProcessInstance() {
-        Class<?> clazz = compiledClasses.get(code);
+        Class<?> clazz = compiledClassCache.get(code);
         if (clazz == null) {
             throw new CompileFlowException("Failed to get compile class, code is " + code);
         }

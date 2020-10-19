@@ -44,7 +44,7 @@ import java.util.stream.Collectors;
  */
 public abstract class AbstractProcessEngine<T extends FlowModel<? extends TransitionNode>> implements ProcessEngine<T> {
 
-    private final Map<String, AbstractProcessRuntime> RUNTIME_CACHE = new ConcurrentHashMap<>();
+    private final Map<String, AbstractProcessRuntime> runtimeCache = new ConcurrentHashMap<>();
 
     @Override
     public void preCompile(String... codes) {
@@ -61,30 +61,22 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
     @Override
     public void reload(String code) {
         FlowClassLoader.getInstance().clearCache();
-        reloadRuntime(code);
-    }
-
-    private AbstractProcessRuntime reloadRuntime(String code) {
-        RUNTIME_CACHE.remove(getCacheKey(code));
-        return getProcessRuntime(code);
+        AbstractProcessRuntime runtime = runtimeCache.computeIfPresent(code, (k, v) -> getRuntimeFromSource(code));
+        runtime.recompile(code);
     }
 
     @SuppressWarnings("unchecked")
     protected <R extends AbstractProcessRuntime> R getProcessRuntime(String code) {
         String cacheKey = getCacheKey(code);
-        AbstractProcessRuntime runtime = RUNTIME_CACHE.get(cacheKey);
-        if (runtime == null) {
-            synchronized (RUNTIME_CACHE) {
-                if (RUNTIME_CACHE.get(cacheKey) == null) {
-                    runtime = getRuntimeFromSource(code);
-                    if (runtime != null) {
-                        runtime.compile();
-                        RUNTIME_CACHE.put(cacheKey, runtime);
-                    }
-                }
-            }
-        }
+        AbstractProcessRuntime runtime = runtimeCache.computeIfAbsent(cacheKey, c ->
+            getCompiledRuntime(code));
         return (R)runtime;
+    }
+
+    private AbstractProcessRuntime getCompiledRuntime(String code) {
+        AbstractProcessRuntime runtime = getRuntimeFromSource(code);
+        runtime.compile();
+        return runtime;
     }
 
     private AbstractProcessRuntime getRuntimeFromSource(String code) {
@@ -114,13 +106,13 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
 
     @Override
     public String getJavaCode(String code) {
-        AbstractProcessRuntime runtime = reloadRuntime(code);
+        AbstractProcessRuntime runtime = getRuntimeFromSource(code);
         return runtime.generateJavaCode();
     }
 
     @Override
     public String getTestCode(String code) {
-        AbstractProcessRuntime runtime = reloadRuntime(code);
+        AbstractProcessRuntime runtime = getRuntimeFromSource(code);
         return runtime.generateTestCode();
     }
 

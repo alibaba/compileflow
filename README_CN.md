@@ -96,3 +96,13 @@ public void testProcessEngine() {
 # 6. 欢迎加入`compileflow`开发群
 
 1. 请钉钉联系 @余苏 @徐工 @梵度 @哲良 @无相
+
+### Known Users
+如果您在使用，请让我们知道，您的使用对我们非常重要。请在下面链接的issue中回复：https://github.com/alibaba/compileflow/issues/9
+
+
+![](doc/image/known_users/alibaba.png)
+![](doc/image/known_users/alipay.png)
+![](doc/image/known_users/aliyun.png)
+![](doc/image/known_users/taobao.png)
+![](doc/image/known_users/tmall.png)

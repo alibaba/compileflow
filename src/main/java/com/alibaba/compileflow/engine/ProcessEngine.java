@@ -22,7 +22,7 @@ import java.util.Map;
  * @author wuxiang
  * @author yusu
  */
-public interface ProcessEngine<T extends IFlowModel> {
+public interface ProcessEngine<T extends FlowModel> {
 
     Map<String, Object> start(String code, Map<String, Object> context);
 

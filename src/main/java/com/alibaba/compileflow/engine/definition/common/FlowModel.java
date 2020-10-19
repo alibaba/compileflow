@@ -16,7 +16,6 @@
  */
 package com.alibaba.compileflow.engine.definition.common;
 
-import com.alibaba.compileflow.engine.IFlowModel;
 import com.alibaba.compileflow.engine.definition.common.var.IVar;
 
 import java.util.List;
@@ -24,7 +23,7 @@ import java.util.List;
 /**
  * @author yusu
  */
-public interface FlowModel<T extends Node> extends IFlowModel, NodeContainer<T> {
+public interface FlowModel<T extends Node> extends com.alibaba.compileflow.engine.FlowModel, NodeContainer<T> {
 
     @Override
     String getId();
