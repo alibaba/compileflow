@@ -32,7 +32,9 @@ Compileflow allows developers to design their own business processes through the
 # 4. Quick Start
 ## Step1: Download and install IntelliJ IDEA plugin (optional)
 Plugin download address: https://github.com/alibaba/compileflow-idea-designer
-Installation instructions: Please use IntelliJ IDEA local installation method to install. Then restart IntelliJ IDEA to activate.
+
+*Installation instructions: Please use IntelliJ IDEA local installation method to install. Then restart IntelliJ IDEA to activate.*
+
 ## Step2: Import POM file
 Note: Compileflow only supports JDK 1.8 and above.
 ## Step3: Process design
