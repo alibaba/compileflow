@@ -16,8 +16,8 @@
  */
 package com.alibaba.compileflow.engine.runtime.impl;
 
-import com.alibaba.compileflow.engine.definition.common.*;
 import com.alibaba.compileflow.engine.common.ClassWrapper;
+import com.alibaba.compileflow.engine.definition.common.*;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
 import com.alibaba.compileflow.engine.process.preruntime.validator.ValidateMessage;
 import com.alibaba.compileflow.engine.runtime.instance.ProcessInstance;
@@ -76,8 +76,8 @@ public abstract class AbstractStatelessProcessRuntime<T extends AbstractFlowMode
             .filter(flowNode -> flowNode instanceof GatewayElement)
             .forEach(gatewayNode -> {
                 if (CollectionUtils.isNotEmpty(gatewayNode.getIncomingNodes())
-                    && gatewayNode.getIncomingNodes().stream().allMatch(
-                    incomingNode -> isContainedByIncomingNode(gatewayNode, incomingNode))) {
+                    && gatewayNode.getIncomingNodes().stream()
+                    .allMatch(incomingNode -> isContainedByIncomingNode(gatewayNode, incomingNode))) {
                     followingGraph.put(gatewayNode.getId(), Collections.emptyList());
                 }
 
@@ -90,14 +90,14 @@ public abstract class AbstractStatelessProcessRuntime<T extends AbstractFlowMode
             });
     }
 
-    private List<TransitionNode> buildFollowingNodes(TransitionNode flowNode) {
+    private synchronized List<TransitionNode> buildFollowingNodes(TransitionNode flowNode) {
         return followingGraph.computeIfAbsent(flowNode.getId(), (id) -> {
                 List<TransitionNode> followingNodes = new LinkedList<>();
-            if (flowNode instanceof EndElement) {
+                if (flowNode instanceof EndElement) {
                     return followingNodes;
                 }
 
-            if (flowNode instanceof GatewayElement) {
+                if (flowNode instanceof GatewayElement) {
                     return buildGatewayFollowingNodes(flowNode);
                 }
 
@@ -126,8 +126,8 @@ public abstract class AbstractStatelessProcessRuntime<T extends AbstractFlowMode
             }
         }
         return CollectionUtils.isNotEmpty(incomingNode.getIncomingNodes())
-            && incomingNode.getIncomingNodes().stream().allMatch(
-            node -> isContainedByIncomingNode(decisionNode, node));
+            && incomingNode.getIncomingNodes().stream()
+            .allMatch(node -> isContainedByIncomingNode(decisionNode, node));
     }
 
     private List<TransitionNode> buildGatewayFollowingNodes(TransitionNode flowNode) {
@@ -143,8 +143,8 @@ public abstract class AbstractStatelessProcessRuntime<T extends AbstractFlowMode
                 Iterator<TransitionNode> flowNodeIterator = followingNodes.iterator();
                 while (flowNodeIterator.hasNext()) {
                     TransitionNode followingNode = flowNodeIterator.next();
-                    if (branchFollowingNodes.stream().anyMatch(
-                        node -> node.getId().equals(followingNode.getId()))) {
+                    if (branchFollowingNodes.stream()
+                        .anyMatch(node -> node.getId().equals(followingNode.getId()))) {
                         break;
                     } else {
                         flowNodeIterator.remove();
