@@ -72,13 +72,13 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
 
     private static final Compiler COMPILER = new CompilerImpl();
     private static AtomicBoolean inited = new AtomicBoolean(false);
+    protected final Map<String, List<TransitionNode>> followingGraph = new ConcurrentHashMap<>();
+    protected final Map<String, List<TransitionNode>> branchGraph = new ConcurrentHashMap<>();
     private final Map<String, String> javaCodeCache = new ConcurrentHashMap<>();
     private final Map<String, Class> compiledClassCache = new ConcurrentHashMap<>();
     protected T flowModel;
     protected ClassTarget classTarget;
     protected NodeGeneratorProvider nodeGeneratorProvider;
-    protected Map<String, List<TransitionNode>> followingGraph = new HashMap<>();
-    protected Map<String, List<TransitionNode>> branchGraph = new HashMap<>();
     protected String code;
     private String id;
     private String name;
