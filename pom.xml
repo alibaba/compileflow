@@ -8,6 +8,90 @@
     <artifactId>compileflow</artifactId>
     <version>1.0.0</version>
 
+    <licenses>
+        <license>
+            <name>Apache 2</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>A business-friendly OSS license</comments>
+        </license>
+    </licenses>
+    <scm>
+        <connection>scm:git:git@github.com:alibaba/compileflow.git</connection>
+        <developerConnection>scm:git:git@github.com:alibaba/compileflow.git</developerConnection>
+        <url>git@github.com:alibaba/compileflow.git</url>
+    </scm>
+    <issueManagement>
+        <url>https://github.com/alibaba/compileflow/issues</url>
+        <system>GitHub Issues</system>
+    </issueManagement>
+    <organization>
+        <name>Alibaba</name>
+        <url>http://www.alibaba.com</url>
+    </organization>
+    <developers>
+        <developer>
+            <name>无相</name>
+            <id>voff12</id>
+            <email>voff12(AT)gmail.com</email>
+            <roles>
+                <role>Developer</role>
+            </roles>
+            <timezone>+8</timezone>
+            <url>https://github.com/voff12</url>
+            <organization>Alibaba</organization>
+            <organizationUrl>http://www.alibaba.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>余苏</name>
+            <id>yusu1210</id>
+            <email>yusu1210(AT)126.com</email>
+            <roles>
+                <role>Developer</role>
+            </roles>
+            <timezone>+8</timezone>
+            <url>https://github.com/yusu1210</url>
+            <organization>Alibaba</organization>
+            <organizationUrl>http://www.alibaba.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>徐工</name>
+            <id>xuan698400</id>
+            <email>javaandswing(AT)163.com</email>
+            <roles>
+                <role>Developer</role>
+            </roles>
+            <timezone>+8</timezone>
+            <url>https://github.com/xuan698400</url>
+            <organization>Alibaba</organization>
+            <organizationUrl>http://www.alibaba.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>梵度</name>
+            <id>fandu525</id>
+            <email>330313072(AT)qq.com</email>
+            <roles>
+                <role>Developer</role>
+            </roles>
+            <timezone>+8</timezone>
+            <url>https://github.com/xuan698400</url>
+            <organization>Alibaba</organization>
+            <organizationUrl>http://www.alibaba.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>哲良</name>
+            <id>oldratlee</id>
+            <email>oldratlee(AT)gmail.com</email>
+            <roles>
+                <role>Developer</role>
+            </roles>
+            <timezone>+8</timezone>
+            <url>https://github.com/oldratlee</url>
+            <organization>Alibaba</organization>
+            <organizationUrl>http://www.alibaba.com</organizationUrl>
+        </developer>
+    </developers>
+
     <properties>
         <jdk.version>1.8</jdk.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
