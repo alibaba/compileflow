@@ -6,7 +6,7 @@
 
     <groupId>com.alibaba.compileflow</groupId>
     <artifactId>compileflow</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.0-RC1</version>
     <name>compileflow</name>
     <description>Compileflow is a very lightweight, high-performance, integrable and extensible process engine.</description>
     <url>https://github.com/alibaba/compileflow</url>
