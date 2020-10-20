@@ -166,12 +166,7 @@ public class EcJavaCompiler implements JavaCompiler {
         settings.put(CompilerOptions.OPTION_ReportDeprecation, CompilerOptions.IGNORE);
         settings.put(CompilerOptions.OPTION_LocalVariableAttribute, CompilerOptions.GENERATE);
         settings.put(CompilerOptions.OPTION_Compliance, CompilerOptions.VERSION_1_8);
-
-        if (ALLOWED_SPEC_VERSION.contains(JAVA_SOURCE_VERSION)) {
-            settings.put(CompilerOptions.OPTION_Source, JAVA_SOURCE_VERSION);
-        } else {
-            settings.put(CompilerOptions.OPTION_Source, DEFAULT_JAVA_SOURCE_VERSION);
-        }
+        settings.put(CompilerOptions.OPTION_Source, CompilerOptions.VERSION_1_8);
 
         if (ALLOWED_SPEC_VERSION.contains(JAVA_TARGET_VERSION)) {
             settings.put(CompilerOptions.OPTION_TargetPlatform, JAVA_TARGET_VERSION);
