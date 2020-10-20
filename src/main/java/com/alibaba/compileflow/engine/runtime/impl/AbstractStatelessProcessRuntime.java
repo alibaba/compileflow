@@ -23,7 +23,10 @@ import com.alibaba.compileflow.engine.process.preruntime.validator.ValidateMessa
 import com.alibaba.compileflow.engine.runtime.instance.ProcessInstance;
 import org.apache.commons.collections4.CollectionUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -90,23 +93,25 @@ public abstract class AbstractStatelessProcessRuntime<T extends AbstractFlowMode
             });
     }
 
-    private synchronized List<TransitionNode> buildFollowingNodes(TransitionNode flowNode) {
-        return followingGraph.computeIfAbsent(flowNode.getId(), (id) -> {
-                List<TransitionNode> followingNodes = new LinkedList<>();
-                if (flowNode instanceof EndElement) {
-                    return followingNodes;
-                }
+    private List<TransitionNode> buildFollowingNodes(TransitionNode flowNode) {
+        if (followingGraph.containsKey(flowNode.getId())) {
+            return followingGraph.get(flowNode.getId());
+        }
 
-                if (flowNode instanceof GatewayElement) {
-                    return buildGatewayFollowingNodes(flowNode);
-                }
+        List<TransitionNode> followingNodes;
+        if (flowNode instanceof EndElement) {
+            followingNodes = Collections.emptyList();
+        } else if (flowNode instanceof GatewayElement) {
+            followingNodes = buildGatewayFollowingNodes(flowNode);
+        } else {
+            followingNodes = new ArrayList<>();
+            TransitionNode theOnlyOutgoingNode = getTheOnlyOutgoingNode(flowNode);
+            followingNodes.add(theOnlyOutgoingNode);
+            followingNodes.addAll(buildFollowingNodes(theOnlyOutgoingNode));
+        }
 
-                TransitionNode theOnlyOutgoingNode = getTheOnlyOutgoingNode(flowNode);
-                followingNodes.add(theOnlyOutgoingNode);
-                followingNodes.addAll(buildFollowingNodes(theOnlyOutgoingNode));
-                return followingNodes;
-            }
-        );
+        followingGraph.put(flowNode.getId(), followingNodes);
+        return followingNodes;
     }
 
     private TransitionNode getTheOnlyOutgoingNode(TransitionNode flowNode) {
@@ -159,15 +164,18 @@ public abstract class AbstractStatelessProcessRuntime<T extends AbstractFlowMode
     }
 
     private List<TransitionNode> buildBranchNodes(TransitionNode branchNode) {
-        return branchGraph.computeIfAbsent(branchNode.getId(), id -> {
-            List<TransitionNode> branchNodes = new ArrayList<>();
-            branchNodes.add(branchNode);
-            if (branchNode instanceof EndElement || branchNode instanceof GatewayElement) {
-                return branchNodes;
-            }
+        if (branchGraph.containsKey(branchNode.getId())) {
+            return branchGraph.get(branchNode.getId());
+        }
+
+        List<TransitionNode> branchNodes = new ArrayList<>();
+        branchNodes.add(branchNode);
+        if (!(branchNode instanceof EndElement) && !(branchNode instanceof GatewayElement)) {
             branchNodes.addAll(buildBranchNodes(getTheOnlyOutgoingNode(branchNode)));
-            return branchNodes;
-        });
+        }
+
+        branchGraph.put(branchNode.getId(), branchNodes);
+        return branchNodes;
     }
 
 }
