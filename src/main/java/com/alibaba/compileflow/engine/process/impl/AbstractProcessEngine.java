@@ -48,13 +48,13 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
 
     @Override
     public void preCompile(String... codes) {
-        if (ArrayUtils.isNotEmpty(codes)) {
-            for (String code : codes) {
-                AbstractProcessRuntime runtime = getProcessRuntime(code);
-                runtime.compile();
-            }
-        } else {
+        if (ArrayUtils.isEmpty(codes)) {
             throw new CompileFlowException("No process to compile");
+        }
+
+        for (String code : codes) {
+            AbstractProcessRuntime runtime = getProcessRuntime(code);
+            runtime.compile();
         }
     }
 
@@ -70,7 +70,7 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
         String cacheKey = getCacheKey(code);
         AbstractProcessRuntime runtime = runtimeCache.computeIfAbsent(cacheKey, c ->
             getCompiledRuntime(code));
-        return (R)runtime;
+        return (R) runtime;
     }
 
     private AbstractProcessRuntime getCompiledRuntime(String code) {
@@ -89,10 +89,9 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
     @Override
     @SuppressWarnings("unchecked")
     public T load(String code) {
-        FlowModelType flowModelType = getFlowModelType();
-        FlowStreamSource flowStreamSource = loadFlowModel(code, flowModelType);
+        FlowStreamSource flowStreamSource = loadFlowSource(code);
 
-        T flowModel = (T)getFlowModelConverter().convertToModel(flowStreamSource);
+        T flowModel = (T) getFlowModelConverter().convertToModel(flowStreamSource);
         if (flowModel == null) {
             throw new RuntimeException("No valid flow model found, code is " + code);
         }
@@ -116,13 +115,14 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
         return runtime.generateTestCode();
     }
 
-    private FlowStreamSource loadFlowModel(String code, FlowModelType flowModelType) {
-        String filePath = convertPackagePath(code, flowModelType);
+    private FlowStreamSource loadFlowSource(String code) {
+        String filePath = convertToFilePath(code);
         return ResourceFlowStreamSource.of(filePath);
     }
 
-    private String convertPackagePath(String code, FlowModelType flowModelType) {
+    private String convertToFilePath(String code) {
         String path = code.replace(".", "/");
+        FlowModelType flowModelType = getFlowModelType();
         return path + getBpmFileSuffix(flowModelType);
     }
 
@@ -157,7 +157,7 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
 
     @SuppressWarnings("unchecked")
     private void checkCycle(T flowModel) {
-        DirectedGraph directedGraph = new DirectedGraph();
+        DirectedGraph<TransitionNode> directedGraph = new DirectedGraph<>();
         for (TransitionNode node : flowModel.getAllNodes()) {
             List<TransitionNode> outgoingNodes = node.getOutgoingNodes();
             if (CollectionUtils.isNotEmpty(outgoingNodes)) {

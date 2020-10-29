@@ -32,7 +32,7 @@ import java.util.Optional;
 public abstract class AbstractNodeGeneratorProvider implements NodeGeneratorProvider {
 
     protected AbstractProcessRuntime runtime;
-    private Map<String, Generator> generatorMap = new HashMap<>();
+    private final Map<String, Generator> generatorMap = new HashMap<>();
 
     public AbstractNodeGeneratorProvider(AbstractProcessRuntime runtime) {
         this.runtime = runtime;

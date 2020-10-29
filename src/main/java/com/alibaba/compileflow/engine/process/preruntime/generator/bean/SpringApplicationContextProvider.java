@@ -25,15 +25,11 @@ import org.springframework.context.ApplicationContextAware;
  */
 public class SpringApplicationContextProvider implements ApplicationContextAware {
 
-    private static ApplicationContext context;
-
-    public static ApplicationContext getContext() {
-        return context;
-    }
+    public static ApplicationContext applicationContext;
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        context = applicationContext;
+        SpringApplicationContextProvider.applicationContext = applicationContext;
     }
 
 }

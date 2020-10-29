@@ -58,7 +58,7 @@ public abstract class AbstractStatelessProcessRuntime<T extends AbstractFlowMode
     }
 
     @Override
-    protected List<Class> getExtImportedTypes() {
+    protected List<Class<?>> getExtImportedTypes() {
         return Collections.singletonList(ProcessInstance.class);
     }
 

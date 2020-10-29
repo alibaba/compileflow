@@ -21,8 +21,8 @@ import com.alibaba.compileflow.engine.process.preruntime.compiler.CompileOption;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaCompiler;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaSource;
 import org.eclipse.jdt.core.compiler.IProblem;
-import org.eclipse.jdt.internal.compiler.*;
 import org.eclipse.jdt.internal.compiler.Compiler;
+import org.eclipse.jdt.internal.compiler.*;
 import org.eclipse.jdt.internal.compiler.classfmt.ClassFileReader;
 import org.eclipse.jdt.internal.compiler.env.ICompilationUnit;
 import org.eclipse.jdt.internal.compiler.env.INameEnvironment;
@@ -248,9 +248,9 @@ public class EcJavaCompiler implements JavaCompiler {
     }
 
     static class CompilationUnit implements ICompilationUnit {
-        private String className;
-        private String sourceFile;
-        private String encode;
+        private final String className;
+        private final String sourceFile;
+        private final String encode;
 
         CompilationUnit(String sourceFile, String className, String encode) {
             this.className = className;

@@ -24,9 +24,9 @@ import com.alibaba.compileflow.engine.process.preruntime.validator.impl.TbbpmMod
 
 public class ModelValidatorFactory {
 
-    private static FlowModelValidator bpmnModelValidator = new BpmnModelValidator();
+    private static final FlowModelValidator bpmnModelValidator = new BpmnModelValidator();
 
-    private static FlowModelValidator tbbpmModelValidator = new TbbpmModelValidator();
+    private static final FlowModelValidator tbbpmModelValidator = new TbbpmModelValidator();
 
     public static FlowModelValidator getFlowModelValidator(FlowModelType flowModelType) {
 
