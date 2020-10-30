@@ -44,7 +44,19 @@ Plugin download address: https://github.com/alibaba/compileflow-idea-designer
 *Installation instructions: Please use IntelliJ IDEA local installation method to install. Then restart IntelliJ IDEA to activate.*
 
 ## Step2: Import POM file
-Note: Compileflow only supports JDK 1.8 and above.
+
+```xml
+<dependency>
+    <groupId>com.alibaba.compileflow</groupId>
+    <artifactId>compileflow</artifactId>
+    <version>1.0.0-RC2</version>
+</dependency>
+```
+Check available version at [search.maven.org](https://search.maven.org/search?q=g:com.alibaba.compileflow%20AND%20a:compileflow&core=gav).
+
+**Note**: Compileflow only supports JDK 1.8 and above.
+
+
 ## Step3: Process design
 Refer to the KTV demo below to understand the configuration of nodes and attributes and the use of APIs through the demonstration and practice of the demo.
 

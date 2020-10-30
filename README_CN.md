@@ -44,11 +44,13 @@
 <dependency>
     <groupId>com.alibaba.compileflow</groupId>
     <artifactId>compileflow</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.0-RC2</version>
 </dependency>
 ```
 
-注意: `compileflow`仅支持`JDK 1.8`及以上版本。
+可以在 [search.maven.org](https://search.maven.org/search?q=g:com.alibaba.compileflow%20AND%20a:compileflow&core=gav) 查看可用的版本。
+
+**注意**: `compileflow`仅支持`JDK 1.8`及以上版本。
 
 ## Step3: 流程设计
 
