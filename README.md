@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/alibaba/compileflow.svg?branch=master)](https://travis-ci.org/alibaba/compileflow)
 [![Maven Central](https://img.shields.io/maven-central/v/com.alibaba.compileflow/compileflow.svg?color=2d545e)](https://search.maven.org/search?q=g:com.alibaba.compileflow%20AND%20a:compileflow&core=gav)
-[![GitHub release](https://img.shields.io/github/release/alibaba/compileflow.svg)](https://github.com/alibaba/compileflow/releases)  
+[![GitHub release](https://img.shields.io/github/release/alibaba/compileflow.svg) ![JDK support](https://img.shields.io/badge/JDK-8+-green.svg)](https://github.com/alibaba/compileflow/releases)  
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 [![GitHub Stars](https://img.shields.io/github/stars/alibaba/compileflow)](https://github.com/alibaba/compileflow/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/alibaba/compileflow)](https://github.com/alibaba/compileflow/fork)
@@ -44,7 +44,19 @@ Plugin download address: https://github.com/alibaba/compileflow-idea-designer
 *Installation instructions: Please use IntelliJ IDEA local installation method to install. Then restart IntelliJ IDEA to activate.*
 
 ## Step2: Import POM file
-Note: Compileflow only supports JDK 1.8 and above.
+
+```xml
+<dependency>
+    <groupId>com.alibaba.compileflow</groupId>
+    <artifactId>compileflow</artifactId>
+    <version>1.0.0-RC2</version>
+</dependency>
+```
+Check available version at [search.maven.org](https://search.maven.org/search?q=g:com.alibaba.compileflow%20AND%20a:compileflow&core=gav).
+
+**Note**: Compileflow only supports JDK 1.8 and above.
+
+
 ## Step3: Process design
 Refer to the KTV demo below to understand the configuration of nodes and attributes and the use of APIs through the demonstration and practice of the demo.
 
