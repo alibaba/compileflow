@@ -48,6 +48,7 @@ public abstract class AbstractTbbpmActionNodeWriter<S extends ActionNode>
         xsw.writeEndElement();
     }
 
+    @SuppressWarnings("unchecked")
     private void writeActionHandle(IActionHandle actionHandle, XMLStreamWriter xsw) throws Exception {
         if (actionHandle == null) {
             return;

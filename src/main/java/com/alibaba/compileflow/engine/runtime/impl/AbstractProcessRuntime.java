@@ -60,6 +60,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -70,21 +71,21 @@ import java.util.stream.Collectors;
 public abstract class AbstractProcessRuntime<T extends FlowModel> implements ProcessRuntime {
 
     private static final Compiler COMPILER = new CompilerImpl();
-    private static AtomicBoolean inited = new AtomicBoolean(false);
-    private final Map<String, Class> compiledClasses = new HashMap<>();
+    private static final AtomicBoolean inited = new AtomicBoolean(false);
+    protected final Map<String, List<TransitionNode>> followingGraph = new HashMap<>();
+    protected final Map<String, List<TransitionNode>> branchGraph = new HashMap<>();
+    private final Map<String, String> javaCodeCache = new ConcurrentHashMap<>();
+    private final Map<String, Class<?>> compiledClassCache = new ConcurrentHashMap<>();
     protected T flowModel;
     protected ClassTarget classTarget;
     protected NodeGeneratorProvider nodeGeneratorProvider;
-    protected Map<String, List<TransitionNode>> followingGraph = new HashMap<>();
-    protected Map<String, List<TransitionNode>> branchGraph = new HashMap<>();
     protected String code;
-    private String id;
-    private String name;
+    private final String id;
+    private final String name;
     private List<IVar> vars;
-    private List<IVar> paramVars;
-    private List<IVar> returnVars;
-    private List<IVar> innerVars;
-    private Map<String, String> javaCodes = new HashMap<>();
+    private final List<IVar> paramVars;
+    private final List<IVar> returnVars;
+    private final List<IVar> innerVars;
 
     @SuppressWarnings("unchecked")
     public AbstractProcessRuntime(T flowModel) {
@@ -117,21 +118,15 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     public <P extends NodeGeneratorProvider> P getNodeGeneratorProvider() {
-        return (P)nodeGeneratorProvider;
+        return (P) nodeGeneratorProvider;
     }
 
     public void compile() {
-        if (compiledClasses.get(code) == null) {
-            synchronized (compiledClasses) {
-                if (compiledClasses.get(code) == null) {
-                    String source = getJavaCode(code);
-                    Class<?> clazz = compileJavaCode(source);
-                    if (clazz != null) {
-                        compiledClasses.put(code, clazz);
-                    }
-                }
-            }
-        }
+        compiledClassCache.computeIfAbsent(code, c -> compileJavaCode(getJavaCode(code)));
+    }
+
+    public void recompile(String code) {
+        compiledClassCache.computeIfPresent(code, (k, v) -> compileJavaCode(generateJavaCode()));
     }
 
     @Override
@@ -162,13 +157,15 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         method.addAnnotation("@Test");
         method.addException(ClassWrapper.of(Exception.class));
         method.addBodyLine("String code = \"" + code + "\";");
-        String engineCode = isStateless() && isBpmn20() ? "StatelessProcessEngine engine = "
-            + "ProcessEngineFactory.getStatelessProcessEngine(FlowModelType.BPMN);"
-            : !isStateless() && !isBpmn20() ? "StatelessProcessEngine engine = "
-                + "ProcessEngineFactory.getStatefulProcessEngine();"
-                : !isStateless() && isBpmn20() ? "StatelessProcessEngine engine = "
-                    + "ProcessEngineFactory.getStatefulProcessEngine(FlowModelType.BPMN);"
-                    : "StatelessProcessEngine engine = ProcessEngineFactory.getProcessEngine();";
+//        String engineCode = isStateless() && isBpmn20() ? "StatelessProcessEngine engine = "
+//            + "ProcessEngineFactory.getStatelessProcessEngine(FlowModelType.BPMN);"
+//            : !isStateless() && !isBpmn20() ? "StatelessProcessEngine engine = "
+//                + "ProcessEngineFactory.getStatefulProcessEngine();"
+//                : !isStateless() && isBpmn20() ? "StatelessProcessEngine engine = "
+//                    + "ProcessEngineFactory.getStatefulProcessEngine(FlowModelType.BPMN);"
+//                    : "StatelessProcessEngine engine = ProcessEngineFactory.getProcessEngine();";
+        String engineCode = isBpmn20() ? "ProcessEngine<BpmnModel> engine = ProcessEngineFactory.getProcessEngine(FlowModelType.BPMN);"
+            : "ProcessEngine<TbbpmModel> engine = ProcessEngineFactory.getProcessEngine();";
         method.addBodyLine(engineCode);
         method.addBodyLine("System.out.println(engine.getJavaCode(code));");
         method.addBodyLine("Map<String, Object> context = new HashMap<String, Object>();");
@@ -213,13 +210,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     private String getJavaCode(String code) {
-        if (javaCodes.get(code) != null) {
-            return javaCodes.get(code);
-        }
-
-        String source = generateJavaCode();
-        javaCodes.put(code, source);
-        return source;
+        return javaCodeCache.computeIfAbsent(code, c -> generateJavaCode());
     }
 
     private Map<String, Object> executeProcessInstance(Map<String, Object> context) {
@@ -235,12 +226,12 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
 
     @SuppressWarnings("unchecked")
     private <T extends ProcessInstance> T getProcessInstance() {
-        Class<?> clazz = compiledClasses.get(code);
+        Class<?> clazz = compiledClassCache.get(code);
         if (clazz == null) {
             throw new CompileFlowException("Failed to get compile class, code is " + code);
         }
         try {
-            return (T)ClassUtils.newInstance(clazz);
+            return (T) ClassUtils.newInstance(clazz);
         } catch (Exception e) {
             throw new CompileFlowException("Failed to get process instance, code is " + code, e);
         }
@@ -308,8 +299,8 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
             for (IVar var : vars) {
                 ClassWrapper rvType = ClassWrapper.of(var.getDataType());
                 classTarget.addImportedType(rvType);
-                String nullValue = DataType.getDefaultValueString(
-                    DataType.getJavaClass(var.getDataType()), var.getDefaultValue());
+                String nullValue = DataType.getDefaultValueString(DataType.getJavaClass(var.getDataType()),
+                    var.getDefaultValue());
                 classTarget.addField(rvType, var.getName(), nullValue);
             }
         }
@@ -348,7 +339,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     private void initBeanProvider() {
-        ApplicationContext contex = SpringApplicationContextProvider.getContext();
+        ApplicationContext contex = SpringApplicationContextProvider.applicationContext;
         SpringBeanHolder beanHolder = SpringBeanHolder.of(contex);
         BeanProvider.registerBeanHolder(beanHolder);
     }
@@ -427,15 +418,15 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     private void addExtImportedTypes() {
-        List<Class> extImportedTypes = getExtImportedTypes();
+        List<Class<?>> extImportedTypes = getExtImportedTypes();
         if (CollectionUtils.isNotEmpty(extImportedTypes)) {
-            for (Class extImportedType : extImportedTypes) {
+            for (Class<?> extImportedType : extImportedTypes) {
                 classTarget.addImportedType(ClassWrapper.of(extImportedType));
             }
         }
     }
 
-    protected abstract List<Class> getExtImportedTypes();
+    protected abstract List<Class<?>> getExtImportedTypes();
 
     private void addImportedTypes() {
         classTarget.addImportedType(ClassWrapper.of(Map.class));

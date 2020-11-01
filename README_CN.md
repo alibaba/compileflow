@@ -1,5 +1,13 @@
 📖 查看[📖 英文版文档](README.md).
 
+[![Build Status](https://travis-ci.org/alibaba/compileflow.svg?branch=master)](https://travis-ci.org/alibaba/compileflow)
+[![Maven Central](https://img.shields.io/maven-central/v/com.alibaba.compileflow/compileflow.svg?color=2d545e)](https://search.maven.org/search?q=g:com.alibaba.compileflow%20AND%20a:compileflow&core=gav)
+[![GitHub release](https://img.shields.io/github/release/alibaba/compileflow.svg)](https://github.com/alibaba/compileflow/releases)  
+[![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
+[![GitHub Stars](https://img.shields.io/github/stars/alibaba/compileflow)](https://github.com/alibaba/compileflow/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/alibaba/compileflow)](https://github.com/alibaba/compileflow/fork)
+[![GitHub issues](https://img.shields.io/github/issues/alibaba/compileflow.svg)](https://github.com/alibaba/compileflow/issues)
+
 # 1. `compileflow`是什么
 
 `compileflow`是一个非常轻量、高性能、可集成、可扩展的流程引擎。
@@ -36,11 +44,13 @@
 <dependency>
     <groupId>com.alibaba.compileflow</groupId>
     <artifactId>compileflow</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.0-RC2</version>
 </dependency>
 ```
 
-注意: `compileflow`仅支持`JDK 1.8`及以上版本。
+可以在 [search.maven.org](https://search.maven.org/search?q=g:com.alibaba.compileflow%20AND%20a:compileflow&core=gav) 查看可用的版本。
+
+**注意**: `compileflow`仅支持`JDK 1.8`及以上版本。
 
 ## Step3: 流程设计
 
@@ -96,3 +106,13 @@ public void testProcessEngine() {
 # 6. 欢迎加入`compileflow`开发群
 
 1. 请钉钉联系 @余苏 @徐工 @梵度 @哲良 @无相
+
+### Known Users
+如果您在使用，请让我们知道，您的使用对我们非常重要。请在下面链接的issue中回复：https://github.com/alibaba/compileflow/issues/9
+
+
+![](doc/image/known_users/alibaba.png)
+![](doc/image/known_users/alipay.png)
+![](doc/image/known_users/aliyun.png)
+![](doc/image/known_users/taobao.png)
+![](doc/image/known_users/tmall.png)

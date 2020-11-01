@@ -18,8 +18,8 @@ package com.alibaba.compileflow.engine.process.preruntime.compiler.impl;
 
 import com.alibaba.compileflow.engine.common.CompileFlowException;
 import com.alibaba.compileflow.engine.common.utils.FileUtils;
-import com.alibaba.compileflow.engine.process.preruntime.compiler.*;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.Compiler;
+import com.alibaba.compileflow.engine.process.preruntime.compiler.*;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.impl.support.EcJavaCompiler;
 
 import java.io.File;
@@ -31,7 +31,7 @@ import java.io.PrintWriter;
  */
 public class CompilerImpl implements Compiler {
 
-    private static JavaCompiler javaCompiler = new EcJavaCompiler();
+    private static final JavaCompiler JAVA_COMPILER = new EcJavaCompiler();
 
     @Override
     public Class<?> compileJavaCode(String fullClassName, String sourceCode) {
@@ -49,7 +49,7 @@ public class CompilerImpl implements Compiler {
             File javaSourceFile = writeJavaFile(dirFile, fullClassName, sourceCode);
             JavaSource javaSource = JavaSource.of(javaSourceFile, sourceCode, fullClassName);
 
-            javaCompiler.compile(javaSource, new File(dirPath), new CompileOption());
+            JAVA_COMPILER.compile(javaSource, new File(dirPath), new CompileOption());
 
             File classFile = new File(dirFile, fullClassName.replace('.', File.separatorChar) + ".class");
             byte[] classBytes = FileUtils.readFileToByteArray(classFile);
