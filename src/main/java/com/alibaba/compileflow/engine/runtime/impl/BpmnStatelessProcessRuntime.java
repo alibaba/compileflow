@@ -50,7 +50,15 @@ public class BpmnStatelessProcessRuntime extends AbstractStatelessProcessRuntime
 
     @Override
     @SuppressWarnings("unchecked")
-    protected void registerNodeGenerator(NodeContainer<TransitionNode> nodeContainer) {
+    public void registerNodeGenerator(NodeContainer<TransitionNode> nodeContainer) {
+
+        if (nodeContainer == null) {
+            throw  new IllegalArgumentException("nodeContainer is null");
+        }
+
+        if (nodeContainer.getAllNodes() == null) {
+            throw  new IllegalArgumentException("nodeContainer.getAllNodes()  is  null");
+        }
 
         for (TransitionNode node : nodeContainer.getAllNodes()) {
             if (node instanceof ServiceTask) {

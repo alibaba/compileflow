@@ -90,6 +90,9 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     @SuppressWarnings("unchecked")
     public AbstractProcessRuntime(T flowModel) {
         this.flowModel = flowModel;
+        if (this.flowModel == null) {
+            throw new IllegalArgumentException("flowModel is null");
+        }
         this.id = flowModel.getId();
         this.code = flowModel.getCode();
         this.name = flowModel.getName();
@@ -138,6 +141,8 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     public abstract FlowModelType getFlowModelType();
 
     public abstract String generateJavaCode();
+
+    public abstract void registerNodeGenerator(NodeContainer<TransitionNode> nodeContainer);
 
     public String generateTestCode() {
         ClassTarget classTarget = new ClassTarget();
@@ -373,7 +378,6 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
 
     protected abstract GeneratorProviderFactory getGeneratorProviderFactory();
 
-    protected abstract void registerNodeGenerator(NodeContainer<TransitionNode> nodeContainer);
 
     private void initClassTarget() {
         String fullClassName = getFlowClassFullName(code, id);
@@ -386,6 +390,9 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     private String getFlowClassFullName(String code, String id) {
+        if (code == null) {
+            throw new IllegalArgumentException("code is null");
+        }
         int startIndex = code.lastIndexOf(".");
         if (startIndex > 0) {
             return wrapClassFullName(code.substring(0, startIndex) + "."
