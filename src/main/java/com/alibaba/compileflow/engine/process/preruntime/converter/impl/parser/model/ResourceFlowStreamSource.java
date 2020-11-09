@@ -56,7 +56,7 @@ public class ResourceFlowStreamSource implements FlowStreamSource {
             : classLoader.getResourceAsStream(resource);
 
         if (inputStream == null) {
-            throw new CompileFlowException("Failed to load flow");
+            throw new CompileFlowException("Failed to load flow, resource is " + resource);
         }
         return inputStream;
     }

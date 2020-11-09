@@ -35,6 +35,9 @@ public class TbbpmModelConstants {
     public static final String DECISION = "decision";
     public static final String NOTE = "note";
     public static final String SUB_BPM = "subBpm";
+    public static final String LOOP_PROCESS = "loopProcess";
+    public static final String CONTINUE = "continue";
+    public static final String BREAK = "break";
 
     public static final String TRANSITION = "transition";
 
@@ -45,7 +48,6 @@ public class TbbpmModelConstants {
     public static final String ACTION_HANDLE = "actionHandle";
     public static final String FLOW_ACTION_HANDLE = "flowActionHandle";
     public static final String JAVA_ACTION_HANDLE = "javaActionHandle";
-    public static final String LOOP_PROCESS = "loopProcess";
     public static final String MVEL_ACTION_HANDLE = "mvelActionHandle";
     public static final String QL_ACTION_HANDLE = "qlActionHandle";
     public static final String SCRIPT_ACTION_HANDLE = "scriptActionHandle";

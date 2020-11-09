@@ -51,6 +51,7 @@ public class BpmNode implements NodeContainer<FlowNode>, HasVar, Element {
 
     private List<FlowNode> allNodes = new ArrayList<>();
 
+    @Override
     public String getId() {
         return id;
     }

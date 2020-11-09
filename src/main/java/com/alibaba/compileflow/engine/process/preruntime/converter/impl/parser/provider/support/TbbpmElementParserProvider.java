@@ -58,6 +58,8 @@ public class TbbpmElementParserProvider extends AbstractFlowElementParserProvide
         registerParser(new VarParser());
         registerParser(new WaitTaskParser());
         registerParser(new LoopProcessParser());
+        registerParser(new ContinueParser());
+        registerParser(new BreakParser());
         registerParser(new NoteParser());
         registerParser(new TransitionParser());
     }
