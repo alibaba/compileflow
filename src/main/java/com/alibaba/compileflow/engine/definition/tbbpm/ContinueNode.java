@@ -31,4 +31,8 @@ public class ContinueNode extends EventNode implements HasExpression {
         return expression;
     }
 
+    public void setExpression(String expression) {
+        this.expression = expression;
+    }
+
 }
