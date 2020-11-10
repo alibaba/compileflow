@@ -19,6 +19,7 @@ package com.alibaba.compileflow.engine.process.preruntime.converter.impl.writer.
 import com.alibaba.compileflow.engine.definition.common.Element;
 import com.alibaba.compileflow.engine.definition.common.NodeContainer;
 import com.alibaba.compileflow.engine.definition.tbbpm.LoopProcessNode;
+import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModelConstants;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.writer.provider.support.TbbpmFlowElementWriterProvider;
 
 import javax.xml.stream.XMLStreamWriter;
@@ -27,6 +28,11 @@ import javax.xml.stream.XMLStreamWriter;
  * @author yusu
  */
 public class LoopProcessWriter extends AbstractTbbpmFlowElementWriter<LoopProcessNode> {
+
+    @Override
+    protected String getName() {
+        return TbbpmModelConstants.LOOP_PROCESS;
+    }
 
     @Override
     protected void enrichNodeAttr(LoopProcessNode node, XMLStreamWriter xsw) throws Exception {
@@ -43,11 +49,6 @@ public class LoopProcessWriter extends AbstractTbbpmFlowElementWriter<LoopProces
     @Override
     protected void enrichNodeElement(LoopProcessNode element, XMLStreamWriter xsw) throws Exception {
         TbbpmFlowElementWriterProvider.getInstance().getWriter(NodeContainer.class).write(element, xsw);
-    }
-
-    @Override
-    protected String getName() {
-        return "loopProcess";
     }
 
     @Override

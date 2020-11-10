@@ -18,6 +18,7 @@ package com.alibaba.compileflow.engine.process.preruntime.converter.impl.writer.
 
 import com.alibaba.compileflow.engine.definition.common.Element;
 import com.alibaba.compileflow.engine.definition.tbbpm.AutoTaskNode;
+import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModelConstants;
 
 import javax.xml.stream.XMLStreamWriter;
 
@@ -28,7 +29,7 @@ public class AutoTaskWriter extends AbstractTbbpmActionNodeWriter<AutoTaskNode> 
 
     @Override
     protected String getName() {
-        return "autoTask";
+        return TbbpmModelConstants.AUTO_TASK;
     }
 
     @Override
