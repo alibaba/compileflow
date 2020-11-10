@@ -45,6 +45,8 @@ public class TbbpmFlowElementWriterProvider extends AbstractFlowElementWriterPro
         registerWriter(new ScriptTaskWriter());
         registerWriter(new DecisionWriter());
         registerWriter(new LoopProcessWriter());
+        registerWriter(new ContinueWriter());
+        registerWriter(new BreakWriter());
         registerWriter(new NoteWriter());
         registerWriter(new SubBpmWriter());
         registerWriter(new SpringBeanActionHandleWriter());

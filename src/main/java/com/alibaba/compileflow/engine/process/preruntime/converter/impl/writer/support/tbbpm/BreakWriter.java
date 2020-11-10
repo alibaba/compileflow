@@ -17,7 +17,7 @@
 package com.alibaba.compileflow.engine.process.preruntime.converter.impl.writer.support.tbbpm;
 
 import com.alibaba.compileflow.engine.definition.common.Element;
-import com.alibaba.compileflow.engine.definition.tbbpm.NoteNode;
+import com.alibaba.compileflow.engine.definition.tbbpm.BreakNode;
 import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModelConstants;
 
 import javax.xml.stream.XMLStreamWriter;
@@ -25,27 +25,26 @@ import javax.xml.stream.XMLStreamWriter;
 /**
  * @author yusu
  */
-public class NoteWriter extends AbstractTbbpmFlowElementWriter<NoteNode> {
+public class BreakWriter extends AbstractTbbpmFlowElementWriter<BreakNode> {
 
     @Override
     protected String getName() {
-        return TbbpmModelConstants.NOTE;
+        return TbbpmModelConstants.BREAK;
     }
 
     @Override
-    protected void enrichNodeAttr(NoteNode node, XMLStreamWriter xsw) throws Exception {
-        writeAttribute(xsw, "comment", node.getComment());
-        writeAttribute(xsw, "visible", String.valueOf(node.isVisible()));
+    protected void enrichNodeAttr(BreakNode node, XMLStreamWriter xsw) throws Exception {
+        writeAttribute(xsw, "expression", node.getExpression());
     }
 
     @Override
-    protected void enrichNodeElement(NoteNode element, XMLStreamWriter xsw) throws Exception {
+    protected void enrichNodeElement(BreakNode element, XMLStreamWriter xsw) throws Exception {
 
     }
 
     @Override
     public Class<? extends Element> getElementClass() {
-        return NoteNode.class;
+        return BreakNode.class;
     }
 
 }

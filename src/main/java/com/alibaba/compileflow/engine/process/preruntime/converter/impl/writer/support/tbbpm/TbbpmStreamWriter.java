@@ -18,8 +18,8 @@ package com.alibaba.compileflow.engine.process.preruntime.converter.impl.writer.
 
 import com.alibaba.compileflow.engine.definition.common.NodeContainer;
 import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModel;
-import com.alibaba.compileflow.engine.process.preruntime.converter.impl.writer.support.AbstractFlowStreamWriter;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.writer.provider.support.TbbpmFlowElementWriterProvider;
+import com.alibaba.compileflow.engine.process.preruntime.converter.impl.writer.support.AbstractFlowStreamWriter;
 
 import javax.xml.stream.XMLStreamWriter;
 
@@ -33,6 +33,7 @@ public class TbbpmStreamWriter extends AbstractFlowStreamWriter<TbbpmModel> {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     protected void doWrite(TbbpmModel flowModel, XMLStreamWriter xsw) throws Exception {
         xsw.writeStartDocument("UTF-8", "1.0");
         xsw.writeStartElement("bpm");

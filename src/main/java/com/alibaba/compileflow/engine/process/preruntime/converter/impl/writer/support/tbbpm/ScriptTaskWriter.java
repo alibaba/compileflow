@@ -18,6 +18,7 @@ package com.alibaba.compileflow.engine.process.preruntime.converter.impl.writer.
 
 import com.alibaba.compileflow.engine.definition.common.Element;
 import com.alibaba.compileflow.engine.definition.tbbpm.ScriptTaskNode;
+import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModelConstants;
 
 import javax.xml.stream.XMLStreamWriter;
 
@@ -28,7 +29,7 @@ public class ScriptTaskWriter extends AbstractTbbpmActionNodeWriter<ScriptTaskNo
 
     @Override
     protected String getName() {
-        return "scriptTask";
+        return TbbpmModelConstants.SCRIPT_TASK;
     }
 
     @Override

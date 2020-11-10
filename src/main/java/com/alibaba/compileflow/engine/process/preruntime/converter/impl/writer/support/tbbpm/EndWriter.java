@@ -18,6 +18,7 @@ package com.alibaba.compileflow.engine.process.preruntime.converter.impl.writer.
 
 import com.alibaba.compileflow.engine.definition.common.Element;
 import com.alibaba.compileflow.engine.definition.tbbpm.EndNode;
+import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModelConstants;
 
 import javax.xml.stream.XMLStreamWriter;
 
@@ -28,7 +29,7 @@ public class EndWriter extends AbstractTbbpmFlowElementWriter<EndNode> {
 
     @Override
     protected String getName() {
-        return "end";
+        return TbbpmModelConstants.END;
     }
 
     @Override
