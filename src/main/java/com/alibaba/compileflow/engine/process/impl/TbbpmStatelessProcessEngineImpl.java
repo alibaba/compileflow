@@ -33,9 +33,14 @@ public class TbbpmStatelessProcessEngineImpl extends AbstractProcessEngine<Tbbpm
     implements ProcessEngine<TbbpmModel> {
 
     @Override
-    public Map<String, Object> start(String code, Map<String, Object> context) {
+    public Map<String, Object> execute(String code, Map<String, Object> context) {
         TbbpmStatelessProcessRuntime runtime = getProcessRuntime(code);
         return runtime.start(context);
+    }
+
+    @Override
+    public Map<String, Object> start(String code, Map<String, Object> context) {
+        return execute(code, context);
     }
 
     @Override

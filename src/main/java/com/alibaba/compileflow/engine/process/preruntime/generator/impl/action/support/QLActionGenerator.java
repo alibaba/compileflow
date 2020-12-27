@@ -47,10 +47,13 @@ public class QLActionGenerator extends AbstractScriptActionGenerator {
 
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
+        if (actionHandle == null) {
+            codeTargetSupport.addBodyLine("//TODO");
+        }
+
         addImportedType(codeTargetSupport, IExpressContext.class);
         addImportedType(codeTargetSupport, DefaultContext.class);
         addImportedType(codeTargetSupport, ScriptExecutorProvider.class);
-
         codeTargetSupport.addBodyLine("IExpressContext<String, Object> nfScriptContext = new DefaultContext<>();");
         generateScriptExecuteCode(codeTargetSupport);
     }
