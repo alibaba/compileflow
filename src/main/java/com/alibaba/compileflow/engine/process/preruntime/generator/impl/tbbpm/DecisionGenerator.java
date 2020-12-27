@@ -41,11 +41,20 @@ public class DecisionGenerator extends AbstractTbbpmActionNodeGenerator<Decision
 
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
-        String methodName = generateDecisionMethodName();
-        codeTargetSupport.addBodyLine(methodName + "();");
+        if (flowNode.getIncomingNodes().size() > 1) {
+            String methodName = generateDecisionMethodName();
+            codeTargetSupport.addBodyLine(methodName + "();");
 
-        generateMethodCode(codeTargetSupport, methodName, this::generateDecisionMethodCode);
+            generateMethodCode(codeTargetSupport, methodName, this::generateDecisionMethodCode);
 
+            generateFollowingNodeCode(codeTargetSupport);
+        } else {
+            generateDecisionMethodCode(codeTargetSupport);
+            generateFollowingNodeCode(codeTargetSupport);
+        }
+    }
+
+    private void generateFollowingNodeCode(CodeTargetSupport codeTargetSupport) {
         Map<String, List<TransitionNode>> followingGraph = runtime.getFollowingGraph();
         List<TransitionNode> followingNodes = followingGraph.get(flowNode.getId());
         executeNodes(followingNodes, codeTargetSupport);

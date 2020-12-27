@@ -16,9 +16,9 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.generator.impl.action.support;
 
+import com.alibaba.compileflow.engine.common.ClassWrapper;
 import com.alibaba.compileflow.engine.definition.common.action.IAction;
 import com.alibaba.compileflow.engine.definition.common.action.impl.JavaActionHandle;
-import com.alibaba.compileflow.engine.common.ClassWrapper;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
 import com.alibaba.compileflow.engine.process.preruntime.generator.impl.action.AbstractActionGenerator;
 import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;
@@ -42,9 +42,12 @@ public class JavaActionGenerator extends AbstractActionGenerator {
 
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
+        if (actionHandle == null) {
+            codeTargetSupport.addBodyLine("//TODO");
+        }
+
         String clazz = getClazz();
         addImportedType(codeTargetSupport, clazz);
-
         ClassWrapper classWrapper = ClassWrapper.of(clazz);
         codeTargetSupport.addBodyLine(
             getReturnVarCode() + "((" + classWrapper.getShortName()

@@ -44,8 +44,11 @@ public class MVELActionGenerator extends AbstractScriptActionGenerator {
 
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
-        addImportedType(codeTargetSupport, ScriptExecutorProvider.class);
+        if (actionHandle == null) {
+            codeTargetSupport.addBodyLine("//TODO");
+        }
 
+        addImportedType(codeTargetSupport, ScriptExecutorProvider.class);
         codeTargetSupport.addBodyLine("Map<String, Object> nfScriptContext = new HashMap<String, Object>();");
         generateScriptExecuteCode(codeTargetSupport);
     }
