@@ -24,6 +24,9 @@ import java.util.Map;
  */
 public interface ProcessEngine<T extends FlowModel> {
 
+    Map<String, Object> execute(String code, Map<String, Object> context);
+
+    @Deprecated
     Map<String, Object> start(String code, Map<String, Object> context);
 
     void preCompile(String... codes);

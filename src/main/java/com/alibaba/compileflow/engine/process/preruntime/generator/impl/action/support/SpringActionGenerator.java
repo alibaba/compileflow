@@ -16,9 +16,9 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.generator.impl.action.support;
 
+import com.alibaba.compileflow.engine.common.ClassWrapper;
 import com.alibaba.compileflow.engine.definition.common.action.IAction;
 import com.alibaba.compileflow.engine.definition.common.action.impl.SpringBeanActionHandle;
-import com.alibaba.compileflow.engine.common.ClassWrapper;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
 import com.alibaba.compileflow.engine.process.preruntime.generator.impl.action.AbstractActionGenerator;
 import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;
@@ -42,10 +42,13 @@ public class SpringActionGenerator extends AbstractActionGenerator {
 
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
+        if (actionHandle == null) {
+            codeTargetSupport.addBodyLine("//TODO");
+        }
+
         String bean = getBean();
         String clazz = getClazz();
         addImportedType(codeTargetSupport, clazz);
-
         ClassWrapper classWrapper = ClassWrapper.of(clazz);
         codeTargetSupport.addBodyLine(
             getReturnVarCode() + "((" + classWrapper.getShortName()
@@ -54,15 +57,15 @@ public class SpringActionGenerator extends AbstractActionGenerator {
     }
 
     private String getBean() {
-        return ((SpringBeanActionHandle)actionHandle).getBean();
+        return ((SpringBeanActionHandle) actionHandle).getBean();
     }
 
     private String getClazz() {
-        return ((SpringBeanActionHandle)actionHandle).getClazz();
+        return ((SpringBeanActionHandle) actionHandle).getClazz();
     }
 
     private String getMethod() {
-        return ((SpringBeanActionHandle)actionHandle).getMethod();
+        return ((SpringBeanActionHandle) actionHandle).getMethod();
     }
 
     @Override

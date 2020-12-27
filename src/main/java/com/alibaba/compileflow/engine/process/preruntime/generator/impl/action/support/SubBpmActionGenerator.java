@@ -47,6 +47,10 @@ public class SubBpmActionGenerator extends AbstractActionGenerator {
 
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
+        if (actionHandle == null) {
+            codeTargetSupport.addBodyLine("//TODO");
+        }
+
         addImportedType(codeTargetSupport, ProcessEngineFactory.class);
 
         List<IVar> params = getMethodParameters();
