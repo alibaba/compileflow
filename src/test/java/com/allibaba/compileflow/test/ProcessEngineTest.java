@@ -38,7 +38,7 @@ public class ProcessEngineTest {
         final ProcessEngine processEngine = ProcessEngineFactory.getProcessEngine();
         System.out.println(processEngine.getTestCode(code));
 
-        System.out.println(processEngine.start(code, context));
+        System.out.println(processEngine.execute(code, context));
     }
 
     @Test
