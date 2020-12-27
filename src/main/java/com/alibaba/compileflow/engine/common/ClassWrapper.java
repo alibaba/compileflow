@@ -21,12 +21,15 @@ import org.apache.commons.collections4.CollectionUtils;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
  * @author yusu
  */
 public class ClassWrapper {
+
+    private static final String BEAN_HOLD_NAME = "$TODO";
 
     private String name;
 
@@ -53,30 +56,50 @@ public class ClassWrapper {
     }
 
     private static String getClassShortName(String name) {
+
+        if (Objects.isNull(name)) {
+            return BEAN_HOLD_NAME;
+        }
         int index = name.lastIndexOf("<");
         name = index == -1 ? getClassShortRawName(name) : getClassShortRawName(name) + name.substring(index);
         return name;
     }
 
     private static String getClassShortRawName(String name) {
+
+        if (Objects.isNull(name)) {
+            return BEAN_HOLD_NAME;
+        }
         name = getRawName(name);
         int index = name.lastIndexOf(".");
         return index == -1 ? name : name.substring(index + 1);
     }
 
     private static String getClassPackage(String name) {
+
+        if (Objects.isNull(name)) {
+            return BEAN_HOLD_NAME;
+        }
         name = getRawName(name);
         int index = name.lastIndexOf(".");
         return index == -1 ? null : name.substring(0, index);
     }
 
     private static String getRawName(String name) {
+
+        if (Objects.isNull(name)) {
+            return BEAN_HOLD_NAME;
+        }
         int index = name.lastIndexOf("<");
         name = index == -1 ? name : name.substring(0, index);
         return name;
     }
 
     private static List<ClassWrapper> getClassParameterizedType(String name) {
+
+        if (Objects.isNull(name)) {
+            return null;
+        }
         int index = name.indexOf("<");
         return index == -1 ? Collections.emptyList() :
             Arrays.stream(name.substring(index + 1, name.lastIndexOf(">")).split(","))
