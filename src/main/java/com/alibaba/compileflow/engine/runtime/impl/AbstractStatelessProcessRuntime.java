@@ -17,6 +17,7 @@
 package com.alibaba.compileflow.engine.runtime.impl;
 
 import com.alibaba.compileflow.engine.common.ClassWrapper;
+import com.alibaba.compileflow.engine.common.constants.ProcessType;
 import com.alibaba.compileflow.engine.definition.common.*;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
 import com.alibaba.compileflow.engine.process.preruntime.validator.ValidateMessage;
@@ -50,6 +51,11 @@ public abstract class AbstractStatelessProcessRuntime<T extends AbstractFlowMode
         classTarget.addSuperInterface(ClassWrapper.of(ProcessInstance.class));
         generateFlowMethod("execute", this::generateExecuteMethodBody);
         return classTarget.generateCode();
+    }
+
+    @Override
+    public ProcessType getProcessType() {
+        return ProcessType.STATELESS;
     }
 
     @Override

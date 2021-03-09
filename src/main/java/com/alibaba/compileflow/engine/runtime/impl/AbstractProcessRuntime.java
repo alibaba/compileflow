@@ -20,7 +20,9 @@ import com.alibaba.compileflow.engine.ProcessEngine;
 import com.alibaba.compileflow.engine.ProcessEngineFactory;
 import com.alibaba.compileflow.engine.common.ClassWrapper;
 import com.alibaba.compileflow.engine.common.CompileFlowException;
+import com.alibaba.compileflow.engine.common.Lifecycle;
 import com.alibaba.compileflow.engine.common.constants.FlowModelType;
+import com.alibaba.compileflow.engine.common.constants.ProcessType;
 import com.alibaba.compileflow.engine.common.utils.ClassUtils;
 import com.alibaba.compileflow.engine.common.utils.DataType;
 import com.alibaba.compileflow.engine.common.utils.ObjectFactory;
@@ -68,7 +70,7 @@ import java.util.stream.Collectors;
  * @author wuxiang
  * @author yusu
  */
-public abstract class AbstractProcessRuntime<T extends FlowModel> implements ProcessRuntime {
+public abstract class AbstractProcessRuntime<T extends FlowModel> implements ProcessRuntime, Lifecycle {
 
     private static final Compiler COMPILER = new CompilerImpl();
     private static final AtomicBoolean inited = new AtomicBoolean(false);
@@ -140,9 +142,11 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
 
     public abstract FlowModelType getFlowModelType();
 
+    public abstract ProcessType getProcessType();
+
     public abstract String generateJavaCode();
 
-    public abstract void registerNodeGenerator(NodeContainer<TransitionNode> nodeContainer);
+    protected abstract void registerNodeGenerator(NodeContainer<TransitionNode> nodeContainer);
 
     public String generateTestCode() {
         ClassTarget classTarget = new ClassTarget();
@@ -230,7 +234,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends ProcessInstance> T getProcessInstance() {
+    protected <T extends ProcessInstance> T getProcessInstance() {
         Class<?> clazz = compiledClassCache.get(code);
         if (clazz == null) {
             throw new CompileFlowException("Failed to get compile class, code is " + code);
@@ -319,6 +323,11 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
             initBeanProvider();
             initScriptExecutorProvider();
         }
+    }
+
+    @Override
+    public void stop() {
+
     }
 
     private void validateRuntime() {
