@@ -37,7 +37,7 @@ public class BreakGenerator extends AbstractTbbpmNodeGenerator<BreakNode> {
         if (StringUtils.isNotEmpty(flowNode.getExpression())) {
             codeTargetSupport.addBodyLine("if (" + flowNode.getExpression() + ") {");
             codeTargetSupport.addBodyLine("break;");
-            codeTargetSupport.addCloseBrace();
+            codeTargetSupport.addBodyLine("}");
         } else {
             codeTargetSupport.addBodyLine("break;");
         }
