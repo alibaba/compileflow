@@ -5,7 +5,7 @@
 📖 See the [📖 中文文档](README_CN.md) for the documents in Chinese.
 
 [![Build Status](https://travis-ci.org/alibaba/compileflow.svg?branch=master)](https://travis-ci.org/alibaba/compileflow)
-[![Maven Central](https://img.shields.io/maven-central/v/com.alibaba.compileflow/compileflow.svg?color=2d545e)](https://search.maven.org/search?q=g:com.alibaba.compileflow%20AND%20a:compileflow&core=gav)
+[![Maven Central](https://img.shields.io/maven-central/v/com.alibaba.compileflow/compileflow.svg?color=2d545e)](https://search.maven.org/artifact/com.alibaba.compileflow/compileflow)
 [![GitHub release](https://img.shields.io/github/release/alibaba/compileflow.svg) ![JDK support](https://img.shields.io/badge/JDK-8+-green.svg)](https://github.com/alibaba/compileflow/releases)  
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 [![GitHub Stars](https://img.shields.io/github/stars/alibaba/compileflow)](https://github.com/alibaba/compileflow/stargazers)
@@ -57,7 +57,7 @@ Plugin download address: https://github.com/alibaba/compileflow-idea-designer
 <dependency>
     <groupId>com.alibaba.compileflow</groupId>
     <artifactId>compileflow</artifactId>
-    <version>1.0.0-RC2</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
