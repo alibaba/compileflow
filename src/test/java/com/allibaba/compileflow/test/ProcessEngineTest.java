@@ -73,7 +73,7 @@ public class ProcessEngineTest {
 
     @Test
     public void testStatefulProcessEngine() {
-        String code = "bpm.om.orderFulfillmentFlow";
+        String code = "bpm.om.generalOrderFulfillmentFlow";
         //String code = "bpm.route.uopOrderFullLinkRouteDecide";
         StatefulProcessEngine processEngine = ProcessEngineFactory.getStatefulProcessEngine();
         //System.out.println(ProcessEnginePortalFactory.getProcessEnginePortal().getJavaCode(code, FlowModelType

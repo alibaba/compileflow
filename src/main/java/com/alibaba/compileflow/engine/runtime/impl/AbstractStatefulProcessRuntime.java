@@ -53,7 +53,8 @@ public abstract class AbstractStatefulProcessRuntime<T extends FlowModel> extend
     @Override
     public String generateJavaCode() {
         classTarget.addSuperInterface(ClassWrapper.of(StatefulProcessInstance.class));
-        generateFlowMethod("execute", this::generateStartExecuteBody);
+//        generateFlowMethod("execute", this::generateStartExecuteBody);
+        generateStartExecuteMethod();
         MethodTarget method = generateFlowMethod("trigger", this::generateFireExecuteBody);
         ClassWrapper mType = ClassWrapper.of("String");
         method.addParameter(ParamTarget.of(mType, "currentTag"));
@@ -99,10 +100,16 @@ public abstract class AbstractStatefulProcessRuntime<T extends FlowModel> extend
         }
     }
 
-    private void generateStartExecuteBody(CodeTargetSupport method) {
-        method.addBodyLine("");
-        method.addBodyLine("_pResult = trigger(_pContext, \"" + flowModel.getStartNode().getTag() + "\");");
-        method.addBodyLine("");
+//    private void generateStartExecuteBody(CodeTargetSupport method) {
+//        method.addBodyLine("");
+//        method.addBodyLine("_pResult = trigger(_pContext, \"" + flowModel.getStartNode().getTag() + "\");");
+//        method.addBodyLine("");
+//    }
+
+    private void generateStartExecuteMethod() {
+        MethodTarget methodTarget = generateMethodDefinition("execute");
+        methodTarget.addBodyLine("return ProcessEngineFactory.getProcessEngine().execute(\"" + code + "\", _pContext);");
+        classTarget.addMethod(methodTarget);
     }
 
     private void generateFireExecuteBody(CodeTargetSupport method) {

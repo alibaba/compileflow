@@ -252,13 +252,8 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
 
     protected MethodTarget generateFlowMethod(String methodName,
                                               Generator methodExecuteBodyGenerator) {
-        MethodTarget methodTarget = new MethodTarget();
+        MethodTarget methodTarget = generateMethodDefinition(methodName);
         classTarget.addMethod(methodTarget);
-        methodTarget.setClassTarget(classTarget);
-        methodTarget.setName(methodName);
-        methodTarget.addException(ClassWrapper.of(Exception.class));
-        ClassWrapper mType = ClassWrapper.of("Map<String, Object>");
-        methodTarget.addParameter(ParamTarget.of(mType, "_pContext"));
 
         addVars(paramVars);
         addVars(returnVars);
@@ -294,12 +289,22 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
             methodTarget.addBodyLines(results);
         }
         methodTarget.addBodyLine("return _pResult;");
-        methodTarget.setReturnType(mType);
-        methodTarget.addModifier(Modifier.PUBLIC);
         //if (monitorAction != null) {
         //    methodTarget.addBodyLines(monitorAction.generateCode());
         //}
 
+        return methodTarget;
+    }
+
+    protected MethodTarget generateMethodDefinition(String methodName) {
+        MethodTarget methodTarget = new MethodTarget();
+        methodTarget.setClassTarget(classTarget);
+        methodTarget.setName(methodName);
+        methodTarget.addException(ClassWrapper.of(Exception.class));
+        ClassWrapper mType = ClassWrapper.of("Map<String, Object>");
+        methodTarget.addParameter(ParamTarget.of(mType, "_pContext"));
+        methodTarget.setReturnType(mType);
+        methodTarget.addModifier(Modifier.PUBLIC);
         return methodTarget;
     }
 
@@ -315,6 +320,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         }
     }
 
+    @Override
     public void init() {
         validateRuntime();
         initClassTarget();
@@ -415,7 +421,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     private String wrapClassFullName(String name) {
-        return "compileflow." + name;
+        return "compileflow." + (isStateless() ? "stateless." : "stateful.") + name;
     }
 
     private String getFlowClassName(String code, String id) {
