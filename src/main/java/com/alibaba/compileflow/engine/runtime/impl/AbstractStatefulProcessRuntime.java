@@ -114,8 +114,10 @@ public abstract class AbstractStatefulProcessRuntime<T extends FlowModel> extend
     }
 
     private void generateFireExecuteBody(CodeTargetSupport method) {
+
         method.addBodyLine("boolean running = true;");
         method.addBodyLine("boolean trigger = true;");
+        method.addNewLine();
         method.addBodyLine("while (running) {");
         method.addBodyLine("switch (currentTag) {");
         Set<String> visitedNodes = new HashSet<>();
