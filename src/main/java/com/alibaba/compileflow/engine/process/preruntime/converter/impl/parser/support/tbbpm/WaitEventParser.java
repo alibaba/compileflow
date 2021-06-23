@@ -25,7 +25,7 @@ public class WaitEventParser extends AbstractTbbpmElementParser<WaitEventNode> {
         waitEventNode.setId(xmlSource.getString("id"));
         waitEventNode.setName(xmlSource.getString("name"));
         waitEventNode.setTag(xmlSource.getString("tag"));
-        waitEventNode.setTag(xmlSource.getString("eventName"));
+        waitEventNode.setEventName(xmlSource.getString("eventName"));
         waitEventNode.setDescription(xmlSource.getString("description"));
         waitEventNode.setG(xmlSource.getString("g"));
         return waitEventNode;

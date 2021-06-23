@@ -90,9 +90,11 @@ public class ProcessEngineTest {
 
         StatefulProcessEngine processEngine = ProcessEngineFactory.getStatefulProcessEngine();
         try {
-            System.out.println(processEngine.getJavaCode(code));
+//            System.out.println(processEngine.getJavaCode(code));
+            System.out.println("------receiver not real event------");
             System.out.println(processEngine.trigger(code, "randomEvent", context));
             System.out.println("------receiver real event------");
+            context.put("eventName","PaymentPendingCallback");
             System.out.println(processEngine.trigger(code, "PaymentPendingCallback", context));
         } catch (Exception e) {
             e.printStackTrace();

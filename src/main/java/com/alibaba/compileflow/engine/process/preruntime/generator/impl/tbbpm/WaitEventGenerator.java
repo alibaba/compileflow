@@ -18,6 +18,10 @@ public class WaitEventGenerator extends AbstractTbbpmInOutActionNodeGenerator<Wa
 
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
-//        super.generateCode(codeTargetSupport);
+        generateNodeComment(codeTargetSupport);
+        String eventName = flowNode.getEventName() == null ? "\"null\"": flowNode.getEventName();
+        codeTargetSupport.addBodyLine("if(!_event.equals(\""+eventName+"\")) {");
+        codeTargetSupport.addBodyLine("return _pResult ;");
+        codeTargetSupport.addBodyLine("} ");
     }
 }

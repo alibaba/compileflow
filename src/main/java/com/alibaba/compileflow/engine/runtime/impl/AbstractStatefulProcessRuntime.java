@@ -109,6 +109,7 @@ public abstract class AbstractStatefulProcessRuntime<T extends FlowModel> extend
     private void generateStartExecuteMethod() {
         MethodTarget methodTarget = generateMethodDefinition("execute");
 //        methodTarget.addBodyLine("return ProcessEngineFactory.getProcessEngine().execute(\"" + code + "\", _pContext);");
+        // 这里增加一下process代码
         methodTarget.addBodyLine("return null;");
         classTarget.addMethod(methodTarget);
     }
@@ -117,6 +118,7 @@ public abstract class AbstractStatefulProcessRuntime<T extends FlowModel> extend
 
         method.addBodyLine("boolean running = true;");
         method.addBodyLine("boolean trigger = true;");
+        method.addBodyLine("String _event = (String)_pContext.get(\"eventName\") == null?\"\" :(String)_pContext.get(\"eventName\");");
         method.addNewLine();
         method.addBodyLine("while (running) {");
         method.addBodyLine("switch (currentTag) {");

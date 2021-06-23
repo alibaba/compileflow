@@ -22,6 +22,6 @@ public class WaitEventStateLessGenerator extends AbstractTbbpmInOutActionNodeGen
         generateNodeComment(codeTargetSupport);
         codeTargetSupport.addBodyLine("if(true) {");
         codeTargetSupport.addBodyLine("return _pResult ;");
-        codeTargetSupport.addBodyLine("} ;");
+        codeTargetSupport.addBodyLine("} ");
     }
 }
