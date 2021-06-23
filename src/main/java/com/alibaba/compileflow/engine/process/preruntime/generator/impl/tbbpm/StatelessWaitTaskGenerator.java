@@ -33,7 +33,7 @@ public class StatelessWaitTaskGenerator extends AbstractTbbpmNodeGenerator<WaitT
 
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
-
+        codeTargetSupport.addBodyLine("return _pResult;");
     }
 
 }

@@ -14,38 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.alibaba.compileflow.engine.definition.tbbpm;
-
-import com.alibaba.compileflow.engine.definition.common.BreakElement;
-import com.alibaba.compileflow.engine.definition.common.action.HasInOutAction;
-import com.alibaba.compileflow.engine.definition.common.action.IAction;
+package com.alibaba.compileflow.engine.definition.common;
 
 /**
- * @author wuxiang
  * @author yusu
  */
-public class WaitTaskNode extends ActivityNode implements BreakElement, HasInOutAction {
-
-    private IAction inAction;
-
-    private IAction outAction;
-
-    @Override
-    public IAction getInAction() {
-        return inAction;
-    }
-
-    public void setInAction(IAction inAction) {
-        this.inAction = inAction;
-    }
-
-    @Override
-    public IAction getOutAction() {
-        return outAction;
-    }
-
-    public void setOutAction(IAction outAction) {
-        this.outAction = outAction;
-    }
+public interface BreakElement extends Element {
 
 }

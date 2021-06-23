@@ -107,6 +107,8 @@ public abstract class AbstractStatelessProcessRuntime<T extends AbstractFlowMode
         List<TransitionNode> followingNodes;
         if (flowNode instanceof EndElement) {
             followingNodes = Collections.emptyList();
+        } else if (flowNode instanceof BreakElement) {
+            followingNodes = Collections.emptyList();
         } else if (flowNode instanceof GatewayElement) {
             followingNodes = buildGatewayFollowingNodes(flowNode);
         } else {
@@ -176,7 +178,7 @@ public abstract class AbstractStatelessProcessRuntime<T extends AbstractFlowMode
 
         List<TransitionNode> branchNodes = new ArrayList<>();
         branchNodes.add(branchNode);
-        if (!(branchNode instanceof EndElement) && !(branchNode instanceof GatewayElement)) {
+        if (!(branchNode instanceof EndElement) && !(branchNode instanceof BreakElement) && !(branchNode instanceof GatewayElement)) {
             branchNodes.addAll(buildBranchNodes(getTheOnlyOutgoingNode(branchNode)));
         }
 
