@@ -323,6 +323,43 @@
             </xs:attribute>
         </xs:complexType>
     </xs:element>
+    <xs:element name="waitEventTask">
+        <xs:complexType>
+            <xs:choice maxOccurs="unbounded" minOccurs="0">
+                <xs:element ref="transition"/>
+            </xs:choice>
+            <xs:attribute name="name">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="tag">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="eventName">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="id" use="required">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="g" use="required">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:attribute>
+        </xs:complexType>
+    </xs:element>
     <xs:element name="scriptTask">
         <xs:complexType>
             <xs:choice maxOccurs="unbounded" minOccurs="0">
@@ -393,6 +430,7 @@
                 <xs:element ref="transition"/>
                 <xs:element ref="autoTask"/>
                 <xs:element ref="scriptTask"/>
+                <xs:element ref="waitEventTask"/>
                 <xs:element ref="decision"/>
                 <xs:element ref="loopProcess"/>
                 <xs:element ref="subBpm"/>
@@ -623,6 +661,7 @@
                 <xs:element ref="transaction"/>
                 <xs:element ref="subBpm"/>
                 <xs:element ref="noop"/>
+                <xs:element ref="waitEventTask"/>
             </xs:choice>
             <xs:attribute name="name">
                 <xs:simpleType>
@@ -1213,74 +1252,6 @@
             </xs:attribute>
         </xs:complexType>
     </xs:element>
-    <xs:element name="machineTask">
-        <xs:complexType>
-            <xs:choice maxOccurs="unbounded" minOccurs="0">
-                <xs:element ref="action"/>
-                <xs:element ref="transition"/>
-            </xs:choice>
-            <xs:attribute name="taskType" use="required">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:attribute>
-            <xs:attribute name="name">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:attribute>
-            <xs:attribute name="taskGroup">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:attribute>
-            <xs:attribute name="taskRoute">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:attribute>
-            <xs:attribute name="tag">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:attribute>
-            <xs:attribute name="retryType">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:attribute>
-            <xs:attribute name="retryMax">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:attribute>
-            <xs:attribute name="retryInterVal">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:attribute>
-            <xs:attribute name="id" use="required">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:attribute>
-            <xs:attribute name="g" use="required">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:attribute>
-        </xs:complexType>
-    </xs:element>
     <xs:element name="bpm">
         <xs:complexType>
             <xs:choice minOccurs="0" maxOccurs="unbounded">
@@ -1298,7 +1269,7 @@
                 <xs:element ref="userTask"/>
                 <xs:element ref="waitTask"/>
                 <xs:element ref="eventTask"/>
-                <xs:element ref="machineTask"/>
+                <xs:element ref="waitEventTask"/>
                 <xs:element ref="subBpm"/>
                 <xs:element ref="timeout"/>
                 <xs:element ref="end"/>

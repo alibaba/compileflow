@@ -84,6 +84,8 @@ public class TbbpmStatelessProcessRuntime extends AbstractStatelessProcessRuntim
                 registerGenerator(node, new NoteGenerator(this, (NoteNode) node));
             } else if (node instanceof WaitTaskNode) {
                 registerGenerator(node, new StatelessWaitTaskGenerator(this, (WaitTaskNode) node));
+            } else if (node instanceof WaitEventNode) {
+                registerGenerator(node, new WaitEventStateLessGenerator(this, (WaitEventNode)node));
             } else {
                 throw new IllegalStateException("Unknown node type: " + node.getClass().getName());
             }

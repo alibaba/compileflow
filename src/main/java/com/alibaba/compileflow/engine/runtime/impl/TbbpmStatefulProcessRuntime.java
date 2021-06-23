@@ -55,6 +55,8 @@ public class TbbpmStatefulProcessRuntime extends AbstractStatefulProcessRuntime<
                 registerGenerator(node, new StatefulSubBpmGenerator(this, (SubBpmNode) node));
             } else if (node instanceof WaitTaskNode) {
                 registerGenerator(node, new WaitTaskGenerator(this, (WaitTaskNode) node));
+            } else if (node instanceof WaitEventNode) {
+                registerGenerator(node, new WaitEventGenerator(this, (WaitEventNode) node));
             }
 
             if (node instanceof NodeContainer) {

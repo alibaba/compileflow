@@ -31,6 +31,7 @@ public class TbbpmModelConstants {
     public static final String END = "end";
     public static final String AUTO_TASK = "autoTask";
     public static final String WAIT_TASK = "waitTask";
+    public static final String WAIT_EVENT_TASK = "waitEventTask";
     public static final String SCRIPT_TASK = "scriptTask";
     public static final String DECISION = "decision";
     public static final String NOTE = "note";

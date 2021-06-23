@@ -108,7 +108,8 @@ public abstract class AbstractStatefulProcessRuntime<T extends FlowModel> extend
 
     private void generateStartExecuteMethod() {
         MethodTarget methodTarget = generateMethodDefinition("execute");
-        methodTarget.addBodyLine("return ProcessEngineFactory.getProcessEngine().execute(\"" + code + "\", _pContext);");
+//        methodTarget.addBodyLine("return ProcessEngineFactory.getProcessEngine().execute(\"" + code + "\", _pContext);");
+        methodTarget.addBodyLine("return null;");
         classTarget.addMethod(methodTarget);
     }
 

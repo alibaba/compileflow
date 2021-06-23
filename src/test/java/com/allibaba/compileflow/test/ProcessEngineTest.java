@@ -83,6 +83,24 @@ public class ProcessEngineTest {
     }
 
     @Test
+    public void testTiggerWaitPayProcess() {
+        String code = "bpm.om.waitpaySuccessflow";
+        Map<String, Object> context = new HashMap<>();
+        context.put("num", 100d);
+
+        StatefulProcessEngine processEngine = ProcessEngineFactory.getStatefulProcessEngine();
+        try {
+            System.out.println(processEngine.getJavaCode(code));
+            System.out.println(processEngine.trigger(code, "randomEvent", context));
+            System.out.println("------receiver real event------");
+            System.out.println(processEngine.trigger(code, "PaymentPendingCallback", context));
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail(e.getMessage());
+        }
+    }
+
+    @Test
     public void testStatefulProcessEngine() {
         String code = "bpm.om.generalOrderFulfillmentFlow";
         //String code = "bpm.route.uopOrderFullLinkRouteDecide";
