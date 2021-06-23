@@ -36,7 +36,7 @@ public class ClassUtils {
     }
 
     public static <T> T newInstance(Class clazz) throws Exception {
-        return (T)clazz.newInstance();
+        return (T)clazz.getDeclaredConstructor().newInstance();
     }
 
     public static boolean isAbstractOrInterface(Class<?> clazz) {

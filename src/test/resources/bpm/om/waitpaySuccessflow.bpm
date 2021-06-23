@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.om.waitpaySuccessflow" name="test" type="process" description="This is test demo.">
+  <var name="num" description="入参" dataType="java.lang.Integer" inOutType="param"></var>
+  <var name="numSqrt" description="开根号结果" dataType="java.lang.Integer" inOutType="return"></var>
+  <start id="1" name="开始" g="115,16,30,30">
+    <transition to="17" g=":-15,20"></transition>
+  </start>
+  <end id="11" name="结束" g="115,411,30,30"></end>
+  <autoTask id="17" name="计算平方根" g="95,160,88,48">
+    <transition to="29" g=":-15,20"></transition>
+    <action type="java">
+      <actionHandle clazz="com.allibaba.compileflow.test.mock.MockJavaClazz" method="mockReturnMethod">
+        <var name="input" dataType="int" contextVarName="num" inOutType="param"></var>
+        <var name="output" dataType="int" contextVarName="numSqrt" inOutType="return"></var>
+      </actionHandle>
+    </action>
+  </autoTask>
+  <waitTask id="29" name="֧等待回调处理" tag="PaymentPendingCallback" g="725,595,101,53">
+    <transition g=":-15,20" to="38"/>
+  </waitTask>
+  <autoTask id="38" name="计算平方根" g="95,160,88,48">
+    <transition to="11" g=":-15,20"></transition>
+    <action type="java">
+      <actionHandle clazz="com.allibaba.compileflow.test.mock.MockJavaClazz" method="mockReturnMethod">
+        <var name="input" dataType="int" contextVarName="num" inOutType="param"></var>
+        <var name="output" dataType="int" contextVarName="numSqrt" inOutType="return"></var>
+      </actionHandle>
+    </action>
+  </autoTask>
+</bpm>

@@ -71,20 +71,33 @@ public class ProcessEngineTest {
         System.out.println(srcCode);
     }
 
+
+    @Test
+    public void testWaitPayProcess(){
+        String code = "bpm.om.waitpaySuccessflow";
+        System.out.println(ProcessEngineFactory.getProcessEngine().getJavaCode(code));
+        Map<String, Object> context = new HashMap<>();
+        context.put("num", 100d);
+
+        ProcessEngineFactory.getProcessEngine().execute(code,context);
+    }
+
     @Test
     public void testStatefulProcessEngine() {
         String code = "bpm.om.generalOrderFulfillmentFlow";
         //String code = "bpm.route.uopOrderFullLinkRouteDecide";
         StatefulProcessEngine processEngine = ProcessEngineFactory.getStatefulProcessEngine();
-        //System.out.println(ProcessEnginePortalFactory.getProcessEnginePortal().getJavaCode(code, FlowModelType
-        // .NATURE));
+
+        System.out.println(ProcessEngineFactory.getProcessEngine().getJavaCode(code));
+
         Map<String, Object> context = new HashMap<>();
         List<String> pList = new ArrayList<>();
         pList.add("wuxiang");
         pList.add("yusu");
         context.put("pList", pList);
         try {
-            System.out.println(processEngine.start(code, context));
+            System.out.println(processEngine.getJavaCode(code));
+            System.out.println(processEngine.trigger(code, "PaymentPendingCallback", context));
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail(e.getMessage());
