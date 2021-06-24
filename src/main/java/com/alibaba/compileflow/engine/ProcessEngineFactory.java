@@ -17,9 +17,12 @@
 package com.alibaba.compileflow.engine;
 
 import com.alibaba.compileflow.engine.common.constants.FlowModelType;
+import com.alibaba.compileflow.engine.process.impl.BpmnStatefulProcessEngineImpl;
 import com.alibaba.compileflow.engine.process.impl.BpmnStatelessProcessEngineImpl;
+import com.alibaba.compileflow.engine.process.impl.TbbpmStatefulProcessEngineImpl;
 import com.alibaba.compileflow.engine.process.impl.TbbpmStatelessProcessEngineImpl;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -30,17 +33,32 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ProcessEngineFactory {
 
     private static final Map<FlowModelType, ProcessEngine> STATELESS_PROCESS_ENGINES = new ConcurrentHashMap<>();
+    private static final Map<FlowModelType, StatefulProcessEngine> STATEFUL_PROCESS_ENGINES = new HashMap<>();
 
     public static ProcessEngine getProcessEngine() {
         return getStatelessProcessEngine(FlowModelType.TBBPM);
     }
 
     public static ProcessEngine getStatelessProcessEngine(FlowModelType flowModelType) {
-        return STATELESS_PROCESS_ENGINES.computeIfAbsent(flowModelType, flowModelType1 -> {
+        return STATELESS_PROCESS_ENGINES.computeIfAbsent(flowModelType, type -> {
             if (FlowModelType.BPMN.equals(flowModelType)) {
                 return new BpmnStatelessProcessEngineImpl();
             } else {
                 return new TbbpmStatelessProcessEngineImpl();
+            }
+        });
+    }
+
+    public static StatefulProcessEngine getStatefulProcessEngine() {
+        return getStatefulProcessEngine(FlowModelType.TBBPM);
+    }
+
+    public static StatefulProcessEngine getStatefulProcessEngine(FlowModelType flowModelType) {
+        return STATEFUL_PROCESS_ENGINES.computeIfAbsent(flowModelType, type -> {
+            if (FlowModelType.BPMN.equals(flowModelType)) {
+                return new BpmnStatefulProcessEngineImpl();
+            } else {
+                return new TbbpmStatefulProcessEngineImpl();
             }
         });
     }

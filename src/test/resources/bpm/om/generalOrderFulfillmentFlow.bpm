@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<bpm code="bpm.om.generalOrderFulfillmentFlow" name="通用订单履约流程" type="statelessWorkflow" description="通用订单履约流程">
+<bpm code="bpm.om.generalOrderFulfillmentFlow" name="通用订单履约流程" type="statefulProcess" description="通用订单履约流程">
     <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
          contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
     <var name="paymentType" dataType="java.lang.String" contextVarName="paymentType" inOutType="return"/>
@@ -12,7 +12,7 @@
          inOutType="return"/>
     <var name="amendmentJudgementFlag" dataType="java.lang.Boolean" contextVarName="amendmentJudgementFlag"
          inOutType="return"/>
-    <waitTask id="32" name="人工校验回调" tag="SecurityManualJudgeCallback" g="270,570,88,48" retryMax="5" retryInterVal="60">
+    <waitTask id="32" name="人工校验回调" tag="SecurityManualJudgeCallback" g="270,570,88,48">
         <transition g=":-15,20" to="35"/>
         <outAction type="spring-bean">
             <actionHandle bean="securityManualCheckCallbackActivity"
@@ -23,7 +23,7 @@
             </actionHandle>
         </outAction>
     </waitTask>
-    <decision id="25" name="库存扣减结果判断" tag="inventoryResultJudge" g="340,820,141,48" retryMax="5" retryInterVal="60">
+    <decision id="25" name="库存扣减结果判断" tag="inventoryResultJudge" g="340,820,141,48">
         <transition expression="inventoryReduceFlag == false" name="扣减失败" g="713,746;:-15,20" to="26"/>
         <transition expression="inventoryReduceFlag == true" name="扣减成功" g=":-15,20" to="30"/>
         <action type="spring-bean">
@@ -37,7 +37,7 @@
             </actionHandle>
         </action>
     </decision>
-    <waitTask id="33" name="Delivered回调处理" tag="DeliveredCallback" g="25,695,97,49" retryMax="5" retryInterVal="60">
+    <waitTask id="33" name="Delivered回调处理" tag="DeliveredCallback" g="25,695,97,49">
         <transition g=":-15,20" to="2"/>
         <outAction type="spring-bean">
             <actionHandle bean="deliveredCallbackActivity"
@@ -48,7 +48,7 @@
             </actionHandle>
         </outAction>
     </waitTask>
-    <autoTask id="15" name="创建履约单" tag="DeliveryOrderCreate" g="140,470,88,48" retryMax="5" retryInterVal="60">
+    <autoTask id="15" name="创建履约单" tag="DeliveryOrderCreate" g="140,470,88,48">
         <transition g=":-15,20" to="33"/>
         <action type="spring-bean">
             <actionHandle bean="deliveryOrderCreateActivity"
@@ -59,7 +59,7 @@
             </actionHandle>
         </action>
     </autoTask>
-    <autoTask id="30" name="安全校验状态更新" tag="SecurityAutoJudge" g="365,655,88,48" retryMax="5" retryInterVal="60">
+    <autoTask id="30" name="安全校验状态更新" tag="SecurityAutoJudge" g="365,655,88,48">
         <transition g=":-15,20" to="31"/>
         <action type="spring-bean">
             <actionHandle bean="securityValidateStatusUpdateActivity"
@@ -71,7 +71,7 @@
         </action>
     </autoTask>
     <end id="2" name="结束" tag="end" g="60,830,40,40"/>
-    <autoTask id="26" name="订单逆向" tag="OrderReverse" g="145,825,88,48" retryMax="5" retryInterVal="60">
+    <autoTask id="26" name="订单逆向" tag="OrderReverse" g="145,825,88,48">
         <transition g=":-15,20" to="2"/>
         <action type="spring-bean">
             <actionHandle bean="orderReverseActivity"
@@ -81,7 +81,7 @@
             </actionHandle>
         </action>
     </autoTask>
-    <decision id="19" name="是否是0元支付" tag="zeroPayJudge" g="865,165,136,48" retryMax="5" retryInterVal="60">
+    <decision id="19" name="是否是0元支付" tag="zeroPayJudge" g="865,165,136,48">
         <transition expression="pureZero == false" name="否" g=":-15,20" to="13"/>
         <transition expression="pureZero == true" name="是" g=":-15,20" to="20"/>
         <action type="spring-bean">
@@ -94,7 +94,7 @@
             </actionHandle>
         </action>
     </decision>
-    <autoTask id="24" name="库存扣减" tag="InventoryReduce" g="890,820,88,48" retryMax="5" retryInterVal="60">
+    <autoTask id="24" name="库存扣减" tag="InventoryReduce" g="890,820,88,48">
         <transition g=":-15,20" to="25"/>
         <action type="spring-bean">
             <actionHandle bean="inventoryReduceActivity"
@@ -105,7 +105,7 @@
             </actionHandle>
         </action>
     </autoTask>
-    <decision id="14" name="支付方式判断" tag="paymentMethodJudge" g="700,340,128,48" retryMax="5" retryInterVal="60">
+    <decision id="14" name="支付方式判断" tag="paymentMethodJudge" g="700,340,128,48">
         <transition expression="paymentType == &quot;autoCharge&quot;" name="自动续费支付方式" g=":-15,20" to="16"/>
         <transition expression="paymentType == &quot;offline&quot;" name="线下支付方式" g=":-15,20" to="29"/>
         <transition expression="paymentType == &quot;online&quot;" name="线上支付方式" priority="" g=":-15,20" to="38"/>
@@ -122,7 +122,7 @@
     <start id="1" name="开始" tag="start" g="355,65,40,40">
         <transition g=":-15,20" to="37"/>
     </start>
-    <waitTask id="38" name="等待支付成功" tag="waitPaymentSuccess" g="595,595,88,48" retryMax="5" retryInterVal="60">
+    <waitTask id="38" name="等待支付成功" tag="waitPaymentSuccess" g="595,595,88,48">
         <transition g=":-15,20" to="36"/>
         <outAction type="spring-bean">
             <actionHandle bean="waitPaymentSuccessActivity"
@@ -133,7 +133,7 @@
             </actionHandle>
         </outAction>
     </waitTask>
-    <autoTask id="16" name="自动续费" tag="OMAutoChargeActivity" g="480,595,88,48" retryMax="5" retryInterVal="60">
+    <autoTask id="16" name="自动续费" tag="OMAutoChargeActivity" g="480,595,88,48">
         <transition to="38"/>
         <action type="spring-bean">
             <actionHandle bean="autoChargeActivity"
@@ -143,7 +143,7 @@
             </actionHandle>
         </action>
     </autoTask>
-    <autoTask id="13" name="创建收单" tag="PaymentOrderCreate" g="725,235,88,48" retryMax="5" retryInterVal="60">
+    <autoTask id="13" name="创建收单" tag="PaymentOrderCreate" g="725,235,88,48">
         <transition g=":-15,20" to="14"/>
         <action type="spring-bean">
             <actionHandle bean="paymentOrderCreateActivity"
@@ -168,7 +168,7 @@
             </actionHandle>
         </action>
     </decision>
-    <autoTask id="12" name="创建订单" tag="OrderCreate" g="658,58,88,48" retryMax="5" retryInterVal="60">
+    <autoTask id="12" name="创建订单" tag="OrderCreate" g="658,58,88,48">
         <transition to="1564467580907"/>
         <action type="spring-bean">
             <actionHandle bean="orderCreateActivity"
@@ -178,14 +178,14 @@
             </actionHandle>
         </action>
     </autoTask>
-    <subBpm id="37" name="订单保存前校验子流程" tag="validateBeforeSavingSubFlow" g="475,58,103,51" retryMax="5"
-            retryInterVal="60" subBpmCode="bpm.om.validateBeforeSavingSubFlow" type="process" waitForCompletion="false"
+    <subBpm id="37" name="订单保存前校验子流程" tag="validateBeforeSavingSubFlow" g="475,58,103,51"
+            subBpmCode="bpm.om.validateBeforeSavingSubFlow" type="process" waitForCompletion="false"
             waitForTrigger="false">
         <transition g=":-15,20" to="12"/>
         <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
              contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
     </subBpm>
-    <subBpm id="36" name="支付成功回调处理子流程" tag="PaymentSuccessCallback" g="590,700,98,51" retryMax="5" retryInterVal="60"
+    <subBpm id="36" name="支付成功回调处理子流程" tag="PaymentSuccessCallback" g="590,700,98,51"
             subBpmCode="bpm.om.paySuccessCallbackSubFlow" type="process" waitForCompletion="false"
             waitForTrigger="false">
         <transition g=":-15,20" to="24"/>
@@ -203,7 +203,7 @@
             </actionHandle>
         </action>
     </autoTask>
-    <decision id="35" name="人工校验判断" tag="manualCheckJudge" g="125,570,116,48" retryMax="5" retryInterVal="60">
+    <decision id="35" name="人工校验判断" tag="manualCheckJudge" g="125,570,116,48">
         <transition expression="securityManualCheckFlag == true" name="通过" g=":-15,20" to="15"/>
         <transition expression="securityManualCheckFlag == false" name="未通过" g="149,499;:-15,20" to="26"/>
         <action type="spring-bean">
@@ -217,7 +217,7 @@
             </actionHandle>
         </action>
     </decision>
-    <autoTask id="20" name="0元支付处理" tag="OMZeroPayActivity" g="890,275,88,48" retryMax="5" retryInterVal="60">
+    <autoTask id="20" name="0元支付处理" tag="OMZeroPayActivity" g="890,275,88,48">
         <transition g="1032,583;:-15,20" to="24"/>
         <action type="spring-bean">
             <actionHandle bean="zeroPayActivity"
@@ -227,7 +227,7 @@
             </actionHandle>
         </action>
     </autoTask>
-    <decision id="31" name="安全校验判断" tag="securityJudge" g="345,345,127,48" retryMax="5" retryInterVal="60">
+    <decision id="31" name="安全校验判断" tag="securityJudge" g="345,345,127,48">
         <transition expression="securityAutoCheckFlag == true" name="校验通过" g=":-15,20" to="15"/>
         <transition expression="securityAutoCheckFlag == false" name="校验中" priority="" g=":-15,20" to="32"/>
         <action type="spring-bean">
@@ -241,8 +241,7 @@
             </actionHandle>
         </action>
     </decision>
-    <waitTask id="29" name="֧支付pending回调处理" tag="PaymentPendingCallback" g="725,595,101,53" retryMax="5"
-              retryInterVal="60">
+    <waitTask id="29" name="֧支付pending回调处理" tag="PaymentPendingCallback" g="725,595,101,53">
         <transition g=":-15,20" to="38"/>
         <outAction type="spring-bean">
             <actionHandle bean="paymentPendingCallbackActivity"

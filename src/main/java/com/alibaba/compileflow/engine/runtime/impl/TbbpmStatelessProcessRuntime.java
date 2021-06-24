@@ -53,41 +53,45 @@ public class TbbpmStatelessProcessRuntime extends AbstractStatelessProcessRuntim
     public void registerNodeGenerator(NodeContainer<TransitionNode> nodeContainer) {
 
         if (nodeContainer == null) {
-            throw  new IllegalArgumentException("nodeContainer is null");
+            throw new IllegalArgumentException("nodeContainer is null");
         }
 
         if (nodeContainer.getAllNodes() == null) {
-            throw  new IllegalArgumentException("nodeContainer.getAllNodes()  is  null");
+            throw new IllegalArgumentException("nodeContainer.getAllNodes()  is  null");
         }
 
         for (TransitionNode node : nodeContainer.getAllNodes()) {
 
             if (node instanceof AutoTaskNode) {
-                registerGenerator(node, new AutoTaskGenerator(this, (AutoTaskNode)node));
+                registerGenerator(node, new AutoTaskGenerator(this, (AutoTaskNode) node));
             } else if (node instanceof ScriptTaskNode) {
-                registerGenerator(node, new ScriptTaskGenerator(this, (ScriptTaskNode)node));
+                registerGenerator(node, new ScriptTaskGenerator(this, (ScriptTaskNode) node));
             } else if (node instanceof DecisionNode) {
-                registerGenerator(node, new DecisionGenerator(this, (DecisionNode)node));
+                registerGenerator(node, new DecisionGenerator(this, (DecisionNode) node));
             } else if (node instanceof StartNode) {
-                registerGenerator(node, new StartGenerator(this, (StartNode)node));
+                registerGenerator(node, new StartGenerator(this, (StartNode) node));
             } else if (node instanceof EndNode) {
-                registerGenerator(node, new EndGenerator(this, (EndNode)node));
+                registerGenerator(node, new EndGenerator(this, (EndNode) node));
             } else if (node instanceof LoopProcessNode) {
-                registerGenerator(node, new LoopProcessGenerator(this, (LoopProcessNode)node));
+                registerGenerator(node, new LoopProcessGenerator(this, (LoopProcessNode) node));
             } else if (node instanceof BreakNode) {
-                registerGenerator(node, new BreakGenerator(this, (BreakNode)node));
+                registerGenerator(node, new BreakGenerator(this, (BreakNode) node));
             } else if (node instanceof ContinueNode) {
-                registerGenerator(node, new ContinueGenerator(this, (ContinueNode)node));
+                registerGenerator(node, new ContinueGenerator(this, (ContinueNode) node));
             } else if (node instanceof SubBpmNode) {
-                registerGenerator(node, new SubBpmGenerator(this, (SubBpmNode)node));
+                registerGenerator(node, new SubBpmGenerator(this, (SubBpmNode) node));
             } else if (node instanceof NoteNode) {
-                registerGenerator(node, new NoteGenerator(this, (NoteNode)node));
+                registerGenerator(node, new NoteGenerator(this, (NoteNode) node));
+            } else if (node instanceof WaitTaskNode) {
+                registerGenerator(node, new StatelessWaitTaskGenerator(this, (WaitTaskNode) node));
+            } else if (node instanceof WaitEventNode) {
+                registerGenerator(node, new StatelessWaitEventGenerator(this, (WaitEventNode) node));
             } else {
                 throw new IllegalStateException("Unknown node type: " + node.getClass().getName());
             }
 
             if (node instanceof NodeContainer) {
-                registerNodeGenerator((NodeContainer)node);
+                registerNodeGenerator((NodeContainer) node);
             }
         }
     }

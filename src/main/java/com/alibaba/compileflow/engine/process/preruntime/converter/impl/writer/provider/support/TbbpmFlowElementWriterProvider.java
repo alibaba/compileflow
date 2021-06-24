@@ -43,6 +43,7 @@ public class TbbpmFlowElementWriterProvider extends AbstractFlowElementWriterPro
         registerWriter(new EndWriter());
         registerWriter(new AutoTaskWriter());
         registerWriter(new ScriptTaskWriter());
+        registerWriter(new WaitEventTaskWriter());
         registerWriter(new DecisionWriter());
         registerWriter(new LoopProcessWriter());
         registerWriter(new ContinueWriter());

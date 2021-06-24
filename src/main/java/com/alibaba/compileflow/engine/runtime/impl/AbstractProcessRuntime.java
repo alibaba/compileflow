@@ -20,7 +20,9 @@ import com.alibaba.compileflow.engine.ProcessEngine;
 import com.alibaba.compileflow.engine.ProcessEngineFactory;
 import com.alibaba.compileflow.engine.common.ClassWrapper;
 import com.alibaba.compileflow.engine.common.CompileFlowException;
+import com.alibaba.compileflow.engine.common.Lifecycle;
 import com.alibaba.compileflow.engine.common.constants.FlowModelType;
+import com.alibaba.compileflow.engine.common.constants.ProcessType;
 import com.alibaba.compileflow.engine.common.utils.ClassUtils;
 import com.alibaba.compileflow.engine.common.utils.DataType;
 import com.alibaba.compileflow.engine.common.utils.ObjectFactory;
@@ -68,7 +70,7 @@ import java.util.stream.Collectors;
  * @author wuxiang
  * @author yusu
  */
-public abstract class AbstractProcessRuntime<T extends FlowModel> implements ProcessRuntime {
+public abstract class AbstractProcessRuntime<T extends FlowModel> implements ProcessRuntime, Lifecycle {
 
     private static final Compiler COMPILER = new CompilerImpl();
     private static final AtomicBoolean inited = new AtomicBoolean(false);
@@ -140,9 +142,11 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
 
     public abstract FlowModelType getFlowModelType();
 
+    public abstract ProcessType getProcessType();
+
     public abstract String generateJavaCode();
 
-    public abstract void registerNodeGenerator(NodeContainer<TransitionNode> nodeContainer);
+    protected abstract void registerNodeGenerator(NodeContainer<TransitionNode> nodeContainer);
 
     public String generateTestCode() {
         ClassTarget classTarget = new ClassTarget();
@@ -230,7 +234,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends ProcessInstance> T getProcessInstance() {
+    protected <T extends ProcessInstance> T getProcessInstance() {
         Class<?> clazz = compiledClassCache.get(code);
         if (clazz == null) {
             throw new CompileFlowException("Failed to get compile class, code is " + code);
@@ -248,13 +252,8 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
 
     protected MethodTarget generateFlowMethod(String methodName,
                                               Generator methodExecuteBodyGenerator) {
-        MethodTarget methodTarget = new MethodTarget();
+        MethodTarget methodTarget = generateMethodDefinition(methodName);
         classTarget.addMethod(methodTarget);
-        methodTarget.setClassTarget(classTarget);
-        methodTarget.setName(methodName);
-        methodTarget.addException(ClassWrapper.of(Exception.class));
-        ClassWrapper mType = ClassWrapper.of("Map<String, Object>");
-        methodTarget.addParameter(ParamTarget.of(mType, "_pContext"));
 
         addVars(paramVars);
         addVars(returnVars);
@@ -282,20 +281,35 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
 
         methodTarget.addBodyLine("Map<String, Object> _pResult = new HashMap<>();");
         methodExecuteBodyGenerator.generateCode(methodTarget);
-        List<String> results = new ArrayList<>();
-        if (CollectionUtils.isNotEmpty(returnVars)) {
-            for (IVar returnVar : returnVars) {
-                results.add("_pResult.put(\"" + returnVar.getName() + "\", " + returnVar.getName() + ");");
-            }
-            methodTarget.addBodyLines(results);
-        }
+        List<String> returnVarLines = wrapReturnVarLines();
+        methodTarget.addBodyLines(returnVarLines);
         methodTarget.addBodyLine("return _pResult;");
-        methodTarget.setReturnType(mType);
-        methodTarget.addModifier(Modifier.PUBLIC);
         //if (monitorAction != null) {
         //    methodTarget.addBodyLines(monitorAction.generateCode());
         //}
 
+        return methodTarget;
+    }
+
+    public List<String> wrapReturnVarLines() {
+        List<String> returnVarLines = new ArrayList<>();
+        if (CollectionUtils.isNotEmpty(returnVars)) {
+            for (IVar returnVar : returnVars) {
+                returnVarLines.add("_pResult.put(\"" + returnVar.getName() + "\", " + returnVar.getName() + ");");
+            }
+        }
+        return returnVarLines;
+    }
+
+    protected MethodTarget generateMethodDefinition(String methodName) {
+        MethodTarget methodTarget = new MethodTarget();
+        methodTarget.setClassTarget(classTarget);
+        methodTarget.setName(methodName);
+        methodTarget.addException(ClassWrapper.of(Exception.class));
+        ClassWrapper mType = ClassWrapper.of("Map<String, Object>");
+        methodTarget.addParameter(ParamTarget.of(mType, "_pContext"));
+        methodTarget.setReturnType(mType);
+        methodTarget.addModifier(Modifier.PUBLIC);
         return methodTarget;
     }
 
@@ -311,6 +325,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         }
     }
 
+    @Override
     public void init() {
         validateRuntime();
         initClassTarget();
@@ -319,6 +334,11 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
             initBeanProvider();
             initScriptExecutorProvider();
         }
+    }
+
+    @Override
+    public void stop() {
+
     }
 
     private void validateRuntime() {
@@ -406,7 +426,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     private String wrapClassFullName(String name) {
-        return "compileflow." + name;
+        return "compileflow." + (isStateless() ? "stateless." : "stateful.") + name;
     }
 
     private String getFlowClassName(String code, String id) {
@@ -439,6 +459,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         classTarget.addImportedType(ClassWrapper.of(Map.class));
         classTarget.addImportedType(ClassWrapper.of(HashMap.class));
         classTarget.addImportedType(ClassWrapper.of(ObjectFactory.class));
+        classTarget.addImportedType(ClassWrapper.of(ProcessEngineFactory.class));
         classTarget.addImportedType(ClassWrapper.of(DataType.class));
         classTarget.addImportedType(ClassWrapper.of(BeanProvider.class));
     }

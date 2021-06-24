@@ -14,38 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.alibaba.compileflow.engine.definition.tbbpm;
+package com.alibaba.compileflow.engine.process.preruntime.generator.impl.tbbpm;
 
-import com.alibaba.compileflow.engine.definition.common.BreakElement;
-import com.alibaba.compileflow.engine.definition.common.action.HasInOutAction;
-import com.alibaba.compileflow.engine.definition.common.action.IAction;
+import com.alibaba.compileflow.engine.definition.tbbpm.WaitTaskNode;
+import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
+import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;
 
 /**
- * @author wuxiang
+ * @author pin
  * @author yusu
  */
-public class WaitTaskNode extends ActivityNode implements BreakElement, HasInOutAction {
+public class StatelessWaitTaskGenerator extends AbstractTbbpmNodeGenerator<WaitTaskNode> {
 
-    private IAction inAction;
-
-    private IAction outAction;
-
-    @Override
-    public IAction getInAction() {
-        return inAction;
-    }
-
-    public void setInAction(IAction inAction) {
-        this.inAction = inAction;
+    public StatelessWaitTaskGenerator(AbstractProcessRuntime runtime,
+                                      WaitTaskNode flowNode) {
+        super(runtime, flowNode);
     }
 
     @Override
-    public IAction getOutAction() {
-        return outAction;
-    }
+    public void generateCode(CodeTargetSupport codeTargetSupport) {
 
-    public void setOutAction(IAction outAction) {
-        this.outAction = outAction;
+        codeTargetSupport.addBodyLine("if(true) {");
+        codeTargetSupport.addBodyLine("return _pResult ;");
+        codeTargetSupport.addBodyLine("} ;");
+
     }
 
 }

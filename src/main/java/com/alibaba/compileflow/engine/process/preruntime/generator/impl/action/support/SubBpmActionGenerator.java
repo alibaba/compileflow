@@ -56,7 +56,7 @@ public class SubBpmActionGenerator extends AbstractActionGenerator {
         List<IVar> params = getMethodParameters();
         IVar returnVar = getReturnVar();
         codeTargetSupport.addBodyLine("{");
-        codeTargetSupport.addBodyLine("Map<String, Object> nfSubBpmContext = new HashMap<>();");
+        codeTargetSupport.addBodyLine("Map<String, Object> _subBpmContext = new HashMap<>();");
         for (IVar param : params) {
             String var = param.getContextVarName() != null ?
                 DataType.getVarTransferString(getVarType(param.getContextVarName()),
@@ -64,11 +64,11 @@ public class SubBpmActionGenerator extends AbstractActionGenerator {
                 : DataType.getDefaultValueString(DataType.getJavaClass(param.getDataType()),
                     param.getDefaultValue());
 
-            codeTargetSupport.addBodyLine("nfSubBpmContext.put(\"" + param.getName() + "\", " + var + ");");
+            codeTargetSupport.addBodyLine("_subBpmContext.put(\"" + param.getName() + "\", " + var + ");");
         }
 
         String noReturnCode = "ProcessEngineFactory.getProcessEngine().start(\"" + getSubBpmCode()
-            + "\", nfSubBpmContext)";
+            + "\", _subBpmContext)";
 
         if (returnVar != null) {
             String code = returnVar.getContextVarName() + " = ("
