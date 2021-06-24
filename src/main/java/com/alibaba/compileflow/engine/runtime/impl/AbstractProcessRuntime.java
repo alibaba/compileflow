@@ -281,19 +281,24 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
 
         methodTarget.addBodyLine("Map<String, Object> _pResult = new HashMap<>();");
         methodExecuteBodyGenerator.generateCode(methodTarget);
-        List<String> results = new ArrayList<>();
-        if (CollectionUtils.isNotEmpty(returnVars)) {
-            for (IVar returnVar : returnVars) {
-                results.add("_pResult.put(\"" + returnVar.getName() + "\", " + returnVar.getName() + ");");
-            }
-            methodTarget.addBodyLines(results);
-        }
+        List<String> returnVarLines = wrapReturnVarLines();
+        methodTarget.addBodyLines(returnVarLines);
         methodTarget.addBodyLine("return _pResult;");
         //if (monitorAction != null) {
         //    methodTarget.addBodyLines(monitorAction.generateCode());
         //}
 
         return methodTarget;
+    }
+
+    public List<String> wrapReturnVarLines() {
+        List<String> returnVarLines = new ArrayList<>();
+        if (CollectionUtils.isNotEmpty(returnVars)) {
+            for (IVar returnVar : returnVars) {
+                returnVarLines.add("_pResult.put(\"" + returnVar.getName() + "\", " + returnVar.getName() + ");");
+            }
+        }
+        return returnVarLines;
     }
 
     protected MethodTarget generateMethodDefinition(String methodName) {

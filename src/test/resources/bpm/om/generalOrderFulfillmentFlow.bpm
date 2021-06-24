@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<bpm code="bpm.om.generalOrderFulfillmentFlow" name="通用订单履约流程" type="statelessWorkflow" description="通用订单履约流程">
+<bpm code="bpm.om.generalOrderFulfillmentFlow" name="通用订单履约流程" type="statefulProcess" description="通用订单履约流程">
     <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
          contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
     <var name="paymentType" dataType="java.lang.String" contextVarName="paymentType" inOutType="return"/>

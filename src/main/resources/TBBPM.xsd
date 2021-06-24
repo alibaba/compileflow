@@ -579,8 +579,8 @@
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
                         <xs:enumeration value="process"/>
+                        <xs:enumeration value="statefulProcess"/>
                         <xs:enumeration value="workflow"/>
-                        <xs:enumeration value="statelessWorkflow"/>
                         <xs:enumeration value="stateMachine"/>
                         <xs:enumeration value="cloudWorkflow"/>
                     </xs:restriction>
@@ -1281,8 +1281,8 @@
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
                         <xs:enumeration value="process"/>
+                        <xs:enumeration value="statefulProcess"/>
                         <xs:enumeration value="workflow"/>
-                        <xs:enumeration value="statelessWorkflow"/>
                         <xs:enumeration value="stateMachine"/>
                         <xs:enumeration value="cloudWorkflow"/>
                     </xs:restriction>
