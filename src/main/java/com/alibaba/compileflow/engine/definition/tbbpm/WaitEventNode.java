@@ -18,4 +18,5 @@ public class WaitEventNode extends EventNode {
     public void setEventName(String eventName) {
         this.eventName = eventName;
     }
+
 }
