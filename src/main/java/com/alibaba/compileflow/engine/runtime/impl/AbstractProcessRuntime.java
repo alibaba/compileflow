@@ -454,6 +454,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         classTarget.addImportedType(ClassWrapper.of(Map.class));
         classTarget.addImportedType(ClassWrapper.of(HashMap.class));
         classTarget.addImportedType(ClassWrapper.of(ObjectFactory.class));
+        classTarget.addImportedType(ClassWrapper.of(ProcessEngineFactory.class));
         classTarget.addImportedType(ClassWrapper.of(DataType.class));
         classTarget.addImportedType(ClassWrapper.of(BeanProvider.class));
     }

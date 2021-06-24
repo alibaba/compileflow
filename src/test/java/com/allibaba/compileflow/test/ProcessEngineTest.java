@@ -59,7 +59,8 @@ public class ProcessEngineTest {
 
     @Test
     public void testTbbpmModelConvert() {
-        final String code = "bpm.ktv.ktvExample";
+//        final String code = "bpm.ktv.ktvExample";
+        String code = "bpm.om.waitpaySuccessflow";
 
         final ProcessEngine<TbbpmModel> processEngine = ProcessEngineFactory.getProcessEngine();
 
