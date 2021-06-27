@@ -36,7 +36,7 @@ public class SubBpmNode extends ActivityNode implements VarSupport {
 
     private boolean waitForTrigger;
 
-    private List<IVar> vars = new ArrayList<>(3);
+    private List<IVar> vars = new ArrayList<>(8);
 
     public String getSubBpmCode() {
         return subBpmCode;
