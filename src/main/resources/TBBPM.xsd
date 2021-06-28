@@ -496,6 +496,12 @@
                     </xs:restriction>
                 </xs:simpleType>
             </xs:attribute>
+            <xs:attribute name="tag">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:attribute>
             <xs:attribute name="collectionVarName">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
@@ -533,6 +539,12 @@
                     </xs:restriction>
                 </xs:simpleType>
             </xs:attribute>
+            <xs:attribute name="tag">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:attribute>
         </xs:complexType>
     </xs:element>
     <xs:element name="break">
@@ -559,6 +571,12 @@
                 </xs:simpleType>
             </xs:attribute>
             <xs:attribute name="expression">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="tag">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
                     </xs:restriction>
