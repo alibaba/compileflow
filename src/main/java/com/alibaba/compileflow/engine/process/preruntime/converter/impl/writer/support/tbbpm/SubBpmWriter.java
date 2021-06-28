@@ -38,6 +38,7 @@ public class SubBpmWriter extends AbstractTbbpmFlowElementWriter<SubBpmNode> {
         writeAttribute(xsw, "type", node.getType());
         writeAttribute(xsw, "waitForCompletion", String.valueOf(node.isWaitForCompletion()));
         writeAttribute(xsw, "waitForTrigger", String.valueOf(node.isWaitForTrigger()));
+        writeAttribute(xsw, "tag", String.valueOf(node.getTag()));
 
     }
 
