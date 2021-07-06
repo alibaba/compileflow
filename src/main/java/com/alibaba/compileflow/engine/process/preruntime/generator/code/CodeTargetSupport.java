@@ -47,6 +47,8 @@ public interface CodeTargetSupport {
 
     void addIndent(int indent);
 
+    String getName();
+
     CodeTargetSupport getClassTarget();
 
     String generateCode();

@@ -19,7 +19,6 @@ package com.alibaba.compileflow.engine.runtime.impl;
 import com.alibaba.compileflow.engine.common.ClassWrapper;
 import com.alibaba.compileflow.engine.common.constants.ProcessType;
 import com.alibaba.compileflow.engine.definition.common.*;
-import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
 import com.alibaba.compileflow.engine.process.preruntime.validator.ValidateMessage;
 import com.alibaba.compileflow.engine.runtime.instance.ProcessInstance;
 import org.apache.commons.collections4.CollectionUtils;
@@ -71,10 +70,6 @@ public abstract class AbstractStatelessProcessRuntime<T extends AbstractFlowMode
     @Override
     protected List<ValidateMessage> validateFlowModel() {
         return super.validateFlowModel();
-    }
-
-    private void generateExecuteMethodBody(CodeTargetSupport codeTargetSupport) {
-        nodeGeneratorProvider.getGenerator(flowModel).generateCode(codeTargetSupport);
     }
 
     @SuppressWarnings("unchecked")

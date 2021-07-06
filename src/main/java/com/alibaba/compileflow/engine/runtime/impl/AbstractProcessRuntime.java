@@ -39,6 +39,7 @@ import com.alibaba.compileflow.engine.process.preruntime.generator.bean.BeanProv
 import com.alibaba.compileflow.engine.process.preruntime.generator.bean.SpringApplicationContextProvider;
 import com.alibaba.compileflow.engine.process.preruntime.generator.bean.SpringBeanHolder;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.ClassTarget;
+import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.MethodTarget;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.ParamTarget;
 import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.Modifier;
@@ -323,6 +324,10 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
                 classTarget.addField(rvType, var.getName(), nullValue);
             }
         }
+    }
+
+    protected void generateExecuteMethodBody(CodeTargetSupport codeTargetSupport) {
+        nodeGeneratorProvider.getGenerator(flowModel).generateCode(codeTargetSupport);
     }
 
     @Override

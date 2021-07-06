@@ -21,7 +21,11 @@ public class WaitEventGenerator extends AbstractTbbpmInOutActionNodeGenerator<Wa
     public void generateCode(CodeTargetSupport codeTargetSupport) {
         generateNodeComment(codeTargetSupport);
         String eventName = flowNode.getEventName() == null ? "\"null\"" : flowNode.getEventName();
-        codeTargetSupport.addBodyLine("if(!_event.equals(\"" + eventName + "\")) {");
+        if ("execute".equals(codeTargetSupport.getName())) {
+            codeTargetSupport.addBodyLine("if (true) {");
+        } else {
+            codeTargetSupport.addBodyLine("if(!_event.equals(\"" + eventName + "\")) {");
+        }
         List<String> returnVarLines = runtime.wrapReturnVarLines();
         codeTargetSupport.addBodyLines(returnVarLines);
         codeTargetSupport.addBodyLine("return _pResult ;");
