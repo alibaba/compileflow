@@ -3,19 +3,19 @@
          xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <groupId>com.alibaba.compileflow</groupId>
     <artifactId>compileflow</artifactId>
-    <version>1.1.0-Beta2</version>
+    <version>1.1.0-SNAPSHOT</version>
     <name>compileflow</name>
-    <description>Compileflow is a very lightweight, high-performance, integrable and extensible process engine.
-    </description>
+    <description>Compileflow is a very lightweight, high-performance, integrable and extensible process engine.</description>
     <url>https://github.com/alibaba/compileflow</url>
     <inceptionYear>2020</inceptionYear>
 
     <licenses>
         <license>
             <name>Apache 2</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
             <distribution>repo</distribution>
             <comments>A business-friendly OSS license</comments>
         </license>
@@ -31,7 +31,7 @@
     </issueManagement>
     <organization>
         <name>Alibaba</name>
-        <url>http://www.alibaba.com</url>
+        <url>https://www.alibaba.com</url>
     </organization>
     <developers>
         <developer>
@@ -44,7 +44,7 @@
             <timezone>+8</timezone>
             <url>https://github.com/voff12</url>
             <organization>Alibaba</organization>
-            <organizationUrl>http://www.alibaba.com</organizationUrl>
+            <organizationUrl>https://www.alibaba.com</organizationUrl>
         </developer>
         <developer>
             <name>余苏</name>
@@ -56,7 +56,7 @@
             <timezone>+8</timezone>
             <url>https://github.com/yusu1210</url>
             <organization>Alibaba</organization>
-            <organizationUrl>http://www.alibaba.com</organizationUrl>
+            <organizationUrl>https://www.alibaba.com</organizationUrl>
         </developer>
         <developer>
             <name>徐工</name>
@@ -68,7 +68,7 @@
             <timezone>+8</timezone>
             <url>https://github.com/xuan698400</url>
             <organization>Alibaba</organization>
-            <organizationUrl>http://www.alibaba.com</organizationUrl>
+            <organizationUrl>https://www.alibaba.com</organizationUrl>
         </developer>
         <developer>
             <name>梵度</name>
@@ -80,7 +80,7 @@
             <timezone>+8</timezone>
             <url>https://github.com/xuan698400</url>
             <organization>Alibaba</organization>
-            <organizationUrl>http://www.alibaba.com</organizationUrl>
+            <organizationUrl>https://www.alibaba.com</organizationUrl>
         </developer>
         <developer>
             <name>哲良</name>
@@ -88,11 +88,12 @@
             <email>oldratlee(AT)gmail.com</email>
             <roles>
                 <role>Developer</role>
+                <role>CI/SCM Engineer</role>
             </roles>
             <timezone>+8</timezone>
             <url>https://github.com/oldratlee</url>
             <organization>Alibaba</organization>
-            <organizationUrl>http://www.alibaba.com</organizationUrl>
+            <organizationUrl>https://www.alibaba.com</organizationUrl>
         </developer>
     </developers>
 
@@ -122,12 +123,18 @@
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
         </dependency>
-        <!--<dependency>-->
-        <!--<groupId>com.github.spotbugs</groupId>-->
-        <!--<artifactId>spotbugs-annotations</artifactId>-->
-        <!--<version>4.1.1</version>-->
-        <!--<optional>true</optional>-->
-        <!--</dependency>-->
+        <!--
+            JSR305 is already Dormant status, so SpotBugs does not release jsr305 jar file.
+            Please continue using findbugs’ one.
+            depend on spotbugs-annotations instead.
+            https://spotbugs.readthedocs.io/en/stable/migration.html
+        -->
+        <dependency>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-annotations</artifactId>
+            <version>4.3.0</version>
+            <optional>true</optional>
+        </dependency>
 
         <!-- spring libs -->
         <dependency>
@@ -193,10 +200,10 @@
     </dependencies>
 
     <distributionManagement>
-                <snapshotRepository>
-                    <id>ossrh</id>
-                    <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-                </snapshotRepository>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
     </distributionManagement>
 
     <build>
@@ -214,11 +221,11 @@
                     <!--</compilerArguments>-->
                 </configuration>
             </plugin>
-                        <plugin>
-                            <groupId>org.codehaus.mojo</groupId>
-                            <artifactId>versions-maven-plugin</artifactId>
-                            <version>2.3</version>
-                        </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>versions-maven-plugin</artifactId>
+                <version>2.3</version>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -237,32 +244,20 @@
                 </executions>
             </plugin>
             <plugin>
-            <groupId>com.github.spotbugs</groupId>
-            <artifactId>spotbugs-maven-plugin</artifactId>
-            <executions>
-            <execution>
-            <phase>test-compile</phase>
-            <goals>
-            <goal>check</goal>
-            </goals>
-            </execution>
-            </executions>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>2.8.2</version>
             </plugin>
-                        <plugin>
-                            <artifactId>maven-deploy-plugin</artifactId>
-                            <version>2.8.2</version>
-                        </plugin>
-                        <plugin>
-                            <groupId>org.sonatype.plugins</groupId>
-                            <artifactId>nexus-staging-maven-plugin</artifactId>
-                            <version>1.6.8</version>
-                            <extensions>true</extensions>
-                            <configuration>
-                                <serverId>ossrh</serverId>
-                                <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                                <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                            </configuration>
-                        </plugin>
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.8</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
     <profiles>
@@ -335,6 +330,36 @@
                                 <phase>verify</phase>
                                 <goals>
                                     <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>lint</id>
+            <activation>
+                <property>
+                    <name>performRelease</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <!--
+                        Spotbugs support @SuppressWarnings
+                        https://github.com/spotbugs/spotbugs/issues/737#issuecomment-416118033
+                    -->
+                    <plugin>
+                        <groupId>com.github.spotbugs</groupId>
+                        <artifactId>spotbugs-maven-plugin</artifactId>
+                        <version>4.3.0</version>
+                        <executions>
+                            <execution>
+                                <phase>test-compile</phase>
+                                <goals>
+                                    <goal>check</goal>
                                 </goals>
                             </execution>
                         </executions>
