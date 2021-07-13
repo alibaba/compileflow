@@ -98,12 +98,13 @@
     </developers>
 
     <properties>
-        <jdk.version>1.8</jdk.version>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <spring.version>3.2.11.RELEASE</spring.version>
         <slf4j.version>1.7.25</slf4j.version>
-        <mockito.version>3.5.13</mockito.version>
+        <mockito.version>3.11.2</mockito.version>
     </properties>
 
     <dependencies>
@@ -176,7 +177,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.12</version>
+            <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -211,20 +212,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>2.5.1</version>
-                <configuration>
-                    <source>${jdk.version}</source>
-                    <target>${jdk.version}</target>
-                    <encoding>${project.build.sourceEncoding}</encoding>
-                    <!--<compilerArguments>-->
-                    <!--<bootclasspath>/Library/Java/JavaVirtualMachines/jdk1.8.0_192.jdk/Contents/Home/jre/lib/rt.jar</bootclasspath>-->
-                    <!--</compilerArguments>-->
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>versions-maven-plugin</artifactId>
-                <version>2.3</version>
+                <version>3.8.1</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -258,6 +246,36 @@
                     <autoReleaseAfterClose>true</autoReleaseAfterClose>
                 </configuration>
             </plugin>
+            <!--
+                official docs: https://maven.apache.org/enforcer/enforcer-rules/requireMavenVersion.html
+
+                add maven-enforce-plugin to make sure the right jdk is used
+                https://stackoverflow.com/a/18420462/922688
+            -->
+            <plugin>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.0.0-M3</version>
+                <executions>
+                    <execution>
+                        <id>enforce-maven</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireMavenVersion>
+                                    <version>3.3.9</version>
+                                </requireMavenVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>versions-maven-plugin</artifactId>
+                <version>2.3</version>
+            </plugin>
         </plugins>
     </build>
     <profiles>
@@ -285,7 +303,7 @@
                     </plugin>
                     <plugin>
                         <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>3.2.0</version>
+                        <version>3.3.0</version>
                         <executions>
                             <execution>
                                 <id>attach-javadoc</id>
@@ -323,7 +341,7 @@
                 <plugins>
                     <plugin>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.6</version>
+                        <version>3.0.1</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
@@ -380,12 +398,12 @@
                     <!--
                         Maven plugin which includes build-time git repository information into an POJO / *.properties).
                         Make your apps tell you which version exactly they were built from! Priceless in large distributed deployments.
-                            https://github.com/ktoso/maven-git-commit-id-plugin
+                            https://github.com/git-commit-id/git-commit-id-maven-plugin
                     -->
                     <plugin>
-                        <groupId>pl.project13.maven</groupId>
-                        <artifactId>git-commit-id-plugin</artifactId>
-                        <version>4.0.2</version>
+                        <groupId>io.github.git-commit-id</groupId>
+                        <artifactId>git-commit-id-maven-plugin</artifactId>
+                        <version>5.0.0</version>
                         <executions>
                             <execution>
                                 <id>get-the-git-infos</id>
