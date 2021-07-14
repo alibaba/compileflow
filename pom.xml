@@ -349,6 +349,8 @@
             <build>
                 <plugins>
                     <!--
+                        https://spotbugs.github.io/spotbugs-maven-plugin/plugin-info.html
+
                         Spotbugs support @SuppressWarnings
                         https://github.com/spotbugs/spotbugs/issues/737#issuecomment-416118033
                     -->
