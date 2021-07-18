@@ -1,16 +1,18 @@
-<img src="doc/compileflow-logo.png" alt="compileflow logo" width="25%" align="right" />
+<img src="doc/compileflow-logo.png" alt="compileflow logo" width="20%" align="right" />
 
 # compileflow
 
 📖 See the [📖 中文文档](README_CN.md) for the documents in Chinese.
 
-[![Build Status](https://travis-ci.org/alibaba/compileflow.svg?branch=master)](https://travis-ci.org/alibaba/compileflow)
-[![Maven Central](https://img.shields.io/maven-central/v/com.alibaba.compileflow/compileflow.svg?color=2d545e)](https://search.maven.org/artifact/com.alibaba.compileflow/compileflow)
-[![GitHub release](https://img.shields.io/github/release/alibaba/compileflow.svg) ![JDK support](https://img.shields.io/badge/JDK-8+-green.svg)](https://github.com/alibaba/compileflow/releases)  
-[![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
+[![Build Status](https://img.shields.io/travis/alibaba/compileflow/master?logo=travis-ci&logoColor=white)](https://travis-ci.org/alibaba/compileflow)
+[![Maven Central](https://img.shields.io/maven-central/v/com.alibaba.compileflow/compileflow?color=2d545e&logo=apache-maven&logoColor=white)](https://search.maven.org/artifact/com.alibaba.compileflow/compileflow)
+[![GitHub release](https://img.shields.io/github/release/alibaba/compileflow.svg)](https://github.com/alibaba/compileflow/releases)
+[![JDK support](https://img.shields.io/badge/JDK-8+-green?logo=java&logoColor=white)](https://openjdk.java.net/)  
+[![License](https://img.shields.io/badge/license-Apache%202-4D7A97.svg?logo=Apache&logoColor=white)](https://www.apache.org/licenses/LICENSE-2.0.html)
 [![GitHub Stars](https://img.shields.io/github/stars/alibaba/compileflow)](https://github.com/alibaba/compileflow/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/alibaba/compileflow)](https://github.com/alibaba/compileflow/fork)
 [![GitHub issues](https://img.shields.io/github/issues/alibaba/compileflow.svg)](https://github.com/alibaba/compileflow/issues)
+[![GitHub Contributors](https://img.shields.io/github/contributors/alibaba/compileflow)](https://github.com/alibaba/compileflow/graphs/contributors)
 
 ## 1. Introduction
 
