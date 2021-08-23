@@ -79,18 +79,18 @@ public abstract class AbstractStatelessProcessRuntime<T extends AbstractFlowMode
         nodes.stream()
             .filter(flowNode -> flowNode instanceof GatewayElement)
             .forEach(gatewayNode -> {
-                if (CollectionUtils.isNotEmpty(gatewayNode.getIncomingNodes())
-                    && gatewayNode.getIncomingNodes().stream()
-                    .allMatch(incomingNode -> isContainedByIncomingNode(gatewayNode, incomingNode))) {
-                    followingGraph.put(gatewayNode.getId(), Collections.emptyList());
-                }
-
                 gatewayNode.getOutgoingNodes().forEach(outgoingNode -> {
                     List<TransitionNode> branchNodes = buildBranchNodes(outgoingNode).stream()
                         .filter(node -> !followingGraph.get(gatewayNode.getId()).contains(node))
                         .collect(Collectors.toList());
                     branchGraph.put(outgoingNode.getId(), branchNodes);
                 });
+
+                if (CollectionUtils.isNotEmpty(gatewayNode.getIncomingNodes())
+                    && gatewayNode.getIncomingNodes().stream()
+                    .allMatch(incomingNode -> isContainedByIncomingNode(gatewayNode, incomingNode))) {
+                    followingGraph.put(gatewayNode.getId(), Collections.emptyList());
+                }
             });
     }
 
