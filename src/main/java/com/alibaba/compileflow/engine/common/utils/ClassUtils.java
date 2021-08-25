@@ -16,6 +16,7 @@
  */
 package com.alibaba.compileflow.engine.common.utils;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 
 /**
@@ -36,7 +37,9 @@ public class ClassUtils {
     }
 
     public static <T> T newInstance(Class clazz) throws Exception {
-        return (T)clazz.getDeclaredConstructor().newInstance();
+        Constructor constructor = clazz.getDeclaredConstructor();
+        constructor.setAccessible(true);
+        return (T)constructor.newInstance();
     }
 
     public static boolean isAbstractOrInterface(Class<?> clazz) {
