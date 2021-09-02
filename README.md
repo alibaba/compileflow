@@ -59,11 +59,11 @@ Plugin download address: https://github.com/alibaba/compileflow-idea-designer
 <dependency>
     <groupId>com.alibaba.compileflow</groupId>
     <artifactId>compileflow</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
-Check available version at [search.maven.org](https://search.maven.org/search?q=g:com.alibaba.compileflow%20AND%20a:compileflow&core=gav).
+Check available version at [search.maven.org](https://search.maven.org/artifact/com.alibaba.compileflow/compileflow).
 
 **Note**: Compileflow only supports JDK 1.8 and above.
 
