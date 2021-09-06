@@ -125,7 +125,9 @@ public abstract class AbstractStatelessProcessRuntime<T extends AbstractFlowMode
             TransitionNode theOnlyOutgoingNode = getTheOnlyOutgoingNode(flowNode);
             if (theOnlyOutgoingNode != null) {
                 followingNodes.add(theOnlyOutgoingNode);
-                followingNodes.addAll(buildFollowingNodes(theOnlyOutgoingNode));
+                if (!(theOnlyOutgoingNode instanceof GatewayElement)) {
+                    followingNodes.addAll(buildFollowingNodes(theOnlyOutgoingNode));
+                }
             }
         }
 
