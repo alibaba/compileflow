@@ -167,15 +167,9 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         method.addAnnotation("@Test");
         method.addException(ClassWrapper.of(Exception.class));
         method.addBodyLine("String code = \"" + code + "\";");
-//        String engineCode = isStateless() && isBpmn20() ? "StatelessProcessEngine engine = "
-//            + "ProcessEngineFactory.getStatelessProcessEngine(FlowModelType.BPMN);"
-//            : !isStateless() && !isBpmn20() ? "StatelessProcessEngine engine = "
-//                + "ProcessEngineFactory.getStatefulProcessEngine();"
-//                : !isStateless() && isBpmn20() ? "StatelessProcessEngine engine = "
-//                    + "ProcessEngineFactory.getStatefulProcessEngine(FlowModelType.BPMN);"
-//                    : "StatelessProcessEngine engine = ProcessEngineFactory.getProcessEngine();";
+
         String engineCode = isBpmn20() ? "ProcessEngine<BpmnModel> engine = ProcessEngineFactory.getProcessEngine(FlowModelType.BPMN);"
-            : "ProcessEngine<TbbpmModel> engine = ProcessEngineFactory.getProcessEngine();";
+            : "ProcessEngine engine = ProcessEngineFactory.getProcessEngine();";
         method.addBodyLine(engineCode);
         method.addBodyLine("System.out.println(engine.getJavaCode(code));");
         method.addBodyLine("Map<String, Object> context = new HashMap<String, Object>();");
@@ -187,7 +181,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
             }
         }
         method.addBodyLine("try {");
-        method.addBodyLine("System.out.println(engine.start(code, context));");
+        method.addBodyLine("System.out.println(engine.execute(code, context));");
         method.addBodyLine("}");
         method.addBodyLine("catch (Exception e) {");
         method.addBodyLine("e.printStackTrace();");
@@ -431,7 +425,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     private String wrapClassFullName(String name) {
-        return "compileflow." + (isStateless() ? "stateless." : "stateful.") + name;
+        return name;
     }
 
     private String getFlowClassName(String code, String id) {
