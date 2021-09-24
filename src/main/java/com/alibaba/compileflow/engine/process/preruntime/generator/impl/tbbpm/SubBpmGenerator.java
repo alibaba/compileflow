@@ -17,11 +17,14 @@
 package com.alibaba.compileflow.engine.process.preruntime.generator.impl.tbbpm;
 
 import com.alibaba.compileflow.engine.ProcessEngineFactory;
-import com.alibaba.compileflow.engine.common.utils.DataType;
+import com.alibaba.compileflow.engine.common.util.DataType;
 import com.alibaba.compileflow.engine.definition.common.var.IVar;
 import com.alibaba.compileflow.engine.definition.tbbpm.SubBpmNode;
+import com.alibaba.compileflow.engine.process.preruntime.generator.code.ClassTarget;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
+import com.alibaba.compileflow.engine.process.preruntime.generator.code.MethodTarget;
 import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 
@@ -31,6 +34,8 @@ import java.util.List;
  */
 public class SubBpmGenerator extends AbstractTbbpmNodeGenerator<SubBpmNode> {
 
+    private static final String SUB_BPM_METHOD_NAME_PREFIX = "subBpm";
+
     public SubBpmGenerator(AbstractProcessRuntime runtime,
                            SubBpmNode flowNode) {
         super(runtime, flowNode);
@@ -38,25 +43,67 @@ public class SubBpmGenerator extends AbstractTbbpmNodeGenerator<SubBpmNode> {
 
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
+        generateNodeComment(codeTargetSupport);
+        if (flowNode.isWaitForTrigger()) {
+            if (isTriggerMethod(codeTargetSupport)) {
+                codeTargetSupport.addBodyLine("if (trigger) {");
+                generateSubBpmMethodCode(codeTargetSupport);
+                codeTargetSupport.addBodyLine("} else {");
+                codeTargetSupport.addBodyLine("running = false;");
+                codeTargetSupport.addBodyLine("} ");
+                return;
+            }
+            return;
+        }
+
+        generateSubBpmMethodCode(codeTargetSupport);
+    }
+
+    private void generateSubBpmMethodCode(CodeTargetSupport codeTargetSupport) {
+        String subBpmMethodName = generateSubBpmMethodName();
+        generateSubBpmMethodCode(codeTargetSupport, subBpmMethodName);
+        codeTargetSupport.addBodyLine(subBpmMethodName + "();");
+    }
+
+    private String generateSubBpmMethodName() {
+        String subBpmCode = flowNode.getSubBpmCode();
+        subBpmCode = subBpmCode.substring(subBpmCode.lastIndexOf(".") + 1);
+        if (subBpmCode.chars().allMatch(c -> Character.isLetterOrDigit(c) || '_' == c)) {
+            return SUB_BPM_METHOD_NAME_PREFIX + StringUtils.capitalize(subBpmCode);
+        }
+        return SUB_BPM_METHOD_NAME_PREFIX + Math.abs(subBpmCode.hashCode());
+    }
+
+    private void generateSubBpmMethodCode(CodeTargetSupport codeTargetSupport,
+                                          String subBpmMethodName) {
+        MethodTarget method = new MethodTarget();
+        method.setClassTarget(getClassTarget(codeTargetSupport));
+        method.setName(subBpmMethodName);
+        doGenerateSubBpmMethodCode(method);
+        ClassTarget classTarget = getClassTarget(codeTargetSupport);
+        classTarget.addMethod(method);
+    }
+
+    protected void doGenerateSubBpmMethodCode(CodeTargetSupport codeTargetSupport) {
         addImportedType(codeTargetSupport, ProcessEngineFactory.class);
 
         List<IVar> params = flowNode.getParamVars();
         IVar returnVar = flowNode.getReturnVar();
         generateNodeComment(codeTargetSupport);
         codeTargetSupport.addBodyLine("{");
-        codeTargetSupport.addBodyLine("Map<String, Object> _subBpmContext = new HashMap<>();");
+        codeTargetSupport.addBodyLine("Map<String, Object> _spContext = new HashMap<>();");
         for (IVar param : params) {
             String var = param.getContextVarName() != null ?
                 DataType.getVarTransferString(getVarType(param.getContextVarName()),
                     DataType.getJavaClass(param.getDataType()), param.getContextVarName())
                 : DataType.getDefaultValueString(DataType.getJavaClass(param.getDataType()),
-                    param.getDefaultValue());
+                param.getDefaultValue());
 
-            codeTargetSupport.addBodyLine("_subBpmContext.put(\"" + param.getName() + "\", " + var + ");");
+            codeTargetSupport.addBodyLine("_spContext.put(\"" + param.getName() + "\", " + var + ");");
         }
 
         String noReturnCode = "ProcessEngineFactory.getProcessEngine().start(\""
-            + flowNode.getSubBpmCode() + "\", _subBpmContext)";
+            + flowNode.getSubBpmCode() + "\", _spContext)";
 
         if (returnVar != null) {
             String code = returnVar.getContextVarName() + " = ("

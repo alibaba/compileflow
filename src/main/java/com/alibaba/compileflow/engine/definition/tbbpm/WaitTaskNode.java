@@ -16,7 +16,7 @@
  */
 package com.alibaba.compileflow.engine.definition.tbbpm;
 
-import com.alibaba.compileflow.engine.definition.common.BreakElement;
+import com.alibaba.compileflow.engine.definition.common.WaitElement;
 import com.alibaba.compileflow.engine.definition.common.action.HasInOutAction;
 import com.alibaba.compileflow.engine.definition.common.action.IAction;
 
@@ -24,7 +24,7 @@ import com.alibaba.compileflow.engine.definition.common.action.IAction;
  * @author wuxiang
  * @author yusu
  */
-public class WaitTaskNode extends ActivityNode implements BreakElement, HasInOutAction {
+public class WaitTaskNode extends FlowNode implements WaitElement, HasInOutAction {
 
     private IAction inAction;
 

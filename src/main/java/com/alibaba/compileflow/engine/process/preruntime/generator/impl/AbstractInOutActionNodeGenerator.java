@@ -32,20 +32,28 @@ public abstract class AbstractInOutActionNodeGenerator<N extends Node>
         super(runtime, flowNode);
     }
 
-    @Override
-    public void generateCode(CodeTargetSupport codeTargetSupport) {
-        HasInOutAction hasInOutAction = (HasInOutAction)flowNode;
-        codeTargetSupport.addBodyLine("if (trigger) {");
+    protected void generateCode(String event, CodeTargetSupport codeTargetSupport) {
+        generateNodeComment(codeTargetSupport);
+        HasInOutAction hasInOutAction = (HasInOutAction) flowNode;
+        if (isExecuteMethod(codeTargetSupport)) {
+            IAction inAction = hasInOutAction.getInAction();
+            generateActionMethodCode(codeTargetSupport, inAction);
+            return;
+        }
 
+        codeTargetSupport.addBodyLine("if (trigger) {");
+        codeTargetSupport.addBodyLine("if(\"" + event + "\".equals(event)) {");
         IAction outAction = hasInOutAction.getOutAction();
         generateActionMethodCode(codeTargetSupport, outAction);
+        codeTargetSupport.addBodyLine("} else {");
+        codeTargetSupport.addBodyLine("running = false;");
+        codeTargetSupport.addBodyLine("} ");
 
         codeTargetSupport.addBodyLine("} else {");
 
         IAction inAction = hasInOutAction.getInAction();
         generateActionMethodCode(codeTargetSupport, inAction);
         codeTargetSupport.addBodyLine("running = false;");
-
         codeTargetSupport.addBodyLine("}");
     }
 

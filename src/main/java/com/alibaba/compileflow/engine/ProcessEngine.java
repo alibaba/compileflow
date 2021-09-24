@@ -26,6 +26,20 @@ public interface ProcessEngine<T extends FlowModel> {
 
     Map<String, Object> execute(String code, Map<String, Object> context);
 
+    /**
+     * @param code:   flow code
+     * @param tag:    flow node tag
+     * @param context
+     */
+    Map<String, Object> trigger(String code, String tag, Map<String, Object> context);
+
+    /**
+     * @param code:   flow code
+     * @param tag:    flow node tag
+     * @param context
+     */
+    Map<String, Object> trigger(String code, String tag, String event, Map<String, Object> context);
+
     @Deprecated
     Map<String, Object> start(String code, Map<String, Object> context);
 

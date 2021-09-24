@@ -27,15 +27,17 @@
       </actionHandle>
     </action>
   </autoTask>
-  <waitEventTask id="1627891671654" name="等待业务方取消" tag="orderBizCancelCompleteCallback" eventName="orderBizCancelCompleteCallback" g="105,150,80,40">
-    <transition to="1627891679930"></transition>
+  <waitEventTask id="1627891671654" name="等待业务方取消" tag="orderBizCancelCompleteCallback"
+                 event="orderBizCancelCompleteCallback" g="105,150,80,40">
+      <transition to="1627891679930"></transition>
   </waitEventTask>
   <start id="1" name="开始" tag="1" g="370,25,30,30">
     <transition to="1627876102229"></transition>
   </start>
-  <waitEventTask id="1627891823021" name="等待结算完成" tag="waitChargeComplete" eventName="waitChargeComplete" g="515,230,105,40">
-    <transition to="1627891868424"></transition>
-  </waitEventTask>
+    <waitEventTask id="1627891823021" name="等待结算完成" tag="waitChargeComplete" event="waitChargeComplete"
+                   g="515,230,105,40">
+        <transition to="1627891868424"></transition>
+    </waitEventTask>
   <end id="1627713639748" name="结束" tag="1627713639748" g="365,690,30,30"></end>
   <autoTask id="1627891883181" name="通知修改结算状态（待结算-&gt;已结算）" tag="1627891883181" g="445,510,255,50">
     <transition to="1627713639748"></transition>
@@ -53,9 +55,10 @@
       </actionHandle>
     </action>
   </autoTask>
-  <waitEventTask id="1630810802664" name="等待取消结算" tag="restoreToWaitingChargeComplete" eventName="restoreToWaitingChargeComplete" g="285,195,80,40">
-    <transition to="1630810813431"></transition>
-  </waitEventTask>
+    <waitEventTask id="1630810802664" name="等待取消结算" tag="restoreToWaitingChargeComplete"
+                   event="restoreToWaitingChargeComplete" g="285,195,80,40">
+        <transition to="1630810813431"></transition>
+    </waitEventTask>
   <autoTask id="1630810813431" name="更新结算状态为待结算" tag="1630810813431" g="260,305,165,50">
     <transition to="1630810840274"></transition>
     <action type="spring-bean">

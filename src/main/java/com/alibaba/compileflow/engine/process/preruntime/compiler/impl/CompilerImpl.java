@@ -17,9 +17,11 @@
 package com.alibaba.compileflow.engine.process.preruntime.compiler.impl;
 
 import com.alibaba.compileflow.engine.common.CompileFlowException;
-import com.alibaba.compileflow.engine.common.utils.FileUtils;
+import com.alibaba.compileflow.engine.common.util.FileUtils;
+import com.alibaba.compileflow.engine.process.preruntime.compiler.CompileOption;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.Compiler;
-import com.alibaba.compileflow.engine.process.preruntime.compiler.*;
+import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaCompiler;
+import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaSource;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.impl.support.EcJavaCompiler;
 
 import java.io.File;

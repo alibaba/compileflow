@@ -16,7 +16,7 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.generator.impl.tbbpm;
 
-import com.alibaba.compileflow.engine.common.utils.VarUtils;
+import com.alibaba.compileflow.engine.common.util.VarUtils;
 import com.alibaba.compileflow.engine.definition.common.TransitionNode;
 import com.alibaba.compileflow.engine.definition.tbbpm.BaseNode;
 import com.alibaba.compileflow.engine.definition.tbbpm.DecisionNode;
@@ -41,6 +41,9 @@ public class DecisionGenerator extends AbstractTbbpmActionNodeGenerator<Decision
 
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
+        if (isTriggerMethod(codeTargetSupport)) {
+            super.generateCode(codeTargetSupport);
+        } else {
 //        if (flowNode.getIncomingNodes().size() > 1) {
 //            String methodName = generateDecisionMethodName();
 //            codeTargetSupport.addBodyLine(methodName + "();");
@@ -49,9 +52,10 @@ public class DecisionGenerator extends AbstractTbbpmActionNodeGenerator<Decision
 //
 //            generateFollowingNodeCode(codeTargetSupport);
 //        } else {
-        generateDecisionMethodCode(codeTargetSupport);
-        generateFollowingNodeCode(codeTargetSupport);
+            generateDecisionMethodCode(codeTargetSupport);
+            generateFollowingNodeCode(codeTargetSupport);
 //        }
+        }
     }
 
     private void generateFollowingNodeCode(CodeTargetSupport codeTargetSupport) {

@@ -3,7 +3,6 @@ package com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.
 import com.alibaba.compileflow.engine.definition.common.Element;
 import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModelConstants;
 import com.alibaba.compileflow.engine.definition.tbbpm.WaitEventNode;
-import com.alibaba.compileflow.engine.definition.tbbpm.WaitTaskNode;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.ParseContext;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.XMLSource;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractTbbpmElementParser;
@@ -25,7 +24,7 @@ public class WaitEventParser extends AbstractTbbpmElementParser<WaitEventNode> {
         waitEventNode.setId(xmlSource.getString("id"));
         waitEventNode.setName(xmlSource.getString("name"));
         waitEventNode.setTag(xmlSource.getString("tag"));
-        waitEventNode.setEventName(xmlSource.getString("eventName"));
+        waitEventNode.setEvent(xmlSource.getString("event"));
         waitEventNode.setDescription(xmlSource.getString("description"));
         waitEventNode.setG(xmlSource.getString("g"));
         return waitEventNode;

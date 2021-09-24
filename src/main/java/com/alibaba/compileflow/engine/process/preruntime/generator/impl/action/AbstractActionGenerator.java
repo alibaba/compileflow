@@ -16,12 +16,12 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.generator.impl.action;
 
-import com.alibaba.compileflow.engine.common.utils.DataType;
+import com.alibaba.compileflow.engine.common.util.DataType;
 import com.alibaba.compileflow.engine.definition.common.action.IAction;
 import com.alibaba.compileflow.engine.definition.common.action.IActionHandle;
 import com.alibaba.compileflow.engine.definition.common.var.IVar;
-import com.alibaba.compileflow.engine.process.preruntime.generator.impl.AbstractRuntimeGenerator;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
+import com.alibaba.compileflow.engine.process.preruntime.generator.impl.AbstractRuntimeGenerator;
 import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -66,7 +66,7 @@ public abstract class AbstractActionGenerator extends AbstractRuntimeGenerator
 
     @Override
     public void generateActionMethodCode(CodeTargetSupport codeTargetSupport) {
-        generateMethodCode(codeTargetSupport, generateActionMethodName(codeTargetSupport), this::generateCode);
+        generateMethodCode(codeTargetSupport, generateActionMethodName(codeTargetSupport), this);
     }
 
     protected List<IVar> getMethodParameters() {

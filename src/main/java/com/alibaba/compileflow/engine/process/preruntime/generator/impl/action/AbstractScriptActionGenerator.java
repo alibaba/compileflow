@@ -16,7 +16,7 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.generator.impl.action;
 
-import com.alibaba.compileflow.engine.common.utils.DataType;
+import com.alibaba.compileflow.engine.common.util.DataType;
 import com.alibaba.compileflow.engine.definition.common.action.IAction;
 import com.alibaba.compileflow.engine.definition.common.action.impl.ScriptActionHandle;
 import com.alibaba.compileflow.engine.definition.common.var.IVar;

@@ -2,8 +2,7 @@ package com.allibaba.compileflow.test;
 
 import com.alibaba.compileflow.engine.ProcessEngine;
 import com.alibaba.compileflow.engine.ProcessEngineFactory;
-import com.alibaba.compileflow.engine.StatefulProcessEngine;
-import com.alibaba.compileflow.engine.common.constants.FlowModelType;
+import com.alibaba.compileflow.engine.common.constant.FlowModelType;
 import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModel;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.TbbpmModelConverter;
 import org.junit.Assert;
@@ -53,14 +52,14 @@ public class ProcessEngineTest {
         pList.add("yusu");
         context.put("pList", pList);
 
-        final ProcessEngine processEngine = ProcessEngineFactory.getStatelessProcessEngine(FlowModelType.BPMN);
-        System.out.println(processEngine.start(code, context));
+        final ProcessEngine processEngine = ProcessEngineFactory.getProcessEngine(FlowModelType.BPMN);
+        System.out.println(processEngine.execute(code, context));
     }
 
     @Test
     public void testTbbpmModelConvert() {
 //        final String code = "bpm.ktv.ktvExample";
-        String code = "bpm.om.waitpaySuccessflow";
+        final String code = "bpm.om.waitPaySuccessFlow";
 
         final ProcessEngine<TbbpmModel> processEngine = ProcessEngineFactory.getProcessEngine();
 
@@ -74,29 +73,28 @@ public class ProcessEngineTest {
 
 
     @Test
-    public void testWaitPayProcess(){
-        String code = "bpm.om.waitpaySuccessflow";
+    public void testWaitPayProcess() {
+        String code = "bpm.om.waitPaySuccessFlow";
         System.out.println(ProcessEngineFactory.getProcessEngine().getJavaCode(code));
         Map<String, Object> context = new HashMap<>();
         context.put("num", 100d);
 
-        ProcessEngineFactory.getProcessEngine().execute(code,context);
+        ProcessEngineFactory.getProcessEngine().execute(code, context);
     }
 
     @Test
-    public void testTiggerWaitPayProcess() {
-        String code = "bpm.om.waitpaySuccessflow";
+    public void testTriggerWaitPayProcess() {
+        String code = "bpm.om.waitPaySuccessFlow";
         Map<String, Object> context = new HashMap<>();
         context.put("num", 100d);
 
-        StatefulProcessEngine processEngine = ProcessEngineFactory.getStatefulProcessEngine();
+        ProcessEngine processEngine = ProcessEngineFactory.getProcessEngine();
         try {
             System.out.println(processEngine.getJavaCode(code));
             System.out.println("------receiver not real event------");
-            System.out.println(processEngine.trigger(code, "randomEvent", context));
+            System.out.println(processEngine.trigger(code, "randomEvent", null, context));
             System.out.println("------receiver real event------");
-            context.put("eventName","PaymentPendingCallback");
-            System.out.println(processEngine.trigger(code, "PaymentPendingCallback", context));
+            System.out.println(processEngine.trigger(code, "PaymentPendingCallback", "PaymentPendingCallback", context));
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail(e.getMessage());
@@ -107,7 +105,7 @@ public class ProcessEngineTest {
     public void testStatefulProcessEngine() {
         String code = "bpm.om.generalOrderFulfillmentFlow";
         //String code = "bpm.route.uopOrderFullLinkRouteDecide";
-        StatefulProcessEngine processEngine = ProcessEngineFactory.getStatefulProcessEngine();
+        ProcessEngine processEngine = ProcessEngineFactory.getProcessEngine();
 
         System.out.println(ProcessEngineFactory.getProcessEngine().getJavaCode(code));
 

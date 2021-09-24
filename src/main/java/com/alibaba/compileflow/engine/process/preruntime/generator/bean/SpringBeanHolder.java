@@ -16,7 +16,7 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.generator.bean;
 
-import com.alibaba.compileflow.engine.common.utils.ParamChecker;
+import com.alibaba.compileflow.engine.common.util.ParamChecker;
 import org.springframework.context.ApplicationContext;
 
 /**

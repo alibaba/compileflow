@@ -16,10 +16,14 @@
  */
 package com.alibaba.compileflow.engine.runtime.instance;
 
+import java.util.Map;
+
 /**
  * @author wuxiang
  * @author yusu
  */
 public interface ProcessInstance extends FlowInstance {
+
+    Map<String, Object> execute(Map<String, Object> context) throws Exception;
 
 }

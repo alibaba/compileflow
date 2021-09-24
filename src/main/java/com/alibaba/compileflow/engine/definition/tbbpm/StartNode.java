@@ -22,6 +22,6 @@ import com.alibaba.compileflow.engine.definition.common.StartElement;
  * @author wuxiang
  * @author yusu
  */
-public class StartNode extends EventNode implements StartElement {
+public class StartNode extends FlowNode implements StartElement {
 
 }

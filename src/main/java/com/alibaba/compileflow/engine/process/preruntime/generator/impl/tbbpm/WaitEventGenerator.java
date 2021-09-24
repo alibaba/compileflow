@@ -2,9 +2,8 @@ package com.alibaba.compileflow.engine.process.preruntime.generator.impl.tbbpm;
 
 import com.alibaba.compileflow.engine.definition.tbbpm.WaitEventNode;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
+import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.EventConstants;
 import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;
-
-import java.util.List;
 
 /**
  * @author wuxiang
@@ -19,17 +18,8 @@ public class WaitEventGenerator extends AbstractTbbpmInOutActionNodeGenerator<Wa
 
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
-        generateNodeComment(codeTargetSupport);
-        String eventName = flowNode.getEventName() == null ? "\"null\"" : flowNode.getEventName();
-        if ("execute".equals(codeTargetSupport.getName())) {
-            codeTargetSupport.addBodyLine("if (true) {");
-        } else {
-            codeTargetSupport.addBodyLine("if(!_event.equals(\"" + eventName + "\")) {");
-        }
-        List<String> returnVarLines = runtime.wrapReturnVarLines();
-        codeTargetSupport.addBodyLines(returnVarLines);
-        codeTargetSupport.addBodyLine("return _pResult ;");
-        codeTargetSupport.addBodyLine("} ");
+        String event = flowNode.getEvent() == null ? EventConstants.EMPTY_EVENT : flowNode.getEvent();
+        generateCode(event, codeTargetSupport);
     }
 
 }

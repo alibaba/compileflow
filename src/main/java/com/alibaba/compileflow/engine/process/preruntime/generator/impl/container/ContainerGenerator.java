@@ -16,10 +16,8 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.generator.impl.container;
 
-import com.alibaba.compileflow.engine.definition.common.EndElement;
-import com.alibaba.compileflow.engine.definition.common.GatewayElement;
-import com.alibaba.compileflow.engine.definition.common.NodeContainer;
-import com.alibaba.compileflow.engine.definition.common.TransitionNode;
+import com.alibaba.compileflow.engine.definition.common.*;
+import com.alibaba.compileflow.engine.definition.tbbpm.SubBpmNode;
 import com.alibaba.compileflow.engine.process.preruntime.generator.Generator;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
 import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;
@@ -40,12 +38,18 @@ public class ContainerGenerator extends AbstractContainerGenerator {
 
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
-        TransitionNode startNode = (TransitionNode)nodeContainer.getStartNode();
+        TransitionNode startNode = (TransitionNode) nodeContainer.getStartNode();
         generateCode(startNode, codeTargetSupport);
     }
 
     private void generateCode(TransitionNode flowNode, CodeTargetSupport codeTargetSupport) {
         if (flowNode instanceof EndElement) {
+            return;
+        }
+        if (flowNode instanceof WaitElement) {
+            return;
+        }
+        if (flowNode instanceof SubBpmNode && ((SubBpmNode) flowNode).isWaitForTrigger()) {
             return;
         }
 

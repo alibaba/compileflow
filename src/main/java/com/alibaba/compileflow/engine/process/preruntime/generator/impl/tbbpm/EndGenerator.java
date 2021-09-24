@@ -33,7 +33,9 @@ public class EndGenerator extends AbstractTbbpmNodeGenerator<EndNode> {
 
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
-
+        if (isTriggerMethod(codeTargetSupport)) {
+            codeTargetSupport.addBodyLine("running = false;");
+        }
     }
 
 }

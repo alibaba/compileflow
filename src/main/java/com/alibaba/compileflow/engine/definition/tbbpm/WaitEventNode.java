@@ -1,22 +1,35 @@
 package com.alibaba.compileflow.engine.definition.tbbpm;
 
+import com.alibaba.compileflow.engine.definition.common.WaitElement;
+import com.alibaba.compileflow.engine.definition.common.action.HasInOutAction;
+import com.alibaba.compileflow.engine.definition.common.action.IAction;
+
 /**
  * @author wuxiang
  * since 2021/6/23
  **/
-public class WaitEventNode extends EventNode {
+public class WaitEventNode extends EventNode implements WaitElement, HasInOutAction {
 
-    /**
-     * 事件名称
-     */
-    private String eventName;
+    private IAction inAction;
 
-    public String getEventName() {
-        return eventName;
+    private IAction outAction;
+
+    @Override
+    public IAction getInAction() {
+        return inAction;
     }
 
-    public void setEventName(String eventName) {
-        this.eventName = eventName;
+    public void setInAction(IAction inAction) {
+        this.inAction = inAction;
+    }
+
+    @Override
+    public IAction getOutAction() {
+        return outAction;
+    }
+
+    public void setOutAction(IAction outAction) {
+        this.outAction = outAction;
     }
 
 }

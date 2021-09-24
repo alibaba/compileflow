@@ -17,15 +17,15 @@
 package com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.bpmn;
 
 import com.alibaba.compileflow.engine.common.CompileFlowException;
-import com.alibaba.compileflow.engine.common.utils.VarUtils;
-import com.alibaba.compileflow.engine.definition.bpmn.*;
+import com.alibaba.compileflow.engine.common.util.VarUtils;
 import com.alibaba.compileflow.engine.definition.bpmn.Process;
+import com.alibaba.compileflow.engine.definition.bpmn.*;
 import com.alibaba.compileflow.engine.definition.common.Element;
 import com.alibaba.compileflow.engine.definition.common.ElementContainer;
-import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractFlowStreamParser;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.constants.ParseConstants;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.provider.support.AbstractFlowElementParserProvider;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.provider.support.BpmnElementParserProvider;
+import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractFlowStreamParser;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 

@@ -16,10 +16,10 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.compiler.impl.support;
 
-import com.alibaba.compileflow.engine.process.preruntime.compiler.CompileConstants;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.CompileOption;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaCompiler;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaSource;
+import com.alibaba.compileflow.engine.process.preruntime.compiler.impl.CompileConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

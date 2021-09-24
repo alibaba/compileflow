@@ -22,7 +22,7 @@ import com.alibaba.compileflow.engine.definition.common.HasExpression;
  * @author wuxiang
  * @author yusu
  */
-public class BreakNode extends EventNode implements HasExpression {
+public class BreakNode extends FlowNode implements HasExpression {
 
     private String expression;
 

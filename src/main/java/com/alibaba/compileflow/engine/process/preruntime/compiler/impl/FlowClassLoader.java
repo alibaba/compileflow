@@ -17,7 +17,6 @@
 package com.alibaba.compileflow.engine.process.preruntime.compiler.impl;
 
 import com.alibaba.compileflow.engine.common.CompileFlowException;
-import com.alibaba.compileflow.engine.process.preruntime.compiler.CompileConstants;
 
 import java.net.MalformedURLException;
 import java.net.URL;
