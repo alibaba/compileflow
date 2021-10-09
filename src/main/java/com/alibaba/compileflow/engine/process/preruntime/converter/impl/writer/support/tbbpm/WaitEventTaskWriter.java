@@ -34,7 +34,7 @@ public class WaitEventTaskWriter extends AbstractTbbpmFlowElementWriter<WaitEven
 
     @Override
     protected void enrichNodeAttr(WaitEventNode node, XMLStreamWriter xsw) throws Exception {
-        writeAttribute(xsw, "event", node.getEvent());
+        writeAttribute(xsw, "eventName", node.getEventName());
     }
 
     @Override

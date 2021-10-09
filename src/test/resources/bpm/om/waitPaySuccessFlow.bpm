@@ -15,7 +15,7 @@
       </actionHandle>
     </action>
   </autoTask>
-  <waitEventTask id="29" name="֧等待支付成功事件" tag="PaymentPendingCallback" event="PaymentPendingCallback"
+  <waitEventTask id="29" name="֧等待支付成功事件" tag="PaymentPendingCallback" eventName="PaymentPendingCallback"
                  g="100,370,101,53">
       <transition to="38" g=":-15,20"></transition>
   </waitEventTask>

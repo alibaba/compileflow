@@ -28,13 +28,13 @@
     </action>
   </autoTask>
   <waitEventTask id="1627891671654" name="等待业务方取消" tag="orderBizCancelCompleteCallback"
-                 event="orderBizCancelCompleteCallback" g="105,150,80,40">
+                 eventName="orderBizCancelCompleteCallback" g="105,150,80,40">
       <transition to="1627891679930"></transition>
   </waitEventTask>
   <start id="1" name="开始" tag="1" g="370,25,30,30">
     <transition to="1627876102229"></transition>
   </start>
-    <waitEventTask id="1627891823021" name="等待结算完成" tag="waitChargeComplete" event="waitChargeComplete"
+    <waitEventTask id="1627891823021" name="等待结算完成" tag="waitChargeComplete" eventName="waitChargeComplete"
                    g="515,230,105,40">
         <transition to="1627891868424"></transition>
     </waitEventTask>
@@ -56,7 +56,7 @@
     </action>
   </autoTask>
     <waitEventTask id="1630810802664" name="等待取消结算" tag="restoreToWaitingChargeComplete"
-                   event="restoreToWaitingChargeComplete" g="285,195,80,40">
+                   eventName="restoreToWaitingChargeComplete" g="285,195,80,40">
         <transition to="1630810813431"></transition>
     </waitEventTask>
   <autoTask id="1630810813431" name="更新结算状态为待结算" tag="1630810813431" g="260,305,165,50">

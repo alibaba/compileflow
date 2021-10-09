@@ -22,14 +22,14 @@ package com.alibaba.compileflow.engine.definition.tbbpm;
  */
 public abstract class EventNode extends FlowNode {
 
-    private String event;
+    private String eventName;
 
-    public String getEvent() {
-        return event;
+    public String getEventName() {
+        return eventName;
     }
 
-    public void setEvent(String event) {
-        this.event = event;
+    public void setEventName(String eventName) {
+        this.eventName = eventName;
     }
 
 }

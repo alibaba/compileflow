@@ -342,7 +342,7 @@
                     </xs:restriction>
                 </xs:simpleType>
             </xs:attribute>
-            <xs:attribute name="event">
+            <xs:attribute name="eventName">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
                     </xs:restriction>

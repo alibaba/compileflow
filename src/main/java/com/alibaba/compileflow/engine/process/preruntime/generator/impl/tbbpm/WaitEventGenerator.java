@@ -18,7 +18,7 @@ public class WaitEventGenerator extends AbstractTbbpmInOutActionNodeGenerator<Wa
 
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
-        String event = flowNode.getEvent() == null ? EventConstants.EMPTY_EVENT : flowNode.getEvent();
+        String event = flowNode.getEventName() == null ? EventConstants.EMPTY_EVENT : flowNode.getEventName();
         generateCode(event, codeTargetSupport);
     }
 
