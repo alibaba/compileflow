@@ -43,6 +43,7 @@ import com.alibaba.compileflow.engine.process.preruntime.generator.code.MethodTa
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.ParamTarget;
 import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.MethodConstants;
 import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.Modifier;
+import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.SystemEventConstants;
 import com.alibaba.compileflow.engine.process.preruntime.generator.factory.GeneratorFactory;
 import com.alibaba.compileflow.engine.process.preruntime.generator.factory.GeneratorProviderFactory;
 import com.alibaba.compileflow.engine.process.preruntime.generator.impl.EventTriggerMethodGenerator;
@@ -166,6 +167,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     public String generateJavaCode() {
         if (isStateful()) {
             classTarget.addSuperInterface(ClassWrapper.of(StatefulProcessInstance.class));
+            classTarget.addImportedType(ClassWrapper.of(SystemEventConstants.class));
         } else {
             classTarget.addSuperInterface(ClassWrapper.of(ProcessInstance.class));
         }

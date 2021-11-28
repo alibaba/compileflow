@@ -26,17 +26,19 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ObjectFactory {
 
-    private static final Map<String, Object> CLAZZ_CACHE = new ConcurrentHashMap<>();
+    private static final Map<String, Object> INSTANCE_CACHE = new ConcurrentHashMap<>();
 
     public static Object getInstance(String className) {
-        return CLAZZ_CACHE.computeIfAbsent(className, (c) -> {
-            try {
-                return ClassUtils.newInstance(className);
-            } catch (Exception e) {
-                throw new CompileFlowException(
-                    "ClassHolder newInstance error, class name is " + className, e);
-            }
-        });
+        return INSTANCE_CACHE.computeIfAbsent(className, (c) -> newInstance(className));
+    }
+
+    private static Object newInstance(String className) {
+        try {
+            return ClassUtils.newInstance(className);
+        } catch (Exception e) {
+            throw new CompileFlowException(
+                "ClassHolder newInstance error, class name is " + className, e);
+        }
     }
 
 }

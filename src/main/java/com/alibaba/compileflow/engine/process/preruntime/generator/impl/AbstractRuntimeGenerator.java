@@ -75,6 +75,7 @@ public abstract class AbstractRuntimeGenerator extends AbstractGenerator {
         ClassTarget classTarget = getClassTarget(codeTargetSupport);
         method.setClassTarget(classTarget);
         method.setName(methodName);
+        method.addException(ClassWrapper.of(Exception.class));
 
         if (CollectionUtils.isNotEmpty(paramVars)) {
             for (IVar v : paramVars) {
