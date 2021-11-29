@@ -17,11 +17,10 @@
 package com.alibaba.compileflow.engine.process.preruntime.compiler.impl;
 
 import com.alibaba.compileflow.engine.common.CompileFlowException;
-import com.alibaba.compileflow.engine.common.util.FileUtils;
-import com.alibaba.compileflow.engine.process.preruntime.compiler.CompileOption;
+import com.alibaba.compileflow.engine.common.extension.ExtensionInvoker;
+import com.alibaba.compileflow.engine.common.extension.filter.ReduceFilter;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.Compiler;
-import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaCompiler;
-import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaSource;
+import com.alibaba.compileflow.engine.process.preruntime.compiler.*;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.impl.support.EcJavaCompiler;
 
 import java.io.File;
@@ -53,9 +52,7 @@ public class CompilerImpl implements Compiler {
 
             JAVA_COMPILER.compile(javaSource, new File(dirPath), new CompileOption());
 
-            File classFile = new File(dirFile, fullClassName.replace('.', File.separatorChar) + ".class");
-            byte[] classBytes = FileUtils.readFileToByteArray(classFile);
-            return FlowClassLoader.getInstance().defineClass(fullClassName, classBytes);
+            return ExtensionInvoker.getInstance().invoke(FlowClassLoader.EXT_LOAD_FLOW_CLASS_CODE, ReduceFilter.first(), fullClassName);
         } catch (CompileFlowException e) {
             throw e;
         } catch (Exception e) {

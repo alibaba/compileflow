@@ -17,6 +17,8 @@
 package com.alibaba.compileflow.engine;
 
 import com.alibaba.compileflow.engine.common.constant.FlowModelType;
+import com.alibaba.compileflow.engine.common.extension.ExtensionManager;
+import com.alibaba.compileflow.engine.common.extension.PluginManager;
 import com.alibaba.compileflow.engine.process.impl.BpmnProcessEngineImpl;
 import com.alibaba.compileflow.engine.process.impl.TbbpmProcessEngineImpl;
 
@@ -28,13 +30,28 @@ public class ProcessEngineFactory {
 
     private static final ProcessEngine TBBPM_PROCESS_ENGINE = new TbbpmProcessEngineImpl();
     private static final ProcessEngine BPMN_PROCESS_ENGINE = new BpmnProcessEngineImpl();
+    private static volatile boolean initialized = false;
 
     public static ProcessEngine getProcessEngine() {
+        init();
         return TBBPM_PROCESS_ENGINE;
     }
 
     public static ProcessEngine getProcessEngine(FlowModelType flowModelType) {
+        init();
         return flowModelType.equals(FlowModelType.BPMN) ? BPMN_PROCESS_ENGINE : TBBPM_PROCESS_ENGINE;
+    }
+
+    private static void init() {
+        if (!initialized) {
+            synchronized (ProcessEngineFactory.class) {
+                if (!initialized) {
+                    PluginManager.getInstance().init();
+                    ExtensionManager.getInstance().init();
+                    initialized = true;
+                }
+            }
+        }
     }
 
 }

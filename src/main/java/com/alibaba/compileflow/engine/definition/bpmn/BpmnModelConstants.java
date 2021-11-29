@@ -417,7 +417,7 @@ public final class BpmnModelConstants {
     public static final String BPMNDI_ATTRIBUTE_LABEL_STYLE = "labelStyle";
 
     /**
-     * BPMN ext from Nature
+     * BPMN ext from CF
      */
     public static final String BPMN_EXT_ATTRIBUTE_BEAN = "bean";
     public static final String BPMN_EXT_ATTRIBUTE_CLASS = "class";
