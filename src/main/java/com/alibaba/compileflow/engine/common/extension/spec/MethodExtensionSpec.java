@@ -1,8 +1,8 @@
 package com.alibaba.compileflow.engine.common.extension.spec;
 
-import com.alibaba.compileflow.engine.common.extension.ExtensionPoint;
+import com.alibaba.compileflow.engine.common.extension.IExtensionPoint;
 import com.alibaba.compileflow.engine.common.extension.annotation.Extension;
-import com.alibaba.compileflow.engine.common.extension.annotation.Extensions;
+import com.alibaba.compileflow.engine.common.extension.annotation.ExtensionPoint;
 import com.alibaba.compileflow.engine.common.extension.consts.FlatType;
 import com.alibaba.compileflow.engine.common.extension.invoker.FastMethodInvoker;
 import com.alibaba.compileflow.engine.common.extension.invoker.MethodInvoker;
@@ -20,19 +20,19 @@ public class MethodExtensionSpec extends ExtensionSpec {
 
     private Method method;
 
-    public static MethodExtensionSpec of(Extensions extensionsAnnotation,
-                                         Extension extensionAnnotation,
-                                         ExtensionPoint extensions,
+    public static MethodExtensionSpec of(Extension extensionAnnotation,
+                                         ExtensionPoint extensionPointAnnotation,
+                                         IExtensionPoint extensions,
                                          Method method) {
         MethodExtensionSpec extensionSpec = new MethodExtensionSpec();
         extensionSpec.setExtension(extensions);
-        extensionSpec.setScenario(extensionsAnnotation.scenario());
-        extensionSpec.setPriority(extensionsAnnotation.priority());
-        extensionSpec.setCode(extensionAnnotation.code());
-        extensionSpec.setName(extensionAnnotation.name());
-        extensionSpec.setDescription(extensionAnnotation.description());
-        extensionSpec.setGroup(extensionAnnotation.group());
-        extensionSpec.setReducePolicy(extensionAnnotation.reducePolicy());
+        extensionSpec.setScenario(extensionAnnotation.scenario());
+        extensionSpec.setPriority(extensionAnnotation.priority());
+        extensionSpec.setCode(extensionPointAnnotation.code());
+        extensionSpec.setName(extensionPointAnnotation.name());
+        extensionSpec.setDescription(extensionPointAnnotation.description());
+        extensionSpec.setGroup(extensionPointAnnotation.group());
+        extensionSpec.setReducePolicy(extensionPointAnnotation.reducePolicy());
         extensionSpec.setMethodInvoker(FastMethodInvoker.of(extensions, method));
         extensionSpec.setMethod(method);
         return extensionSpec;

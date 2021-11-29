@@ -3,7 +3,7 @@ package com.alibaba.compileflow.engine.common.extension;
 import com.alibaba.compileflow.engine.common.Lifecycle;
 import com.alibaba.compileflow.engine.common.MultiMap;
 import com.alibaba.compileflow.engine.common.extension.annotation.Extension;
-import com.alibaba.compileflow.engine.common.extension.annotation.Extensions;
+import com.alibaba.compileflow.engine.common.extension.annotation.ExtensionPoint;
 import com.alibaba.compileflow.engine.common.extension.spec.*;
 import com.alibaba.compileflow.engine.common.util.ClassLoaderUtils;
 import com.alibaba.compileflow.engine.common.util.ClassUtils;
@@ -33,8 +33,8 @@ public class ExtensionManager implements Lifecycle {
 
     private static final Logger logger = LoggerFactory.getLogger(ExtensionManager.class);
 
-    private Set<Class<? extends ExtensionPoint>> extensionPointClasses = new HashSet<>();
-    private Set<Class<? extends ExtensionPoint>> extensionsClasses = new HashSet<>();
+    private Set<Class<? extends IExtensionPoint>> extensionPointClasses = new HashSet<>();
+    private Set<Class<? extends IExtensionPoint>> extensionsClasses = new HashSet<>();
 
     private List<ExtensionPointSpec> extensionPointSpecs = new ArrayList<>();
     private Map<String, ExtensionPointSpec> extensionPointSpecMap = new HashMap<>();
@@ -58,7 +58,7 @@ public class ExtensionManager implements Lifecycle {
         return extensionSpecMap.get(extensionCode);
     }
 
-    public <T extends ExtensionPoint> List<T> getExtensions(String extensionCode, Class<T> extensionClass) {
+    public <T extends IExtensionPoint> List<T> getExtensions(String extensionCode, Class<T> extensionClass) {
         List<ExtensionSpec> extensionSpecs = extensionSpecMap.get(extensionCode);
         if (CollectionUtils.isEmpty(extensionSpecs)) {
             return Collections.emptyList();
@@ -68,14 +68,14 @@ public class ExtensionManager implements Lifecycle {
             .map(extension -> (T) extension).collect(Collectors.toList());
     }
 
-    public void registerExtensionPoint(Class<? extends ExtensionPoint> extensionPointClass) {
+    public void registerExtensionPoint(Class<? extends IExtensionPoint> extensionPointClass) {
         if (extensionPointClasses.contains(extensionPointClass)) {
             return;
         }
 
-        Extension extensionAnnotation = AnnotationUtils.findAnnotation(extensionPointClass, Extension.class);
-        if (extensionAnnotation != null) {
-            ExtensionPointSpec extensionPointSpec = ClassExtensionPointSpec.of(extensionAnnotation,
+        ExtensionPoint extensionPointAnnotation = AnnotationUtils.findAnnotation(extensionPointClass, ExtensionPoint.class);
+        if (extensionPointAnnotation != null) {
+            ExtensionPointSpec extensionPointSpec = ClassExtensionPointSpec.of(extensionPointAnnotation,
                 extensionPointClass);
             extensionPointSpecs.add(extensionPointSpec);
             extensionPointSpecMap.put(extensionPointSpec.getCode(), extensionPointSpec);
@@ -83,22 +83,22 @@ public class ExtensionManager implements Lifecycle {
 
         Method[] methods = extensionPointClass.getMethods();
         for (Method method : methods) {
-            extensionAnnotation = AnnotationUtils.findAnnotation(method, Extension.class);
-            if (extensionAnnotation != null) {
-                ExtensionPointSpec extensionPointSpec = MethodExtensionPointSpec.of(extensionAnnotation,
+            extensionPointAnnotation = AnnotationUtils.findAnnotation(method, ExtensionPoint.class);
+            if (extensionPointAnnotation != null) {
+                ExtensionPointSpec extensionPointSpec = MethodExtensionPointSpec.of(extensionPointAnnotation,
                     extensionPointClass, method);
                 extensionPointSpecs.add(extensionPointSpec);
                 extensionPointSpecMap.put(extensionPointSpec.getCode(), extensionPointSpec);
             }
             Class<?> returnType = method.getReturnType();
-            if (ExtensionPoint.class.isAssignableFrom(returnType)) {
-                registerExtensionPoint((Class<? extends ExtensionPoint>) returnType);
+            if (IExtensionPoint.class.isAssignableFrom(returnType)) {
+                registerExtensionPoint((Class<? extends IExtensionPoint>) returnType);
             }
         }
     }
 
-    public void registerExtensions(Class<? extends ExtensionPoint> extensionsClass) {
-        ExtensionPoint extensions = null;
+    public void registerExtensions(Class<? extends IExtensionPoint> extensionsClass) {
+        IExtensionPoint extensions = null;
         try {
             extensions = ClassUtils.newInstance(extensionsClass);
         } catch (Exception e) {
@@ -115,37 +115,37 @@ public class ExtensionManager implements Lifecycle {
         }
     }
 
-    private void registerExtensions(ExtensionPoint extensions) {
-        Class<? extends ExtensionPoint> extensionsClass = extensions.getClass();
+    private void registerExtensions(IExtensionPoint extensions) {
+        Class<? extends IExtensionPoint> extensionsClass = extensions.getClass();
         if (extensionsClasses.contains(extensionsClass)) {
             return;
         }
 
-        Extensions extensionsAnnotation = extensionsClass.getAnnotation(Extensions.class);
-        if (extensionsAnnotation == null) {
+        Extension extensionAnnotation = extensionsClass.getAnnotation(Extension.class);
+        if (extensionAnnotation == null) {
             return;
         }
 
-        Extension extensionAnnotation = AnnotationUtils.findAnnotation(extensionsClass, Extension.class);
-        if (extensionAnnotation != null) {
-            ExtensionSpec extensionSpec = ClassExtensionSpec.of(extensionsAnnotation,
-                extensionAnnotation, extensions);
+        ExtensionPoint extensionPointAnnotation = AnnotationUtils.findAnnotation(extensionsClass, ExtensionPoint.class);
+        if (extensionPointAnnotation != null) {
+            ExtensionSpec extensionSpec = ClassExtensionSpec.of(extensionAnnotation,
+                extensionPointAnnotation, extensions);
             extensionSpecs.add(extensionSpec);
             extensionSpecMap.put(extensionSpec.getCode(), extensionSpec);
         }
 
         Method[] methods = extensionsClass.getMethods();
         for (Method method : methods) {
-            extensionAnnotation = AnnotationUtils.findAnnotation(method, Extension.class);
-            if (extensionAnnotation != null) {
-                ExtensionSpec extensionSpec = MethodExtensionSpec.of(extensionsAnnotation,
-                    extensionAnnotation, extensions, method);
+            extensionPointAnnotation = AnnotationUtils.findAnnotation(method, ExtensionPoint.class);
+            if (extensionPointAnnotation != null) {
+                ExtensionSpec extensionSpec = MethodExtensionSpec.of(extensionAnnotation,
+                    extensionPointAnnotation, extensions, method);
                 extensionSpecs.add(extensionSpec);
                 extensionSpecMap.put(extensionSpec.getCode(), extensionSpec);
             }
             Class<?> returnType = method.getReturnType();
-            if (ExtensionPoint.class.isAssignableFrom(returnType)) {
-                ExtensionPoint subExtensions = null;
+            if (IExtensionPoint.class.isAssignableFrom(returnType)) {
+                IExtensionPoint subExtensions = null;
                 try {
                     subExtensions = MethodUtils.invoke(extensions, method);
                 } catch (Exception e) {
@@ -185,8 +185,8 @@ public class ExtensionManager implements Lifecycle {
                     while ((line = reader.readLine()) != null) {
                         String classFullName = line.trim();
                         if (StringUtils.isNotEmpty(classFullName)) {
-                            Class<ExtensionPoint> extensionPointClass = ClassLoaderUtils.loadClass(file.getName());
-                            Class<ExtensionPoint> extensionsClass = ClassLoaderUtils.loadClass(classFullName);
+                            Class<IExtensionPoint> extensionPointClass = ClassLoaderUtils.loadClass(file.getName());
+                            Class<IExtensionPoint> extensionsClass = ClassLoaderUtils.loadClass(classFullName);
                             registerExtensionPoint(extensionPointClass);
                             registerExtensions(extensionsClass);
                         }

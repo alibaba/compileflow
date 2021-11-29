@@ -52,7 +52,8 @@ public class CompilerImpl implements Compiler {
 
             JAVA_COMPILER.compile(javaSource, new File(dirPath), new CompileOption());
 
-            return ExtensionInvoker.getInstance().invoke(FlowClassLoader.EXT_LOAD_FLOW_CLASS_CODE, ReduceFilter.first(), fullClassName);
+            ClassLoader classLoader = ExtensionInvoker.getInstance().invoke(FlowClassLoaderFactory.EXT_FLOW_CLASS_LOADER_CODE, ReduceFilter.first());
+            return classLoader.loadClass(fullClassName);
         } catch (CompileFlowException e) {
             throw e;
         } catch (Exception e) {

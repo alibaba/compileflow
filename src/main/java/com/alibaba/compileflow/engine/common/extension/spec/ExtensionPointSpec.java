@@ -1,6 +1,6 @@
 package com.alibaba.compileflow.engine.common.extension.spec;
 
-import com.alibaba.compileflow.engine.common.extension.ExtensionPoint;
+import com.alibaba.compileflow.engine.common.extension.IExtensionPoint;
 import com.alibaba.compileflow.engine.common.extension.consts.ReducePolicy;
 
 /**
@@ -12,7 +12,7 @@ public abstract class ExtensionPointSpec extends BaseSpec {
 
     private ReducePolicy reducePolicy;
 
-    private Class<? extends ExtensionPoint> extensionPointClass;
+    private Class<? extends IExtensionPoint> extensionPointClass;
 
     public String getGroup() {
         return group;
@@ -30,11 +30,11 @@ public abstract class ExtensionPointSpec extends BaseSpec {
         this.reducePolicy = reducePolicy;
     }
 
-    public Class<? extends ExtensionPoint> getExtensionPointClass() {
+    public Class<? extends IExtensionPoint> getExtensionPointClass() {
         return extensionPointClass;
     }
 
-    public void setExtensionPointClass(Class<? extends ExtensionPoint> extensionPointClass) {
+    public void setExtensionPointClass(Class<? extends IExtensionPoint> extensionPointClass) {
         this.extensionPointClass = extensionPointClass;
     }
 

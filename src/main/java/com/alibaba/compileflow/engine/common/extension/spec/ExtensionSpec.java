@@ -1,6 +1,6 @@
 package com.alibaba.compileflow.engine.common.extension.spec;
 
-import com.alibaba.compileflow.engine.common.extension.ExtensionPoint;
+import com.alibaba.compileflow.engine.common.extension.IExtensionPoint;
 import com.alibaba.compileflow.engine.common.extension.consts.ReducePolicy;
 
 /**
@@ -16,7 +16,7 @@ public abstract class ExtensionSpec extends BaseSpec {
 
     private ReducePolicy reducePolicy;
 
-    private ExtensionPoint extension;
+    private IExtensionPoint extension;
 
     public abstract boolean isCollectionFlat();
 
@@ -54,11 +54,11 @@ public abstract class ExtensionSpec extends BaseSpec {
         this.reducePolicy = reducePolicy;
     }
 
-    public ExtensionPoint getExtension() {
+    public IExtensionPoint getExtension() {
         return extension;
     }
 
-    public void setExtension(ExtensionPoint extension) {
+    public void setExtension(IExtensionPoint extension) {
         this.extension = extension;
     }
 

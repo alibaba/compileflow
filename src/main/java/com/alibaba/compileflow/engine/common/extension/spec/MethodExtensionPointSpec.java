@@ -1,7 +1,7 @@
 package com.alibaba.compileflow.engine.common.extension.spec;
 
-import com.alibaba.compileflow.engine.common.extension.ExtensionPoint;
-import com.alibaba.compileflow.engine.common.extension.annotation.Extension;
+import com.alibaba.compileflow.engine.common.extension.IExtensionPoint;
+import com.alibaba.compileflow.engine.common.extension.annotation.ExtensionPoint;
 
 import java.lang.reflect.Method;
 
@@ -12,15 +12,15 @@ public class MethodExtensionPointSpec extends ExtensionPointSpec {
 
     private Method method;
 
-    public static MethodExtensionPointSpec of(Extension extensionAnnotation,
-                                              Class<? extends ExtensionPoint> extensionPointClass,
+    public static MethodExtensionPointSpec of(ExtensionPoint extensionPointAnnotation,
+                                              Class<? extends IExtensionPoint> extensionPointClass,
                                               Method method) {
         MethodExtensionPointSpec extensionMethod = new MethodExtensionPointSpec();
-        extensionMethod.setCode(extensionAnnotation.code());
-        extensionMethod.setName(extensionAnnotation.name());
-        extensionMethod.setDescription(extensionAnnotation.description());
-        extensionMethod.setGroup(extensionAnnotation.group());
-        extensionMethod.setReducePolicy(extensionAnnotation.reducePolicy());
+        extensionMethod.setCode(extensionPointAnnotation.code());
+        extensionMethod.setName(extensionPointAnnotation.name());
+        extensionMethod.setDescription(extensionPointAnnotation.description());
+        extensionMethod.setGroup(extensionPointAnnotation.group());
+        extensionMethod.setReducePolicy(extensionPointAnnotation.reducePolicy());
         extensionMethod.setMethod(method);
         extensionMethod.setExtensionPointClass(extensionPointClass);
         return extensionMethod;

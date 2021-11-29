@@ -2,7 +2,7 @@ package com.alibaba.compileflow.engine.common.extension;
 
 import com.alibaba.compileflow.engine.common.DirectedGraph;
 import com.alibaba.compileflow.engine.common.Lifecycle;
-import com.alibaba.compileflow.engine.common.extension.annotation.Extensions;
+import com.alibaba.compileflow.engine.common.extension.annotation.Extension;
 import com.alibaba.compileflow.engine.common.extension.annotation.PluginDependency;
 import com.alibaba.compileflow.engine.common.extension.annotation.PluginDependsOn;
 import com.alibaba.compileflow.engine.common.extension.config.PluginConfig;
@@ -317,15 +317,15 @@ public class PluginManager implements Lifecycle {
                 String extensionPackage = plugin.getExtensionPackage() != null ? plugin.getExtensionPackage()
                     : plugin.getClass().getPackage().getName();
                 if (extensionPackage != null) {
-                    List<Class<? extends ExtensionPoint>> extensionClasses = PackageUtils.getAllClassInPacakge(
+                    List<Class<? extends IExtensionPoint>> extensionClasses = PackageUtils.getAllClassInPacakge(
                         extensionPackage)
-                        .stream().filter(ExtensionPoint.class::isAssignableFrom)
-                        .map(clazz -> (Class<? extends ExtensionPoint>) clazz)
+                        .stream().filter(IExtensionPoint.class::isAssignableFrom)
+                        .map(clazz -> (Class<? extends IExtensionPoint>) clazz)
                         .collect(Collectors.toList());
-                    for (Class<? extends ExtensionPoint> extensionClass : extensionClasses) {
-                        Extensions extensionsAnnotation = AnnotationUtils.findAnnotation(extensionClass,
-                            Extensions.class);
-                        if (extensionsAnnotation != null) {
+                    for (Class<? extends IExtensionPoint> extensionClass : extensionClasses) {
+                        Extension extensionAnnotation = AnnotationUtils.findAnnotation(extensionClass,
+                            Extension.class);
+                        if (extensionAnnotation != null) {
                             registerExtensions(extensionClass);
                         } else if (ClassUtils.isAbstractOrInterface(extensionClass)) {
                             registerExtensionPoint(extensionClass);
@@ -336,11 +336,11 @@ public class PluginManager implements Lifecycle {
         }
     }
 
-    private void registerExtensionPoint(Class<? extends ExtensionPoint> extensionPointClass) {
+    private void registerExtensionPoint(Class<? extends IExtensionPoint> extensionPointClass) {
         ExtensionManager.getInstance().registerExtensionPoint(extensionPointClass);
     }
 
-    private void registerExtensions(Class<? extends ExtensionPoint> extensionsClass) {
+    private void registerExtensions(Class<? extends IExtensionPoint> extensionsClass) {
         ExtensionManager.getInstance().registerExtensions(extensionsClass);
     }
 
