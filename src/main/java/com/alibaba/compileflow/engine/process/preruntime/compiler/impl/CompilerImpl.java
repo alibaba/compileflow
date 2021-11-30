@@ -22,7 +22,6 @@ import com.alibaba.compileflow.engine.process.preruntime.compiler.Compiler;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaCompiler;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaSource;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.impl.support.EcJavaCompiler;
-import com.alibaba.compileflow.engine.process.preruntime.generator.bean.BeanProvider;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -38,7 +37,7 @@ public class CompilerImpl implements Compiler {
     private static final JavaCompiler JAVA_COMPILER = new EcJavaCompiler();
 
     @Override
-    public Class<?> compileJavaCode(String fullClassName, String sourceCode) {
+    public Class<?> compileJavaCode(String fullClassName, String sourceCode, ClassLoader classLoader) {
 
         try {
             String dirPath = CompileConstants.FLOW_COMPILE_CLASS_DIR;
@@ -55,8 +54,9 @@ public class CompilerImpl implements Compiler {
 
             JAVA_COMPILER.compile(javaSource, new File(dirPath), new CompileOption());
 
-            ClassLoader classLoader = BeanProvider.containsBean(FLOW_CLASS_LOADER_NAME) ?
-                BeanProvider.getBean(FLOW_CLASS_LOADER_NAME) : FlowClassLoader.getInstance();
+            if (classLoader == null) {
+                classLoader = FlowClassLoader.getInstance();
+            }
 
             return classLoader.loadClass(fullClassName);
         } catch (CompileFlowException e) {

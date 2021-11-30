@@ -21,6 +21,6 @@ package com.alibaba.compileflow.engine.process.preruntime.compiler;
  */
 public interface Compiler {
 
-    Class<?> compileJavaCode(String fullClassName, String sourceCode);
+    Class<?> compileJavaCode(String fullClassName, String sourceCode, ClassLoader classLoader);
 
 }

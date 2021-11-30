@@ -45,6 +45,8 @@ public interface ProcessEngine<T extends FlowModel> {
 
     void preCompile(String... codes);
 
+    void preCompile(ClassLoader classLoader, String... codes);
+
     void reload(String code);
 
     T load(String code);

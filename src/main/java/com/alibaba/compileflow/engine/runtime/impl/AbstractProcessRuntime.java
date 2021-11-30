@@ -136,6 +136,10 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         compiledClassCache.computeIfAbsent(code, c -> compileJavaCode(getJavaCode(code)));
     }
 
+    public void compile(ClassLoader classLoader) {
+        compiledClassCache.computeIfAbsent(code, c -> compileJavaCode(getJavaCode(code), classLoader));
+    }
+
     public void recompile(String code) {
         compiledClassCache.computeIfPresent(code, (k, v) -> compileJavaCode(generateJavaCode()));
     }
@@ -319,7 +323,11 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     private Class<?> compileJavaCode(String source) {
-        return COMPILER.compileJavaCode(classTarget.getFullName(), source);
+        return compileJavaCode(source, null);
+    }
+
+    private Class<?> compileJavaCode(String source, ClassLoader classLoader) {
+        return COMPILER.compileJavaCode(classTarget.getFullName(), source, classLoader);
     }
 
     protected MethodTarget generateFlowMethod(String methodName,

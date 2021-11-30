@@ -49,13 +49,18 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
 
     @Override
     public void preCompile(String... codes) {
+        preCompile(null, codes);
+    }
+
+    @Override
+    public void preCompile(ClassLoader classLoader, String... codes) {
         if (ArrayUtils.isEmpty(codes)) {
             throw new CompileFlowException("No process to compile");
         }
 
         for (String code : codes) {
             AbstractProcessRuntime runtime = getProcessRuntime(code);
-            runtime.compile();
+            runtime.compile(classLoader);
         }
     }
 
