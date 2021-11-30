@@ -25,4 +25,6 @@ public interface BeanHolder {
 
     <T> T getBean(Class<T> requiredType);
 
+    boolean containsBean(String name);
+
 }

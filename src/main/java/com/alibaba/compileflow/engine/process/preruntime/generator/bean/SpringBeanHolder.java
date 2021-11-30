@@ -38,12 +38,17 @@ public class SpringBeanHolder implements BeanHolder {
         ParamChecker.notEmpty(name, "Bean name is empty");
         ParamChecker.notNull(context, "Spring application context is not injected");
 
-        return (T)context.getBean(name);
+        return (T) context.getBean(name);
     }
 
     @Override
     public <T> T getBean(Class<T> requiredType) {
         return context.getBean(requiredType);
+    }
+
+    @Override
+    public boolean containsBean(String name) {
+        return context.containsBean(name);
     }
 
 }
