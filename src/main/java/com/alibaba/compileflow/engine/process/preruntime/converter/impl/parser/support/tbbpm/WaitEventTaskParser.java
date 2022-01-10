@@ -2,7 +2,7 @@ package com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.
 
 import com.alibaba.compileflow.engine.definition.common.Element;
 import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModelConstants;
-import com.alibaba.compileflow.engine.definition.tbbpm.WaitEventNode;
+import com.alibaba.compileflow.engine.definition.tbbpm.WaitEventTaskNode;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.ParseContext;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.XMLSource;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractTbbpmElementParser;
@@ -11,7 +11,7 @@ import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.s
  * @author wuxiang
  * since 2021/6/23
  **/
-public class WaitEventParser extends AbstractTbbpmElementParser<WaitEventNode> {
+public class WaitEventTaskParser extends AbstractTbbpmElementParser<WaitEventTaskNode> {
 
     @Override
     public String getName() {
@@ -19,8 +19,8 @@ public class WaitEventParser extends AbstractTbbpmElementParser<WaitEventNode> {
     }
 
     @Override
-    protected WaitEventNode doParse(XMLSource xmlSource, ParseContext parseContext) throws Exception {
-        WaitEventNode waitEventNode = new WaitEventNode();
+    protected WaitEventTaskNode doParse(XMLSource xmlSource, ParseContext parseContext) throws Exception {
+        WaitEventTaskNode waitEventNode = new WaitEventTaskNode();
         waitEventNode.setId(xmlSource.getString("id"));
         waitEventNode.setName(xmlSource.getString("name"));
         waitEventNode.setTag(xmlSource.getString("tag"));
@@ -31,7 +31,7 @@ public class WaitEventParser extends AbstractTbbpmElementParser<WaitEventNode> {
     }
 
     @Override
-    protected void attachChildElement(Element childElement, WaitEventNode element, ParseContext parseContext) {
+    protected void attachChildElement(Element childElement, WaitEventTaskNode element, ParseContext parseContext) {
 
     }
 }

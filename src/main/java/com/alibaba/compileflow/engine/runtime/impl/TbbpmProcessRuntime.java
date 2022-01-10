@@ -75,8 +75,8 @@ public class TbbpmProcessRuntime extends AbstractProcessRuntime<TbbpmModel> {
                 registerGenerator(node, new NoteGenerator(this, (NoteNode) node));
             } else if (node instanceof WaitTaskNode) {
                 registerGenerator(node, new WaitTaskGenerator(this, (WaitTaskNode) node));
-            } else if (node instanceof WaitEventNode) {
-                registerGenerator(node, new WaitEventGenerator(this, (WaitEventNode) node));
+            } else if (node instanceof WaitEventTaskNode) {
+                registerGenerator(node, new WaitEventTaskGenerator(this, (WaitEventTaskNode) node));
             } else {
                 throw new IllegalStateException("Unknown node type: " + node.getClass().getName());
             }

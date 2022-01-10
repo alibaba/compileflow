@@ -29,7 +29,7 @@ import com.alibaba.compileflow.engine.common.util.VarUtils;
 import com.alibaba.compileflow.engine.definition.common.*;
 import com.alibaba.compileflow.engine.definition.common.var.IVar;
 import com.alibaba.compileflow.engine.definition.tbbpm.EventNode;
-import com.alibaba.compileflow.engine.definition.tbbpm.WaitEventNode;
+import com.alibaba.compileflow.engine.definition.tbbpm.WaitEventTaskNode;
 import com.alibaba.compileflow.engine.definition.tbbpm.WaitTaskNode;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.Compiler;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.impl.CompilerImpl;
@@ -666,7 +666,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     private boolean isStateful() {
-        return flowModel.getAllNodes().stream().anyMatch(e -> e instanceof WaitTaskNode || e instanceof WaitEventNode);
+        return flowModel.getAllNodes().stream().anyMatch(e -> e instanceof WaitTaskNode || e instanceof WaitEventTaskNode);
     }
 
     private void addImportedTypes() {

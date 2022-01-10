@@ -24,28 +24,6 @@ import com.alibaba.compileflow.engine.definition.common.action.IAction;
  * @author wuxiang
  * @author yusu
  */
-public class WaitTaskNode extends FlowNode implements WaitElement, HasInOutAction {
-
-    private IAction inAction;
-
-    private IAction outAction;
-
-    @Override
-    public IAction getInAction() {
-        return inAction;
-    }
-
-    public void setInAction(IAction inAction) {
-        this.inAction = inAction;
-    }
-
-    @Override
-    public IAction getOutAction() {
-        return outAction;
-    }
-
-    public void setOutAction(IAction outAction) {
-        this.outAction = outAction;
-    }
+public class WaitTaskNode extends InOutActionNode implements WaitElement, HasInOutAction {
 
 }

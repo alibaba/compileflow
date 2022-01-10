@@ -16,20 +16,36 @@
  */
 package com.alibaba.compileflow.engine.definition.tbbpm;
 
+import com.alibaba.compileflow.engine.definition.common.action.HasAction;
+import com.alibaba.compileflow.engine.definition.common.action.HasInOutAction;
+import com.alibaba.compileflow.engine.definition.common.action.IAction;
+
 /**
- * @author wuxiang
  * @author yusu
  */
-public abstract class EventNode extends InOutActionNode {
+public abstract class InOutActionNode extends FlowNode implements HasInOutAction {
 
-    private String eventName;
+    private IAction inAction;
 
-    public String getEventName() {
-        return eventName;
+    private IAction outAction;
+
+    @Override
+    public IAction getInAction() {
+        return inAction;
     }
 
-    public void setEventName(String eventName) {
-        this.eventName = eventName;
+    public void setInAction(IAction inAction) {
+        this.inAction = inAction;
     }
+
+    @Override
+    public IAction getOutAction() {
+        return outAction;
+    }
+
+    public void setOutAction(IAction outAction) {
+        this.outAction = outAction;
+    }
+
 
 }

@@ -19,32 +19,33 @@ package com.alibaba.compileflow.engine.process.preruntime.converter.impl.writer.
 import com.alibaba.compileflow.engine.definition.common.Element;
 import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModelConstants;
 import com.alibaba.compileflow.engine.definition.tbbpm.WaitEventTaskNode;
+import com.alibaba.compileflow.engine.definition.tbbpm.WaitTaskNode;
 
 import javax.xml.stream.XMLStreamWriter;
 
 /**
  * @author yusu
  */
-public class WaitEventTaskWriter extends AbstractTbbpmInOutActionNodeWriter<WaitEventTaskNode> {
+public class WaitTaskWriter extends AbstractTbbpmInOutActionNodeWriter<WaitTaskNode> {
 
     @Override
     protected String getName() {
-        return TbbpmModelConstants.WAIT_EVENT_TASK;
+        return TbbpmModelConstants.WAIT_TASK;
     }
 
     @Override
-    protected void enrichNodeAttr(WaitEventTaskNode node, XMLStreamWriter xsw) throws Exception {
-        writeAttribute(xsw, "eventName", node.getEventName());
+    protected void enrichNodeAttr(WaitTaskNode node, XMLStreamWriter xsw) throws Exception {
+
     }
 
     @Override
-    protected void enrichNodeElement(WaitEventTaskNode element, XMLStreamWriter xsw) throws Exception {
+    protected void enrichNodeElement(WaitTaskNode element, XMLStreamWriter xsw) throws Exception {
 
     }
 
     @Override
     public Class<? extends Element> getElementClass() {
-        return WaitEventTaskNode.class;
+        return WaitTaskNode.class;
     }
 
 }
