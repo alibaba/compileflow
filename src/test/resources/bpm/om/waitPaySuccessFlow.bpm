@@ -17,6 +17,12 @@
   </autoTask>
   <waitEventTask id="29" name="֧等待支付成功事件" tag="PaymentPendingCallback" eventName="PaymentPendingCallback"
                  g="100,370,101,53">
+      <inAction type="java">
+          <actionHandle clazz="com.allibaba.compileflow.test.mock.MockJavaClazz" method="calPrice">
+              <var name="input" dataType="java.lang.Integer" contextVarName="num" inOutType="param"></var>
+              <var name="output" dataType="java.lang.Integer" contextVarName="numSqrt" inOutType="return"></var>
+          </actionHandle>
+      </inAction>
       <transition to="38" g=":-15,20"></transition>
   </waitEventTask>
   <autoTask id="38" name="计算价格2" tag="rate2" g="95,545,88,48">
