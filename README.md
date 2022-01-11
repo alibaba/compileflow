@@ -105,7 +105,6 @@ public void testProcessEngine() {
 
     final TbbpmModel tbbpmModel = processEngine.load(code);
     final OutputStream outputStream = TbbpmModelConverter.getInstance().convertToStream(tbbpmModel);
-    System.out.println(outputStream);
     System.out.println(processEngine.getTestCode(code));
 
     processEngine.preCompile(code);
