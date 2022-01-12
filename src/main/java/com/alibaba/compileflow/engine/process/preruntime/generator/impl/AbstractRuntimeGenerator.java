@@ -16,16 +16,17 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.generator.impl;
 
-import com.alibaba.compileflow.engine.common.utils.DataType;
-import com.alibaba.compileflow.engine.common.utils.VarUtils;
+import com.alibaba.compileflow.engine.common.ClassWrapper;
+import com.alibaba.compileflow.engine.common.util.DataType;
+import com.alibaba.compileflow.engine.common.util.VarUtils;
 import com.alibaba.compileflow.engine.definition.common.EndElement;
 import com.alibaba.compileflow.engine.definition.common.var.IVar;
-import com.alibaba.compileflow.engine.common.ClassWrapper;
 import com.alibaba.compileflow.engine.process.preruntime.generator.Generator;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.ClassTarget;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.MethodTarget;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.ParamTarget;
+import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.MethodConstants;
 import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -50,6 +51,14 @@ public abstract class AbstractRuntimeGenerator extends AbstractGenerator {
         return clazz == null ? Object.class : clazz;
     }
 
+    protected boolean isExecuteMethod(CodeTargetSupport codeTargetSupport) {
+        return MethodConstants.EXECUTE_METHOD_NAME.equals(codeTargetSupport.getName());
+    }
+
+    protected boolean isTriggerMethod(CodeTargetSupport codeTargetSupport) {
+        return MethodConstants.TRIGGER_METHOD_NAME.equals(codeTargetSupport.getName());
+    }
+
     protected void generateMethodCode(CodeTargetSupport codeTargetSupport, String methodName,
                                       Generator methodBodyGenerator) {
         generateMethodCode(codeTargetSupport, methodName, null, methodBodyGenerator);
@@ -66,6 +75,7 @@ public abstract class AbstractRuntimeGenerator extends AbstractGenerator {
         ClassTarget classTarget = getClassTarget(codeTargetSupport);
         method.setClassTarget(classTarget);
         method.setName(methodName);
+        method.addException(ClassWrapper.of(Exception.class));
 
         if (CollectionUtils.isNotEmpty(paramVars)) {
             for (IVar v : paramVars) {

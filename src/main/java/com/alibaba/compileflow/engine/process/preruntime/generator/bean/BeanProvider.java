@@ -31,6 +31,10 @@ public class BeanProvider {
         return holder.getBean(requiredType);
     }
 
+    public static boolean containsBean(String name) {
+        return holder.containsBean(name);
+    }
+
     public static void registerBeanHolder(BeanHolder beanHolder) {
         holder = beanHolder;
     }

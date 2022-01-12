@@ -20,5 +20,16 @@ package com.alibaba.compileflow.engine.definition.tbbpm;
  * @author wuxiang
  * @author yusu
  */
-public abstract class EventNode extends FlowNode {
+public abstract class EventNode extends InOutActionNode {
+
+    private String eventName;
+
+    public String getEventName() {
+        return eventName;
+    }
+
+    public void setEventName(String eventName) {
+        this.eventName = eventName;
+    }
+
 }

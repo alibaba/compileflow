@@ -326,7 +326,9 @@
     <xs:element name="waitEventTask">
         <xs:complexType>
             <xs:choice maxOccurs="unbounded" minOccurs="0">
-                <xs:element ref="transition"/>
+                <xs:element ref="inAction"/>
+                <xs:element ref="outAction"/>
+                <xs:element ref="transition" maxOccurs="unbounded"/>
             </xs:choice>
             <xs:attribute name="name">
                 <xs:simpleType>
@@ -334,13 +336,13 @@
                     </xs:restriction>
                 </xs:simpleType>
             </xs:attribute>
-            <xs:attribute name="tag">
+            <xs:attribute name="tag" use="required">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
                     </xs:restriction>
                 </xs:simpleType>
             </xs:attribute>
-            <xs:attribute name="eventName">
+            <xs:attribute name="eventName" use="required">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
                     </xs:restriction>
@@ -1008,7 +1010,7 @@
                     </xs:restriction>
                 </xs:simpleType>
             </xs:attribute>
-            <xs:attribute name="tag">
+            <xs:attribute name="tag" use="required">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
                     </xs:restriction>

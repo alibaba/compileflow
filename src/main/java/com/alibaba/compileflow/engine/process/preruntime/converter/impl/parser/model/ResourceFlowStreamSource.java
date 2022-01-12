@@ -17,7 +17,7 @@
 package com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model;
 
 import com.alibaba.compileflow.engine.common.CompileFlowException;
-import com.alibaba.compileflow.engine.common.utils.ClassLoaderUtils;
+import com.alibaba.compileflow.engine.common.util.ClassLoaderUtils;
 
 import java.io.InputStream;
 

@@ -22,6 +22,6 @@ import com.alibaba.compileflow.engine.definition.common.EndElement;
  * @author wuxiang
  * @author yusu
  */
-public class EndNode extends EventNode implements EndElement {
+public class EndNode extends FlowNode implements EndElement {
 
 }

@@ -16,16 +16,15 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.validator.impl;
 
-import com.alibaba.compileflow.engine.definition.common.EndElement;
-import com.alibaba.compileflow.engine.definition.common.FlowModel;
-import com.alibaba.compileflow.engine.definition.common.Node;
-import com.alibaba.compileflow.engine.definition.common.StartElement;
+import com.alibaba.compileflow.engine.definition.common.*;
 import com.alibaba.compileflow.engine.process.preruntime.validator.FlowModelValidator;
 import com.alibaba.compileflow.engine.process.preruntime.validator.ValidateMessage;
 import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -42,6 +41,14 @@ public class AbstractFlowModelValidator<T extends FlowModel> implements FlowMode
         if (CollectionUtils.isEmpty(nodes)) {
             validateMessages.add(ValidateMessage
                 .fail("flow model has no node, please check flow definition, code is " + flowModel.getCode()));
+        }
+
+        List<String> nodeIds = nodes.stream().map(Element::getId).collect(Collectors.toList());
+        Set<String> duplicateNodeIdSet = findDuplicateNodeId(nodeIds);
+        if (CollectionUtils.isNotEmpty(duplicateNodeIdSet)) {
+            validateMessages.add(ValidateMessage
+                .fail("flow model has duplicate node id, please check flow definition, code is " + flowModel.getCode()
+                    + ", duplicate id:[" + String.join(",", duplicateNodeIdSet) + "]"));
         }
 
         validateStartEndNode(flowModel, validateMessages);
@@ -74,6 +81,18 @@ public class AbstractFlowModelValidator<T extends FlowModel> implements FlowMode
                     + endNodes.stream().map(Node::getId).collect(Collectors.joining(","))
                     + ") found in the flow, please check flow definition, code is " + flowModel.getCode()));
         }
+    }
+
+    private Set<String> findDuplicateNodeId(List<String> nodeIds) {
+        final Set<String> nodeIdSet = new HashSet<>();
+        final Set<String> duplicateNodeIdSet = new HashSet<>();
+
+        for (String id : nodeIds) {
+            if (!nodeIdSet.add(id)) {
+                duplicateNodeIdSet.add(id);
+            }
+        }
+        return duplicateNodeIdSet;
     }
 
 }

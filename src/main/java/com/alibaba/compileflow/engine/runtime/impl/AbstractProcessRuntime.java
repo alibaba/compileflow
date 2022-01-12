@@ -21,17 +21,16 @@ import com.alibaba.compileflow.engine.ProcessEngineFactory;
 import com.alibaba.compileflow.engine.common.ClassWrapper;
 import com.alibaba.compileflow.engine.common.CompileFlowException;
 import com.alibaba.compileflow.engine.common.Lifecycle;
-import com.alibaba.compileflow.engine.common.constants.FlowModelType;
-import com.alibaba.compileflow.engine.common.constants.ProcessType;
-import com.alibaba.compileflow.engine.common.utils.ClassUtils;
-import com.alibaba.compileflow.engine.common.utils.DataType;
-import com.alibaba.compileflow.engine.common.utils.ObjectFactory;
-import com.alibaba.compileflow.engine.common.utils.VarUtils;
-import com.alibaba.compileflow.engine.definition.common.FlowModel;
-import com.alibaba.compileflow.engine.definition.common.Node;
-import com.alibaba.compileflow.engine.definition.common.NodeContainer;
-import com.alibaba.compileflow.engine.definition.common.TransitionNode;
+import com.alibaba.compileflow.engine.common.constant.FlowModelType;
+import com.alibaba.compileflow.engine.common.util.ClassUtils;
+import com.alibaba.compileflow.engine.common.util.DataType;
+import com.alibaba.compileflow.engine.common.util.ObjectFactory;
+import com.alibaba.compileflow.engine.common.util.VarUtils;
+import com.alibaba.compileflow.engine.definition.common.*;
 import com.alibaba.compileflow.engine.definition.common.var.IVar;
+import com.alibaba.compileflow.engine.definition.tbbpm.EventNode;
+import com.alibaba.compileflow.engine.definition.tbbpm.WaitEventTaskNode;
+import com.alibaba.compileflow.engine.definition.tbbpm.WaitTaskNode;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.Compiler;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.impl.CompilerImpl;
 import com.alibaba.compileflow.engine.process.preruntime.generator.Generator;
@@ -42,9 +41,13 @@ import com.alibaba.compileflow.engine.process.preruntime.generator.code.ClassTar
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.MethodTarget;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.ParamTarget;
+import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.MethodConstants;
 import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.Modifier;
+import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.SystemEventConstants;
 import com.alibaba.compileflow.engine.process.preruntime.generator.factory.GeneratorFactory;
 import com.alibaba.compileflow.engine.process.preruntime.generator.factory.GeneratorProviderFactory;
+import com.alibaba.compileflow.engine.process.preruntime.generator.impl.EventTriggerMethodGenerator;
+import com.alibaba.compileflow.engine.process.preruntime.generator.impl.TriggerMethodGenerator;
 import com.alibaba.compileflow.engine.process.preruntime.generator.provider.NodeGeneratorProvider;
 import com.alibaba.compileflow.engine.process.preruntime.generator.script.ScriptExecutor;
 import com.alibaba.compileflow.engine.process.preruntime.generator.script.ScriptExecutorProvider;
@@ -55,14 +58,12 @@ import com.alibaba.compileflow.engine.process.preruntime.validator.ValidateMessa
 import com.alibaba.compileflow.engine.process.preruntime.validator.factory.ModelValidatorFactory;
 import com.alibaba.compileflow.engine.runtime.ProcessRuntime;
 import com.alibaba.compileflow.engine.runtime.instance.ProcessInstance;
+import com.alibaba.compileflow.engine.runtime.instance.StatefulProcessInstance;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationContext;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -107,6 +108,10 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         this.classTarget = new ClassTarget();
     }
 
+    public T getFlowModel() {
+        return flowModel;
+    }
+
     public String getName() {
         return name;
     }
@@ -131,8 +136,16 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         compiledClassCache.computeIfAbsent(code, c -> compileJavaCode(getJavaCode(code)));
     }
 
+    public void compile(ClassLoader classLoader) {
+        compiledClassCache.computeIfAbsent(code, c -> compileJavaCode(getJavaCode(code), classLoader));
+    }
+
     public void recompile(String code) {
         compiledClassCache.computeIfPresent(code, (k, v) -> compileJavaCode(generateJavaCode()));
+    }
+
+    public Node getNodeById(String id) {
+        return flowModel.getNode(id);
     }
 
     @Override
@@ -141,13 +154,64 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         return executeProcessInstance(context);
     }
 
+    @Override
+    public Map<String, Object> trigger(String tag, Map<String, Object> context) {
+        compile();
+        return triggerProcessInstance(tag, context);
+    }
+
+    @Override
+    public Map<String, Object> trigger(String tag, String event, Map<String, Object> context) {
+        compile();
+        return triggerProcessInstance(tag, event, context);
+    }
+
     public abstract FlowModelType getFlowModelType();
 
-    public abstract ProcessType getProcessType();
+    public String generateJavaCode() {
+        if (isStateful()) {
+            classTarget.addSuperInterface(ClassWrapper.of(StatefulProcessInstance.class));
+            classTarget.addImportedType(ClassWrapper.of(SystemEventConstants.class));
+        } else {
+            classTarget.addSuperInterface(ClassWrapper.of(ProcessInstance.class));
+        }
+        generateFlowMethod(MethodConstants.EXECUTE_METHOD_NAME,
+            Collections.singletonList(ParamTarget.of(ClassWrapper.of("Map<String, Object>"), "_pContext")),
+            this::generateExecuteMethodBody);
+        if (isStateful()) {
+            List<ParamTarget> paramTargets = new ArrayList<>(2);
+            paramTargets.add(ParamTarget.of(ClassWrapper.of("String"), "tag"));
+            paramTargets.add(ParamTarget.of(ClassWrapper.of("Map<String, Object>"), "_pContext"));
+            TriggerMethodGenerator triggerMethodGenerator = new TriggerMethodGenerator();
+            MethodTarget methodTarget = generateMethodDefinition(MethodConstants.TRIGGER_METHOD_NAME, paramTargets);
+            triggerMethodGenerator.generateCode(methodTarget);
+            classTarget.addMethod(methodTarget);
+            paramTargets = new ArrayList<>(3);
+            paramTargets.add(ParamTarget.of(ClassWrapper.of("String"), "tag"));
+            paramTargets.add(ParamTarget.of(ClassWrapper.of("String"), "event"));
+            paramTargets.add(ParamTarget.of(ClassWrapper.of("Map<String, Object>"), "_pContext"));
+            EventTriggerMethodGenerator eventTriggerMethodGenerator = new EventTriggerMethodGenerator(this);
+            generateFlowMethod(MethodConstants.TRIGGER_METHOD_NAME, paramTargets, eventTriggerMethodGenerator);
+        }
+        return classTarget.generateCode();
+    }
 
-    public abstract String generateJavaCode();
+    @Override
+    public void init() {
+        validateRuntime();
+        initClassTarget();
+        initGeneratorProvider();
+        if (inited.compareAndSet(false, true)) {
+            initBeanProvider();
+            initScriptExecutorProvider();
+        }
+        initGatewayGraph();
+    }
 
-    protected abstract void registerNodeGenerator(NodeContainer<TransitionNode> nodeContainer);
+    @Override
+    public void stop() {
+
+    }
 
     public String generateTestCode() {
         ClassTarget classTarget = new ClassTarget();
@@ -167,7 +231,10 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         method.addAnnotation("@Test");
         method.addException(ClassWrapper.of(Exception.class));
         method.addBodyLine("String code = \"" + code + "\";");
+<<<<<<< HEAD
 
+=======
+>>>>>>> classsloader_bak
         String engineCode = isBpmn20() ? "ProcessEngine<BpmnModel> engine = ProcessEngineFactory.getProcessEngine(FlowModelType.BPMN);"
             : "ProcessEngine engine = ProcessEngineFactory.getProcessEngine();";
         method.addBodyLine(engineCode);
@@ -191,7 +258,11 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         return classTarget.generateCode();
     }
 
-    protected abstract boolean isStateless();
+    public boolean hasEventNode() {
+        return flowModel.getAllNodes().stream().anyMatch(e -> e instanceof EventNode);
+    }
+
+    protected abstract void registerNodeGenerator(NodeContainer<TransitionNode> nodeContainer);
 
     protected abstract boolean isBpmn20();
 
@@ -203,10 +274,6 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         classTarget.addImportedType(ClassWrapper.of(HashMap.class.getName()));
         classTarget.addImportedType(ClassWrapper.of("junit.framework.TestCase"));
         classTarget.addImportedType(ClassWrapper.of("org.junit.Assert"));
-    }
-
-    public Node getNodeById(String id) {
-        return flowModel.getNode(id);
     }
 
     protected void registerGenerator(Node node, Generator generator) {
@@ -228,6 +295,24 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         }
     }
 
+    private Map<String, Object> triggerProcessInstance(String tag, Map<String, Object> context) {
+        try {
+            StatefulProcessInstance instance = getProcessInstance();
+            return instance.trigger(tag, context);
+        } catch (Exception e) {
+            throw new CompileFlowException("Failed to trigger process, code is " + code, e);
+        }
+    }
+
+    private Map<String, Object> triggerProcessInstance(String tag, String event, Map<String, Object> context) {
+        try {
+            StatefulProcessInstance instance = getProcessInstance();
+            return instance.trigger(tag, event, context);
+        } catch (Exception e) {
+            throw new CompileFlowException("Failed to trigger process, code is " + code, e);
+        }
+    }
+
     @SuppressWarnings("unchecked")
     protected <T extends ProcessInstance> T getProcessInstance() {
         Class<?> clazz = compiledClassCache.get(code);
@@ -235,19 +320,24 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
             throw new CompileFlowException("Failed to get compile class, code is " + code);
         }
         try {
-            return (T) ClassUtils.newInstance(clazz);
+            return ClassUtils.newInstance(clazz);
         } catch (Exception e) {
             throw new CompileFlowException("Failed to get process instance, code is " + code, e);
         }
     }
 
     private Class<?> compileJavaCode(String source) {
-        return COMPILER.compileJavaCode(classTarget.getFullName(), source);
+        return compileJavaCode(source, null);
+    }
+
+    private Class<?> compileJavaCode(String source, ClassLoader classLoader) {
+        return COMPILER.compileJavaCode(classTarget.getFullName(), source, classLoader);
     }
 
     protected MethodTarget generateFlowMethod(String methodName,
+                                              List<ParamTarget> paramTypes,
                                               Generator methodExecuteBodyGenerator) {
-        MethodTarget methodTarget = generateMethodDefinition(methodName);
+        MethodTarget methodTarget = generateMethodDefinition(methodName, paramTypes);
         classTarget.addMethod(methodTarget);
 
         addVars(paramVars);
@@ -275,7 +365,9 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         }
 
         methodTarget.addBodyLine("Map<String, Object> _pResult = new HashMap<>();");
+        methodTarget.addNewLine();
         methodExecuteBodyGenerator.generateCode(methodTarget);
+        methodTarget.addNewLine();
         List<String> returnVarLines = wrapReturnVarLines();
         methodTarget.addBodyLines(returnVarLines);
         methodTarget.addBodyLine("return _pResult;");
@@ -296,14 +388,16 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         return returnVarLines;
     }
 
-    protected MethodTarget generateMethodDefinition(String methodName) {
+    protected MethodTarget generateMethodDefinition(String methodName, List<ParamTarget> paramTypes) {
         MethodTarget methodTarget = new MethodTarget();
         methodTarget.setClassTarget(classTarget);
         methodTarget.setName(methodName);
         methodTarget.addException(ClassWrapper.of(Exception.class));
-        ClassWrapper mType = ClassWrapper.of("Map<String, Object>");
-        methodTarget.addParameter(ParamTarget.of(mType, "_pContext"));
-        methodTarget.setReturnType(mType);
+        if (CollectionUtils.isNotEmpty(paramTypes)) {
+            paramTypes.forEach(methodTarget::addParameter);
+        }
+        ClassWrapper returnType = ClassWrapper.of("Map<String, Object>");
+        methodTarget.setReturnType(returnType);
         methodTarget.addModifier(Modifier.PUBLIC);
         return methodTarget;
     }
@@ -324,20 +418,140 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         nodeGeneratorProvider.getGenerator(flowModel).generateCode(codeTargetSupport);
     }
 
-    @Override
-    public void init() {
-        validateRuntime();
-        initClassTarget();
-        initGeneratorProvider();
-        if (inited.compareAndSet(false, true)) {
-            initBeanProvider();
-            initScriptExecutorProvider();
-        }
+    @SuppressWarnings("unchecked")
+    private void initGatewayGraph() {
+        buildGatewayGraph(flowModel);
     }
 
-    @Override
-    public void stop() {
+    private void buildGatewayGraph(NodeContainer<Node> nodeContainer) {
+        List<TransitionNode> nodes = nodeContainer.getAllNodes()
+            .stream()
+            .filter(node -> node instanceof TransitionNode)
+            .map(e -> (TransitionNode) e)
+            .collect(Collectors.toList());
 
+        nodes.forEach(this::buildFollowingNodes);
+        nodes.stream()
+            .filter(flowNode -> flowNode instanceof GatewayElement)
+            .forEach(gatewayNode -> {
+                gatewayNode.getOutgoingNodes().forEach(outgoingNode -> {
+                    List<TransitionNode> branchNodes = buildBranchNodes(outgoingNode).stream()
+                        .filter(node -> !followingGraph.get(gatewayNode.getId()).contains(node))
+                        .collect(Collectors.toList());
+                    branchGraph.put(outgoingNode.getId(), branchNodes);
+                });
+
+                if (CollectionUtils.isNotEmpty(gatewayNode.getIncomingNodes())
+                    && gatewayNode.getIncomingNodes().stream()
+                    .allMatch(incomingNode -> isContainedByIncomingNode(gatewayNode, incomingNode))) {
+                    followingGraph.put(gatewayNode.getId(), Collections.emptyList());
+                }
+            });
+
+        nodes.stream()
+            .filter(flowNode -> flowNode instanceof NodeContainer)
+            .map(e -> (NodeContainer) e)
+            .forEach(this::buildGatewayGraph);
+    }
+
+    private List<TransitionNode> buildFollowingNodes(TransitionNode flowNode) {
+        if (followingGraph.containsKey(flowNode.getId())) {
+            return followingGraph.get(flowNode.getId());
+        }
+
+        List<TransitionNode> followingNodes;
+        if (flowNode instanceof EndElement) {
+            followingNodes = Collections.emptyList();
+        } else if (flowNode instanceof WaitElement) {
+            followingNodes = Collections.emptyList();
+        } else if (flowNode instanceof GatewayElement) {
+            followingNodes = buildGatewayFollowingNodes(flowNode);
+        } else {
+            followingNodes = new ArrayList<>();
+            TransitionNode theOnlyOutgoingNode = getTheOnlyOutgoingNode(flowNode);
+            if (theOnlyOutgoingNode != null) {
+                followingNodes.add(theOnlyOutgoingNode);
+                if (!(theOnlyOutgoingNode instanceof GatewayElement)) {
+                    followingNodes.addAll(buildFollowingNodes(theOnlyOutgoingNode));
+                }
+            }
+        }
+
+        followingGraph.put(flowNode.getId(), followingNodes);
+        return followingNodes;
+    }
+
+    private TransitionNode getTheOnlyOutgoingNode(TransitionNode flowNode) {
+        if (flowNode.getOutgoingNodes().size() > 0) {
+            return flowNode.getOutgoingNodes().get(0);
+        }
+        return null;
+    }
+
+    private boolean isContainedByIncomingNode(Node decisionNode, TransitionNode incomingNode) {
+        if (incomingNode instanceof StartElement) {
+            return false;
+        }
+        if (incomingNode instanceof GatewayElement) {
+            List<TransitionNode> decisionFollowingNodes = followingGraph.get(decisionNode.getId());
+            List<TransitionNode> incomingFollowingNodes = followingGraph.get(incomingNode.getId());
+            if (decisionFollowingNodes.size() == incomingFollowingNodes.size()
+                && incomingFollowingNodes.containsAll(decisionFollowingNodes)) {
+                return true;
+            }
+        }
+        return CollectionUtils.isNotEmpty(incomingNode.getIncomingNodes())
+            && incomingNode.getIncomingNodes().stream()
+            .allMatch(node -> isContainedByIncomingNode(decisionNode, node));
+    }
+
+    private List<TransitionNode> buildGatewayFollowingNodes(TransitionNode flowNode) {
+        List<TransitionNode> outgoingNodes = flowNode.getOutgoingNodes();
+        if (outgoingNodes.size() < 2) {
+            return Collections.emptyList();
+        }
+        List<TransitionNode> followingNodes = Collections.emptyList();
+        for (int i = 0; i < outgoingNodes.size(); i++) {
+            TransitionNode branchNode = outgoingNodes.get(i);
+            List<TransitionNode> branchFollowingNodes = buildFollowingNodes(branchNode);
+
+            if (i == 0) {
+                followingNodes = new ArrayList<>(branchFollowingNodes);
+            } else {
+                Iterator<TransitionNode> flowNodeIterator = followingNodes.iterator();
+                while (flowNodeIterator.hasNext()) {
+                    TransitionNode followingNode = flowNodeIterator.next();
+                    if (branchFollowingNodes.stream()
+                        .anyMatch(node -> node.getId().equals(followingNode.getId()))) {
+                        break;
+                    } else {
+                        flowNodeIterator.remove();
+                    }
+                    if (CollectionUtils.isEmpty(followingNodes)) {
+                        return followingNodes;
+                    }
+                }
+            }
+        }
+        return followingNodes;
+    }
+
+    private List<TransitionNode> buildBranchNodes(TransitionNode branchNode) {
+        if (branchGraph.containsKey(branchNode.getId())) {
+            return branchGraph.get(branchNode.getId());
+        }
+
+        List<TransitionNode> branchNodes = new ArrayList<>();
+        branchNodes.add(branchNode);
+        if (!(branchNode instanceof EndElement) && !(branchNode instanceof WaitElement) && !(branchNode instanceof GatewayElement)) {
+            TransitionNode theOnlyOutgoingNode = getTheOnlyOutgoingNode(branchNode);
+            if (theOnlyOutgoingNode != null) {
+                branchNodes.addAll(buildBranchNodes(theOnlyOutgoingNode));
+            }
+        }
+
+        branchGraph.put(branchNode.getId(), branchNodes);
+        return branchNodes;
     }
 
     private void validateRuntime() {
@@ -359,7 +573,17 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         //return ExtensionInvoker.getInstance().invoke(FlowModelValidator.CODE, validatorClass,
         //    ReduceFilter.allCollectionNonEmpty(), flowModel);
         FlowModelValidator validator = ModelValidatorFactory.getFlowModelValidator(getFlowModelType());
-        return validator.validate(flowModel);
+        List<ValidateMessage> validateMessages = validator.validate(flowModel);
+        List<TransitionNode> transitionNodes = flowModel.getTransitionNodes();
+        if (isStateful()) {
+            List<TransitionNode> noTagNodes = transitionNodes.stream().filter(node -> StringUtils.isEmpty(node.getTag()))
+                .collect(Collectors.toList());
+            if (CollectionUtils.isNotEmpty(noTagNodes)) {
+                String noTagNodeIds = noTagNodes.stream().map(Node::getId).collect(Collectors.joining(","));
+                validateMessages.add(ValidateMessage.fail("Nodes [" + noTagNodeIds + "] have no Tag"));
+            }
+        }
+        return validateMessages;
     }
 
     private void initBeanProvider() {
@@ -380,13 +604,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     @SuppressWarnings("unchecked")
     protected void initGeneratorProvider() {
         GeneratorProviderFactory generatorProviderFactory = getGeneratorProviderFactory();
-        if (generatorProviderFactory == null) {
-            throw new CompileFlowException("GeneratorProviderFactory is null");
-        }
         nodeGeneratorProvider = generatorProviderFactory.create();
-        if (nodeGeneratorProvider == null) {
-            throw new CompileFlowException("NodeGeneratorProvider is null");
-        }
         registerContainerGenerator(flowModel);
         registerNodeGenerator(flowModel);
     }
@@ -425,7 +643,11 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     private String wrapClassFullName(String name) {
+<<<<<<< HEAD
         return name;
+=======
+        return "compileflow." + name;
+>>>>>>> classsloader_bak
     }
 
     private String getFlowClassName(String code, String id) {
@@ -444,23 +666,28 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     private void addExtImportedTypes() {
-        List<Class<?>> extImportedTypes = getExtImportedTypes();
-        if (CollectionUtils.isNotEmpty(extImportedTypes)) {
-            for (Class<?> extImportedType : extImportedTypes) {
-                classTarget.addImportedType(ClassWrapper.of(extImportedType));
-            }
+        if (isStateful()) {
+            addImportedType(StatefulProcessInstance.class);
+        } else {
+            addImportedType(ProcessInstance.class);
         }
     }
 
-    protected abstract List<Class<?>> getExtImportedTypes();
+    private boolean isStateful() {
+        return flowModel.getAllNodes().stream().anyMatch(e -> e instanceof WaitTaskNode || e instanceof WaitEventTaskNode);
+    }
 
     private void addImportedTypes() {
-        classTarget.addImportedType(ClassWrapper.of(Map.class));
-        classTarget.addImportedType(ClassWrapper.of(HashMap.class));
-        classTarget.addImportedType(ClassWrapper.of(ObjectFactory.class));
-        classTarget.addImportedType(ClassWrapper.of(ProcessEngineFactory.class));
-        classTarget.addImportedType(ClassWrapper.of(DataType.class));
-        classTarget.addImportedType(ClassWrapper.of(BeanProvider.class));
+        addImportedType(Map.class);
+        addImportedType(HashMap.class);
+        addImportedType(ObjectFactory.class);
+        addImportedType(ProcessEngineFactory.class);
+        addImportedType(DataType.class);
+        addImportedType(BeanProvider.class);
+    }
+
+    public void addImportedType(Class<?> clazz) {
+        classTarget.addImportedType(ClassWrapper.of(clazz));
     }
 
 }

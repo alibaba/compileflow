@@ -17,9 +17,10 @@
 package com.alibaba.compileflow.engine.process.preruntime.compiler.impl;
 
 import com.alibaba.compileflow.engine.common.CompileFlowException;
-import com.alibaba.compileflow.engine.common.utils.FileUtils;
+import com.alibaba.compileflow.engine.process.preruntime.compiler.CompileOption;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.Compiler;
-import com.alibaba.compileflow.engine.process.preruntime.compiler.*;
+import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaCompiler;
+import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaSource;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.impl.support.EcJavaCompiler;
 
 import java.io.File;
@@ -31,10 +32,12 @@ import java.io.PrintWriter;
  */
 public class CompilerImpl implements Compiler {
 
+    private static final String FLOW_CLASS_LOADER_NAME = "flowClassLoader";
+
     private static final JavaCompiler JAVA_COMPILER = new EcJavaCompiler();
 
     @Override
-    public Class<?> compileJavaCode(String fullClassName, String sourceCode) {
+    public Class<?> compileJavaCode(String fullClassName, String sourceCode, ClassLoader classLoader) {
 
         try {
             String dirPath = CompileConstants.FLOW_COMPILE_CLASS_DIR;
@@ -51,9 +54,11 @@ public class CompilerImpl implements Compiler {
 
             JAVA_COMPILER.compile(javaSource, new File(dirPath), new CompileOption());
 
-            File classFile = new File(dirFile, fullClassName.replace('.', File.separatorChar) + ".class");
-            byte[] classBytes = FileUtils.readFileToByteArray(classFile);
-            return FlowClassLoader.getInstance().defineClass(fullClassName, classBytes);
+            if (classLoader == null) {
+                classLoader = FlowClassLoader.getInstance();
+            }
+
+            return classLoader.loadClass(fullClassName);
         } catch (CompileFlowException e) {
             throw e;
         } catch (Exception e) {

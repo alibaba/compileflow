@@ -17,7 +17,7 @@
 package com.alibaba.compileflow.engine.process.preruntime.generator.impl.action.support;
 
 import com.alibaba.compileflow.engine.ProcessEngineFactory;
-import com.alibaba.compileflow.engine.common.utils.DataType;
+import com.alibaba.compileflow.engine.common.util.DataType;
 import com.alibaba.compileflow.engine.definition.common.action.IAction;
 import com.alibaba.compileflow.engine.definition.common.action.impl.SubBpmActionHandle;
 import com.alibaba.compileflow.engine.definition.common.var.IVar;
@@ -56,7 +56,7 @@ public class SubBpmActionGenerator extends AbstractActionGenerator {
         List<IVar> params = getMethodParameters();
         IVar returnVar = getReturnVar();
         codeTargetSupport.addBodyLine("{");
-        codeTargetSupport.addBodyLine("Map<String, Object> _subBpmContext = new HashMap<>();");
+        codeTargetSupport.addBodyLine("Map<String, Object> _spContext = new HashMap<>();");
         for (IVar param : params) {
             String var = param.getContextVarName() != null ?
                 DataType.getVarTransferString(getVarType(param.getContextVarName()),
@@ -64,11 +64,11 @@ public class SubBpmActionGenerator extends AbstractActionGenerator {
                 : DataType.getDefaultValueString(DataType.getJavaClass(param.getDataType()),
                     param.getDefaultValue());
 
-            codeTargetSupport.addBodyLine("_subBpmContext.put(\"" + param.getName() + "\", " + var + ");");
+            codeTargetSupport.addBodyLine("_spContext.put(\"" + param.getName() + "\", " + var + ");");
         }
 
         String noReturnCode = "ProcessEngineFactory.getProcessEngine().start(\"" + getSubBpmCode()
-            + "\", _subBpmContext)";
+            + "\", _spContext)";
 
         if (returnVar != null) {
             String code = returnVar.getContextVarName() + " = ("

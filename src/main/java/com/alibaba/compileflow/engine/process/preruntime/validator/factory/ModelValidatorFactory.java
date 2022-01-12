@@ -17,7 +17,7 @@
 package com.alibaba.compileflow.engine.process.preruntime.validator.factory;
 
 import com.alibaba.compileflow.engine.common.CompileFlowException;
-import com.alibaba.compileflow.engine.common.constants.FlowModelType;
+import com.alibaba.compileflow.engine.common.constant.FlowModelType;
 import com.alibaba.compileflow.engine.process.preruntime.validator.FlowModelValidator;
 import com.alibaba.compileflow.engine.process.preruntime.validator.impl.BpmnModelValidator;
 import com.alibaba.compileflow.engine.process.preruntime.validator.impl.TbbpmModelValidator;

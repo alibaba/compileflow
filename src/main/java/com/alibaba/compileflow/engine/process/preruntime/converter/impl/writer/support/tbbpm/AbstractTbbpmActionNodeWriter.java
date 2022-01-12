@@ -35,6 +35,7 @@ public abstract class AbstractTbbpmActionNodeWriter<S extends ActionNode>
         writeNodeAttr(element, xsw);
         writeTransition(element, xsw);
         writeAction(element.getAction(), xsw);
+        enrichNodeElement(element, xsw);
         xsw.writeEndElement();
     }
 

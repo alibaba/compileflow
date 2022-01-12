@@ -23,15 +23,6 @@ public class TbbpmModelValidator extends AbstractFlowModelValidator<TbbpmModel>
     }
 
     private void validateDecisionNode(TbbpmModel flowModel, List<ValidateMessage> validateMessages) {
-
-        // check node id unique
-        int size = flowModel.getAllNodes().stream().map(FlowNode::getId).distinct().collect(Collectors.toList()).size();
-
-        if (flowModel.getAllNodes().size() != size) {
-            validateMessages.add(ValidateMessage.fail("node id has repreat id, please check node is, node id must unqiue"));
-            return ;
-        }
-
         List<FlowNode> decisionNodes = flowModel.getAllNodes().stream()
             .filter(node -> node instanceof DecisionNode).collect(Collectors.toList());
         if (CollectionUtils.isEmpty(decisionNodes)) {

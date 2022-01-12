@@ -17,7 +17,7 @@
 package com.alibaba.compileflow.engine.process.preruntime.generator.impl.bpmn;
 
 import com.alibaba.compileflow.engine.ProcessEngineFactory;
-import com.alibaba.compileflow.engine.common.utils.DataType;
+import com.alibaba.compileflow.engine.common.util.DataType;
 import com.alibaba.compileflow.engine.definition.bpmn.SubProcess;
 import com.alibaba.compileflow.engine.definition.common.var.IVar;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;

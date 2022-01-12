@@ -19,8 +19,8 @@ package com.alibaba.compileflow.engine.process.impl;
 import com.alibaba.compileflow.engine.ProcessEngine;
 import com.alibaba.compileflow.engine.common.CompileFlowException;
 import com.alibaba.compileflow.engine.common.DirectedGraph;
-import com.alibaba.compileflow.engine.common.constants.FlowModelType;
-import com.alibaba.compileflow.engine.common.utils.ArrayUtils;
+import com.alibaba.compileflow.engine.common.constant.FlowModelType;
+import com.alibaba.compileflow.engine.common.util.ArrayUtils;
 import com.alibaba.compileflow.engine.definition.common.EndElement;
 import com.alibaba.compileflow.engine.definition.common.FlowModel;
 import com.alibaba.compileflow.engine.definition.common.TransitionNode;
@@ -49,13 +49,18 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
 
     @Override
     public void preCompile(String... codes) {
+        preCompile(null, codes);
+    }
+
+    @Override
+    public void preCompile(ClassLoader classLoader, String... codes) {
         if (ArrayUtils.isEmpty(codes)) {
             throw new CompileFlowException("No process to compile");
         }
 
         for (String code : codes) {
             AbstractProcessRuntime runtime = getProcessRuntime(code);
-            runtime.compile();
+            runtime.compile(classLoader);
         }
     }
 

@@ -33,7 +33,12 @@ public class AutoTaskGenerator extends AbstractTbbpmActionNodeGenerator<AutoTask
 
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
-        super.generateCode(codeTargetSupport);
+        if (isTriggerMethod(codeTargetSupport)) {
+            generateNodeComment(codeTargetSupport);
+            generateActionMethodCode(codeTargetSupport, flowNode.getAction());
+        } else {
+            super.generateCode(codeTargetSupport);
+        }
     }
 
 }

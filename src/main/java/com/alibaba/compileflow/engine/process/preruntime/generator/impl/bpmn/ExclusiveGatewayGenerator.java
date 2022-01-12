@@ -16,7 +16,7 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.generator.impl.bpmn;
 
-import com.alibaba.compileflow.engine.common.utils.VarUtils;
+import com.alibaba.compileflow.engine.common.util.VarUtils;
 import com.alibaba.compileflow.engine.definition.bpmn.ExclusiveGateway;
 import com.alibaba.compileflow.engine.definition.bpmn.FlowElement;
 import com.alibaba.compileflow.engine.definition.bpmn.SequenceFlow;

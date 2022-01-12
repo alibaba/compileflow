@@ -18,14 +18,14 @@ package com.alibaba.compileflow.engine.process.preruntime.converter.impl.writer.
 
 import com.alibaba.compileflow.engine.definition.common.Element;
 import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModelConstants;
-import com.alibaba.compileflow.engine.definition.tbbpm.WaitEventNode;
+import com.alibaba.compileflow.engine.definition.tbbpm.WaitEventTaskNode;
 
 import javax.xml.stream.XMLStreamWriter;
 
 /**
  * @author yusu
  */
-public class WaitEventTaskWriter extends AbstractTbbpmFlowElementWriter<WaitEventNode> {
+public class WaitEventTaskWriter extends AbstractTbbpmInOutActionNodeWriter<WaitEventTaskNode> {
 
     @Override
     protected String getName() {
@@ -33,18 +33,18 @@ public class WaitEventTaskWriter extends AbstractTbbpmFlowElementWriter<WaitEven
     }
 
     @Override
-    protected void enrichNodeAttr(WaitEventNode node, XMLStreamWriter xsw) throws Exception {
+    protected void enrichNodeAttr(WaitEventTaskNode node, XMLStreamWriter xsw) throws Exception {
         writeAttribute(xsw, "eventName", node.getEventName());
     }
 
     @Override
-    protected void enrichNodeElement(WaitEventNode element, XMLStreamWriter xsw) throws Exception {
+    protected void enrichNodeElement(WaitEventTaskNode element, XMLStreamWriter xsw) throws Exception {
 
     }
 
     @Override
     public Class<? extends Element> getElementClass() {
-        return WaitEventNode.class;
+        return WaitEventTaskNode.class;
     }
 
 }

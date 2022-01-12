@@ -16,7 +16,7 @@
  */
 package com.alibaba.compileflow.engine.definition.common.var.impl;
 
-import com.alibaba.compileflow.engine.common.utils.DataType;
+import com.alibaba.compileflow.engine.common.util.DataType;
 import com.alibaba.compileflow.engine.definition.common.AbstractElement;
 import com.alibaba.compileflow.engine.definition.common.var.IVar;
 

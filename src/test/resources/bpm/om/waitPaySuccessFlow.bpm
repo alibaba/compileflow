@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.om.waitpaySuccessflow" name="test" type="process" description="This is test demo.">
+  <var name="num" description="入参" dataType="java.lang.Integer" inOutType="param"></var>
+  <var name="numSqrt" description="开根号结果" dataType="java.lang.Integer" inOutType="return"></var>
+  <start id="1" name="开始" tag="start" g="115,16,30,30">
+    <transition to="17" g=":-15,20"></transition>
+  </start>
+  <end id="11" name="结束" tag="end" g="130,815,30,30"></end>
+  <autoTask id="17" name="计算平方根" tag="rate" g="95,160,88,48">
+    <transition to="29" g=":-15,20"></transition>
+    <action type="java">
+      <actionHandle clazz="com.allibaba.compileflow.test.mock.MockJavaClazz" method="mockReturnMethod">
+        <var name="input" dataType="java.lang.Integer" contextVarName="num" inOutType="param"></var>
+        <var name="output" dataType="java.lang.Integer" contextVarName="numSqrt" inOutType="return"></var>
+      </actionHandle>
+    </action>
+  </autoTask>
+  <waitEventTask id="29" name="֧等待支付成功事件" tag="PaymentPendingCallback" eventName="PaymentPendingCallback"
+                 g="100,370,101,53">
+      <transition to="38" g=":-15,20"></transition>
+  </waitEventTask>
+  <autoTask id="38" name="计算价格2" tag="rate2" g="95,545,88,48">
+    <transition to="11" g=":-15,20"></transition>
+    <action type="java">
+      <actionHandle clazz="com.allibaba.compileflow.test.mock.MockJavaClazz" method="calPrice">
+        <var name="input" dataType="java.lang.Integer" contextVarName="num" inOutType="param"></var>
+        <var name="output" dataType="java.lang.Integer" contextVarName="numSqrt" inOutType="return"></var>
+      </actionHandle>
+    </action>
+  </autoTask>
+</bpm>

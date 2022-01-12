@@ -18,6 +18,7 @@ package com.alibaba.compileflow.engine.process.preruntime.generator.impl.tbbpm;
 
 import com.alibaba.compileflow.engine.definition.tbbpm.WaitTaskNode;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
+import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.SystemEventConstants;
 import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;
 
 /**
@@ -33,7 +34,7 @@ public class WaitTaskGenerator extends AbstractTbbpmInOutActionNodeGenerator<Wai
 
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
-        super.generateCode(codeTargetSupport);
+        generateCode(SystemEventConstants.CONTINUE_EVENT, codeTargetSupport);
     }
 
 }

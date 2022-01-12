@@ -55,14 +55,6 @@ public class MethodTarget extends AbstractCodeTargetSupport implements CodeTarge
         return parameterTypes;
     }
 
-    public void addParameterType(ParamTarget parameterType) {
-        parameterTypes.add(parameterType);
-    }
-
-    public void addExceptionType(ClassWrapper exceptionType) {
-        exceptionTypes.add(exceptionType);
-    }
-
     public void addModifier(Modifier modifier) {
         modifiers.add(modifier);
     }
@@ -156,7 +148,9 @@ public class MethodTarget extends AbstractCodeTargetSupport implements CodeTarge
             }
             super.addNewLine();
             super.addIndent(indent);
-            super.addBodyLine(bodyLine);
+            if (!SymbolConstants.LINE_BREAK.equals(bodyLine)) {
+                super.addBodyLine(bodyLine);
+            }
 
             if (bodyLine.endsWith("{") || bodyLine.endsWith(":")) {
                 indent += CodeConstants.INDENT;

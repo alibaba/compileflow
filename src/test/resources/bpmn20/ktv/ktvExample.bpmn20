@@ -5,7 +5,7 @@
              expressionLanguage="http://www.w3.org/1999/XPath"
              targetNamespace="http://compileflow.alibaba.com">
 
-    <process id="ktv" name="ktv" isExecutable="true">
+    <process id="ktvExample" name="ktvExample" isExecutable="true">
         <extensionElements>
             <cf:var name="price" description="支付价格" dataType="java.lang.Integer" inOutType="return"/>
             <cf:var name="totalPrice" description="实付价" dataType="java.lang.Integer" inOutType="inner"/>
