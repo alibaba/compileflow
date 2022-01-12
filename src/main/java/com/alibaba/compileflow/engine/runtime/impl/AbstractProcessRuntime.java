@@ -231,10 +231,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         method.addAnnotation("@Test");
         method.addException(ClassWrapper.of(Exception.class));
         method.addBodyLine("String code = \"" + code + "\";");
-<<<<<<< HEAD
 
-=======
->>>>>>> classsloader_bak
         String engineCode = isBpmn20() ? "ProcessEngine<BpmnModel> engine = ProcessEngineFactory.getProcessEngine(FlowModelType.BPMN);"
             : "ProcessEngine engine = ProcessEngineFactory.getProcessEngine();";
         method.addBodyLine(engineCode);
@@ -568,10 +565,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
 
     @SuppressWarnings("unchecked")
     protected List<ValidateMessage> validateFlowModel() {
-        //Class<? extends FlowModelValidator> validatorClass = FlowModelType.BPMN.equals(getFlowModelType())
-        //    ? BpmnModelValidator.class : TbbpmModelValidator.class;
-        //return ExtensionInvoker.getInstance().invoke(FlowModelValidator.CODE, validatorClass,
-        //    ReduceFilter.allCollectionNonEmpty(), flowModel);
+
         FlowModelValidator validator = ModelValidatorFactory.getFlowModelValidator(getFlowModelType());
         List<ValidateMessage> validateMessages = validator.validate(flowModel);
         List<TransitionNode> transitionNodes = flowModel.getTransitionNodes();
@@ -643,11 +637,8 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     private String wrapClassFullName(String name) {
-<<<<<<< HEAD
-        return name;
-=======
+
         return "compileflow." + name;
->>>>>>> classsloader_bak
     }
 
     private String getFlowClassName(String code, String id) {
