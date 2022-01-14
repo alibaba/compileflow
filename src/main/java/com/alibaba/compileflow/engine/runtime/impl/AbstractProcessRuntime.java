@@ -231,8 +231,9 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         method.addAnnotation("@Test");
         method.addException(ClassWrapper.of(Exception.class));
         method.addBodyLine("String code = \"" + code + "\";");
+
         String engineCode = isBpmn20() ? "ProcessEngine<BpmnModel> engine = ProcessEngineFactory.getProcessEngine(FlowModelType.BPMN);"
-            : "ProcessEngine<TbbpmModel> engine = ProcessEngineFactory.getProcessEngine();";
+            : "ProcessEngine engine = ProcessEngineFactory.getProcessEngine();";
         method.addBodyLine(engineCode);
         method.addBodyLine("System.out.println(engine.getJavaCode(code));");
         method.addBodyLine("Map<String, Object> context = new HashMap<String, Object>();");
@@ -244,7 +245,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
             }
         }
         method.addBodyLine("try {");
-        method.addBodyLine("System.out.println(engine.start(code, context));");
+        method.addBodyLine("System.out.println(engine.execute(code, context));");
         method.addBodyLine("}");
         method.addBodyLine("catch (Exception e) {");
         method.addBodyLine("e.printStackTrace();");
@@ -564,10 +565,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
 
     @SuppressWarnings("unchecked")
     protected List<ValidateMessage> validateFlowModel() {
-        //Class<? extends FlowModelValidator> validatorClass = FlowModelType.BPMN.equals(getFlowModelType())
-        //    ? BpmnModelValidator.class : TbbpmModelValidator.class;
-        //return ExtensionInvoker.getInstance().invoke(FlowModelValidator.CODE, validatorClass,
-        //    ReduceFilter.allCollectionNonEmpty(), flowModel);
+
         FlowModelValidator validator = ModelValidatorFactory.getFlowModelValidator(getFlowModelType());
         List<ValidateMessage> validateMessages = validator.validate(flowModel);
         List<TransitionNode> transitionNodes = flowModel.getTransitionNodes();
@@ -639,6 +637,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     private String wrapClassFullName(String name) {
+
         return "compileflow." + name;
     }
 
