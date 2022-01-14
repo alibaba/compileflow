@@ -17,6 +17,7 @@
 package com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.tbbpm;
 
 import com.alibaba.compileflow.engine.definition.common.action.impl.Action;
+import com.alibaba.compileflow.engine.definition.common.action.impl.InAction;
 import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModelConstants;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.ParseContext;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.XMLSource;
@@ -29,7 +30,9 @@ public class InActionParser extends ActionParser {
 
     @Override
     protected Action doParse(XMLSource xmlSource, ParseContext parseContext) {
-        return super.doParse(xmlSource, parseContext);
+        InAction action = new InAction();
+        action.setType(xmlSource.getString("type"));
+        return action;
     }
 
     @Override

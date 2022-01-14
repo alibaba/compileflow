@@ -33,13 +33,13 @@ public abstract class AbstractInOutActionNodeGenerator<N extends Node>
     }
 
     protected void generateCode(String event, CodeTargetSupport codeTargetSupport) {
-        generateNodeComment(codeTargetSupport);
+
         HasInOutAction hasInOutAction = (HasInOutAction) flowNode;
-        if (isExecuteMethod(codeTargetSupport)) {
-            IAction inAction = hasInOutAction.getInAction();
+        IAction inAction = hasInOutAction.getInAction();
+        if (inAction != null) {
             generateActionMethodCode(codeTargetSupport, inAction);
-            return;
         }
+        generateNodeComment(codeTargetSupport);
 
         codeTargetSupport.addBodyLine("if (trigger) {");
         codeTargetSupport.addBodyLine("if(\"" + event + "\".equals(event)) {");
@@ -51,8 +51,6 @@ public abstract class AbstractInOutActionNodeGenerator<N extends Node>
 
         codeTargetSupport.addBodyLine("} else {");
 
-        IAction inAction = hasInOutAction.getInAction();
-        generateActionMethodCode(codeTargetSupport, inAction);
         codeTargetSupport.addBodyLine("running = false;");
         codeTargetSupport.addBodyLine("}");
     }
