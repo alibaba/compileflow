@@ -35,24 +35,41 @@ public abstract class AbstractInOutActionNodeGenerator<N extends Node>
     protected void generateCode(String event, CodeTargetSupport codeTargetSupport) {
 
         HasInOutAction hasInOutAction = (HasInOutAction) flowNode;
-        IAction inAction = hasInOutAction.getInAction();
-        if (inAction != null) {
+
+        if (isTriggerMethod(codeTargetSupport)) {
+//            codeTargetSupport.addBodyLine("// entry wait node...");
+
+            IAction inAction = hasInOutAction.getInAction();
+            codeTargetSupport.addBodyLine("if (trigger) {");
+
+            codeTargetSupport.addBodyLine("if(\"" + event + "\".equals(event)) {");
+            IAction outAction = hasInOutAction.getOutAction();
+            generateActionMethodCode(codeTargetSupport, outAction);
+            codeTargetSupport.addBodyLine("} else {");
+
+            codeTargetSupport.addBodyLine("running = false;");
+            codeTargetSupport.addBodyLine("} ");
+
+            codeTargetSupport.addBodyLine("} else {");
+
+            if (inAction != null) {
+                generateActionMethodCode(codeTargetSupport, inAction);
+                codeTargetSupport.addBodyLine(" trigger = false;");
+            }
+            codeTargetSupport.addBodyLine("running = false;");
+            codeTargetSupport.addBodyLine("}");
+
+        } else {
+
+            IAction inAction = hasInOutAction.getInAction();
             generateActionMethodCode(codeTargetSupport, inAction);
+            codeTargetSupport.addBodyLine("if(wait_event) {");
+            codeTargetSupport.addBodyLine("return _pResult;");
+            codeTargetSupport.addBodyLine("} ");
+
         }
-        generateNodeComment(codeTargetSupport);
 
-        codeTargetSupport.addBodyLine("if (trigger) {");
-        codeTargetSupport.addBodyLine("if(\"" + event + "\".equals(event)) {");
-        IAction outAction = hasInOutAction.getOutAction();
-        generateActionMethodCode(codeTargetSupport, outAction);
-        codeTargetSupport.addBodyLine("} else {");
-        codeTargetSupport.addBodyLine("running = false;");
-        codeTargetSupport.addBodyLine("} ");
 
-        codeTargetSupport.addBodyLine("} else {");
-
-        codeTargetSupport.addBodyLine("running = false;");
-        codeTargetSupport.addBodyLine("}");
     }
 
 }

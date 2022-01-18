@@ -1,5 +1,7 @@
 package com.alibaba.compileflow.engine.process.preruntime.generator.impl.tbbpm;
 
+import com.alibaba.compileflow.engine.definition.common.action.HasInOutAction;
+import com.alibaba.compileflow.engine.definition.common.action.IAction;
 import com.alibaba.compileflow.engine.definition.tbbpm.WaitEventTaskNode;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
 import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.SystemEventConstants;

@@ -169,7 +169,8 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     public abstract FlowModelType getFlowModelType();
 
     public String generateJavaCode() {
-        if (isStateful()) {
+        boolean stateful = isStateful();
+        if (stateful) {
             classTarget.addSuperInterface(ClassWrapper.of(StatefulProcessInstance.class));
             classTarget.addImportedType(ClassWrapper.of(SystemEventConstants.class));
         } else {
@@ -177,8 +178,8 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         }
         generateFlowMethod(MethodConstants.EXECUTE_METHOD_NAME,
             Collections.singletonList(ParamTarget.of(ClassWrapper.of("Map<String, Object>"), "_pContext")),
-            this::generateExecuteMethodBody);
-        if (isStateful()) {
+            this::generateExecuteMethodBody, stateful);
+        if (stateful) {
             List<ParamTarget> paramTargets = new ArrayList<>(2);
             paramTargets.add(ParamTarget.of(ClassWrapper.of("String"), "tag"));
             paramTargets.add(ParamTarget.of(ClassWrapper.of("Map<String, Object>"), "_pContext"));
@@ -191,7 +192,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
             paramTargets.add(ParamTarget.of(ClassWrapper.of("String"), "event"));
             paramTargets.add(ParamTarget.of(ClassWrapper.of("Map<String, Object>"), "_pContext"));
             EventTriggerMethodGenerator eventTriggerMethodGenerator = new EventTriggerMethodGenerator(this);
-            generateFlowMethod(MethodConstants.TRIGGER_METHOD_NAME, paramTargets, eventTriggerMethodGenerator);
+            generateFlowMethod(MethodConstants.TRIGGER_METHOD_NAME, paramTargets, eventTriggerMethodGenerator, stateful);
         }
         return classTarget.generateCode();
     }
@@ -333,7 +334,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
 
     protected MethodTarget generateFlowMethod(String methodName,
                                               List<ParamTarget> paramTypes,
-                                              Generator methodExecuteBodyGenerator) {
+                                              Generator methodExecuteBodyGenerator, boolean stateful) {
         MethodTarget methodTarget = generateMethodDefinition(methodName, paramTypes);
         classTarget.addMethod(methodTarget);
 
@@ -362,6 +363,10 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         }
 
         methodTarget.addBodyLine("Map<String, Object> _pResult = new HashMap<>();");
+        // add trigger status
+        if (stateful && MethodConstants.EXECUTE_METHOD_NAME.equals(methodName)) {
+            methodTarget.addBodyLine("boolean wait_event = true;");
+        }
         methodTarget.addNewLine();
         methodExecuteBodyGenerator.generateCode(methodTarget);
         methodTarget.addNewLine();
