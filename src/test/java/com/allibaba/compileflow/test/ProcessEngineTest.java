@@ -75,7 +75,8 @@ public class ProcessEngineTest {
     @Test
     public void testWaitPayProcess() {
         String code = "bpm.om.waitPaySuccessFlow";
-        System.out.println(ProcessEngineFactory.getProcessEngine().getJavaCode(code));
+        String javaCode = ProcessEngineFactory.getProcessEngine().getJavaCode(code);
+        System.out.println(javaCode);
         Map<String, Object> context = new HashMap<>();
         context.put("num", 100d);
 

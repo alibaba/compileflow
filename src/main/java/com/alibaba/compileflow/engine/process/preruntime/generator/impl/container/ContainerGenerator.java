@@ -47,6 +47,9 @@ public class ContainerGenerator extends AbstractContainerGenerator {
             return;
         }
         if (flowNode instanceof WaitElement) {
+            // 这里要产生wait节点里的前置任务
+            Generator generator = getGenerator(flowNode);
+            generator.generateCode(codeTargetSupport);
             return;
         }
         if (flowNode instanceof SubBpmNode && ((SubBpmNode) flowNode).isWaitForTrigger()) {
