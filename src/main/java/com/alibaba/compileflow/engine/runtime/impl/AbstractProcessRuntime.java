@@ -539,7 +539,8 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     private List<TransitionNode> buildBranchNodes(TransitionNode branchNode) {
-        if (branchGraph.containsKey(branchNode.getId())) {
+        if (branchGraph.containsKey(branchNode.getId()) &&
+            !branchNode.getIncomingNodes().stream().anyMatch(incomingNode -> incomingNode instanceof GatewayElement)) {
             return branchGraph.get(branchNode.getId());
         }
 

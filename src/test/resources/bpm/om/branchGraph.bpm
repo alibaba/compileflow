@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.dispatch" name="dispatchOperator" type="process" description="This is operator dispatch.">
+  <var name="input" description="输入" dataType="java.lang.Integer" contextVarName="input" inOutType="param"></var>
+  <var name="inputCheck" description="输入检查" dataType="java.lang.Boolean" contextVarName="inputCheck" inOutType="param"></var>
+  <var name="sqrtResult" description="平方根" dataType="java.lang.Integer" contextVarName="sqrtResult" inOutType="param"></var>
+  <var name="typeInfo" description="type信息" dataType="com.allibaba.compileflow.test.om.branch_graph.common.TypeInfo" contextVarName="typeInfo" inOutType="param"></var>
+  <var name="typeEnum" description="计算type" dataType="com.allibaba.compileflow.test.om.branch_graph.common.TypeEnum" contextVarName="typeEnum" inOutType="param"></var>
+  <var name="offlineInput" description="离线输入" dataType="java.lang.Integer" contextVarName="rayInput" inOutType="param"></var>
+  <var name="onlineInput" description="在线输入" dataType="java.lang.Integer" contextVarName="onlineInput" inOutType="param"></var>
+  <var name="result" description="结果" dataType="java.lang.Integer" contextVarName="result" inOutType="param"></var>
+  <var name="resultCheck" description="结果检查" dataType="java.lang.Boolean" contextVarName="resultCheck" inOutType="param"></var>
+  <var name="finalResult" description="最后结果" dataType="java.lang.Integer" contextVarName="finalResult" inOutType="return"></var>
+  <decision id="1640603667289" name="输入检查" g="585,140,90,50">
+    <transition to="1635997995605" priority="1" name="否" expression="!inputCheck"></transition>
+    <transition to="1636352157018" name="是" expression="inputCheck"></transition>
+    <action type="java">
+      <actionHandle clazz="com.allibaba.compileflow.test.om.branch_graph.calculate.InputCheckOp" method="process">
+        <var name="input" dataType="java.lang.Integer" contextVarName="input" inOutType="param"></var>
+        <var name="java.lang.Boolean" dataType="java.lang.Boolean" contextVarName="inputCheck" inOutType="return"></var>
+      </actionHandle>
+    </action>
+  </decision>
+  <decision id="1636342478644" name="是否有结果" g="540,1070,90,50">
+    <transition to="1635997891185" priority="1" name="是" expression="resultCheck"></transition>
+    <transition to="1640605135990" priority="1" name="否" expression="!resultCheck"></transition>
+    <action type="java">
+      <actionHandle clazz="com.allibaba.compileflow.test.om.branch_graph.calculate.ResultCheckOp" method="process">
+        <var name="result" dataType="java.lang.Integer" contextVarName="result" inOutType="param"></var>
+        <var name="java.lang.Boolean" dataType="java.lang.Boolean" contextVarName="resultCheck" inOutType="return"></var>
+      </actionHandle>
+    </action>
+  </decision>
+  <decision id="1644806211374" name="判断节点" g="840,775,90,50">
+    <transition to="1642672389473" priority="1" name="否" expression="false"></transition>
+    <transition to="1640694180465" priority="1" name="是" expression="true"></transition>
+    <action type="java">
+      <actionHandle clazz="com.allibaba.compileflow.test.om.branch_graph.calculate.TypeCheckOp" method="process">
+        <var name="typeInfo" dataType="com.allibaba.compileflow.test.om.branch_graph.common.TypeInfo" contextVarName="typeInfo" inOutType="param"></var>
+        <var name="com.allibaba.compileflow.test.om.branch_graph.common.TypeEnum" dataType="com.allibaba.compileflow.test.om.branch_graph.common.TypeEnum" contextVarName="typeEnum" inOutType="return"></var>
+      </actionHandle>
+    </action>
+  </decision>
+  <decision id="1636005559876" name="计算Type" g="405,395,90,50">
+    <transition to="1642672371640" priority="7" name="isOnline" expression="com.allibaba.compileflow.test.om.branch_graph.common.TypeEnum.ONLINE_SOLVE.equals(typeEnum)"></transition>
+    <transition to="1640694170214" priority="6" name="isOffline" expression="com.allibaba.compileflow.test.om.branch_graph.common.TypeEnum.OFFLINE_SOLVE.equals(typeEnum)"></transition>
+    <transition to="1640605135990" priority="2" name="isScale" expression="com.allibaba.compileflow.test.om.branch_graph.common.TypeEnum.SCALE_SOLVE.equals(typeEnum)"></transition>
+    <action type="java">
+      <actionHandle clazz="com.allibaba.compileflow.test.om.branch_graph.calculate.TypeOp" method="process">
+        <var name="typeInfo" dataType="com.allibaba.compileflow.test.om.branch_graph.common.TypeInfo" contextVarName="typeInfo" inOutType="param"></var>
+        <var name="com.allibaba.compileflow.test.om.branch_graph.common.TypeEnum" dataType="com.allibaba.compileflow.test.om.branch_graph.common.TypeEnum" contextVarName="typeEnum" inOutType="return"></var>
+      </actionHandle>
+    </action>
+  </decision>
+  <start id="1" name="开始" g="165,55,30,30">
+    <transition to="2"></transition>
+  </start>
+  <autoTask id="1642672371640" name="读取Type" g="995,530,90,50">
+    <transition to="1642672389473"></transition>
+    <action type="java">
+      <actionHandle clazz="com.allibaba.compileflow.test.om.branch_graph.calculate.TypeReadOp" method="process">
+        <var name="type" dataType="com.allibaba.compileflow.test.om.branch_graph.common.TypeEnum" contextVarName="typeEnum" inOutType="param"></var>
+      </actionHandle>
+    </action>
+  </autoTask>
+  <autoTask id="1640694180465" name="offline求解" g="850,900,90,50">
+    <transition to="1636342478644"></transition>
+    <action type="java">
+      <actionHandle clazz="com.allibaba.compileflow.test.om.branch_graph.calculate.offlineSolveOp" method="process">
+        <var name="offlineInput" dataType="java.lang.Integer" contextVarName="offlineInput" inOutType="param"></var>
+        <var name="java.lang.Integer" dataType="java.lang.Integer" contextVarName="result" inOutType="return"></var>
+      </actionHandle>
+    </action>
+  </autoTask>
+  <autoTask id="1642672432608" name="Online求解" g="980,985,120,50">
+    <transition to="1636342478644"></transition>
+    <action type="java">
+      <actionHandle clazz="com.allibaba.compileflow.test.om.branch_graph.calculate.OnlineSolveOp" method="process">
+        <var name="onlineInput" dataType="java.lang.Integer" contextVarName="onlineInput" inOutType="param"></var>
+        <var name="java.lang.Integer" dataType="java.lang.Integer" contextVarName="result" inOutType="return"></var>
+      </actionHandle>
+    </action>
+  </autoTask>
+  <autoTask id="1640605135990" name="比例信息设置" g="275,540,90,50">
+    <transition to="1640606585042"></transition>
+    <action type="java">
+      <actionHandle clazz="com.allibaba.compileflow.test.om.branch_graph.calculate.ScaleOp" method="process">
+        <var name="input" dataType="java.lang.Integer" contextVarName="input" inOutType="param"></var>
+      </actionHandle>
+    </action>
+  </autoTask>
+  <autoTask id="1635997891185" name="结果后处理" g="525,1165,140,50">
+    <transition to="1635997995605"></transition>
+    <action type="java">
+      <actionHandle clazz="com.allibaba.compileflow.test.om.branch_graph.calculate.ResultPostProcessOp" method="process">
+        <var name="result" dataType="java.lang.Integer" contextVarName="result" inOutType="param"></var>
+        <var name="java.lang.Integer" dataType="java.lang.Integer" contextVarName="finalResult" inOutType="return"></var>
+      </actionHandle>
+    </action>
+  </autoTask>
+  <autoTask id="1642672389473" name="在线预处理" g="960,815,150,50">
+    <transition to="1642672432608"></transition>
+    <action type="java">
+      <actionHandle clazz="com.allibaba.compileflow.test.om.branch_graph.calculate.OnlinePreProcessOp" method="process">
+        <var name="sqrtResult" dataType="java.lang.Integer" contextVarName="sqrtResult" inOutType="param"></var>
+        <var name="java.lang.Integer" dataType="java.lang.Integer" contextVarName="onlineInput" inOutType="return"></var>
+      </actionHandle>
+    </action>
+  </autoTask>
+  <autoTask id="1640694170214" name="读取Type" g="840,530,90,50">
+    <transition to="1642042318154"></transition>
+    <action type="java">
+      <actionHandle clazz="com.allibaba.compileflow.test.om.branch_graph.calculate.TypeReadOp" method="process">
+        <var name="type" dataType="com.allibaba.compileflow.test.om.branch_graph.common.TypeEnum" contextVarName="typeEnum" inOutType="param"></var>
+      </actionHandle>
+    </action>
+  </autoTask>
+  <end id="1635997995605" name="结束" g="1125,1170,30,30"></end>
+  <autoTask id="1640654603291" name="获取Type信息" g="585,315,90,50">
+    <transition to="1636005559876"></transition>
+    <action type="java">
+      <actionHandle clazz="com.allibaba.compileflow.test.om.branch_graph.calculate.TypeProcessOp" method="process">
+        <var name="sqrtResult" dataType="java.lang.Integer" contextVarName="sqrtResult" inOutType="param"></var>
+        <var name="com.allibaba.compileflow.test.om.branch_graph.common.TypeInfo" dataType="com.allibaba.compileflow.test.om.branch_graph.common.TypeInfo" contextVarName="typeInfo" inOutType="return"></var>
+      </actionHandle>
+    </action>
+  </autoTask>
+  <autoTask id="2" name="预处理" g="275,45,120,50">
+    <transition to="1640603667289"></transition>
+    <action type="java">
+      <actionHandle clazz="com.allibaba.compileflow.test.om.branch_graph.calculate.PreProcessOp" method="process">
+        <var name="input" dataType="java.lang.Integer" contextVarName="input" inOutType="param"></var>
+      </actionHandle>
+    </action>
+  </autoTask>
+  <autoTask id="1636352157018" name="计算平方根" g="370,215,120,50">
+    <transition to="1640654603291"></transition>
+    <action type="java">
+      <actionHandle clazz="com.allibaba.compileflow.test.om.branch_graph.calculate.SqrtProcessOp" method="process">
+        <var name="input" dataType="java.lang.Integer" contextVarName="input" inOutType="param"></var>
+        <var name="java.lang.Integer" dataType="java.lang.Integer" contextVarName="sqrtResult" inOutType="return"></var>
+      </actionHandle>
+    </action>
+  </autoTask>
+  <autoTask id="1642042318154" name="离线预处理" g="820,670,140,50">
+    <transition to="1644806211374"></transition>
+    <action type="java">
+      <actionHandle clazz="com.allibaba.compileflow.test.om.branch_graph.calculate.offlinePreProcessOp" method="process">
+        <var name="sqrtResult" dataType="java.lang.Integer" contextVarName="sqrtResult" inOutType="param"></var>
+        <var name="java.lang.Integer" dataType="java.lang.Integer" contextVarName="offlineInput" inOutType="return"></var>
+      </actionHandle>
+    </action>
+  </autoTask>
+  <autoTask id="1640606585042" name="随机求解" g="140,1160,90,50">
+    <transition to="1635997891185"></transition>
+    <action type="java">
+      <actionHandle clazz="com.allibaba.compileflow.test.om.branch_graph.calculate.RandomOp" method="process">
+        <var name="result" dataType="java.lang.Integer" contextVarName="result" inOutType="param"></var>
+      </actionHandle>
+    </action>
+  </autoTask>
+</bpm>
