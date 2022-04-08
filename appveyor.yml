@@ -57,6 +57,7 @@ for:
       - ps: "ls 'C:/Program Files/Java/jdk*'"
       - ps: "ls 'C:/Program Files (x86)/Java/jdk*'"
       - echo JAVA_HOME=%JAVA_HOME%, HOMEPATH=%HOMEPATH%, PATH=%PATH%
+      - SET JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
 
     test_script:
       # test under java 11
