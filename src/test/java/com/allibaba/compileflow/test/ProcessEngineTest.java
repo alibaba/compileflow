@@ -43,6 +43,19 @@ public class ProcessEngineTest {
     }
 
     @Test
+    public void testBranchGraph() {
+        final String code = "bpm.om.branchGraph";
+        Map<String, Object> context = new HashMap<String, Object>();
+        int input = 16;
+        int compareNumber = 18;
+        context.put("input", input);
+        final ProcessEngine processEngine = ProcessEngineFactory.getProcessEngine();
+        Map<String, Object> result = processEngine.execute(code, context);
+        int finalResult = (int) result.get("finalResult");
+        assert (finalResult == compareNumber);
+    }
+
+    @Test
     public void testProcessEngineBpmn20() {
         final String code = "bpmn20.ktv.ktvExample";
 
