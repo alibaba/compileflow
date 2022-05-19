@@ -46,12 +46,12 @@ public class ProcessEngineTest {
     public void testBranchGraph() {
         final String code = "bpm.om.branchGraph";
         Map<String, Object> context = new HashMap<String, Object>();
-        Integer input = 16;
-        Integer compareNumber = 18;
+        int input = 16;
+        int compareNumber = 18;
         context.put("input", input);
         final ProcessEngine processEngine = ProcessEngineFactory.getProcessEngine();
         Map<String, Object> result = processEngine.execute(code, context);
-        Integer finalResult = (Integer) result.get("finalResult");
+        int finalResult = (int) result.get("finalResult");
         assert (finalResult == compareNumber);
     }
 
