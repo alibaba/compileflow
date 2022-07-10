@@ -16,8 +16,9 @@
  */
 package com.alibaba.compileflow.engine.common.util;
 
-import com.alibaba.compileflow.engine.definition.common.FlowModel;
-import com.alibaba.compileflow.engine.definition.common.Stateless;
+import com.alibaba.compileflow.engine.definition.bpmn.Gateway;
+import com.alibaba.compileflow.engine.definition.common.*;
+import com.alibaba.compileflow.engine.definition.tbbpm.GatewayNode;
 
 /**
  * @author yusu
@@ -26,6 +27,10 @@ public class ProcessUtils {
 
     public static boolean isStatelessFlow(FlowModel flowModel) {
         return flowModel.getTransitionNodes().stream().allMatch(node -> node instanceof Stateless);
+    }
+
+    public static String buildBranchKey(Node node, Node branchNode) {
+        return node instanceof GatewayElement ? node.getId() + "#" + branchNode.getId() : branchNode.getId();
     }
 
 }

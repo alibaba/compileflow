@@ -22,10 +22,7 @@ import com.alibaba.compileflow.engine.common.ClassWrapper;
 import com.alibaba.compileflow.engine.common.CompileFlowException;
 import com.alibaba.compileflow.engine.common.Lifecycle;
 import com.alibaba.compileflow.engine.common.constant.FlowModelType;
-import com.alibaba.compileflow.engine.common.util.ClassUtils;
-import com.alibaba.compileflow.engine.common.util.DataType;
-import com.alibaba.compileflow.engine.common.util.ObjectFactory;
-import com.alibaba.compileflow.engine.common.util.VarUtils;
+import com.alibaba.compileflow.engine.common.util.*;
 import com.alibaba.compileflow.engine.definition.common.*;
 import com.alibaba.compileflow.engine.definition.common.var.IVar;
 import com.alibaba.compileflow.engine.definition.tbbpm.EventNode;
@@ -433,22 +430,31 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
             .collect(Collectors.toList());
 
         nodes.forEach(this::buildFollowingNodes);
+
+        Map<String, List<TransitionNode>> branchGatewayFollowingGraph = new HashMap<>();
         nodes.stream()
             .filter(flowNode -> flowNode instanceof GatewayElement)
-            .forEach(gatewayNode -> {
-                gatewayNode.getOutgoingNodes().forEach(outgoingNode -> {
-                    List<TransitionNode> branchNodes = buildBranchNodes(outgoingNode).stream()
-                        .filter(node -> !followingGraph.get(gatewayNode.getId()).contains(node))
-                        .collect(Collectors.toList());
-                    branchGraph.put(outgoingNode.getId(), branchNodes);
-                });
+            .forEach(gatewayNode -> gatewayNode.getOutgoingNodes().forEach(outgoingNode -> {
+                List<TransitionNode> branchNodes = buildBranchNodes(gatewayNode, outgoingNode);
+                List<TransitionNode> followingNodes = followingGraph.get(gatewayNode.getId());
+                branchNodes = branchNodes
+                    .stream()
+                    .filter(node -> !followingNodes.contains(node))
+                    .collect(Collectors.toList());
+                String branchKey = ProcessUtils.buildBranchKey(gatewayNode, outgoingNode);
+                branchGraph.put(branchKey, branchNodes);
 
-                if (CollectionUtils.isNotEmpty(gatewayNode.getIncomingNodes())
-                    && gatewayNode.getIncomingNodes().stream()
-                    .allMatch(incomingNode -> isContainedByIncomingNode(gatewayNode, incomingNode))) {
-                    followingGraph.put(gatewayNode.getId(), Collections.emptyList());
-                }
-            });
+                branchNodes.stream().filter(branchNode -> branchNode instanceof GatewayElement)
+                    .forEach(flowNode -> {
+                            List<TransitionNode> gatewayFollowingNodes = followingGraph.get(flowNode.getId())
+                                .stream()
+                                .filter(node -> !followingNodes.contains(node))
+                                .collect(Collectors.toList());
+                            branchGatewayFollowingGraph.put(flowNode.getId(), gatewayFollowingNodes);
+                        }
+                    );
+            }));
+        followingGraph.putAll(branchGatewayFollowingGraph);
 
         nodes.stream()
             .filter(flowNode -> flowNode instanceof NodeContainer)
@@ -473,9 +479,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
             TransitionNode theOnlyOutgoingNode = getTheOnlyOutgoingNode(flowNode);
             if (theOnlyOutgoingNode != null) {
                 followingNodes.add(theOnlyOutgoingNode);
-                if (!(theOnlyOutgoingNode instanceof GatewayElement)) {
-                    followingNodes.addAll(buildFollowingNodes(theOnlyOutgoingNode));
-                }
+                followingNodes.addAll(buildFollowingNodes(theOnlyOutgoingNode));
             }
         }
 
@@ -490,23 +494,6 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         return null;
     }
 
-    private boolean isContainedByIncomingNode(Node decisionNode, TransitionNode incomingNode) {
-        if (incomingNode instanceof StartElement) {
-            return false;
-        }
-        if (incomingNode instanceof GatewayElement) {
-            List<TransitionNode> decisionFollowingNodes = followingGraph.get(decisionNode.getId());
-            List<TransitionNode> incomingFollowingNodes = followingGraph.get(incomingNode.getId());
-            if (decisionFollowingNodes.size() == incomingFollowingNodes.size()
-                && incomingFollowingNodes.containsAll(decisionFollowingNodes)) {
-                return true;
-            }
-        }
-        return CollectionUtils.isNotEmpty(incomingNode.getIncomingNodes())
-            && incomingNode.getIncomingNodes().stream()
-            .allMatch(node -> isContainedByIncomingNode(decisionNode, node));
-    }
-
     private List<TransitionNode> buildGatewayFollowingNodes(TransitionNode flowNode) {
         List<TransitionNode> outgoingNodes = flowNode.getOutgoingNodes();
         if (outgoingNodes.size() < 2) {
@@ -515,22 +502,24 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         List<TransitionNode> followingNodes = Collections.emptyList();
         for (int i = 0; i < outgoingNodes.size(); i++) {
             TransitionNode branchNode = outgoingNodes.get(i);
+            List<TransitionNode> branchNodes = new ArrayList<>(Collections.singletonList(branchNode));
             List<TransitionNode> branchFollowingNodes = buildFollowingNodes(branchNode);
+            branchNodes.addAll(branchFollowingNodes);
 
             if (i == 0) {
-                followingNodes = new ArrayList<>(branchFollowingNodes);
+                followingNodes = new ArrayList<>(branchNodes);
             } else {
                 Iterator<TransitionNode> flowNodeIterator = followingNodes.iterator();
                 while (flowNodeIterator.hasNext()) {
                     TransitionNode followingNode = flowNodeIterator.next();
-                    if (branchFollowingNodes.stream()
+                    if (branchNodes.stream()
                         .anyMatch(node -> node.getId().equals(followingNode.getId()))) {
                         break;
                     } else {
                         flowNodeIterator.remove();
                     }
                     if (CollectionUtils.isEmpty(followingNodes)) {
-                        return followingNodes;
+                        return Collections.emptyList();
                     }
                 }
             }
@@ -538,9 +527,10 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         return followingNodes;
     }
 
-    private List<TransitionNode> buildBranchNodes(TransitionNode branchNode) {
-        if (branchGraph.containsKey(branchNode.getId())) {
-            return branchGraph.get(branchNode.getId());
+    private List<TransitionNode> buildBranchNodes(TransitionNode node, TransitionNode branchNode) {
+        String branchKey = ProcessUtils.buildBranchKey(node, branchNode);
+        if (branchGraph.containsKey(branchKey)) {
+            return branchGraph.get(branchKey);
         }
 
         List<TransitionNode> branchNodes = new ArrayList<>();
@@ -548,11 +538,11 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         if (!(branchNode instanceof EndElement) && !(branchNode instanceof WaitElement) && !(branchNode instanceof GatewayElement)) {
             TransitionNode theOnlyOutgoingNode = getTheOnlyOutgoingNode(branchNode);
             if (theOnlyOutgoingNode != null) {
-                branchNodes.addAll(buildBranchNodes(theOnlyOutgoingNode));
+                branchNodes.addAll(buildBranchNodes(branchNode, theOnlyOutgoingNode));
             }
         }
 
-        branchGraph.put(branchNode.getId(), branchNodes);
+        branchGraph.put(branchKey, branchNodes);
         return branchNodes;
     }
 
@@ -669,7 +659,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         }
     }
 
-    private boolean isStateful() {
+    protected boolean isStateful() {
         return flowModel.getAllNodes().stream().anyMatch(e -> e instanceof WaitTaskNode || e instanceof WaitEventTaskNode);
     }
 

@@ -36,11 +36,11 @@ public class BpmnProcessRuntime extends AbstractProcessRuntime<BpmnModel> {
             } else if (node instanceof ScriptTask) {
                 registerGenerator(node, new ScriptTaskGenerator(this, (ScriptTask) node));
             } else if (node instanceof ExclusiveGateway) {
-                registerGenerator(node, new StatefulExclusiveGatewayGenerator(this, (ExclusiveGateway) node));
+                registerGenerator(node, new ExclusiveGatewayGenerator(this, (ExclusiveGateway) node));
             } else if (node instanceof StartEvent) {
                 registerGenerator(node, new StartEventGenerator(this, (StartEvent) node));
             } else if (node instanceof EndEvent) {
-                registerGenerator(node, new StatefulEndEventGenerator(this, (EndEvent) node));
+                registerGenerator(node, new EndEventGenerator(this, (EndEvent) node));
             } else if (node instanceof SubProcess) {
                 registerGenerator(node, new SubProcessGenerator(this, (SubProcess) node));
             } else if (node instanceof ReceiveTask) {

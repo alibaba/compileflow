@@ -37,8 +37,6 @@ public abstract class AbstractInOutActionNodeGenerator<N extends Node>
         HasInOutAction hasInOutAction = (HasInOutAction) flowNode;
 
         if (isTriggerMethod(codeTargetSupport)) {
-//            codeTargetSupport.addBodyLine("// entry wait node...");
-
             IAction inAction = hasInOutAction.getInAction();
             codeTargetSupport.addBodyLine("if (trigger) {");
 
@@ -58,18 +56,13 @@ public abstract class AbstractInOutActionNodeGenerator<N extends Node>
             }
             codeTargetSupport.addBodyLine("running = false;");
             codeTargetSupport.addBodyLine("}");
-
         } else {
-
             IAction inAction = hasInOutAction.getInAction();
             generateActionMethodCode(codeTargetSupport, inAction);
             codeTargetSupport.addBodyLine("if(wait_event) {");
             codeTargetSupport.addBodyLine("return _pResult;");
             codeTargetSupport.addBodyLine("} ");
-
         }
-
-
     }
 
 }

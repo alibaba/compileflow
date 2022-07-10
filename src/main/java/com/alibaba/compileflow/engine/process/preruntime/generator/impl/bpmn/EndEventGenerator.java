@@ -32,6 +32,9 @@ public class EndEventGenerator extends AbstractBpmnNodeGenerator<EndEvent> {
 
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
+        if (isTriggerMethod(codeTargetSupport)) {
+            codeTargetSupport.addBodyLine("running = false;");
+        }
     }
 
 }

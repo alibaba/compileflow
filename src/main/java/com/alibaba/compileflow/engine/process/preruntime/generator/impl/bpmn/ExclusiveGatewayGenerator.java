@@ -16,6 +16,7 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.generator.impl.bpmn;
 
+import com.alibaba.compileflow.engine.common.util.ProcessUtils;
 import com.alibaba.compileflow.engine.common.util.VarUtils;
 import com.alibaba.compileflow.engine.definition.bpmn.ExclusiveGateway;
 import com.alibaba.compileflow.engine.definition.bpmn.FlowElement;
@@ -41,13 +42,14 @@ public class ExclusiveGatewayGenerator extends AbstractBpmnActionNodeGenerator<E
 
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
-        String methodName = generateExclusiveGatewayMethodName();
-        codeTargetSupport.addBodyLine(methodName + "();");
-
-        generateMethodCode(codeTargetSupport, methodName, this::generateExclusiveGatewayMethodCode);
-        Map<String, List<TransitionNode>> followingGraph = runtime.getFollowingGraph();
-        List<TransitionNode> followingNodes = followingGraph.get(flowNode.getId());
-        executeNodes(followingNodes, codeTargetSupport);
+        if (isTriggerMethod(codeTargetSupport)) {
+            super.generateCode(codeTargetSupport);
+        } else {
+            generateNodeComment(codeTargetSupport);
+            generateActionMethodCode(codeTargetSupport, flowNode.getAction());
+            generateBranchNodeCode(codeTargetSupport);
+            generateFollowingNodeCode(codeTargetSupport);
+        }
     }
 
     private String generateExclusiveGatewayMethodName() {
@@ -61,16 +63,14 @@ public class ExclusiveGatewayGenerator extends AbstractBpmnActionNodeGenerator<E
         return VarUtils.getLegalVarName(element.getId());
     }
 
-    private void generateExclusiveGatewayMethodCode(CodeTargetSupport codeTargetSupport) {
-        generateNodeComment(codeTargetSupport);
-        generateActionMethodCode(codeTargetSupport, flowNode.getAction());
-
+    private void generateBranchNodeCode(CodeTargetSupport codeTargetSupport) {
         List<SequenceFlow> transitions = flowNode.getOutgoingFlows();
         for (SequenceFlow transition : transitions) {
             String condition = StringUtils.isEmpty(transition.getExpression())
                 ? "true" : transition.getExpression();
             Map<String, List<TransitionNode>> branchGraph = runtime.getBranchGraph();
-            List<TransitionNode> branchNodes = branchGraph.get(transition.getTargetRef());
+            String branchKey = ProcessUtils.buildBranchKey(flowNode, runtime.getNodeById(transition.getTargetRef()));
+            List<TransitionNode> branchNodes = branchGraph.get(branchKey);
             if (transition.equals(transitions.get(0))) {
                 String ifCondition = "if (" + condition + ") {";
                 codeTargetSupport.addBodyLine(ifCondition);
@@ -102,9 +102,15 @@ public class ExclusiveGatewayGenerator extends AbstractBpmnActionNodeGenerator<E
         }
     }
 
-    private void executeNodes(List<TransitionNode> flowNodes, CodeTargetSupport codeTargetSupport) {
-        if (CollectionUtils.isNotEmpty(flowNodes)) {
-            flowNodes.stream().map(flowNode -> runtime.getNodeGeneratorProvider().getGenerator(flowNode))
+    private void generateFollowingNodeCode(CodeTargetSupport codeTargetSupport) {
+        Map<String, List<TransitionNode>> followingGraph = runtime.getFollowingGraph();
+        List<TransitionNode> followingNodes = followingGraph.get(flowNode.getId());
+        executeNodes(followingNodes, codeTargetSupport);
+    }
+
+    private void executeNodes(List<TransitionNode> branchNodes, CodeTargetSupport codeTargetSupport) {
+        if (CollectionUtils.isNotEmpty(branchNodes)) {
+            branchNodes.stream().map(flowNode -> runtime.getNodeGeneratorProvider().getGenerator(flowNode))
                 .forEach(generator -> generator.generateCode(codeTargetSupport));
         }
     }

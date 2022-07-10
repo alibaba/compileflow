@@ -16,6 +16,7 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.generator.impl.tbbpm;
 
+import com.alibaba.compileflow.engine.common.util.ProcessUtils;
 import com.alibaba.compileflow.engine.common.util.VarUtils;
 import com.alibaba.compileflow.engine.definition.common.TransitionNode;
 import com.alibaba.compileflow.engine.definition.tbbpm.BaseNode;
@@ -26,6 +27,7 @@ import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -34,6 +36,8 @@ import java.util.Map;
  * @author yusu
  */
 public class DecisionGenerator extends AbstractTbbpmActionNodeGenerator<DecisionNode> {
+
+    private List<TransitionNode> followingNodes = Collections.emptyList();
 
     public DecisionGenerator(AbstractProcessRuntime runtime, DecisionNode flowNode) {
         super(runtime, flowNode);
@@ -52,7 +56,9 @@ public class DecisionGenerator extends AbstractTbbpmActionNodeGenerator<Decision
 //
 //            generateFollowingNodeCode(codeTargetSupport);
 //        } else {
-            generateDecisionMethodCode(codeTargetSupport);
+            generateNodeComment(codeTargetSupport);
+            generateActionMethodCode(codeTargetSupport, flowNode.getAction());
+            generateBranchNodeCode(codeTargetSupport);
             generateFollowingNodeCode(codeTargetSupport);
 //        }
         }
@@ -75,16 +81,14 @@ public class DecisionGenerator extends AbstractTbbpmActionNodeGenerator<Decision
         return VarUtils.getLegalVarName(node.getId());
     }
 
-    private void generateDecisionMethodCode(CodeTargetSupport codeTargetSupport) {
-        generateNodeComment(codeTargetSupport);
-        generateActionMethodCode(codeTargetSupport, flowNode.getAction());
-
+    private void generateBranchNodeCode(CodeTargetSupport codeTargetSupport) {
         List<Transition> transitions = flowNode.getOutgoingTransitions();
         for (Transition transition : transitions) {
             String condition = StringUtils.isEmpty(transition.getExpression()) ? "true"
                 : transition.getExpression();
             Map<String, List<TransitionNode>> branchGraph = runtime.getBranchGraph();
-            List<TransitionNode> branchNodes = branchGraph.get(transition.getTo());
+            String branchKey = ProcessUtils.buildBranchKey(flowNode, runtime.getNodeById(transition.getTo()));
+            List<TransitionNode> branchNodes = branchGraph.get(branchKey);
             if (transition.equals(transitions.get(0))) {
                 String ifCondition = "if (" + condition + ") {";
                 codeTargetSupport.addBodyLine(ifCondition);
@@ -116,9 +120,9 @@ public class DecisionGenerator extends AbstractTbbpmActionNodeGenerator<Decision
         }
     }
 
-    private void executeNodes(List<TransitionNode> flowNodes, CodeTargetSupport codeTargetSupport) {
-        if (CollectionUtils.isNotEmpty(flowNodes)) {
-            flowNodes.stream().map(flowNode -> runtime.getNodeGeneratorProvider().getGenerator(flowNode))
+    private void executeNodes(List<TransitionNode> branchNodes, CodeTargetSupport codeTargetSupport) {
+        if (CollectionUtils.isNotEmpty(branchNodes)) {
+            branchNodes.stream().map(flowNode -> runtime.getNodeGeneratorProvider().getGenerator(flowNode))
                 .forEach(generator -> generator.generateCode(codeTargetSupport));
         }
     }
