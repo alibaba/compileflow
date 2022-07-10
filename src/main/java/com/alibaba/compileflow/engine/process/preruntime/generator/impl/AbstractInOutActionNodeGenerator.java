@@ -33,7 +33,6 @@ public abstract class AbstractInOutActionNodeGenerator<N extends Node>
     }
 
     protected void generateCode(String event, CodeTargetSupport codeTargetSupport) {
-
         HasInOutAction hasInOutAction = (HasInOutAction) flowNode;
 
         if (isTriggerMethod(codeTargetSupport)) {
