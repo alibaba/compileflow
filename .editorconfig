@@ -6,11 +6,14 @@ end_of_line = lf
 insert_final_newline = true
 tab_width = 4
 indent_style = space
-indent_size = 4
 trim_trailing_whitespace = true
 
-[*.yml]
+[*.xml]
+indent_size = 4
+
+[*.{yml,yaml}]
 indent_size = 2
 
 [*.{md,mkd,markdown}]
+indent_size = 4
 trim_trailing_whitespace = false
