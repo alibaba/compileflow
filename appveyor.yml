@@ -1,3 +1,6 @@
+# appveyor.yml Reference
+# https://www.appveyor.com/docs/appveyor-yml/
+#
 # How to use AppVeyor to build a multi-arch Docker image for Linux and Windows
 # https://stefanscherer.github.io/use-appveyor-to-build-multi-arch-docker-image/
 #
@@ -8,9 +11,7 @@
 # https://github.com/cdcseacave/openMVS/blob/master/.appveyor.yml
 
 version: '{build}'
-image:
-  - Ubuntu2004
-  - Visual Studio 2017
+image: Ubuntu2004
 build: false
 clone_depth: 50
 branches:
@@ -22,54 +23,24 @@ environment:
   MAVEN_OPTS: "-Xmx768m -Dhttps.protocols=TLSv1,TLSv1.1,TLSv1.2"
   JAVA_OPTS: "-Xmx768m"
 
-for:
-  -
-    #------------------
-    # Ubuntu
-    #------------------
-    matrix:
-      only:
-        - image: Ubuntu2004
+install:
+  - git submodule update --init
 
-    test_script:
-      - git submodule update --init
-      - ./scripts/integration_test
+test_script:
+  - scripts/integration_test
 
-    after_test:
-      # clear maven self install
-      - rm -rf $HOME/.m2/repository/com/alibaba/compileflow
-      - rm -rf $HOME/.sdkman/archives/*
+after_test:
+  # clear self maven install files
+  - rm -rf $HOME/.m2/repository/com/alibaba/compileflow
+  # remove maven install files
+  - rm -rf $HOME/.m2/wrapper/dists/*/*/*.zip
+  # remove sdkman install files
+  - rm -rf $HOME/.sdkman/archives/*
+  - rm -rf $HOME/.sdkman/tmp/*
 
-    cache:
-      # if cache size is exceed appveyor limit:
-      #   Compressed cache item cannot exceed 1,048,576,000 bytes
-      # skip below maven cache:
-      - $HOME/.m2/
-      - $HOME/.sdkman/
-  -
-    #------------------
-    # Windows
-    #------------------
-    matrix:
-      only:
-        - image: Visual Studio 2017
-    install:
-      - ps: "ls 'C:/Program Files/Java/jdk*'"
-      - ps: "ls 'C:/Program Files (x86)/Java/jdk*'"
-      - echo JAVA_HOME=%JAVA_HOME%, HOMEPATH=%HOMEPATH%, PATH=%PATH%
-      - SET JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
-
-    test_script:
-      # test under java 11
-      - set JAVA_HOME=C:\Program Files\Java\jdk11
-      - ./mvnw.cmd -V --no-transfer-progress clean install
-      # test under java 8
-      - set JAVA_HOME=C:\Program Files\Java\jdk1.8.0
-      - ./mvnw.cmd -V --no-transfer-progress surefire:test
-
-    after_test:
-      - ps: Remove-Item -r -fo $home\.m2\repository\com\alibaba\compileflow
-
-    cache:
-      # https://www.appveyor.com/docs/build-cache/
-      - '%HOMEDRIVE%%HOMEPATH%\.m2\'
+cache:
+  # if cache size is exceed appveyor limit:
+  #   Compressed cache item cannot exceed 1,048,576,000 bytes
+  # skip below maven cache:
+  - $HOME/.m2/
+  - $HOME/.sdkman/
