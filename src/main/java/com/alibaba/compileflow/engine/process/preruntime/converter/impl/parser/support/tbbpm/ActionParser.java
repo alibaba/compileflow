@@ -20,9 +20,9 @@ import com.alibaba.compileflow.engine.definition.common.Element;
 import com.alibaba.compileflow.engine.definition.common.action.IActionHandle;
 import com.alibaba.compileflow.engine.definition.common.action.impl.Action;
 import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModelConstants;
-import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractTbbpmElementParser;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.ParseContext;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.XMLSource;
+import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractTbbpmElementParser;
 
 /**
  * @author wuxiang
@@ -40,7 +40,7 @@ public class ActionParser extends AbstractTbbpmElementParser<Action> {
     @Override
     protected void attachChildElement(Element childElement, Action element, ParseContext parseContext) {
         if (childElement instanceof IActionHandle) {
-            element.setActionHandle((IActionHandle)childElement);
+            element.setActionHandle((IActionHandle) childElement);
         }
     }
 

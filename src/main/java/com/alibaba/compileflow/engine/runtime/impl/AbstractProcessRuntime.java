@@ -40,7 +40,6 @@ import com.alibaba.compileflow.engine.process.preruntime.generator.code.MethodTa
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.ParamTarget;
 import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.MethodConstants;
 import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.Modifier;
-import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.SystemEventConstants;
 import com.alibaba.compileflow.engine.process.preruntime.generator.factory.GeneratorFactory;
 import com.alibaba.compileflow.engine.process.preruntime.generator.factory.GeneratorProviderFactory;
 import com.alibaba.compileflow.engine.process.preruntime.generator.impl.EventTriggerMethodGenerator;
@@ -169,13 +168,12 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         boolean stateful = isStateful();
         if (stateful) {
             classTarget.addSuperInterface(ClassWrapper.of(StatefulProcessInstance.class));
-            classTarget.addImportedType(ClassWrapper.of(SystemEventConstants.class));
         } else {
             classTarget.addSuperInterface(ClassWrapper.of(ProcessInstance.class));
         }
         generateFlowMethod(MethodConstants.EXECUTE_METHOD_NAME,
             Collections.singletonList(ParamTarget.of(ClassWrapper.of("Map<String, Object>"), "_pContext")),
-            this::generateExecuteMethodBody, stateful);
+            this::generateExecuteMethodBody);
         if (stateful) {
             List<ParamTarget> paramTargets = new ArrayList<>(2);
             paramTargets.add(ParamTarget.of(ClassWrapper.of("String"), "tag"));
@@ -189,7 +187,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
             paramTargets.add(ParamTarget.of(ClassWrapper.of("String"), "event"));
             paramTargets.add(ParamTarget.of(ClassWrapper.of("Map<String, Object>"), "_pContext"));
             EventTriggerMethodGenerator eventTriggerMethodGenerator = new EventTriggerMethodGenerator(this);
-            generateFlowMethod(MethodConstants.TRIGGER_METHOD_NAME, paramTargets, eventTriggerMethodGenerator, stateful);
+            generateFlowMethod(MethodConstants.TRIGGER_METHOD_NAME, paramTargets, eventTriggerMethodGenerator);
         }
         return classTarget.generateCode();
     }
@@ -331,7 +329,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
 
     protected MethodTarget generateFlowMethod(String methodName,
                                               List<ParamTarget> paramTypes,
-                                              Generator methodExecuteBodyGenerator, boolean stateful) {
+                                              Generator methodExecuteBodyGenerator) {
         MethodTarget methodTarget = generateMethodDefinition(methodName, paramTypes);
         classTarget.addMethod(methodTarget);
 
@@ -359,22 +357,28 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
             }
         }
 
-        methodTarget.addBodyLine("Map<String, Object> _pResult = new HashMap<>();");
-        // add trigger status
-        if (stateful && MethodConstants.EXECUTE_METHOD_NAME.equals(methodName)) {
-            methodTarget.addBodyLine("boolean wait_event = true;");
-        }
         methodTarget.addNewLine();
         methodExecuteBodyGenerator.generateCode(methodTarget);
         methodTarget.addNewLine();
-        List<String> returnVarLines = wrapReturnVarLines();
-        methodTarget.addBodyLines(returnVarLines);
-        methodTarget.addBodyLine("return _pResult;");
+
+        MethodTarget returnMethodTarget = generateReturnMethod();
+        classTarget.addMethod(returnMethodTarget);
+
+        methodTarget.addBodyLine("return _wrapResult();");
         //if (monitorAction != null) {
         //    methodTarget.addBodyLines(monitorAction.generateCode());
         //}
 
         return methodTarget;
+    }
+
+    private MethodTarget generateReturnMethod() {
+        MethodTarget returnMethodTarget = generateMethodDefinition("_wrapResult", Collections.emptyList());
+        returnMethodTarget.addBodyLine("Map<String, Object> _pResult = new HashMap<>();");
+        List<String> returnVarLines = wrapReturnVarLines();
+        returnMethodTarget.addBodyLines(returnVarLines);
+        returnMethodTarget.addBodyLine("return _pResult;");
+        return returnMethodTarget;
     }
 
     public List<String> wrapReturnVarLines() {

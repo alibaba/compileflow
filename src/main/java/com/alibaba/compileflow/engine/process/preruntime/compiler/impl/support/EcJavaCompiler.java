@@ -76,8 +76,8 @@ public class EcJavaCompiler implements JavaCompiler {
 
         File javaSourceFile = javaSource.getJavaSourceFile();
         String targetClassName = javaSource.getTargetFullClassName();
-        String[] fileNames = new String[] {javaSourceFile.getAbsolutePath()};
-        String[] classNames = new String[] {targetClassName};
+        String[] fileNames = new String[]{javaSourceFile.getAbsolutePath()};
+        String[] classNames = new String[]{targetClassName};
 
         List<IProblem> problems = new ArrayList<>();
         INameEnvironment env = new INameEnvironment() {

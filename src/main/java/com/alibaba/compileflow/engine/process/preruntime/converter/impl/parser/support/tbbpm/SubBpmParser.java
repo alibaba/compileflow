@@ -20,9 +20,9 @@ import com.alibaba.compileflow.engine.definition.common.Element;
 import com.alibaba.compileflow.engine.definition.common.var.IVar;
 import com.alibaba.compileflow.engine.definition.tbbpm.SubBpmNode;
 import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModelConstants;
-import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractTbbpmElementParser;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.ParseContext;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.XMLSource;
+import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractTbbpmElementParser;
 
 /**
  * @author wuxiang
@@ -48,7 +48,7 @@ public class SubBpmParser extends AbstractTbbpmElementParser<SubBpmNode> {
     @Override
     protected void attachChildElement(Element childElement, SubBpmNode element, ParseContext parseContext) {
         if (childElement instanceof IVar) {
-            element.addVar((IVar)childElement);
+            element.addVar((IVar) childElement);
         }
     }
 

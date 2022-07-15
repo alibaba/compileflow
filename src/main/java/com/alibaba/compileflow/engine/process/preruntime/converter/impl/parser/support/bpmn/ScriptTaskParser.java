@@ -20,9 +20,9 @@ import com.alibaba.compileflow.engine.definition.bpmn.BpmnModelConstants;
 import com.alibaba.compileflow.engine.definition.bpmn.Script;
 import com.alibaba.compileflow.engine.definition.bpmn.ScriptTask;
 import com.alibaba.compileflow.engine.definition.common.Element;
-import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractBpmnElementParser;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.ParseContext;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.XMLSource;
+import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractBpmnElementParser;
 
 /**
  * @author wuxiang
@@ -41,7 +41,7 @@ public class ScriptTaskParser extends AbstractBpmnElementParser<ScriptTask> {
     @Override
     protected void attachChildElement(Element childElement, ScriptTask element, ParseContext parseContext) {
         if (childElement instanceof Script) {
-            element.setScript(((Script)childElement).getContent());
+            element.setScript(((Script) childElement).getContent());
         }
     }
 

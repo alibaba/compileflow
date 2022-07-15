@@ -16,9 +16,10 @@
  */
 package com.alibaba.compileflow.engine.common.util;
 
-import com.alibaba.compileflow.engine.definition.bpmn.Gateway;
-import com.alibaba.compileflow.engine.definition.common.*;
-import com.alibaba.compileflow.engine.definition.tbbpm.GatewayNode;
+import com.alibaba.compileflow.engine.definition.common.FlowModel;
+import com.alibaba.compileflow.engine.definition.common.GatewayElement;
+import com.alibaba.compileflow.engine.definition.common.Node;
+import com.alibaba.compileflow.engine.definition.common.Stateless;
 
 /**
  * @author yusu

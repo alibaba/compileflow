@@ -134,7 +134,7 @@ public class PackageUtils {
 
         JarFile jar;
         try {
-            jar = ((JarURLConnection)url.openConnection()).getJarFile();
+            jar = ((JarURLConnection) url.openConnection()).getJarFile();
         } catch (IOException e) {
             logger.error("Failed to get jar file, url is " + url, e);
             return;

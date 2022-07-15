@@ -20,9 +20,9 @@ import com.alibaba.compileflow.engine.definition.common.Element;
 import com.alibaba.compileflow.engine.definition.common.action.IAction;
 import com.alibaba.compileflow.engine.definition.tbbpm.DecisionNode;
 import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModelConstants;
-import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractTbbpmElementParser;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.ParseContext;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.XMLSource;
+import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractTbbpmElementParser;
 
 /**
  * @author wuxiang
@@ -44,7 +44,7 @@ public class DecisionParser extends AbstractTbbpmElementParser<DecisionNode> {
     @Override
     protected void attachChildElement(Element childElement, DecisionNode element, ParseContext parseContext) {
         if (childElement instanceof IAction) {
-            element.setAction((IAction)childElement);
+            element.setAction((IAction) childElement);
         }
     }
 

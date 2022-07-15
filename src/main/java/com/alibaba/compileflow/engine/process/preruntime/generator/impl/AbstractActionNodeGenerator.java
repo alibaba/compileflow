@@ -38,7 +38,7 @@ public abstract class AbstractActionNodeGenerator<N extends Node>
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
         generateNodeComment(codeTargetSupport);
-        HasAction hasAction = (HasAction)flowNode;
+        HasAction hasAction = (HasAction) flowNode;
         IAction action = hasAction.getAction();
         generateActionCode(codeTargetSupport, action);
     }

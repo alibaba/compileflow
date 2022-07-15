@@ -19,9 +19,9 @@ package com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.
 import com.alibaba.compileflow.engine.definition.bpmn.BpmnModelConstants;
 import com.alibaba.compileflow.engine.definition.bpmn.EndEvent;
 import com.alibaba.compileflow.engine.definition.common.Element;
-import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractBpmnElementParser;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.ParseContext;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.XMLSource;
+import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractBpmnElementParser;
 
 /**
  * @author wuxiang

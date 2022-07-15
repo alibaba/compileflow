@@ -16,11 +16,11 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.generator.impl.bpmn;
 
-import com.alibaba.compileflow.engine.definition.bpmn.StandardLoopCharacteristics;
 import com.alibaba.compileflow.engine.common.ClassWrapper;
-import com.alibaba.compileflow.engine.process.preruntime.generator.impl.AbstractWrapperGenerator;
+import com.alibaba.compileflow.engine.definition.bpmn.StandardLoopCharacteristics;
 import com.alibaba.compileflow.engine.process.preruntime.generator.Generator;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
+import com.alibaba.compileflow.engine.process.preruntime.generator.impl.AbstractWrapperGenerator;
 import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;
 import org.apache.commons.lang.StringUtils;
 

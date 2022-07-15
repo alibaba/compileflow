@@ -22,9 +22,9 @@ import com.alibaba.compileflow.engine.definition.common.action.IInAction;
 import com.alibaba.compileflow.engine.definition.common.action.IOutAction;
 import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModelConstants;
 import com.alibaba.compileflow.engine.definition.tbbpm.WaitTaskNode;
-import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractTbbpmElementParser;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.ParseContext;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.XMLSource;
+import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractTbbpmElementParser;
 
 /**
  * @author wuxiang
@@ -46,9 +46,9 @@ public class WaitTaskParser extends AbstractTbbpmElementParser<WaitTaskNode> {
     @Override
     protected void attachChildElement(Element childElement, WaitTaskNode element, ParseContext parseContext) {
         if (childElement instanceof IInAction) {
-            element.setInAction((IAction)childElement);
+            element.setInAction((IAction) childElement);
         } else if (childElement instanceof IOutAction) {
-            element.setOutAction((IAction)childElement);
+            element.setOutAction((IAction) childElement);
         }
     }
 

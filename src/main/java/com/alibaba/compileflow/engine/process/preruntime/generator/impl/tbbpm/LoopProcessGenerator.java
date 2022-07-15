@@ -16,9 +16,9 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.generator.impl.tbbpm;
 
+import com.alibaba.compileflow.engine.common.ClassWrapper;
 import com.alibaba.compileflow.engine.common.CompileFlowException;
 import com.alibaba.compileflow.engine.definition.tbbpm.LoopProcessNode;
-import com.alibaba.compileflow.engine.common.ClassWrapper;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
 import com.alibaba.compileflow.engine.process.preruntime.generator.factory.GeneratorFactory;
 import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;

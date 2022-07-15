@@ -36,9 +36,9 @@ public class WaitEventTaskParser extends AbstractTbbpmElementParser<WaitEventTas
     @Override
     protected void attachChildElement(Element childElement, WaitEventTaskNode element, ParseContext parseContext) {
         if (childElement instanceof IInAction) {
-            element.setInAction((IAction)childElement);
+            element.setInAction((IAction) childElement);
         } else if (childElement instanceof IOutAction) {
-            element.setOutAction((IAction)childElement);
+            element.setOutAction((IAction) childElement);
         }
     }
 }

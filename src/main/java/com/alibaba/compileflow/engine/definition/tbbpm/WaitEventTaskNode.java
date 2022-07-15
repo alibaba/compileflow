@@ -2,7 +2,6 @@ package com.alibaba.compileflow.engine.definition.tbbpm;
 
 import com.alibaba.compileflow.engine.definition.common.WaitElement;
 import com.alibaba.compileflow.engine.definition.common.action.HasInOutAction;
-import com.alibaba.compileflow.engine.definition.common.action.IAction;
 
 /**
  * @author wuxiang

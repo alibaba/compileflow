@@ -100,7 +100,7 @@ public class SubProcess extends Activity implements ElementContainer<FlowElement
     @Override
     public List<FlowNode> getAllNodes() {
         return flowElements.stream().filter(e -> e instanceof FlowNode)
-            .map(e -> (FlowNode)e).collect(Collectors.toList());
+            .map(e -> (FlowNode) e).collect(Collectors.toList());
     }
 
     @Override
@@ -110,7 +110,7 @@ public class SubProcess extends Activity implements ElementContainer<FlowElement
 
     @Override
     public FlowNode getNode(String id) {
-        return (FlowNode)getElement(id);
+        return (FlowNode) getElement(id);
     }
 
     @Override

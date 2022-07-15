@@ -21,10 +21,10 @@ import com.alibaba.compileflow.engine.definition.common.Element;
 import com.alibaba.compileflow.engine.definition.common.NodeContainer;
 import com.alibaba.compileflow.engine.definition.common.var.IVar;
 import com.alibaba.compileflow.engine.definition.tbbpm.*;
-import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractFlowStreamParser;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.constants.ParseConstants;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.provider.support.AbstractFlowElementParserProvider;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.provider.support.TbbpmElementParserProvider;
+import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractFlowStreamParser;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -49,7 +49,7 @@ public class TbbpmStreamParser extends AbstractFlowStreamParser<TbbpmModel> {
     @Override
     protected TbbpmModel convertToFlowModel(Element top) {
         if (top instanceof BpmNode) {
-            BpmNode bpmNode = (BpmNode)top;
+            BpmNode bpmNode = (BpmNode) top;
 
             List<FlowNode> allNodes = bpmNode.getAllNodes();
             if (CollectionUtils.isEmpty(allNodes)) {
@@ -109,7 +109,7 @@ public class TbbpmStreamParser extends AbstractFlowStreamParser<TbbpmModel> {
                 }
             }
             if (node instanceof NodeContainer) {
-                buildFlowTransition((NodeContainer)node);
+                buildFlowTransition((NodeContainer) node);
             }
         }
     }

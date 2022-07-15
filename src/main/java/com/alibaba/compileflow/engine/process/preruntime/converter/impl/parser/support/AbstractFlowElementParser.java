@@ -19,9 +19,9 @@ package com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.
 import com.alibaba.compileflow.engine.definition.common.Element;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.FlowElementParser;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.ParseContext;
+import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.XMLSource;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.provider.ParserProviderSupport;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.provider.support.AbstractFlowElementParserProvider;
-import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.XMLSource;
 
 /**
  * @author wuxiang

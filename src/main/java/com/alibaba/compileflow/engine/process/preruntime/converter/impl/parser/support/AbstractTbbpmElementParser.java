@@ -42,19 +42,19 @@ public abstract class AbstractTbbpmElementParser<E extends Element> extends Abst
     @SuppressWarnings("unchecked")
     protected boolean attachPlatformChildElement(Element childElement, E element, ParseContext parseContext) {
         if (element instanceof FlowNode && childElement instanceof Transition) {
-            ((FlowNode)element).addOutgoingTransition((Transition)childElement);
+            ((FlowNode) element).addOutgoingTransition((Transition) childElement);
             return true;
         }
         if (element instanceof HasAction && childElement instanceof IAction) {
-            ((HasAction)element).setAction((IAction)childElement);
+            ((HasAction) element).setAction((IAction) childElement);
             return true;
         }
         if (element instanceof HasVar && childElement instanceof IVar) {
-            ((HasVar)element).addVar((IVar)childElement);
+            ((HasVar) element).addVar((IVar) childElement);
             return true;
         }
         if (element instanceof NodeContainer && childElement instanceof FlowNode) {
-            ((NodeContainer)element).addNode((FlowNode)childElement);
+            ((NodeContainer) element).addNode((FlowNode) childElement);
             return true;
         }
         return false;

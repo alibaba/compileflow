@@ -17,10 +17,14 @@
 package com.alibaba.compileflow.engine.process.preruntime.generator.impl;
 
 import com.alibaba.compileflow.engine.definition.common.Node;
+import com.alibaba.compileflow.engine.definition.common.TransitionNode;
 import com.alibaba.compileflow.engine.definition.common.action.HasInOutAction;
 import com.alibaba.compileflow.engine.definition.common.action.IAction;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
 import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author yusu
@@ -38,29 +42,31 @@ public abstract class AbstractInOutActionNodeGenerator<N extends Node>
         if (isTriggerMethod(codeTargetSupport)) {
             IAction inAction = hasInOutAction.getInAction();
             codeTargetSupport.addBodyLine("if (trigger) {");
-
-            codeTargetSupport.addBodyLine("if(\"" + event + "\".equals(event)) {");
-            IAction outAction = hasInOutAction.getOutAction();
-            generateActionMethodCode(codeTargetSupport, outAction);
+            if (event == null) {
+                IAction outAction = hasInOutAction.getOutAction();
+                generateActionMethodCode(codeTargetSupport, outAction);
+            } else {
+                codeTargetSupport.addBodyLine("if(\"" + event + "\".equals(event)) {");
+                IAction outAction = hasInOutAction.getOutAction();
+                generateActionMethodCode(codeTargetSupport, outAction);
+                codeTargetSupport.addBodyLine("} else {");
+                codeTargetSupport.addBodyLine("running = false;");
+                codeTargetSupport.addBodyLine("} ");
+            }
             codeTargetSupport.addBodyLine("} else {");
-
-            codeTargetSupport.addBodyLine("running = false;");
-            codeTargetSupport.addBodyLine("} ");
-
-            codeTargetSupport.addBodyLine("} else {");
-
             if (inAction != null) {
                 generateActionMethodCode(codeTargetSupport, inAction);
-                codeTargetSupport.addBodyLine(" trigger = false;");
+                codeTargetSupport.addBodyLine("trigger = false;");
             }
             codeTargetSupport.addBodyLine("running = false;");
             codeTargetSupport.addBodyLine("}");
         } else {
             IAction inAction = hasInOutAction.getInAction();
             generateActionMethodCode(codeTargetSupport, inAction);
-            codeTargetSupport.addBodyLine("if(wait_event) {");
-            codeTargetSupport.addBodyLine("return _pResult;");
-            codeTargetSupport.addBodyLine("} ");
+            Map<String, List<TransitionNode>> followingGraph = runtime.getFollowingGraph();
+            if (!followingGraph.get(runtime.getFlowModel().getStartNode().getId()).contains(flowNode)) {
+                codeTargetSupport.addBodyLine("return _wrapResult();");
+            }
         }
     }
 

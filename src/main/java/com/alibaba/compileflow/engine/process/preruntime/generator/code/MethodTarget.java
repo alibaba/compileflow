@@ -21,6 +21,7 @@ import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.Co
 import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.Modifier;
 import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.SymbolConstants;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -165,10 +166,6 @@ public class MethodTarget extends AbstractCodeTargetSupport implements CodeTarge
         return codeBuffer.toString();
     }
 
-    private String getLastBodyLine() {
-        return bodyLines.get(bodyLines.size() - 1);
-    }
-
     public boolean isSameMethod(MethodTarget method) {
         if (!name.equals(method.getName())) {
             return false;
@@ -189,6 +186,20 @@ public class MethodTarget extends AbstractCodeTargetSupport implements CodeTarge
             }
         }
         return true;
+    }
+
+    public String getLastNoneBlankBodyLine() {
+        for (int i = bodyLines.size() - 1; i >= 0; i--) {
+            String bodyLine = bodyLines.get(i);
+            if (StringUtils.isNotBlank(bodyLine)) {
+                return bodyLine;
+            }
+        }
+        return null;
+    }
+
+    private String getLastBodyLine() {
+        return bodyLines.get(bodyLines.size() - 1);
     }
 
 }

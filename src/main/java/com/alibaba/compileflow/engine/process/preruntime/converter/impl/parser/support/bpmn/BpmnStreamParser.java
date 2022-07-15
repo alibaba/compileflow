@@ -49,7 +49,7 @@ public class BpmnStreamParser extends AbstractFlowStreamParser<BpmnModel> {
     @Override
     protected BpmnModel convertToFlowModel(Element top) {
         if (top instanceof Definitions) {
-            Definitions definitions = (Definitions)top;
+            Definitions definitions = (Definitions) top;
             List<Process> processes = definitions.getProcesses();
             if (CollectionUtils.isEmpty(processes)) {
                 throw new CompileFlowException("No process founded");
@@ -109,20 +109,20 @@ public class BpmnStreamParser extends AbstractFlowStreamParser<BpmnModel> {
         Process process = bpmnModel.getProcess();
         buildFlowTransition(process);
         process.getFlowElements().stream().filter(flowElement -> flowElement instanceof SubProcess)
-            .map(e -> (SubProcess)e)
+            .map(e -> (SubProcess) e)
             .forEach(this::buildFlowTransition);
     }
 
     private void buildFlowTransition(ElementContainer<FlowElement, FlowNode> elementContainer) {
         elementContainer.getAllElements().stream().filter(flowElement -> flowElement instanceof SequenceFlow)
-            .map(e -> (SequenceFlow)e).forEach(sequenceFlow -> {
-            FlowNode source = elementContainer.getNode(sequenceFlow.getSourceRef());
-            FlowNode target = elementContainer.getNode(sequenceFlow.getTargetRef());
-            source.addOutgoingFlow(sequenceFlow);
-            source.addOutgoingNode(target);
-            target.addIncomingFlow(sequenceFlow);
-            target.addIncomingNode(source);
-        });
+            .map(e -> (SequenceFlow) e).forEach(sequenceFlow -> {
+                FlowNode source = elementContainer.getNode(sequenceFlow.getSourceRef());
+                FlowNode target = elementContainer.getNode(sequenceFlow.getTargetRef());
+                source.addOutgoingFlow(sequenceFlow);
+                source.addOutgoingNode(target);
+                target.addIncomingFlow(sequenceFlow);
+                target.addIncomingNode(source);
+            });
     }
 
     @Override

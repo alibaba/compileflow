@@ -34,7 +34,7 @@ public class ScriptExecutorProvider {
 
     @SuppressWarnings("unchecked")
     public <T extends ScriptExecutor> T getScriptExecutor(String name) {
-        return (T)Optional.ofNullable(scriptExecutorMap.get(name))
+        return (T) Optional.ofNullable(scriptExecutorMap.get(name))
             .orElseThrow(() -> new CompileFlowException("No script executor found, name is " + name));
     }
 

@@ -21,10 +21,10 @@ import com.alibaba.compileflow.engine.definition.common.action.IAction;
 import com.alibaba.compileflow.engine.definition.common.action.impl.ActionHandle;
 import com.alibaba.compileflow.engine.definition.common.var.IVar;
 import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModelConstants;
-import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractTbbpmElementParser;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.ParseContext;
-import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.provider.support.TbbpmElementParserProvider;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.XMLSource;
+import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.provider.support.TbbpmElementParserProvider;
+import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractTbbpmElementParser;
 
 /**
  * @author wuxiang
@@ -34,8 +34,8 @@ public class ActionHandleParser extends AbstractTbbpmElementParser<ActionHandle>
 
     @Override
     protected ActionHandle doParse(XMLSource xmlSource, ParseContext parseContext) throws Exception {
-        IAction parent = (IAction)parseContext.getParent();
-        return (ActionHandle)TbbpmElementParserProvider.getInstance()
+        IAction parent = (IAction) parseContext.getParent();
+        return (ActionHandle) TbbpmElementParserProvider.getInstance()
             .getParser(parent.getType() + "ActionHandle").parse(xmlSource, parseContext);
     }
 
@@ -48,7 +48,7 @@ public class ActionHandleParser extends AbstractTbbpmElementParser<ActionHandle>
     @Override
     protected void attachChildElement(Element childElement, ActionHandle element, ParseContext parseContext) {
         if (childElement instanceof IVar) {
-            element.getVars().add((IVar)childElement);
+            element.getVars().add((IVar) childElement);
         }
     }
 

@@ -35,7 +35,7 @@ public abstract class AbstractParserProvider<T extends Parser> implements Parser
     @Override
     @SuppressWarnings("unchecked")
     public T getParser(String name) {
-        return Optional.ofNullable((T)parserMap.get(name)).orElseThrow(
+        return Optional.ofNullable((T) parserMap.get(name)).orElseThrow(
             () -> new CompileFlowException("No parser found, name is " + name));
     }
 

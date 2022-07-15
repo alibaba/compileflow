@@ -42,7 +42,7 @@ public class BpmnModel extends AbstractFlowModel<FlowNode> {
     }
 
     public <T extends FlowElement> T getFlowElement(String id) {
-        return (T)processes.stream().map(process -> process.getElement(id))
+        return (T) processes.stream().map(process -> process.getElement(id))
             .filter(Objects::nonNull).findFirst()
             .orElseThrow(() -> new CompileFlowException("Undefined element, element id is " + id));
     }
@@ -51,7 +51,7 @@ public class BpmnModel extends AbstractFlowModel<FlowNode> {
     public List<TransitionNode> getTransitionNodes() {
         return processes.stream().map(Process::getFlowElements).flatMap(Collection::stream)
             .filter(flowElement -> flowElement instanceof TransitionNode)
-            .map(flowElement -> (TransitionNode)flowElement)
+            .map(flowElement -> (TransitionNode) flowElement)
             .collect(Collectors.toList());
     }
 

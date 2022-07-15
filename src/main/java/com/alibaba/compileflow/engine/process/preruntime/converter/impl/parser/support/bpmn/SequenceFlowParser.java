@@ -20,9 +20,9 @@ import com.alibaba.compileflow.engine.definition.bpmn.BpmnModelConstants;
 import com.alibaba.compileflow.engine.definition.bpmn.Expression;
 import com.alibaba.compileflow.engine.definition.bpmn.SequenceFlow;
 import com.alibaba.compileflow.engine.definition.common.Element;
-import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractBpmnElementParser;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.ParseContext;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.XMLSource;
+import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractBpmnElementParser;
 
 /**
  * @author wuxiang
@@ -44,7 +44,7 @@ public class SequenceFlowParser extends AbstractBpmnElementParser<SequenceFlow> 
     @Override
     protected void attachChildElement(Element childElement, SequenceFlow element, ParseContext parseContext) {
         if (childElement instanceof Expression) {
-            element.setConditionExpression(((Expression)childElement).getValue());
+            element.setConditionExpression(((Expression) childElement).getValue());
         }
     }
 

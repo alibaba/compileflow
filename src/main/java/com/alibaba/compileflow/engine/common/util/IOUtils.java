@@ -19,7 +19,7 @@ public class IOUtils {
             throw new IllegalArgumentException("Size cannot be greater than Integer max value: " + size);
         }
 
-        return toByteArray(input, (int)size);
+        return toByteArray(input, (int) size);
     }
 
     public static byte[] toByteArray(final InputStream input) throws IOException {
@@ -59,7 +59,7 @@ public class IOUtils {
         if (count > Integer.MAX_VALUE) {
             return -1;
         }
-        return (int)count;
+        return (int) count;
     }
 
     public static long copy(final InputStream input, final OutputStream output, final int bufferSize)

@@ -25,7 +25,7 @@ import java.lang.reflect.Modifier;
 public class ClassUtils {
 
     public static <T> T newInstance(String className) throws Exception {
-        return (T)newInstance(ClassLoaderUtils.loadClass(className));
+        return (T) newInstance(ClassLoaderUtils.loadClass(className));
     }
 
     public static <T> T newInstance(String className, Class referrer) throws Exception {
@@ -39,7 +39,7 @@ public class ClassUtils {
     public static <T> T newInstance(Class clazz) throws Exception {
         Constructor constructor = clazz.getDeclaredConstructor();
         constructor.setAccessible(true);
-        return (T)constructor.newInstance();
+        return (T) constructor.newInstance();
     }
 
     public static boolean isAbstractOrInterface(Class<?> clazz) {

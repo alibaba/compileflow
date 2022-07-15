@@ -145,7 +145,7 @@ public class ClassLoaderUtils {
         Set<URL> urlSet = new HashSet<>(urls.size());
 
         for (Iterator i = urls.iterator(); i.hasNext(); ) {
-            URL url = (URL)i.next();
+            URL url = (URL) i.next();
 
             if (urlSet.contains(url)) {
                 i.remove();

@@ -1,10 +1,7 @@
 package com.alibaba.compileflow.engine.process.preruntime.generator.impl.tbbpm;
 
-import com.alibaba.compileflow.engine.definition.common.action.HasInOutAction;
-import com.alibaba.compileflow.engine.definition.common.action.IAction;
 import com.alibaba.compileflow.engine.definition.tbbpm.WaitEventTaskNode;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
-import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.SystemEventConstants;
 import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;
 
 /**
@@ -20,8 +17,7 @@ public class WaitEventTaskGenerator extends AbstractTbbpmInOutActionNodeGenerato
 
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
-        String event = flowNode.getEventName() == null ? SystemEventConstants.EMPTY_EVENT : flowNode.getEventName();
-        generateCode(event, codeTargetSupport);
+        generateCode(flowNode.getEventName(), codeTargetSupport);
     }
 
 }

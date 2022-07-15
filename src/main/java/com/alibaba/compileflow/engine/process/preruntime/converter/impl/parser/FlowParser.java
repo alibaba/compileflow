@@ -16,8 +16,8 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser;
 
-import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.ParseConfig;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.FlowSource;
+import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.ParseConfig;
 
 /**
  * @author wuxiang

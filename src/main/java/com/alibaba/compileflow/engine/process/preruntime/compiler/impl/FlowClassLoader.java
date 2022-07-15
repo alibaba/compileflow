@@ -39,7 +39,7 @@ public class FlowClassLoader extends URLClassLoader {
                 if (instance == null) {
                     try {
                         URL url = new URL("file:///" + CompileConstants.FLOW_COMPILE_CLASS_DIR);
-                        instance = new FlowClassLoader(new URL[] {url},
+                        instance = new FlowClassLoader(new URL[]{url},
                             FlowClassLoader.class.getClassLoader());
                     } catch (MalformedURLException e) {
                         throw new CompileFlowException(e);

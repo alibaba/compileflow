@@ -56,7 +56,7 @@ public class SubProcessGenerator extends AbstractBpmnNodeGenerator<SubProcess> {
                     DataType.getVarTransferString(getVarType(param.getContextVarName()),
                         DataType.getJavaClass(param.getDataType()), param.getContextVarName())
                     : DataType.getDefaultValueString(DataType.getJavaClass(param.getDataType()),
-                        param.getDefaultValue());
+                    param.getDefaultValue());
 
                 codeTargetSupport.addBodyLine("nfSubProcessContext.put(\"" + param.getName() + "\", " + var + ");");
             }

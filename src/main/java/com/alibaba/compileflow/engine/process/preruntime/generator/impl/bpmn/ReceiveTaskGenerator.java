@@ -18,7 +18,6 @@ package com.alibaba.compileflow.engine.process.preruntime.generator.impl.bpmn;
 
 import com.alibaba.compileflow.engine.definition.bpmn.ReceiveTask;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
-import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.SystemEventConstants;
 import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;
 
 /**
@@ -33,7 +32,7 @@ public class ReceiveTaskGenerator extends AbstractBpmnInOutActionNodeGenerator<R
 
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
-        generateCode(SystemEventConstants.CONTINUE_EVENT, codeTargetSupport);
+        generateCode(null, codeTargetSupport);
     }
 
 }

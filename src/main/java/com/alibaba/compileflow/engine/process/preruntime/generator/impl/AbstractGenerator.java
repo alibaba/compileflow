@@ -34,7 +34,7 @@ public abstract class AbstractGenerator implements Generator {
     }
 
     protected ClassTarget getClassTarget(CodeTargetSupport codeTargetSupport) {
-        return (ClassTarget)codeTargetSupport.getClassTarget();
+        return (ClassTarget) codeTargetSupport.getClassTarget();
     }
 
     protected void addImportedType(CodeTargetSupport codeTargetSupport, String className) {

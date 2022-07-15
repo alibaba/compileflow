@@ -24,7 +24,7 @@ import java.lang.reflect.Method;
 public class MethodUtils {
 
     public static <T> T invoke(Object obj, Method method, Object... args) throws Exception {
-        return (T)method.invoke(obj, args);
+        return (T) method.invoke(obj, args);
     }
 
 }

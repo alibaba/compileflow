@@ -18,7 +18,6 @@ package com.alibaba.compileflow.engine.process.preruntime.converter.impl.writer.
 
 import com.alibaba.compileflow.engine.definition.common.Element;
 import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModelConstants;
-import com.alibaba.compileflow.engine.definition.tbbpm.WaitEventTaskNode;
 import com.alibaba.compileflow.engine.definition.tbbpm.WaitTaskNode;
 
 import javax.xml.stream.XMLStreamWriter;

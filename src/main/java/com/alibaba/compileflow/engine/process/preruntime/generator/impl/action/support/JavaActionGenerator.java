@@ -56,11 +56,11 @@ public class JavaActionGenerator extends AbstractActionGenerator {
     }
 
     private String getClazz() {
-        return ((JavaActionHandle)actionHandle).getClazz();
+        return ((JavaActionHandle) actionHandle).getClazz();
     }
 
     private String getMethod() {
-        return ((JavaActionHandle)actionHandle).getMethod();
+        return ((JavaActionHandle) actionHandle).getMethod();
     }
 
     @Override

@@ -22,9 +22,9 @@ import com.alibaba.compileflow.engine.definition.common.Element;
 import com.alibaba.compileflow.engine.definition.common.extension.AbstractExtensionElement;
 import com.alibaba.compileflow.engine.definition.common.extension.ExtensionAttribute;
 import com.alibaba.compileflow.engine.definition.common.extension.ExtensionElement;
-import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractBpmnElementParser;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.ParseContext;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.XMLSource;
+import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractBpmnElementParser;
 
 /**
  * @author wuxiang
@@ -38,7 +38,7 @@ public class ExtensionElementsParser extends AbstractBpmnElementParser<Extension
         while (!xmlSource.endWith(BpmnModelConstants.BPMN_ELEMENT_EXTENSION_ELEMENTS)) {
             if (xmlSource.hasNext()) {
                 ExtensionElement extensionElement = parseExtensionElement(xmlSource);
-                AbstractExtensionElement parentElement = (AbstractExtensionElement)parseContext.getParent();
+                AbstractExtensionElement parentElement = (AbstractExtensionElement) parseContext.getParent();
                 parentElement.addExtensionElement(extensionElement);
                 extensionElements.addExtensionElements(extensionElement);
             }

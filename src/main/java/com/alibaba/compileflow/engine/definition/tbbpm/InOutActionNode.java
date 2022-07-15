@@ -16,7 +16,6 @@
  */
 package com.alibaba.compileflow.engine.definition.tbbpm;
 
-import com.alibaba.compileflow.engine.definition.common.action.HasAction;
 import com.alibaba.compileflow.engine.definition.common.action.HasInOutAction;
 import com.alibaba.compileflow.engine.definition.common.action.IAction;
 

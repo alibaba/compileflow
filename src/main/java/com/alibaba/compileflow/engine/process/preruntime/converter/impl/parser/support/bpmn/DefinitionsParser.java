@@ -20,9 +20,9 @@ import com.alibaba.compileflow.engine.definition.bpmn.BpmnModelConstants;
 import com.alibaba.compileflow.engine.definition.bpmn.Definitions;
 import com.alibaba.compileflow.engine.definition.bpmn.Process;
 import com.alibaba.compileflow.engine.definition.common.Element;
-import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractBpmnElementParser;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.ParseContext;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.XMLSource;
+import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.support.AbstractBpmnElementParser;
 
 /**
  * @author wuxiang
@@ -48,7 +48,7 @@ public class DefinitionsParser extends AbstractBpmnElementParser<Definitions> {
     @Override
     protected void attachChildElement(Element childElement, Definitions element, ParseContext parseContext) {
         if (childElement instanceof Process) {
-            element.getProcesses().add((Process)childElement);
+            element.getProcesses().add((Process) childElement);
         }
     }
 

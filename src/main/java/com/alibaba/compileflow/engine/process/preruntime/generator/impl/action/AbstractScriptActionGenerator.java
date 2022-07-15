@@ -43,7 +43,7 @@ public abstract class AbstractScriptActionGenerator extends AbstractActionGenera
                 DataType.getVarTransferString(getVarType(param.getContextVarName()),
                     DataType.getJavaClass(param.getDataType()), param.getContextVarName())
                 : DataType.getDefaultValueString(DataType.getJavaClass(param.getDataType()),
-                    param.getDefaultValue());
+                param.getDefaultValue());
 
             codeTargetSupport.addBodyLine("nfScriptContext.put(\"" + param.getName() + "\", " + var + ");");
         }
@@ -62,7 +62,7 @@ public abstract class AbstractScriptActionGenerator extends AbstractActionGenera
     }
 
     protected String getExpression() {
-        return ((ScriptActionHandle)actionHandle).getExpression();
+        return ((ScriptActionHandle) actionHandle).getExpression();
     }
 
     protected abstract String getScriptExecutorName();

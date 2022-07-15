@@ -37,10 +37,10 @@ public class BpmnNodeGeneratorProvider extends AbstractNodeGeneratorProvider {
     @Override
     protected Generator preProcess(Node node, Generator generator) {
         if (node instanceof Activity) {
-            LoopCharacteristics loopCharacteristics = ((Activity)node).getLoopCharacteristics();
+            LoopCharacteristics loopCharacteristics = ((Activity) node).getLoopCharacteristics();
             if (loopCharacteristics instanceof StandardLoopCharacteristics) {
                 return new StandardLoopCharacteristicsGenerator(runtime,
-                    (StandardLoopCharacteristics)loopCharacteristics, generator);
+                    (StandardLoopCharacteristics) loopCharacteristics, generator);
             }
         }
         return generator;

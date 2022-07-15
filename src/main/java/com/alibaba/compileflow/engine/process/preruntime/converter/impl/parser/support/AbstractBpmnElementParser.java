@@ -46,22 +46,22 @@ public abstract class AbstractBpmnElementParser<E extends Element> extends Abstr
     @SuppressWarnings("unchecked")
     protected boolean attachPlatformChildElement(Element childElement, E element, ParseContext parseContext) {
         if (element instanceof HasVar && childElement instanceof ExtensionElements) {
-            ((ExtensionElements)childElement).getExtensionElements().stream()
+            ((ExtensionElements) childElement).getExtensionElements().stream()
                 .filter(extensionElement -> "var".equals(extensionElement.getName()))
                 .map(this::buildExtensionVar)
-                .forEach(((HasVar)element)::addVar);
+                .forEach(((HasVar) element)::addVar);
             return false;
         }
         if (element instanceof ElementContainer && childElement instanceof FlowElement) {
-            ((ElementContainer)element).addElement(childElement);
+            ((ElementContainer) element).addElement(childElement);
             return true;
         }
         if (element instanceof HasAction && childElement instanceof IAction) {
-            ((HasAction)element).setAction((IAction)childElement);
+            ((HasAction) element).setAction((IAction) childElement);
             return true;
         }
         if (element instanceof Activity && childElement instanceof LoopCharacteristics) {
-            ((Activity)element).setLoopCharacteristics((LoopCharacteristics)childElement);
+            ((Activity) element).setLoopCharacteristics((LoopCharacteristics) childElement);
             return true;
         }
         return false;

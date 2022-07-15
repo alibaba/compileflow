@@ -62,7 +62,7 @@ public class SubBpmActionGenerator extends AbstractActionGenerator {
                 DataType.getVarTransferString(getVarType(param.getContextVarName()),
                     DataType.getJavaClass(param.getDataType()), param.getContextVarName())
                 : DataType.getDefaultValueString(DataType.getJavaClass(param.getDataType()),
-                    param.getDefaultValue());
+                param.getDefaultValue());
 
             codeTargetSupport.addBodyLine("_spContext.put(\"" + param.getName() + "\", " + var + ");");
         }
@@ -83,7 +83,7 @@ public class SubBpmActionGenerator extends AbstractActionGenerator {
     }
 
     private String getSubBpmCode() {
-        return ((SubBpmActionHandle)actionHandle).getSubBpmCode();
+        return ((SubBpmActionHandle) actionHandle).getSubBpmCode();
     }
 
     @Override
