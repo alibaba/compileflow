@@ -16,6 +16,7 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.compiler.impl.support;
 
+import com.alibaba.compileflow.engine.common.extension.annotation.Extension;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.CompileOption;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaCompiler;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaSource;
@@ -28,6 +29,7 @@ import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 import java.io.*;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -35,6 +37,7 @@ import java.util.List;
 /**
  * @author yusu
  */
+@Extension()
 public class JdkJavaCompiler implements JavaCompiler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JdkJavaCompiler.class);
@@ -111,7 +114,7 @@ public class JdkJavaCompiler implements JavaCompiler {
                 }
             }
             try {
-                OutputStreamWriter outputStreamWriter = new OutputStreamWriter(new FileOutputStream(logfile), "UTF-8");
+                OutputStreamWriter outputStreamWriter = new OutputStreamWriter(new FileOutputStream(logfile), StandardCharsets.UTF_8);
                 logPrintWriter = new PrintWriter(outputStreamWriter, true);
             } catch (Exception e) {
                 LOGGER.error("Create java compile log printWriter error", e);

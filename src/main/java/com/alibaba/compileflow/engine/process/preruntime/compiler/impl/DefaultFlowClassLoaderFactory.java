@@ -14,22 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.alibaba.compileflow.engine.process.preruntime.compiler;
+package com.alibaba.compileflow.engine.process.preruntime.compiler.impl;
 
-import com.alibaba.compileflow.engine.common.extension.IExtensionPoint;
-import com.alibaba.compileflow.engine.common.extension.annotation.ExtensionPoint;
-import com.alibaba.compileflow.engine.common.extension.constant.ReducePolicy;
-
-import java.io.File;
+import com.alibaba.compileflow.engine.common.extension.annotation.Extension;
+import com.alibaba.compileflow.engine.process.preruntime.compiler.FlowClassLoaderFactory;
 
 /**
  * @author yusu
  */
-public interface JavaCompiler extends IExtensionPoint {
+@Extension()
+public class DefaultFlowClassLoaderFactory implements FlowClassLoaderFactory {
 
-    String EXT_COMPILE_CODE = "com.alibaba.compileflow.engine.process.preruntime.compiler.JavaCompiler.compile";
-
-    @ExtensionPoint(code = EXT_COMPILE_CODE, reducePolicy = ReducePolicy.FISRT_MATCH)
-    void compile(JavaSource javaSource, File outputFile, CompileOption compileOption) throws Exception;
+    @Override
+    public ClassLoader getFlowClassLoader() {
+        return FlowUrlClassLoader.getInstance();
+    }
 
 }

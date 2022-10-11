@@ -16,6 +16,8 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.generator.bean;
 
+import com.alibaba.compileflow.engine.common.extension.ExtensionManager;
+import com.alibaba.compileflow.engine.common.extension.PluginManager;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -30,6 +32,12 @@ public class SpringApplicationContextProvider implements ApplicationContextAware
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         SpringApplicationContextProvider.applicationContext = applicationContext;
+        init();
+    }
+
+    private void init() {
+        PluginManager.getInstance().init();
+        ExtensionManager.getInstance().init();
     }
 
 }

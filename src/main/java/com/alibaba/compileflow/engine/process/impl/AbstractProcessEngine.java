@@ -25,7 +25,6 @@ import com.alibaba.compileflow.engine.definition.common.EndElement;
 import com.alibaba.compileflow.engine.definition.common.FlowModel;
 import com.alibaba.compileflow.engine.definition.common.TransitionNode;
 import com.alibaba.compileflow.engine.definition.common.TransitionSupport;
-import com.alibaba.compileflow.engine.process.preruntime.compiler.impl.FlowClassLoader;
 import com.alibaba.compileflow.engine.process.preruntime.converter.FlowModelConverter;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.FlowStreamSource;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.ResourceFlowStreamSource;
@@ -66,7 +65,6 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
 
     @Override
     public void reload(String code) {
-        FlowClassLoader.getInstance().clearCache();
         AbstractProcessRuntime runtime = runtimeCache.computeIfPresent(code, (k, v) -> getRuntimeFromSource(code));
         runtime.recompile(code);
     }

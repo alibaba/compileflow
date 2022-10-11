@@ -17,10 +17,10 @@
 package com.alibaba.compileflow.engine.process.preruntime.compiler.impl;
 
 import com.alibaba.compileflow.engine.common.CompileFlowException;
-import com.alibaba.compileflow.engine.process.preruntime.compiler.CompileOption;
+import com.alibaba.compileflow.engine.common.extension.ExtensionInvoker;
+import com.alibaba.compileflow.engine.common.extension.filter.ReduceFilter;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.Compiler;
-import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaCompiler;
-import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaSource;
+import com.alibaba.compileflow.engine.process.preruntime.compiler.*;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.impl.support.EcJavaCompiler;
 
 import java.io.File;
@@ -31,8 +31,6 @@ import java.io.PrintWriter;
  * @author yusu
  */
 public class CompilerImpl implements Compiler {
-
-    private static final String FLOW_CLASS_LOADER_NAME = "flowClassLoader";
 
     private static final JavaCompiler JAVA_COMPILER = new EcJavaCompiler();
 
@@ -45,17 +43,18 @@ public class CompilerImpl implements Compiler {
             if (!dirFile.exists()) {
                 if (!dirFile.mkdir()) {
                     throw new RuntimeException(
-                        "Output directory for process class can't be created, directory is " + dirPath);
+                            "Output directory for process class can't be created, directory is " + dirPath);
                 }
             }
 
             File javaSourceFile = writeJavaFile(dirFile, fullClassName, sourceCode);
             JavaSource javaSource = JavaSource.of(javaSourceFile, sourceCode, fullClassName);
 
-            JAVA_COMPILER.compile(javaSource, new File(dirPath), new CompileOption());
+            ExtensionInvoker.getInstance().invoke(JavaCompiler.EXT_COMPILE_CODE,
+                    ReduceFilter.first(), javaSource, new File(dirPath), new CompileOption());
 
             if (classLoader == null) {
-                classLoader = FlowClassLoader.getInstance();
+                classLoader = ExtensionInvoker.getInstance().invoke(FlowClassLoaderFactory.EXT_FLOW_CLASS_LOADER_CODE, ReduceFilter.first());
             }
 
             return classLoader.loadClass(fullClassName);

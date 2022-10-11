@@ -17,6 +17,7 @@
 package com.alibaba.compileflow.engine.process.preruntime.compiler.impl.support;
 
 import com.alibaba.compileflow.engine.common.CompileFlowException;
+import com.alibaba.compileflow.engine.common.extension.annotation.Extension;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.CompileOption;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaCompiler;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaSource;
@@ -39,6 +40,7 @@ import java.util.stream.Collectors;
 /**
  * @author yusu
  */
+@Extension(priority = 600)
 public class EcJavaCompiler implements JavaCompiler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EcJavaCompiler.class);
@@ -76,8 +78,8 @@ public class EcJavaCompiler implements JavaCompiler {
 
         File javaSourceFile = javaSource.getJavaSourceFile();
         String targetClassName = javaSource.getTargetFullClassName();
-        String[] fileNames = new String[]{javaSourceFile.getAbsolutePath()};
-        String[] classNames = new String[]{targetClassName};
+        String[] fileNames = new String[] {javaSourceFile.getAbsolutePath()};
+        String[] classNames = new String[] {targetClassName};
 
         List<IProblem> problems = new ArrayList<>();
         INameEnvironment env = new INameEnvironment() {
