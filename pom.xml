@@ -106,7 +106,7 @@
 
         <spring.version>3.2.18.RELEASE</spring.version>
         <slf4j.version>1.7.36</slf4j.version>
-        <mockito.version>4.8.0</mockito.version>
+        <mockito.version>4.9.0</mockito.version>
     </properties>
 
     <dependencies>
