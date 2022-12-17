@@ -4,7 +4,7 @@
 
 📖 See the [📖 中文文档](README_CN.md) for the documents in Chinese.
 
-[![Github Workflow Build Status](https://img.shields.io/github/workflow/status/alibaba/compileflow/CI/master?logo=github&logoColor=white)](https://github.com/alibaba/compileflow/actions/workflows/ci.yaml)
+[![Github Workflow Build Status](https://img.shields.io/github/actions/workflow/status/alibaba/compileflow/ci.yaml?branch=master&logo=github&logoColor=white)](https://github.com/alibaba/compileflow/actions/workflows/ci.yaml)
 [![Build Status](https://img.shields.io/appveyor/ci/oldratlee/compileflow/master?logo=appveyor&logoColor=white)](https://ci.appveyor.com/project/oldratlee/compileflow)
 [![Maven Central](https://img.shields.io/maven-central/v/com.alibaba.compileflow/compileflow?color=2d545e&logo=apache-maven&logoColor=white)](https://search.maven.org/artifact/com.alibaba.compileflow/compileflow)
 [![GitHub release](https://img.shields.io/github/release/alibaba/compileflow.svg)](https://github.com/alibaba/compileflow/releases)
