@@ -126,18 +126,6 @@
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
         </dependency>
-        <!--
-            JSR305 is already Dormant status, so SpotBugs does not release jsr305 jar file.
-            Please continue using findbugs’ one.
-            depend on spotbugs-annotations instead.
-            https://spotbugs.readthedocs.io/en/stable/migration.html
-        -->
-        <dependency>
-            <groupId>com.github.spotbugs</groupId>
-            <artifactId>spotbugs-annotations</artifactId>
-            <version>4.7.2</version>
-            <optional>true</optional>
-        </dependency>
 
         <!-- spring libs -->
         <dependency>
