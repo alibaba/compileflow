@@ -172,8 +172,8 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
             classTarget.addSuperInterface(ClassWrapper.of(ProcessInstance.class));
         }
         generateFlowMethod(MethodConstants.EXECUTE_METHOD_NAME,
-            Collections.singletonList(ParamTarget.of(ClassWrapper.of("Map<String, Object>"), "_pContext")),
-            this::generateExecuteMethodBody);
+                Collections.singletonList(ParamTarget.of(ClassWrapper.of("Map<String, Object>"), "_pContext")),
+                this::generateExecuteMethodBody);
         if (stateful) {
             List<ParamTarget> paramTargets = new ArrayList<>(2);
             paramTargets.add(ParamTarget.of(ClassWrapper.of("String"), "tag"));
@@ -229,14 +229,14 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         method.addBodyLine("String code = \"" + code + "\";");
 
         String engineCode = isBpmn20() ? "ProcessEngine<BpmnModel> engine = ProcessEngineFactory.getProcessEngine(FlowModelType.BPMN);"
-            : "ProcessEngine engine = ProcessEngineFactory.getProcessEngine();";
+                : "ProcessEngine engine = ProcessEngineFactory.getProcessEngine();";
         method.addBodyLine(engineCode);
         method.addBodyLine("System.out.println(engine.getJavaCode(code));");
         method.addBodyLine("Map<String, Object> context = new HashMap<String, Object>();");
         if (CollectionUtils.isNotEmpty(this.paramVars)) {
             for (IVar v : this.paramVars) {
                 String nullValueStr = DataType.getDefaultValueString(DataType.getJavaClass(v.getDataType()),
-                    v.getDefaultValue());
+                        v.getDefaultValue());
                 method.addBodyLine("context.put(\"" + v.getName() + "\", " + nullValueStr + ");");
             }
         }
@@ -343,15 +343,15 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
                 Class<?> dateType = DataType.getJavaClass(paramVar.getDataType());
                 if (dateType.isPrimitive()) {
                     String innerParamDefine = paramVar.getName() + " = (("
-                        + DataType.getClassName(DataType.getPrimitiveClass(paramVar.getDataType()))
-                        + ")DataType.transfer(" + dataVar + ", " + DataType.getClassName(paramVar.getDataType())
-                        + ".class))." + DataType.getTransFunc(dateType) + ";";
+                            + DataType.getClassName(DataType.getPrimitiveClass(paramVar.getDataType()))
+                            + ")DataType.transfer(" + dataVar + ", " + DataType.getClassName(paramVar.getDataType())
+                            + ".class))." + DataType.getTransFunc(dateType) + ";";
                     methodTarget.addBodyLine(innerParamDefine);
                 } else {
                     ClassWrapper pvType = ClassWrapper.of(paramVar.getDataType());
                     String innerParamDefine = paramVar.getName() + " = (" + pvType.getShortRawName()
-                        + ")DataType.transfer("
-                        + dataVar + ", " + pvType.getShortRawName() + ".class);";
+                            + ")DataType.transfer("
+                            + dataVar + ", " + pvType.getShortRawName() + ".class);";
                     methodTarget.addBodyLine(innerParamDefine);
                 }
             }
@@ -411,7 +411,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
                 ClassWrapper rvType = ClassWrapper.of(var.getDataType());
                 classTarget.addImportedType(rvType);
                 String nullValue = DataType.getDefaultValueString(DataType.getJavaClass(var.getDataType()),
-                    var.getDefaultValue());
+                        var.getDefaultValue());
                 classTarget.addField(rvType, var.getName(), nullValue);
             }
         }
@@ -428,42 +428,42 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
 
     private void buildGatewayGraph(NodeContainer<Node> nodeContainer) {
         List<TransitionNode> nodes = nodeContainer.getAllNodes()
-            .stream()
-            .filter(node -> node instanceof TransitionNode)
-            .map(e -> (TransitionNode) e)
-            .collect(Collectors.toList());
+                .stream()
+                .filter(node -> node instanceof TransitionNode)
+                .map(e -> (TransitionNode) e)
+                .collect(Collectors.toList());
 
         nodes.forEach(this::buildFollowingNodes);
 
         Map<String, List<TransitionNode>> branchGatewayFollowingGraph = new HashMap<>();
         nodes.stream()
-            .filter(flowNode -> flowNode instanceof GatewayElement)
-            .forEach(gatewayNode -> gatewayNode.getOutgoingNodes().forEach(outgoingNode -> {
-                List<TransitionNode> branchNodes = buildBranchNodes(gatewayNode, outgoingNode);
-                List<TransitionNode> followingNodes = followingGraph.get(gatewayNode.getId());
-                branchNodes = branchNodes
-                    .stream()
-                    .filter(node -> !followingNodes.contains(node))
-                    .collect(Collectors.toList());
-                String branchKey = ProcessUtils.buildBranchKey(gatewayNode, outgoingNode);
-                branchGraph.put(branchKey, branchNodes);
+                .filter(flowNode -> flowNode instanceof GatewayElement)
+                .forEach(gatewayNode -> gatewayNode.getOutgoingNodes().forEach(outgoingNode -> {
+                    List<TransitionNode> branchNodes = buildBranchNodes(gatewayNode, outgoingNode);
+                    List<TransitionNode> followingNodes = followingGraph.get(gatewayNode.getId());
+                    branchNodes = branchNodes
+                            .stream()
+                            .filter(node -> !followingNodes.contains(node))
+                            .collect(Collectors.toList());
+                    String branchKey = ProcessUtils.buildBranchKey(gatewayNode, outgoingNode);
+                    branchGraph.put(branchKey, branchNodes);
 
-                branchNodes.stream().filter(branchNode -> branchNode instanceof GatewayElement)
-                    .forEach(flowNode -> {
-                            List<TransitionNode> gatewayFollowingNodes = followingGraph.get(flowNode.getId())
-                                .stream()
-                                .filter(node -> !followingNodes.contains(node))
-                                .collect(Collectors.toList());
-                            branchGatewayFollowingGraph.put(flowNode.getId(), gatewayFollowingNodes);
-                        }
-                    );
-            }));
+                    branchNodes.stream().filter(branchNode -> branchNode instanceof GatewayElement)
+                            .forEach(flowNode -> {
+                                        List<TransitionNode> gatewayFollowingNodes = followingGraph.get(flowNode.getId())
+                                                .stream()
+                                                .filter(node -> !followingNodes.contains(node))
+                                                .collect(Collectors.toList());
+                                        branchGatewayFollowingGraph.put(flowNode.getId(), gatewayFollowingNodes);
+                                    }
+                            );
+                }));
         followingGraph.putAll(branchGatewayFollowingGraph);
 
         nodes.stream()
-            .filter(flowNode -> flowNode instanceof NodeContainer)
-            .map(e -> (NodeContainer) e)
-            .forEach(this::buildGatewayGraph);
+                .filter(flowNode -> flowNode instanceof NodeContainer)
+                .map(e -> (NodeContainer) e)
+                .forEach(this::buildGatewayGraph);
     }
 
     private List<TransitionNode> buildFollowingNodes(TransitionNode flowNode) {
@@ -517,7 +517,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
                 while (flowNodeIterator.hasNext()) {
                     TransitionNode followingNode = flowNodeIterator.next();
                     if (branchNodes.stream()
-                        .anyMatch(node -> node.getId().equals(followingNode.getId()))) {
+                            .anyMatch(node -> node.getId().equals(followingNode.getId()))) {
                         break;
                     } else {
                         flowNodeIterator.remove();
@@ -555,7 +555,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
 
         if (CollectionUtils.isNotEmpty(validateMessages)) {
             List<ValidateMessage> validateFailResults = validateMessages.stream().filter(ValidateMessage::isFail)
-                .collect(Collectors.toList());
+                    .collect(Collectors.toList());
             if (CollectionUtils.isNotEmpty(validateFailResults)) {
                 throw new CompileFlowException(validateFailResults.toString());
             }
@@ -570,7 +570,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         List<TransitionNode> transitionNodes = flowModel.getTransitionNodes();
         if (isStateful()) {
             List<TransitionNode> noTagNodes = transitionNodes.stream().filter(node -> StringUtils.isEmpty(node.getTag()))
-                .collect(Collectors.toList());
+                    .collect(Collectors.toList());
             if (CollectionUtils.isNotEmpty(noTagNodes)) {
                 String noTagNodeIds = noTagNodes.stream().map(Node::getId).collect(Collectors.joining(","));
                 validateMessages.add(ValidateMessage.fail("Nodes [" + noTagNodeIds + "] have no Tag"));
@@ -626,7 +626,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         int startIndex = code.lastIndexOf(".");
         if (startIndex > 0) {
             return wrapClassFullName(code.substring(0, startIndex) + "."
-                + getFlowClassName(code.substring(startIndex + 1), id));
+                    + getFlowClassName(code.substring(startIndex + 1), id));
         }
         return wrapClassFullName(getFlowClassName(code, id));
     }
@@ -647,7 +647,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         if (VarUtils.isLegalVarName(id)) {
             return "Flow" + id;
         }
-        return "Flow" + (code + id).hashCode();
+        return "Flow" + Math.abs((code + id).hashCode());
     }
 
     private void addJavaTypes() {
