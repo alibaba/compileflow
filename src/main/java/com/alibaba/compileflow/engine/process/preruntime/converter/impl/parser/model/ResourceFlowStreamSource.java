@@ -25,19 +25,20 @@ import java.io.InputStream;
  * @author wuxiang
  * @author yusu
  */
-public class ResourceFlowStreamSource implements FlowStreamSource {
+public class ResourceFlowStreamSource extends FlowStreamSource {
 
     private String resource;
     private ClassLoader classLoader;
 
-    public static ResourceFlowStreamSource of(String resource) {
+    public static ResourceFlowStreamSource of(String code, String resource) {
         ResourceFlowStreamSource resourceFlowStreamSource = new ResourceFlowStreamSource();
+        resourceFlowStreamSource.setCode(code);
         resourceFlowStreamSource.setResource(resource);
         return resourceFlowStreamSource;
     }
 
-    public static ResourceFlowStreamSource of(String resource, ClassLoader classLoader) {
-        ResourceFlowStreamSource resourceFlowStreamSource = of(resource);
+    public static ResourceFlowStreamSource of(String code, String resource, ClassLoader classLoader) {
+        ResourceFlowStreamSource resourceFlowStreamSource = of(code, resource);
         resourceFlowStreamSource.setClassLoader(classLoader);
         return resourceFlowStreamSource;
     }
@@ -53,10 +54,10 @@ public class ResourceFlowStreamSource implements FlowStreamSource {
     @Override
     public InputStream getFlow() {
         InputStream inputStream = classLoader == null ? ClassLoaderUtils.getResourceAsStream(resource)
-            : classLoader.getResourceAsStream(resource);
+                : classLoader.getResourceAsStream(resource);
 
         if (inputStream == null) {
-            throw new CompileFlowException("Failed to load flow, resource is " + resource);
+            throw new CompileFlowException("Failed to load flow, code is " + getCode() + ", resource is " + resource);
         }
         return inputStream;
     }

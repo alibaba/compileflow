@@ -27,12 +27,13 @@ import java.net.URL;
  * @author wuxiang
  * @author yusu
  */
-public class UrlFlowStreamSource implements FlowStreamSource {
+public class UrlFlowStreamSource extends FlowStreamSource {
 
     private URL url;
 
-    public static UrlFlowStreamSource of(URL url) {
+    public static UrlFlowStreamSource of(String code, URL url) {
         UrlFlowStreamSource urlFlowStreamSource = new UrlFlowStreamSource();
+        urlFlowStreamSource.setCode(code);
         urlFlowStreamSource.setUrl(url);
         return urlFlowStreamSource;
     }
@@ -46,7 +47,7 @@ public class UrlFlowStreamSource implements FlowStreamSource {
         try {
             return new BufferedInputStream(url.openStream());
         } catch (IOException e) {
-            throw new CompileFlowException("Failed to open stream, url is " + url, e);
+            throw new CompileFlowException("Failed to open stream, code is " + getCode() + ", url is " + url, e);
         }
     }
 

@@ -20,14 +20,17 @@ import com.alibaba.compileflow.engine.ProcessEngine;
 import com.alibaba.compileflow.engine.common.CompileFlowException;
 import com.alibaba.compileflow.engine.common.DirectedGraph;
 import com.alibaba.compileflow.engine.common.constant.FlowModelType;
+import com.alibaba.compileflow.engine.common.extension.ExtensionInvoker;
+import com.alibaba.compileflow.engine.common.extension.filter.ReduceFilter;
 import com.alibaba.compileflow.engine.common.util.ArrayUtils;
+import com.alibaba.compileflow.engine.common.util.MapUtils;
 import com.alibaba.compileflow.engine.definition.common.EndElement;
 import com.alibaba.compileflow.engine.definition.common.FlowModel;
 import com.alibaba.compileflow.engine.definition.common.TransitionNode;
 import com.alibaba.compileflow.engine.definition.common.TransitionSupport;
 import com.alibaba.compileflow.engine.process.preruntime.converter.FlowModelConverter;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.FlowStreamSource;
-import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.ResourceFlowStreamSource;
+import com.alibaba.compileflow.engine.process.preruntime.loader.FlowSourceLoader;
 import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -58,33 +61,51 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
         }
 
         for (String code : codes) {
-            AbstractProcessRuntime runtime = getProcessRuntime(code);
-            runtime.compile(classLoader);
+            preCompile(classLoader, code);
         }
     }
 
     @Override
-    public void reload(String code) {
-        AbstractProcessRuntime runtime = runtimeCache.computeIfPresent(code, (k, v) -> getRuntimeFromSource(code));
-        runtime.recompile(code);
+    public void preCompile(Map<String, String> code2ContentMap) {
+        preCompile(null, code2ContentMap);
     }
 
-    @SuppressWarnings("unchecked")
+    @Override
+    public void preCompile(ClassLoader classLoader, Map<String, String> code2ContentMap) {
+        if (MapUtils.isEmpty(code2ContentMap)) {
+            return;
+        }
+        code2ContentMap.forEach((code, content) -> preCompile(classLoader, code, content));
+    }
+
     protected <R extends AbstractProcessRuntime> R getProcessRuntime(String code) {
+        return getProcessRuntime(code, null);
+    }
+
+    protected <R extends AbstractProcessRuntime> R getProcessRuntime(String code, String content) {
         String cacheKey = getCacheKey(code);
         AbstractProcessRuntime runtime = runtimeCache.computeIfAbsent(cacheKey, c ->
-            getCompiledRuntime(code));
+                getCompiledRuntime(code, content));
         return (R) runtime;
     }
 
-    private AbstractProcessRuntime getCompiledRuntime(String code) {
-        AbstractProcessRuntime runtime = getRuntimeFromSource(code);
+    private void preCompile(ClassLoader classLoader, String code) {
+        preCompile(classLoader, code, null);
+    }
+
+    private void preCompile(ClassLoader classLoader, String code, String content) {
+        AbstractProcessRuntime runtime = getProcessRuntime(code, content);
+        runtime.compile(classLoader);
+    }
+
+    private AbstractProcessRuntime getCompiledRuntime(String code, String content) {
+        AbstractProcessRuntime runtime = getRuntimeFromSource(code, content);
         runtime.compile();
         return runtime;
     }
 
-    private AbstractProcessRuntime getRuntimeFromSource(String code) {
-        T flowModel = load(code);
+    private AbstractProcessRuntime getRuntimeFromSource(String code, String content) {
+        T flowModel = load(code, content);
         AbstractProcessRuntime runtime = getRuntimeFromModel(flowModel);
         runtime.init();
         return runtime;
@@ -93,7 +114,12 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
     @Override
     @SuppressWarnings("unchecked")
     public T load(String code) {
-        FlowStreamSource flowStreamSource = loadFlowSource(code);
+        return load(code, null);
+    }
+
+    public T load(String code, String content) {
+        FlowStreamSource flowStreamSource = ExtensionInvoker.getInstance().invoke(FlowSourceLoader.EXT_LOAD_FLOW_SOURCE_CODE,
+                ReduceFilter.first(), code, content, getFlowModelType());
 
         T flowModel = (T) getFlowModelConverter().convertToModel(flowStreamSource);
         if (flowModel == null) {
@@ -109,32 +135,24 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
 
     @Override
     public String getJavaCode(String code) {
-        AbstractProcessRuntime runtime = getRuntimeFromSource(code);
+        return getJavaCode(code, null);
+    }
+
+    @Override
+    public String getJavaCode(String code, String content) {
+        AbstractProcessRuntime runtime = getRuntimeFromSource(code, content);
         return runtime.generateJavaCode();
     }
 
     @Override
     public String getTestCode(String code) {
-        AbstractProcessRuntime runtime = getRuntimeFromSource(code);
+        return getTestCode(code, null);
+    }
+
+    @Override
+    public String getTestCode(String code, String content) {
+        AbstractProcessRuntime runtime = getRuntimeFromSource(code, content);
         return runtime.generateTestCode();
-    }
-
-    private FlowStreamSource loadFlowSource(String code) {
-        String filePath = convertToFilePath(code);
-        return ResourceFlowStreamSource.of(filePath);
-    }
-
-    private String convertToFilePath(String code) {
-        String path = code.replace(".", "/");
-        FlowModelType flowModelType = getFlowModelType();
-        return path + getBpmFileSuffix(flowModelType);
-    }
-
-    private String getBpmFileSuffix(FlowModelType flowModelType) {
-        if (FlowModelType.BPMN.equals(flowModelType)) {
-            return ".bpmn20";
-        }
-        return ".bpm";
     }
 
     private void checkContinuous(T flowModel) {
@@ -166,20 +184,20 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
             List<TransitionNode> outgoingNodes = node.getOutgoingNodes();
             if (CollectionUtils.isNotEmpty(outgoingNodes)) {
                 outgoingNodes.forEach(
-                    outgoingNode -> directedGraph.add(DirectedGraph.Edge.of(node, outgoingNode)));
+                        outgoingNode -> directedGraph.add(DirectedGraph.Edge.of(node, outgoingNode)));
             }
         }
         List<TransitionNode> cyclicVertexList = directedGraph.findCyclicVertexList();
         if (CollectionUtils.isNotEmpty(cyclicVertexList)) {
             throw new CompileFlowException("Cyclic nodes found in flow " + flowModel.getCode()
-                + " check node [" + cyclicVertexList.stream().map(TransitionNode::getId)
-                .collect(Collectors.joining(",")) + "]");
+                    + " check node [" + cyclicVertexList.stream().map(TransitionNode::getId)
+                    .collect(Collectors.joining(",")) + "]");
         }
     }
 
     private void sortTransition(T flowModel) {
         flowModel.getAllNodes().forEach(node -> node.getTransitions()
-            .sort(Comparator.comparing(TransitionSupport::getPriority).reversed()));
+                .sort(Comparator.comparing(TransitionSupport::getPriority).reversed()));
     }
 
     private String getCacheKey(String code) {

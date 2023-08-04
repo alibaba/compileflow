@@ -23,7 +23,7 @@ public class FlowUrlClassLoader extends URLClassLoader {
                     try {
                         URL url = new URL("file:///" + CompileConstants.FLOW_COMPILE_CLASS_DIR);
                         instance = new FlowUrlClassLoader(new URL[]{url},
-                            FlowUrlClassLoader.class.getClassLoader());
+                                FlowUrlClassLoader.class.getClassLoader());
                     } catch (Exception e) {
                         throw new CompileFlowException(e);
                     }
@@ -33,7 +33,7 @@ public class FlowUrlClassLoader extends URLClassLoader {
         return instance;
     }
 
-    public void clearCache() {
+    public void reset() {
         instance = null;
     }
 

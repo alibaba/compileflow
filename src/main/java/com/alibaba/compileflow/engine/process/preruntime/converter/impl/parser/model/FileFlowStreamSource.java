@@ -27,12 +27,13 @@ import java.io.InputStream;
  * @author wuxiang
  * @author yusu
  */
-public class FileFlowStreamSource implements FlowStreamSource {
+public class FileFlowStreamSource extends FlowStreamSource {
 
     private File file;
 
-    public static FileFlowStreamSource of(File file) {
+    public static FileFlowStreamSource of(String code, File file) {
         FileFlowStreamSource fileFlowStreamSource = new FileFlowStreamSource();
+        fileFlowStreamSource.setCode(code);
         fileFlowStreamSource.setFile(file);
         return fileFlowStreamSource;
     }
@@ -46,7 +47,7 @@ public class FileFlowStreamSource implements FlowStreamSource {
         try {
             return new FileInputStream(file);
         } catch (FileNotFoundException e) {
-            throw new CompileFlowException("Failed to get flow, file is " + file, e);
+            throw new CompileFlowException("Failed to get flow, code is " + getCode() + ", file is " + file, e);
         }
     }
 

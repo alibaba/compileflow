@@ -23,23 +23,24 @@ import java.io.InputStream;
  * @author wuxiang
  * @author yusu
  */
-public class StringFlowStreamSource implements FlowStreamSource {
+public class StringFlowStreamSource extends FlowStreamSource {
 
-    private String flowString;
+    private String content;
 
-    public static StringFlowStreamSource of(String flowString) {
+    public static StringFlowStreamSource of(String code, String content) {
         StringFlowStreamSource stringFlowStreamSource = new StringFlowStreamSource();
-        stringFlowStreamSource.setFlowString(flowString);
+        stringFlowStreamSource.setCode(code);
+        stringFlowStreamSource.setContent(content);
         return stringFlowStreamSource;
     }
 
-    private void setFlowString(String flowString) {
-        this.flowString = flowString;
+    public void setContent(String content) {
+        this.content = content;
     }
 
     @Override
     public InputStream getFlow() {
-        return new ByteArrayInputStream(flowString.getBytes());
+        return new ByteArrayInputStream(content.getBytes());
     }
 
 }

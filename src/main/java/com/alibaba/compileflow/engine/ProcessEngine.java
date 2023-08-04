@@ -26,18 +26,8 @@ public interface ProcessEngine<T extends FlowModel> {
 
     Map<String, Object> execute(String code, Map<String, Object> context);
 
-    /**
-     * @param code:   flow code
-     * @param tag:    flow node tag
-     * @param context
-     */
     Map<String, Object> trigger(String code, String tag, Map<String, Object> context);
 
-    /**
-     * @param code:   flow code
-     * @param tag:    flow node tag
-     * @param context
-     */
     Map<String, Object> trigger(String code, String tag, String event, Map<String, Object> context);
 
     @Deprecated
@@ -47,12 +37,26 @@ public interface ProcessEngine<T extends FlowModel> {
 
     void preCompile(ClassLoader classLoader, String... codes);
 
-    void reload(String code);
-
     T load(String code);
 
     String getJavaCode(String code);
 
     String getTestCode(String code);
+
+    Map<String, Object> execute(String code, Map<String, Object> context, String content);
+
+    Map<String, Object> trigger(String code, String tag, Map<String, Object> context, String content);
+
+    Map<String, Object> trigger(String code, String tag, String event, Map<String, Object> context, String content);
+
+    void preCompile(Map<String, String> code2ContentMap);
+
+    void preCompile(ClassLoader classLoader, Map<String, String> code2ContentMap);
+
+    T load(String code, String content);
+
+    String getJavaCode(String code, String content);
+
+    String getTestCode(String code, String content);
 
 }

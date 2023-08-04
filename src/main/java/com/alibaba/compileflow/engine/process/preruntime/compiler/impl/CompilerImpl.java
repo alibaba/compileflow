@@ -32,8 +32,6 @@ import java.io.PrintWriter;
  */
 public class CompilerImpl implements Compiler {
 
-    private static final JavaCompiler JAVA_COMPILER = new EcJavaCompiler();
-
     @Override
     public Class<?> compileJavaCode(String fullClassName, String sourceCode, ClassLoader classLoader) {
 

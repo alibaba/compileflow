@@ -22,6 +22,8 @@ package com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.
  */
 public interface FlowSource<T> {
 
+    String getCode();
+
     T getFlow();
 
 }

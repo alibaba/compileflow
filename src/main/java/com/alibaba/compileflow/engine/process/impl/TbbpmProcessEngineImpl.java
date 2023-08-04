@@ -42,6 +42,24 @@ public class TbbpmProcessEngineImpl extends AbstractProcessEngine<TbbpmModel>
     }
 
     @Override
+    public Map<String, Object> execute(String code, Map<String, Object> context, String content) {
+        TbbpmProcessRuntime runtime = getProcessRuntime(code, content);
+        return runtime.start(context);
+    }
+
+    @Override
+    public Map<String, Object> trigger(String code, String tag, Map<String, Object> context, String content) {
+        TbbpmProcessRuntime runtime = getProcessRuntime(code, content);
+        return runtime.trigger(tag, context);
+    }
+
+    @Override
+    public Map<String, Object> trigger(String code, String tag, String event, Map<String, Object> context, String content) {
+        TbbpmProcessRuntime runtime = getProcessRuntime(code, content);
+        return runtime.trigger(tag, event, context);
+    }
+
+    @Override
     protected FlowModelType getFlowModelType() {
         return FlowModelType.TBBPM;
     }

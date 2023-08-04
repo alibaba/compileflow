@@ -96,7 +96,7 @@ public class ClassLoaderUtils {
     }
 
     public static URL[] getResources(String resourceName, ClassLoader classLoader) {
-        LinkedList urls = new LinkedList();
+        List urls = new LinkedList();
 
         getResources(urls, resourceName, classLoader, classLoader == null);
 
@@ -137,15 +137,15 @@ public class ClassLoaderUtils {
         return false;
     }
 
-    private static URL[] getDistinctURLs(LinkedList<URL> urls) {
+    private static URL[] getDistinctURLs(List<URL> urls) {
         if ((urls == null) || (urls.size() == 0)) {
             return new URL[0];
         }
 
         Set<URL> urlSet = new HashSet<>(urls.size());
 
-        for (Iterator i = urls.iterator(); i.hasNext(); ) {
-            URL url = (URL) i.next();
+        for (Iterator<URL> i = urls.iterator(); i.hasNext(); ) {
+            URL url = i.next();
 
             if (urlSet.contains(url)) {
                 i.remove();
@@ -154,7 +154,7 @@ public class ClassLoaderUtils {
             }
         }
 
-        return urls.toArray(new URL[urls.size()]);
+        return urls.toArray(new URL[0]);
     }
 
     public static URL getResource(String resourceName) {
@@ -163,7 +163,7 @@ public class ClassLoaderUtils {
         }
 
         ClassLoader classLoader = getContextClassLoader();
-        URL url = null;
+        URL url;
 
         if (classLoader != null) {
             url = classLoader.getResource(resourceName);
@@ -194,8 +194,8 @@ public class ClassLoaderUtils {
         ClassLoader classLoader = getReferrerClassLoader(referrer);
 
         return (classLoader == null)
-            ? ClassLoaderUtils.class.getClassLoader().getResource(resourceName)
-            : classLoader.getResource(resourceName);
+                ? ClassLoaderUtils.class.getClassLoader().getResource(resourceName)
+                : classLoader.getResource(resourceName);
     }
 
     public static URL getResource(String resourceName, ClassLoader classLoader) {
@@ -204,8 +204,8 @@ public class ClassLoaderUtils {
         }
 
         return (classLoader == null)
-            ? ClassLoaderUtils.class.getClassLoader().getResource(resourceName)
-            : classLoader.getResource(resourceName);
+                ? ClassLoaderUtils.class.getClassLoader().getResource(resourceName)
+                : classLoader.getResource(resourceName);
     }
 
     public static InputStream getResourceAsStream(String resourceName) {
@@ -215,8 +215,8 @@ public class ClassLoaderUtils {
             if (url != null) {
                 return url.openStream();
             }
-        } catch (IOException ignored) {
-            logger.error("Failed to getResourceAsStream, resourceName is " + resourceName, ignored);
+        } catch (IOException e) {
+            logger.error("Failed to getResourceAsStream, resourceName is " + resourceName, e);
         }
 
         return null;

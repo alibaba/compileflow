@@ -22,6 +22,6 @@ import java.io.InputStream;
  * @author wuxiang
  * @author yusu
  */
-public interface FlowStreamSource extends FlowSource<InputStream> {
+public abstract class FlowStreamSource extends AbstractFlowSource<InputStream> {
 
 }
