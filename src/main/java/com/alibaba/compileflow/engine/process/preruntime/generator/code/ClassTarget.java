@@ -217,7 +217,9 @@ public class ClassTarget extends AbstractCodeTargetSupport implements CodeTarget
     }
 
     private String getImportName(ClassWrapper importType) {
-        return importType.getPackageName() + "." + importType.getShortRawName();
+        int index = importType.getShortRawName().indexOf("[]");
+        return index == -1 ? importType.getPackageName() + "." + importType.getShortRawName()
+                : importType.getPackageName() + "." + importType.getShortRawName().substring(0, index);
     }
 
     private boolean notContainImportedType(ClassWrapper classWrapper) {
