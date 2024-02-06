@@ -102,7 +102,7 @@ public class SubBpmGenerator extends AbstractTbbpmNodeGenerator<SubBpmNode> {
             codeTargetSupport.addBodyLine("_spContext.put(\"" + param.getName() + "\", " + var + ");");
         }
 
-        String noReturnCode = "ProcessEngineFactory.getProcessEngine().start(\""
+        String noReturnCode = "ProcessEngineFactory.getProcessEngine().execute(\""
             + flowNode.getSubBpmCode() + "\", _spContext)";
 
         if (returnVar != null) {

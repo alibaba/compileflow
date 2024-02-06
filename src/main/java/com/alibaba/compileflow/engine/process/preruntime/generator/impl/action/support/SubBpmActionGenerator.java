@@ -67,7 +67,7 @@ public class SubBpmActionGenerator extends AbstractActionGenerator {
             codeTargetSupport.addBodyLine("_spContext.put(\"" + param.getName() + "\", " + var + ");");
         }
 
-        String noReturnCode = "ProcessEngineFactory.getProcessEngine().start(\"" + getSubBpmCode()
+        String noReturnCode = "ProcessEngineFactory.getProcessEngine().execute(\"" + getSubBpmCode()
             + "\", _spContext)";
 
         if (returnVar != null) {
