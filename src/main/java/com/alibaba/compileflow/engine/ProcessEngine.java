@@ -30,9 +30,6 @@ public interface ProcessEngine<T extends FlowModel> {
 
     Map<String, Object> trigger(String code, String tag, String event, Map<String, Object> context);
 
-    @Deprecated
-    Map<String, Object> start(String code, Map<String, Object> context);
-
     void preCompile(String... codes);
 
     void preCompile(ClassLoader classLoader, String... codes);
@@ -43,6 +40,9 @@ public interface ProcessEngine<T extends FlowModel> {
 
     String getTestCode(String code);
 
+    /***
+     ** --- Compared with APIs above, following APIs add content of bpm as input directly ---
+     */
     Map<String, Object> execute(String code, Map<String, Object> context, String content);
 
     Map<String, Object> trigger(String code, String tag, Map<String, Object> context, String content);

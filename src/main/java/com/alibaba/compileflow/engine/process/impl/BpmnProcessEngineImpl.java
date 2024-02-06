@@ -35,12 +35,6 @@ public class BpmnProcessEngineImpl extends AbstractProcessEngine<BpmnModel>
     }
 
     @Override
-    public Map<String, Object> start(String code, Map<String, Object> context) {
-        BpmnProcessRuntime runtime = getProcessRuntime(code);
-        return runtime.start(context);
-    }
-
-    @Override
     public Map<String, Object> execute(String code, Map<String, Object> context, String content) {
         BpmnProcessRuntime runtime = getProcessRuntime(code, content);
         return runtime.start(context);
