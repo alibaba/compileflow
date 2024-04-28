@@ -19,11 +19,20 @@ package com.alibaba.compileflow.engine.process.preruntime.generator;
 import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
 
 /**
+ * Represents an interface for generating code based on a given target support.
+ * Implementations of this interface are responsible for generating code snippets
+ * that can be integrated into a larger code structure.
+
  * @author wuxiang
  * @author yusu
  */
 public interface Generator {
 
+    /**
+     * Generates code using the provided code target support.
+     *
+     * @param codeTargetSupport The support object for generating code
+     */
     void generateCode(CodeTargetSupport codeTargetSupport);
 
 }

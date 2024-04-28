@@ -126,11 +126,15 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
             throw new RuntimeException("No valid flow model found, code is " + code);
         }
 
-        checkCycle(flowModel);
-        checkContinuous(flowModel);
+        validateFlowModel(flowModel);
         sortTransition(flowModel);
 
         return flowModel;
+    }
+
+    private void validateFlowModel(T flowModel) {
+        checkCycle(flowModel);
+        checkContinuous(flowModel);
     }
 
     @Override
@@ -179,20 +183,24 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
 
     @SuppressWarnings("unchecked")
     private void checkCycle(T flowModel) {
-        DirectedGraph<TransitionNode> directedGraph = new DirectedGraph<>();
-        for (TransitionNode node : flowModel.getAllNodes()) {
-            List<TransitionNode> outgoingNodes = node.getOutgoingNodes();
-            if (CollectionUtils.isNotEmpty(outgoingNodes)) {
-                outgoingNodes.forEach(
-                        outgoingNode -> directedGraph.add(DirectedGraph.Edge.of(node, outgoingNode)));
-            }
-        }
+        DirectedGraph<TransitionNode> directedGraph = buildDirectedGraph(flowModel);
         List<TransitionNode> cyclicVertexList = directedGraph.findCyclicVertexList();
         if (CollectionUtils.isNotEmpty(cyclicVertexList)) {
             throw new CompileFlowException("Cyclic nodes found in flow " + flowModel.getCode()
                     + " check node [" + cyclicVertexList.stream().map(TransitionNode::getId)
                     .collect(Collectors.joining(",")) + "]");
         }
+    }
+
+    private DirectedGraph<TransitionNode> buildDirectedGraph(T flowModel) {
+        DirectedGraph<TransitionNode> directedGraph = new DirectedGraph<>();
+        for (TransitionNode node : flowModel.getAllNodes()) {
+            List<TransitionNode> outgoingNodes = node.getOutgoingNodes();
+            if (CollectionUtils.isNotEmpty(outgoingNodes)) {
+                outgoingNodes.forEach(outgoingNode -> directedGraph.add(DirectedGraph.Edge.of(node, outgoingNode)));
+            }
+        }
+        return directedGraph;
     }
 
     private void sortTransition(T flowModel) {

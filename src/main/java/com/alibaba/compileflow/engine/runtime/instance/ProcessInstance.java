@@ -19,11 +19,19 @@ package com.alibaba.compileflow.engine.runtime.instance;
 import java.util.Map;
 
 /**
+ * Represents a running process instance that can be executed.
  * @author wuxiang
  * @author yusu
  */
 public interface ProcessInstance extends FlowInstance {
 
+    /**
+     * Executes the process instance with the given context.
+     *
+     * @param context The context containing variables and metadata for the execution
+     * @return A result object encapsulating the outcome of the execution
+     * @throws Exception If an error occurs during the process execution
+     */
     Map<String, Object> execute(Map<String, Object> context) throws Exception;
 
 }

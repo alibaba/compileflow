@@ -21,12 +21,29 @@ import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.m
 import java.io.OutputStream;
 
 /**
+ * Interface for converting a FlowStreamSource to a model and vice versa.
+ * Provides methods to convert a flow stream source into a model object and
+ * to generate a stream representation of the model.
+
+ * @param <T> The type of the converted model
  * @author yusu
  */
 public interface FlowModelConverter<T> {
 
+    /**
+     * Converts a FlowStreamSource into a model object.
+     *
+     * @param flowStreamSource The input flow stream source
+     * @return The converted model object
+     */
     T convertToModel(FlowStreamSource flowStreamSource);
 
+    /**
+     * Converts a model object into an OutputStream representing the model's data.
+     *
+     * @param model The input model object
+     * @return An OutputStream containing the serialized representation of the model
+     */
     OutputStream convertToStream(T model);
 
 }

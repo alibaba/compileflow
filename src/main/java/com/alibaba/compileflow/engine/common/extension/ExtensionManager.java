@@ -25,6 +25,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
+ * Manages extensions and extension points, implementing the {@link Lifecycle} interface.
+ * It loads, sorts, and retrieves extensions based on their priorities.
+ *
  * @author yusu
  */
 public class ExtensionManager implements Lifecycle {

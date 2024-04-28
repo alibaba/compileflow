@@ -29,6 +29,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
+ * Manages plugins, including loading, dependency checking, and registration of extension points and extensions.
+ * Implements the {@link Lifecycle} interface for initialization and stopping.
+ *
  * @author yusu
  */
 public class PluginManager implements Lifecycle {

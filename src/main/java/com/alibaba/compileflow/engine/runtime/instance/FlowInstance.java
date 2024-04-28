@@ -17,9 +17,16 @@
 package com.alibaba.compileflow.engine.runtime.instance;
 
 /**
+ * Represents a runtime instance of a flow in the CompileFlow Engine.
+ * This interface defines the fundamental operations and state of a flow instance
+ * during its execution lifecycle, adhering to the terms and conditions set forth
+ * in the Apache License Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
+ *
  * @author wuxiang
  * @author yusu
  */
 public interface FlowInstance {
+
+    // No methods are defined in this interface, as it serves as a marker for flow instance classes.
 
 }

@@ -25,7 +25,6 @@ import com.alibaba.compileflow.engine.common.constant.FlowModelType;
 import com.alibaba.compileflow.engine.common.util.*;
 import com.alibaba.compileflow.engine.definition.common.*;
 import com.alibaba.compileflow.engine.definition.common.var.IVar;
-import com.alibaba.compileflow.engine.definition.tbbpm.EventNode;
 import com.alibaba.compileflow.engine.definition.tbbpm.WaitEventTaskNode;
 import com.alibaba.compileflow.engine.definition.tbbpm.WaitTaskNode;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.Compiler;
@@ -249,10 +248,6 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         method.addBodyLine("}");
         classTarget.addMethod(method);
         return classTarget.generateCode();
-    }
-
-    public boolean hasEventNode() {
-        return flowModel.getAllNodes().stream().anyMatch(e -> e instanceof EventNode);
     }
 
     protected abstract void registerNodeGenerator(NodeContainer<TransitionNode> nodeContainer);
@@ -636,7 +631,6 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     private String wrapClassFullName(String name) {
-
         return "compileflow." + name;
     }
 
