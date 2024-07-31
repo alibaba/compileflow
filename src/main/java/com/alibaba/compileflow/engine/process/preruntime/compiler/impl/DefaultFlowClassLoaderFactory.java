@@ -16,13 +16,13 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.compiler.impl;
 
-import com.alibaba.compileflow.engine.common.extension.annotation.Extension;
+import com.alibaba.compileflow.engine.common.extension.annotation.ExtensionRealization;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.FlowClassLoaderFactory;
 
 /**
  * @author yusu
  */
-@Extension()
+@ExtensionRealization()
 public class DefaultFlowClassLoaderFactory implements FlowClassLoaderFactory {
 
     @Override

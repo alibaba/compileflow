@@ -16,7 +16,7 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.compiler.impl.support;
 
-import com.alibaba.compileflow.engine.common.extension.annotation.Extension;
+import com.alibaba.compileflow.engine.common.extension.annotation.ExtensionRealization;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.CompileOption;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaCompiler;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaSource;
@@ -37,7 +37,7 @@ import java.util.List;
 /**
  * @author yusu
  */
-@Extension()
+@ExtensionRealization()
 public class JdkJavaCompiler implements JavaCompiler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JdkJavaCompiler.class);

@@ -60,11 +60,11 @@ public abstract class Plugin {
         return true;
     }
 
-    public List<Class<? extends IExtensionPoint>> getExtensionPointClasses() {
+    public List<Class<? extends Extension>> getExtensionPointClasses() {
         return Collections.emptyList();
     }
 
-    public List<Class<? extends IExtensionPoint>> getExtensionClasses() {
+    public List<Class<? extends Extension>> getExtensionClasses() {
         return Collections.emptyList();
     }
 

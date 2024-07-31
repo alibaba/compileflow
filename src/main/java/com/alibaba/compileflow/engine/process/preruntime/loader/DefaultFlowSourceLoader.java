@@ -1,7 +1,7 @@
 package com.alibaba.compileflow.engine.process.preruntime.loader;
 
 import com.alibaba.compileflow.engine.common.constant.FlowModelType;
-import com.alibaba.compileflow.engine.common.extension.annotation.Extension;
+import com.alibaba.compileflow.engine.common.extension.annotation.ExtensionRealization;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.FlowStreamSource;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.ResourceFlowStreamSource;
 import com.alibaba.compileflow.engine.process.preruntime.converter.impl.parser.model.StringFlowStreamSource;
@@ -10,7 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 /**
  * @author yusu
  */
-@Extension()
+@ExtensionRealization()
 public class DefaultFlowSourceLoader implements FlowSourceLoader {
 
     @Override

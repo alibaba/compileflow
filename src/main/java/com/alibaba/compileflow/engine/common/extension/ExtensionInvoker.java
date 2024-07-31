@@ -48,7 +48,7 @@ public class ExtensionInvoker {
         return invoke(extensionCode, reduceFilter, args);
     }
 
-    public <T> T invoke(String extensionCode, Class<? extends IExtensionPoint> extension, Object... args) {
+    public <T> T invoke(String extensionCode, Class<? extends Extension> extension, Object... args) {
         List<ExtensionSpec> extensions = ExtensionManager.getInstance().getExtensions(extensionCode);
         if (CollectionUtils.isEmpty(extensions)) {
             return null;
@@ -60,7 +60,7 @@ public class ExtensionInvoker {
         return (T) invoke(extensionSpec, args);
     }
 
-    public <T> T invoke(String extensionCode, Class<? extends IExtensionPoint> extension,
+    public <T> T invoke(String extensionCode, Class<? extends Extension> extension,
                         ReduceFilter reduceFilter, Object... args) {
         List<ExtensionSpec> extensions = ExtensionManager.getInstance().getExtensions(extensionCode);
         if (CollectionUtils.isEmpty(extensions)) {

@@ -1,6 +1,6 @@
 package com.alibaba.compileflow.engine.common.extension.spec;
 
-import com.alibaba.compileflow.engine.common.extension.IExtensionPoint;
+import com.alibaba.compileflow.engine.common.extension.Extension;
 import com.alibaba.compileflow.engine.common.extension.annotation.ExtensionPoint;
 
 /**
@@ -9,7 +9,7 @@ import com.alibaba.compileflow.engine.common.extension.annotation.ExtensionPoint
 public class ClassExtensionPointSpec extends ExtensionPointSpec {
 
     public static ClassExtensionPointSpec of(ExtensionPoint extensionPointAnnotation,
-                                             Class<? extends IExtensionPoint> extensionPointClass) {
+                                             Class<? extends Extension> extensionPointClass) {
         ClassExtensionPointSpec extensionMethod = new ClassExtensionPointSpec();
         extensionMethod.setCode(extensionPointAnnotation.code());
         extensionMethod.setName(extensionPointAnnotation.name());

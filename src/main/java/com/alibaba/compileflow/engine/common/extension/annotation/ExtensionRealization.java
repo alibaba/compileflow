@@ -11,7 +11,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  */
 @Retention(RUNTIME)
 @Target({TYPE})
-public @interface Extension {
+public @interface ExtensionRealization {
 
     int priority() default 500;
 

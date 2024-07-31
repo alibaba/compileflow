@@ -16,7 +16,7 @@
  */
 package com.alibaba.compileflow.engine.process.preruntime.compiler;
 
-import com.alibaba.compileflow.engine.common.extension.IExtensionPoint;
+import com.alibaba.compileflow.engine.common.extension.Extension;
 import com.alibaba.compileflow.engine.common.extension.annotation.ExtensionPoint;
 import com.alibaba.compileflow.engine.common.extension.constant.ReducePolicy;
 
@@ -29,7 +29,7 @@ import java.io.File;
 
  * @author yusu
  */
-public interface JavaCompiler extends IExtensionPoint {
+public interface JavaCompiler extends Extension {
 
     String EXT_COMPILE_CODE = "com.alibaba.compileflow.engine.process.preruntime.compiler.JavaCompiler.compile";
 

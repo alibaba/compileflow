@@ -1,7 +1,7 @@
 package com.alibaba.compileflow.engine.common.extension.spec;
 
-import com.alibaba.compileflow.engine.common.extension.IExtensionPoint;
-import com.alibaba.compileflow.engine.common.extension.annotation.Extension;
+import com.alibaba.compileflow.engine.common.extension.Extension;
+import com.alibaba.compileflow.engine.common.extension.annotation.ExtensionRealization;
 import com.alibaba.compileflow.engine.common.extension.annotation.ExtensionPoint;
 
 /**
@@ -9,13 +9,13 @@ import com.alibaba.compileflow.engine.common.extension.annotation.ExtensionPoint
  */
 public class ClassExtensionSpec extends ExtensionSpec {
 
-    public static ExtensionSpec of(Extension extensionAnnotation,
+    public static ExtensionSpec of(ExtensionRealization extensionRealizationAnnotation,
                                    ExtensionPoint extensionPointAnnotation,
-                                   IExtensionPoint extensions) {
+                                   Extension extensions) {
         ExtensionSpec extensionSpec = new ClassExtensionSpec();
         extensionSpec.setExtension(extensions);
-        extensionSpec.setScenario(extensionAnnotation.scenario());
-        extensionSpec.setPriority(extensionAnnotation.priority());
+        extensionSpec.setScenario(extensionRealizationAnnotation.scenario());
+        extensionSpec.setPriority(extensionRealizationAnnotation.priority());
         extensionSpec.setCode(extensionPointAnnotation.code());
         extensionSpec.setName(extensionPointAnnotation.name());
         extensionSpec.setDescription(extensionPointAnnotation.description());

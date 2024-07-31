@@ -17,7 +17,7 @@
 package com.alibaba.compileflow.engine.process.preruntime.compiler.impl.support;
 
 import com.alibaba.compileflow.engine.common.CompileFlowException;
-import com.alibaba.compileflow.engine.common.extension.annotation.Extension;
+import com.alibaba.compileflow.engine.common.extension.annotation.ExtensionRealization;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.CompileOption;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaCompiler;
 import com.alibaba.compileflow.engine.process.preruntime.compiler.JavaSource;
@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 /**
  * @author yusu
  */
-@Extension(priority = 600)
+@ExtensionRealization(priority = 600)
 public class EcJavaCompiler implements JavaCompiler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EcJavaCompiler.class);
