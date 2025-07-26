@@ -1,0 +1,20 @@
+flowchart BT
+    subgraph 主路径
+        D1 --> D2
+        D1 --> SimpleTask
+    end
+
+    subgraph 二级路径
+        D2 --> D3
+        D2 --> ShallowTask
+    end
+
+    subgraph 三级路径
+        D3 --> D4
+        D3 --> MidLevelTask
+    end
+
+    subgraph 四级路径
+        D4 --> DeepTaskT
+        D4 --> DeepTaskF
+    end

@@ -63,7 +63,7 @@
             </actionHandle>
         </action>
     </autoTask>
-    <autoTask id="50" name="补货状态决策" g="665,50,88,48">
+    <autoTask id="50" name="补货状态com.alibaba.compileflow.engine.process" g="665,50,88,48">
         <transition g=":-15,20" to="25"/>
         <action type="spring-bean">
             <actionHandle bean="routeDecisionFullLinkReplenishExecuteStatusCheckAction"
@@ -74,7 +74,7 @@
             </actionHandle>
         </action>
     </autoTask>
-    <autoTask id="65" name="转在仓决策" g="950,1080,88,48">
+    <autoTask id="65" name="转在仓com.alibaba.compileflow.engine.process" g="950,1080,88,48">
         <transition g=":-15,20" to="58"/>
         <action type="spring-bean">
             <actionHandle bean="fullLinkRouteDecisionConvertToRealStoreDecisionAction"
@@ -133,7 +133,7 @@
             </actionHandle>
         </action>
     </autoTask>
-    <autoTask id="34" name="路由决策库存信息获取" g="895,560,88,48">
+    <autoTask id="34" name="路由com.alibaba.compileflow.engine.process库存信息获取" g="895,560,88,48">
         <transition g=":-15,20" to="32"/>
         <action type="spring-bean">
             <actionHandle bean="fullLinkRouteDecisionInventoryAction"

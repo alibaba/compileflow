@@ -21,37 +21,48 @@ import com.alibaba.compileflow.engine.ProcessEngineFactory;
 import com.alibaba.compileflow.engine.common.ClassWrapper;
 import com.alibaba.compileflow.engine.common.CompileFlowException;
 import com.alibaba.compileflow.engine.common.Lifecycle;
-import com.alibaba.compileflow.engine.common.constant.FlowModelType;
-import com.alibaba.compileflow.engine.common.util.*;
-import com.alibaba.compileflow.engine.definition.common.*;
+import com.alibaba.compileflow.engine.common.constants.FlowModelType;
+import com.alibaba.compileflow.engine.common.util.ClassUtils;
+import com.alibaba.compileflow.engine.common.util.DataType;
+import com.alibaba.compileflow.engine.common.util.ObjectFactory;
+import com.alibaba.compileflow.engine.common.util.VarUtils;
+import com.alibaba.compileflow.engine.definition.common.FlowModel;
+import com.alibaba.compileflow.engine.definition.common.Node;
+import com.alibaba.compileflow.engine.definition.common.NodeContainer;
+import com.alibaba.compileflow.engine.definition.common.TransitionNode;
 import com.alibaba.compileflow.engine.definition.common.var.IVar;
 import com.alibaba.compileflow.engine.definition.tbbpm.WaitEventTaskNode;
 import com.alibaba.compileflow.engine.definition.tbbpm.WaitTaskNode;
-import com.alibaba.compileflow.engine.process.preruntime.compiler.Compiler;
-import com.alibaba.compileflow.engine.process.preruntime.compiler.impl.CompilerImpl;
-import com.alibaba.compileflow.engine.process.preruntime.generator.Generator;
-import com.alibaba.compileflow.engine.process.preruntime.generator.bean.BeanProvider;
-import com.alibaba.compileflow.engine.process.preruntime.generator.bean.SpringApplicationContextProvider;
-import com.alibaba.compileflow.engine.process.preruntime.generator.bean.SpringBeanHolder;
-import com.alibaba.compileflow.engine.process.preruntime.generator.code.ClassTarget;
-import com.alibaba.compileflow.engine.process.preruntime.generator.code.CodeTargetSupport;
-import com.alibaba.compileflow.engine.process.preruntime.generator.code.MethodTarget;
-import com.alibaba.compileflow.engine.process.preruntime.generator.code.ParamTarget;
-import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.MethodConstants;
-import com.alibaba.compileflow.engine.process.preruntime.generator.constansts.Modifier;
-import com.alibaba.compileflow.engine.process.preruntime.generator.factory.GeneratorFactory;
-import com.alibaba.compileflow.engine.process.preruntime.generator.factory.GeneratorProviderFactory;
-import com.alibaba.compileflow.engine.process.preruntime.generator.impl.EventTriggerMethodGenerator;
-import com.alibaba.compileflow.engine.process.preruntime.generator.impl.TriggerMethodGenerator;
-import com.alibaba.compileflow.engine.process.preruntime.generator.provider.NodeGeneratorProvider;
-import com.alibaba.compileflow.engine.process.preruntime.generator.script.ScriptExecutor;
-import com.alibaba.compileflow.engine.process.preruntime.generator.script.ScriptExecutorProvider;
-import com.alibaba.compileflow.engine.process.preruntime.generator.script.impl.MvelExecutor;
-import com.alibaba.compileflow.engine.process.preruntime.generator.script.impl.QLExecutor;
-import com.alibaba.compileflow.engine.process.preruntime.validator.FlowModelValidator;
-import com.alibaba.compileflow.engine.process.preruntime.validator.ValidateMessage;
-import com.alibaba.compileflow.engine.process.preruntime.validator.factory.ModelValidatorFactory;
+import com.alibaba.compileflow.engine.extension.ExtensionInvoker;
+import com.alibaba.compileflow.engine.extension.filter.ReduceFilter;
+import com.alibaba.compileflow.engine.process.build.compiler.Compiler;
+import com.alibaba.compileflow.engine.process.build.compiler.impl.CompilerImpl;
+import com.alibaba.compileflow.engine.process.build.generator.Generator;
+import com.alibaba.compileflow.engine.process.build.generator.bean.BeanProvider;
+import com.alibaba.compileflow.engine.process.build.generator.bean.SpringApplicationContextProvider;
+import com.alibaba.compileflow.engine.process.build.generator.bean.SpringBeanHolder;
+import com.alibaba.compileflow.engine.process.build.generator.code.ClassTarget;
+import com.alibaba.compileflow.engine.process.build.generator.code.CodeTargetSupport;
+import com.alibaba.compileflow.engine.process.build.generator.code.MethodTarget;
+import com.alibaba.compileflow.engine.process.build.generator.code.ParamTarget;
+import com.alibaba.compileflow.engine.process.build.generator.constansts.MethodConstants;
+import com.alibaba.compileflow.engine.process.build.generator.constansts.Modifier;
+import com.alibaba.compileflow.engine.process.build.generator.factory.GeneratorFactory;
+import com.alibaba.compileflow.engine.process.build.generator.factory.GeneratorProviderFactory;
+import com.alibaba.compileflow.engine.process.build.generator.impl.EventTriggerMethodGenerator;
+import com.alibaba.compileflow.engine.process.build.generator.impl.TriggerMethodGenerator;
+import com.alibaba.compileflow.engine.process.build.generator.provider.NodeGeneratorProvider;
+import com.alibaba.compileflow.engine.process.build.generator.script.ScriptExecutor;
+import com.alibaba.compileflow.engine.process.build.generator.script.ScriptExecutorProvider;
+import com.alibaba.compileflow.engine.process.build.generator.script.impl.GroovyExecutor;
+import com.alibaba.compileflow.engine.process.build.generator.script.impl.MvelExecutor;
+import com.alibaba.compileflow.engine.process.build.generator.script.impl.QLExecutor;
+import com.alibaba.compileflow.engine.process.build.validator.FlowModelValidator;
+import com.alibaba.compileflow.engine.process.build.validator.ValidateMessage;
+import com.alibaba.compileflow.engine.process.build.validator.factory.ModelValidatorFactory;
 import com.alibaba.compileflow.engine.runtime.ProcessRuntime;
+import com.alibaba.compileflow.engine.runtime.graph.ProcessGraph;
+import com.alibaba.compileflow.engine.runtime.graph.ProcessGraphAnalyzer;
 import com.alibaba.compileflow.engine.runtime.instance.ProcessInstance;
 import com.alibaba.compileflow.engine.runtime.instance.StatefulProcessInstance;
 import org.apache.commons.collections4.CollectionUtils;
@@ -71,8 +82,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
 
     private static final Compiler COMPILER = new CompilerImpl();
     private static final AtomicBoolean inited = new AtomicBoolean(false);
-    protected final Map<String, List<TransitionNode>> followingGraph = new HashMap<>();
-    protected final Map<String, List<TransitionNode>> branchGraph = new HashMap<>();
+    private ProcessGraph processGraph;
     private final Map<String, String> javaCodeCache = new ConcurrentHashMap<>();
     private final Map<String, Class<?>> compiledClassCache = new ConcurrentHashMap<>();
     protected T flowModel;
@@ -116,11 +126,11 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     public Map<String, List<TransitionNode>> getFollowingGraph() {
-        return followingGraph;
+        return processGraph.getFollowingGraph();
     }
 
     public Map<String, List<TransitionNode>> getBranchGraph() {
-        return branchGraph;
+        return processGraph.getBranchGraph();
     }
 
     public <P extends NodeGeneratorProvider> P getNodeGeneratorProvider() {
@@ -416,133 +426,27 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         nodeGeneratorProvider.getGenerator(flowModel).generateCode(codeTargetSupport);
     }
 
-    @SuppressWarnings("unchecked")
     private void initGatewayGraph() {
-        buildGatewayGraph(flowModel);
-    }
-
-    private void buildGatewayGraph(NodeContainer<Node> nodeContainer) {
-        List<TransitionNode> nodes = nodeContainer.getAllNodes()
-                .stream()
-                .filter(node -> node instanceof TransitionNode)
-                .map(e -> (TransitionNode) e)
-                .collect(Collectors.toList());
-
-        nodes.forEach(this::buildFollowingNodes);
-
-        Map<String, List<TransitionNode>> branchGatewayFollowingGraph = new HashMap<>();
-        nodes.stream()
-                .filter(flowNode -> flowNode instanceof GatewayElement)
-                .forEach(gatewayNode -> gatewayNode.getOutgoingNodes().forEach(outgoingNode -> {
-                    List<TransitionNode> branchNodes = buildBranchNodes(gatewayNode, outgoingNode);
-                    List<TransitionNode> followingNodes = followingGraph.get(gatewayNode.getId());
-                    branchNodes = branchNodes
-                            .stream()
-                            .filter(node -> !followingNodes.contains(node))
-                            .collect(Collectors.toList());
-                    String branchKey = ProcessUtils.buildBranchKey(gatewayNode, outgoingNode);
-                    branchGraph.put(branchKey, branchNodes);
-
-                    branchNodes.stream().filter(branchNode -> branchNode instanceof GatewayElement)
-                            .forEach(flowNode -> {
-                                        List<TransitionNode> gatewayFollowingNodes = followingGraph.get(flowNode.getId())
-                                                .stream()
-                                                .filter(node -> !followingNodes.contains(node))
-                                                .collect(Collectors.toList());
-                                        branchGatewayFollowingGraph.put(flowNode.getId(), gatewayFollowingNodes);
-                                    }
-                            );
-                }));
-        followingGraph.putAll(branchGatewayFollowingGraph);
-
-        nodes.stream()
-                .filter(flowNode -> flowNode instanceof NodeContainer)
-                .map(e -> (NodeContainer) e)
-                .forEach(this::buildGatewayGraph);
-    }
-
-    private List<TransitionNode> buildFollowingNodes(TransitionNode flowNode) {
-        if (followingGraph.containsKey(flowNode.getId())) {
-            return followingGraph.get(flowNode.getId());
-        }
-
-        List<TransitionNode> followingNodes;
-        if (flowNode instanceof EndElement) {
-            followingNodes = Collections.emptyList();
-        } else if (flowNode instanceof WaitElement) {
-            followingNodes = Collections.emptyList();
-        } else if (flowNode instanceof GatewayElement) {
-            followingNodes = buildGatewayFollowingNodes(flowNode);
-        } else {
-            followingNodes = new ArrayList<>();
-            TransitionNode theOnlyOutgoingNode = getTheOnlyOutgoingNode(flowNode);
-            if (theOnlyOutgoingNode != null) {
-                followingNodes.add(theOnlyOutgoingNode);
-                followingNodes.addAll(buildFollowingNodes(theOnlyOutgoingNode));
-            }
-        }
-
-        followingGraph.put(flowNode.getId(), followingNodes);
-        return followingNodes;
-    }
-
-    private TransitionNode getTheOnlyOutgoingNode(TransitionNode flowNode) {
-        if (flowNode.getOutgoingNodes().size() > 0) {
-            return flowNode.getOutgoingNodes().get(0);
-        }
-        return null;
-    }
-
-    private List<TransitionNode> buildGatewayFollowingNodes(TransitionNode flowNode) {
-        List<TransitionNode> outgoingNodes = flowNode.getOutgoingNodes();
-        if (outgoingNodes.size() < 2) {
-            return Collections.emptyList();
-        }
-        List<TransitionNode> followingNodes = Collections.emptyList();
-        for (int i = 0; i < outgoingNodes.size(); i++) {
-            TransitionNode branchNode = outgoingNodes.get(i);
-            List<TransitionNode> branchNodes = new ArrayList<>(Collections.singletonList(branchNode));
-            List<TransitionNode> branchFollowingNodes = buildFollowingNodes(branchNode);
-            branchNodes.addAll(branchFollowingNodes);
-
-            if (i == 0) {
-                followingNodes = new ArrayList<>(branchNodes);
-            } else {
-                Iterator<TransitionNode> flowNodeIterator = followingNodes.iterator();
-                while (flowNodeIterator.hasNext()) {
-                    TransitionNode followingNode = flowNodeIterator.next();
-                    if (branchNodes.stream()
-                            .anyMatch(node -> node.getId().equals(followingNode.getId()))) {
-                        break;
-                    } else {
-                        flowNodeIterator.remove();
-                    }
-                    if (CollectionUtils.isEmpty(followingNodes)) {
-                        return Collections.emptyList();
-                    }
-                }
-            }
-        }
-        return followingNodes;
-    }
-
-    private List<TransitionNode> buildBranchNodes(TransitionNode node, TransitionNode branchNode) {
-        String branchKey = ProcessUtils.buildBranchKey(node, branchNode);
-        if (branchGraph.containsKey(branchKey)) {
-            return branchGraph.get(branchKey);
-        }
-
-        List<TransitionNode> branchNodes = new ArrayList<>();
-        branchNodes.add(branchNode);
-        if (!(branchNode instanceof EndElement) && !(branchNode instanceof WaitElement) && !(branchNode instanceof GatewayElement)) {
-            TransitionNode theOnlyOutgoingNode = getTheOnlyOutgoingNode(branchNode);
-            if (theOnlyOutgoingNode != null) {
-                branchNodes.addAll(buildBranchNodes(branchNode, theOnlyOutgoingNode));
-            }
-        }
-
-        branchGraph.put(branchKey, branchNodes);
-        return branchNodes;
+       processGraph = ExtensionInvoker.getInstance().invoke(ProcessGraphAnalyzer.EXT_BUILD_PROCESS_GRAPH,
+                ReduceFilter.first(), flowModel);
+        System.out.println("=== followingGraph ===");
+//        for (Map.Entry<String, List<TransitionNode>> entry : getFollowingGraph().entrySet()) {
+//            String nodeId = entry.getKey();
+//            List<TransitionNode> nextNodes = entry.getValue();
+//            System.out.print("Node " + flowModel.getNode(nodeId).getName() +  " -> ");
+//            System.out.println(nextNodes.stream().map(Node::getName).collect(Collectors.joining(" -> ")));
+//            System.out.println();
+//        }
+//
+//        System.out.println("=== branchGraph ===");
+//        for (Map.Entry<String, List<TransitionNode>> entry : getBranchGraph().entrySet()) {
+//            String nodeKey = entry.getKey();
+//            List<TransitionNode> nextNodes = entry.getValue();
+//            System.out.print("Node " + nodeKey +  " -> ");
+//            System.out.println(nextNodes.stream().map(Node::getName).collect(Collectors.joining(" -> ")));
+//            System.out.println();
+//        }
+//        ;
     }
 
     private void validateRuntime() {
@@ -583,6 +487,7 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     private void initScriptExecutorProvider() {
         registerScriptExecutor(new QLExecutor());
         registerScriptExecutor(new MvelExecutor());
+        registerScriptExecutor(new GroovyExecutor());
     }
 
     private void registerScriptExecutor(ScriptExecutor scriptExecutor) {

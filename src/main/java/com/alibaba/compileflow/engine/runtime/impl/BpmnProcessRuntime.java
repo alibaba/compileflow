@@ -1,13 +1,13 @@
 package com.alibaba.compileflow.engine.runtime.impl;
 
 
-import com.alibaba.compileflow.engine.common.constant.FlowModelType;
+import com.alibaba.compileflow.engine.common.constants.FlowModelType;
 import com.alibaba.compileflow.engine.definition.bpmn.*;
 import com.alibaba.compileflow.engine.definition.common.NodeContainer;
 import com.alibaba.compileflow.engine.definition.common.TransitionNode;
-import com.alibaba.compileflow.engine.process.preruntime.generator.factory.GeneratorProviderFactory;
-import com.alibaba.compileflow.engine.process.preruntime.generator.impl.bpmn.*;
-import com.alibaba.compileflow.engine.process.preruntime.generator.provider.impl.BpmnNodeGeneratorProvider;
+import com.alibaba.compileflow.engine.process.build.generator.factory.GeneratorProviderFactory;
+import com.alibaba.compileflow.engine.process.build.generator.impl.bpmn.*;
+import com.alibaba.compileflow.engine.process.build.generator.provider.impl.BpmnNodeGeneratorProvider;
 
 /**
  * @author wuxiang
@@ -45,6 +45,8 @@ public class BpmnProcessRuntime extends AbstractProcessRuntime<BpmnModel> {
                 registerGenerator(node, new SubProcessGenerator(this, (SubProcess) node));
             } else if (node instanceof ReceiveTask) {
                 registerGenerator(node, new ReceiveTaskGenerator(this, (ReceiveTask) node));
+            } else if (node instanceof ParallelGateway) {
+                registerGenerator(node, new ParallelGatewayGenerator(this, (ParallelGateway) node));
             }
 
             if (node instanceof NodeContainer) {

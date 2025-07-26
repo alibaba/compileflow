@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns:cf="http://compileflow.alibaba.com" xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             targetNamespace="http://example.com/compileflow">
+  <process id="standardLoopTest" name="Standard Loop Test" isExecutable="true">
+    <extensionElements>
+      <cf:var name="i" description="循环变量" dataType="java.lang.Integer" inOutType="param" defaultValue="0"/>
+      <cf:var name="msg" description="消息" dataType="java.lang.String" inOutType="param" defaultValue="hello"/>
+    </extensionElements>
+    <startEvent id="start" name="Start"/>
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="loopSubProcess"/>
+    <subProcess id="loopSubProcess" name="Standard Loop SubProcess">
+      <standardLoopCharacteristics testBefore="true" loopMaximum="3">
+        <loopCondition><![CDATA[i < 3]]></loopCondition>
+      </standardLoopCharacteristics>
+      <startEvent id="subStart" name="Sub Start"/>
+      <sequenceFlow id="subFlow1" sourceRef="subStart" targetRef="echoTask"/>
+      <serviceTask id="echoTask" name="Echo Task" cf:type="java" cf:class="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" cf:method="echo">
+        <extensionElements>
+          <cf:var name="p1" dataType="java.lang.String" contextVarName="msg" inOutType="param"/>
+        </extensionElements>
+      </serviceTask>
+      <sequenceFlow id="subFlow2" sourceRef="echoTask" targetRef="subEnd"/>
+      <endEvent id="subEnd" name="Sub End"/>
+    </subProcess>
+    <sequenceFlow id="flow2" sourceRef="loopSubProcess" targetRef="end"/>
+    <endEvent id="end" name="End"/>
+  </process>
+</definitions>

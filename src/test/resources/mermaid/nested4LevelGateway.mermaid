@@ -1,0 +1,25 @@
+flowchart TD
+    start[("开始")] --> D1{主决策}
+
+%% 主分支
+    D1 -->|深度路径| D2{二级决策}
+    D1 -->|简单路径| SimpleTask[简单任务]
+
+%% 二级分支
+    D2 -->|深度分支| D3{三级决策}
+    D2 -->|浅层分支| ShallowTask[浅层任务]
+
+%% 三级分支
+    D3 -->|超深分支| D4{四级决策}
+    D3 -->|中层任务| MidLevelTask[中层任务]
+
+%% 四级分支
+    D4 -->|最终分支T| DeepTaskT[深层任务T]
+    D4 -->|最终分支F| DeepTaskF[深层任务F]
+
+%% 所有路径汇聚到结束节点
+    SimpleTask --> stop[("结束")]
+    ShallowTask --> stop
+    MidLevelTask --> stop
+    DeepTaskT --> stop
+    DeepTaskF --> stop

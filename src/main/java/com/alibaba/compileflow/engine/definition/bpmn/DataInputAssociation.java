@@ -16,6 +16,11 @@
  */
 package com.alibaba.compileflow.engine.definition.bpmn;
 
-public class DataInputAssociation extends DataAssociation {
-
+public class DataInputAssociation extends BaseElement {
+    private String sourceRef;
+    private String targetRef;
+    public String getSourceRef() { return sourceRef; }
+    public void setSourceRef(String sourceRef) { this.sourceRef = sourceRef; }
+    public String getTargetRef() { return targetRef; }
+    public void setTargetRef(String targetRef) { this.targetRef = targetRef; }
 }

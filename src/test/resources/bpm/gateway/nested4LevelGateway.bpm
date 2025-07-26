@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.gateway.nested4LevelGateway" name="四层嵌套决策流程" type="statefulProcess" description="四层嵌套决策网关流程示例">
+    <!-- 变量定义 -->
+    <var name="flag1" description="第一层决策标志" dataType="java.lang.Boolean" inOutType="param"/>
+    <var name="flag2" description="第二层决策标志" dataType="java.lang.Boolean" inOutType="param"/>
+    <var name="flag3" description="第三层决策标志" dataType="java.lang.Boolean" inOutType="param"/>
+    <var name="flag4" description="第四层决策标志" dataType="java.lang.Boolean" inOutType="param"/>
+    <var name="SimpleTask" description="简单任务变量" dataType="java.lang.String" inOutType="param"/>
+    <var name="ShallowTask" description="浅层任务变量" dataType="java.lang.String" inOutType="param"/>
+    <var name="MidLevelTask" description="中层任务变量" dataType="java.lang.String" inOutType="param"/>
+    <var name="DeepTaskT" description="深层任务T变量" dataType="java.lang.String" inOutType="param"/>
+    <var name="DeepTaskF" description="深层任务F变量" dataType="java.lang.String" inOutType="param"/>
+
+    <!-- 开始节点 -->
+    <start id="start" name="开始" tag="start" g="100,300,40,40">
+        <transition to="D1"/>
+    </start>
+
+    <!-- ========== 第一层决策 ========== -->
+    <decision id="D1" name="主决策" tag="mainDecision" g="200,300,88,48">
+        <transition expression="flag1 == true" name="深度路径" to="D2"/>
+        <transition expression="flag1 == false" name="简单路径" to="SimpleTask"/>
+    </decision>
+
+    <!-- 简单任务 -->
+    <autoTask id="SimpleTask" name="简单任务" tag="simpleTask" g="350,400,100,48">
+        <transition to="end"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="SimpleTask" dataType="java.lang.String" contextVarName="SimpleTask" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <!-- ========== 第二层决策 ========== -->
+    <decision id="D2" name="二级决策" tag="level2Decision" g="350,200,88,48">
+        <transition expression="flag2 == true" name="深度分支" to="D3"/>
+        <transition expression="flag2 == false" name="浅层分支" to="ShallowTask"/>
+    </decision>
+
+    <!-- 浅层任务 -->
+    <autoTask id="ShallowTask" name="浅层任务" tag="shallowTask" g="500,250,100,48">
+        <transition to="end"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="ShallowTask" dataType="java.lang.String" contextVarName="ShallowTask" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <!-- ========== 第三层决策 ========== -->
+    <decision id="D3" name="三级决策" tag="level3Decision" g="500,100,88,48">
+        <transition expression="flag3 == true" name="超深分支" to="D4"/>
+        <transition expression="flag3 == false" name="中层任务" to="MidLevelTask"/>
+    </decision>
+
+    <!-- 中层任务 -->
+    <autoTask id="MidLevelTask" name="中层任务" tag="midTask" g="650,150,100,48">
+        <transition to="end"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="MidLevelTask" dataType="java.lang.String" contextVarName="MidLevelTask" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <!-- ========== 第四层决策 ========== -->
+    <decision id="D4" name="四级决策" tag="level4Decision" g="650,50,88,48">
+        <transition expression="flag4 == true" name="最终分支T" to="DeepTaskT"/>
+        <transition expression="flag4 == false" name="最终分支F" to="DeepTaskF"/>
+    </decision>
+
+    <!-- 深层任务 T -->
+    <autoTask id="DeepTaskT" name="深层任务T" tag="deepTaskT" g="800,25,120,48">
+        <transition to="end"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="DeepTaskT" dataType="java.lang.String" contextVarName="DeepTaskT" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <!-- 深层任务 F -->
+    <autoTask id="DeepTaskF" name="深层任务F" tag="deepTaskF" g="800,75,120,48">
+        <transition to="end"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="DeepTaskF" dataType="java.lang.String" contextVarName="DeepTaskF" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <!-- 结束节点 -->
+    <end id="end" name="结束" tag="end" g="950,300,40,40"/>
+</bpm>

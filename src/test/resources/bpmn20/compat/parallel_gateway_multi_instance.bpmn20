@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns:cf="http://compileflow.alibaba.com" xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             targetNamespace="http://example.com/compileflow">
+  <process id="parallelGatewayMultiInstanceTest" name="Parallel Gateway MultiInstance Test" isExecutable="true">
+    <extensionElements>
+      <cf:var name="pList" description="主循环" dataType="java.util.List&lt;java.lang.String&gt;" inOutType="param"/>
+      <cf:var name="subList" description="子循环" dataType="java.util.List&lt;java.lang.Integer&gt;" inOutType="param"/>
+    </extensionElements>
+    <startEvent id="start" name="Start"/>
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="parallelGateway"/>
+    <parallelGateway id="parallelGateway" name="Parallel Gateway"/>
+    <sequenceFlow id="flow2" sourceRef="parallelGateway" targetRef="branch1"/>
+    <sequenceFlow id="flow3" sourceRef="parallelGateway" targetRef="branch2"/>
+    <subProcess id="branch1" name="Branch 1">
+      <multiInstanceLoopCharacteristics cf:collection="pList" cf:elementVar="p" cf:indexVar="i" cf:elementVarClass="java.lang.String"/>
+      <startEvent id="branch1Start" name="Branch1 Start"/>
+      <sequenceFlow id="b1f1" sourceRef="branch1Start" targetRef="echoTask1"/>
+      <serviceTask id="echoTask1" name="Echo Task 1" cf:type="java" cf:class="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" cf:method="echo">
+        <extensionElements>
+          <cf:var name="p1" dataType="java.lang.String" contextVarName="p" inOutType="param"/>
+        </extensionElements>
+      </serviceTask>
+      <sequenceFlow id="b1f2" sourceRef="echoTask1" targetRef="branch1End"/>
+      <endEvent id="branch1End" name="Branch1 End"/>
+    </subProcess>
+    <subProcess id="branch2" name="Branch 2">
+      <multiInstanceLoopCharacteristics cf:collection="subList" cf:elementVar="q" cf:indexVar="j" cf:elementVarClass="java.lang.Integer"/>
+      <startEvent id="branch2Start" name="Branch2 Start"/>
+      <sequenceFlow id="b2f1" sourceRef="branch2Start" targetRef="echoTask2"/>
+      <serviceTask id="echoTask2" name="Echo Task 2" cf:type="java" cf:class="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" cf:method="echo">
+        <extensionElements>
+          <cf:var name="p1" dataType="java.lang.Integer" contextVarName="q" inOutType="param"/>
+        </extensionElements>
+      </serviceTask>
+      <sequenceFlow id="b2f2" sourceRef="echoTask2" targetRef="branch2End"/>
+      <endEvent id="branch2End" name="Branch2 End"/>
+    </subProcess>
+    <sequenceFlow id="flow4" sourceRef="branch1" targetRef="joinGateway"/>
+    <sequenceFlow id="flow5" sourceRef="branch2" targetRef="joinGateway"/>
+    <parallelGateway id="joinGateway" name="Join Gateway"/>
+    <sequenceFlow id="flow6" sourceRef="joinGateway" targetRef="end"/>
+    <endEvent id="end" name="End"/>
+  </process>
+</definitions> 

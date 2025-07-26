@@ -25,6 +25,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * @author yusu
+ */
 public class SubProcess extends Activity implements ElementContainer<FlowElement, FlowNode>, VarSupport {
 
     private List<LaneSet> laneSets;
@@ -94,13 +97,13 @@ public class SubProcess extends Activity implements ElementContainer<FlowElement
     @Override
     public FlowElement getElement(String id) {
         return flowElements.stream().filter(e -> e.getId().equals(id))
-            .findFirst().orElseThrow(() -> new CompileFlowException("No element found, id is " + id));
+                .findFirst().orElseThrow(() -> new CompileFlowException("No element found, id is " + id));
     }
 
     @Override
     public List<FlowNode> getAllNodes() {
         return flowElements.stream().filter(e -> e instanceof FlowNode)
-            .map(e -> (FlowNode) e).collect(Collectors.toList());
+                .map(e -> (FlowNode) e).collect(Collectors.toList());
     }
 
     @Override
@@ -116,13 +119,13 @@ public class SubProcess extends Activity implements ElementContainer<FlowElement
     @Override
     public FlowNode getStartNode() {
         return getAllNodes().stream().filter(node -> node instanceof StartEvent).findFirst()
-            .orElseThrow(() -> new CompileFlowException("No start node found"));
+                .orElseThrow(() -> new CompileFlowException("No start node found"));
     }
 
     @Override
     public FlowNode getEndNode() {
         return getAllNodes().stream().filter(node -> node instanceof EndEvent).findFirst()
-            .orElseThrow(() -> new CompileFlowException("No end node found"));
+                .orElseThrow(() -> new CompileFlowException("No end node found"));
     }
 
 }

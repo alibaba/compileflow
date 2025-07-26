@@ -5,6 +5,6 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
  http://www.springframework.org/schema/beans/spring-beans-2.5.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
 
-    <context:component-scan base-package="com.allibaba.compileflow.test.om"/>
+    <context:component-scan base-package="com.alibaba.compileflow.engine.process.om"/>
 
 </beans>

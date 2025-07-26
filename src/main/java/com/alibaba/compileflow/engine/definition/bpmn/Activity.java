@@ -114,4 +114,17 @@ public abstract class Activity extends FlowNode {
         this.defaultFlow = defaultFlow;
     }
 
+    public void addDataInputAssociation(DataInputAssociation association) {
+        if (this.dataInputAssociations == null) {
+            this.dataInputAssociations = new java.util.ArrayList<>();
+        }
+        this.dataInputAssociations.add(association);
+    }
+
+    public void addDataOutputAssociation(DataOutputAssociation association) {
+        if (this.dataOutputAssociations == null) {
+            this.dataOutputAssociations = new java.util.ArrayList<>();
+        }
+        this.dataOutputAssociations.add(association);
+    }
 }

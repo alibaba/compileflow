@@ -16,109 +16,83 @@
  */
 package com.alibaba.compileflow.engine.definition.bpmn;
 
-import java.util.List;
-
+/**
+ * @author yusu
+ */
 public class MultiInstanceLoopCharacteristics extends LoopCharacteristics {
 
-    private Expression loopCardinality;
-    private String loopDataInputRef;
-    private String loopDataOutputRef;
-    private DataInput inputDataItem;
-    private DataOutput outputDataItem;
-    private List<ComplexBehaviorDefinition> complexBehaviorDefinition;
-    private Expression completionCondition;
-    private Boolean isSequential;
-    private MultiInstanceFlowCondition behavior;
-    private String oneBehaviorEventRef;
-    private String noneBehaviorEventRef;
+    private boolean isSequential;
+    private String loopCondition;
+    private Boolean testBefore;
+    private Long loopMaximum;
 
-    public Expression getLoopCardinality() {
-        return loopCardinality;
-    }
+    private String collection;
+    private String elementVarClass;
+    private String elementVar;
+    private String indexVar;
 
-    public void setLoopCardinality(Expression loopCardinality) {
-        this.loopCardinality = loopCardinality;
-    }
-
-    public String getLoopDataInputRef() {
-        return loopDataInputRef;
-    }
-
-    public void setLoopDataInputRef(String loopDataInputRef) {
-        this.loopDataInputRef = loopDataInputRef;
-    }
-
-    public String getLoopDataOutputRef() {
-        return loopDataOutputRef;
-    }
-
-    public void setLoopDataOutputRef(String loopDataOutputRef) {
-        this.loopDataOutputRef = loopDataOutputRef;
-    }
-
-    public DataInput getInputDataItem() {
-        return inputDataItem;
-    }
-
-    public void setInputDataItem(DataInput inputDataItem) {
-        this.inputDataItem = inputDataItem;
-    }
-
-    public DataOutput getOutputDataItem() {
-        return outputDataItem;
-    }
-
-    public void setOutputDataItem(DataOutput outputDataItem) {
-        this.outputDataItem = outputDataItem;
-    }
-
-    public List<ComplexBehaviorDefinition> getComplexBehaviorDefinition() {
-        return complexBehaviorDefinition;
-    }
-
-    public void setComplexBehaviorDefinition(
-        List<ComplexBehaviorDefinition> complexBehaviorDefinition) {
-        this.complexBehaviorDefinition = complexBehaviorDefinition;
-    }
-
-    public Expression getCompletionCondition() {
-        return completionCondition;
-    }
-
-    public void setCompletionCondition(Expression completionCondition) {
-        this.completionCondition = completionCondition;
-    }
-
-    public Boolean getSequential() {
+    public boolean isSequential() {
         return isSequential;
     }
 
-    public void setSequential(Boolean sequential) {
-        isSequential = sequential;
+    public void setSequential(boolean isSequential) {
+        this.isSequential = isSequential;
     }
 
-    public MultiInstanceFlowCondition getBehavior() {
-        return behavior;
+    public String getLoopCondition() {
+        return loopCondition;
     }
 
-    public void setBehavior(MultiInstanceFlowCondition behavior) {
-        this.behavior = behavior;
+    public void setLoopCondition(String loopCondition) {
+        this.loopCondition = loopCondition;
     }
 
-    public String getOneBehaviorEventRef() {
-        return oneBehaviorEventRef;
+    public Boolean getTestBefore() {
+        return testBefore;
     }
 
-    public void setOneBehaviorEventRef(String oneBehaviorEventRef) {
-        this.oneBehaviorEventRef = oneBehaviorEventRef;
+    public void setTestBefore(Boolean testBefore) {
+        this.testBefore = testBefore;
     }
 
-    public String getNoneBehaviorEventRef() {
-        return noneBehaviorEventRef;
+    public Long getLoopMaximum() {
+        return loopMaximum;
     }
 
-    public void setNoneBehaviorEventRef(String noneBehaviorEventRef) {
-        this.noneBehaviorEventRef = noneBehaviorEventRef;
+    public void setLoopMaximum(Long loopMaximum) {
+        this.loopMaximum = loopMaximum;
+    }
+
+    public String getCollection() {
+        return collection;
+    }
+
+    public void setCollection(String collection) {
+        this.collection = collection;
+    }
+
+    public String getElementVarClass() {
+        return elementVarClass;
+    }
+
+    public void setElementVarClass(String elementVarClass) {
+        this.elementVarClass = elementVarClass;
+    }
+
+    public String getElementVar() {
+        return elementVar;
+    }
+
+    public void setElementVar(String elementVar) {
+        this.elementVar = elementVar;
+    }
+
+    public String getIndexVar() {
+        return indexVar;
+    }
+
+    public void setIndexVar(String indexVar) {
+        this.indexVar = indexVar;
     }
 
 }

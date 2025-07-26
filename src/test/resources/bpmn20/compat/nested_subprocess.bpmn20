@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:cf="http://compileflow.alibaba.com"
+             targetNamespace="http://example.com/compileflow">
+  <process id="nested_subprocess" name="Nested SubProcess Flow" isExecutable="true">
+    <extensionElements>
+      <cf:var name="deepServiceResult" description="深层服务结果" dataType="java.lang.Integer" inOutType="return"/>
+    </extensionElements>
+    <startEvent id="start" name="Start"/>
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="subprocess1"/>
+    <subProcess id="subprocess1" name="SubProcess1">
+      <startEvent id="subStart1" name="Sub Start 1"/>
+      <sequenceFlow id="subFlow1" sourceRef="subStart1" targetRef="subprocess2"/>
+      <subProcess id="subprocess2" name="SubProcess2">
+        <startEvent id="subStart2" name="Sub Start 2"/>
+        <sequenceFlow id="subFlow2" sourceRef="subStart2" targetRef="serviceTask1"/>
+        <serviceTask id="serviceTask1" name="Deep Service Task"
+                     cf:type="java"
+                     cf:class="com.alibaba.compileflow.engine.process.mock.MockJavaClazz"
+                     cf:method="add">
+          <extensionElements>
+            <cf:var name="a" dataType="java.lang.Integer" contextVarName="a" inOutType="param"/>
+            <cf:var name="b" dataType="java.lang.Integer" contextVarName="b" inOutType="param"/>
+            <cf:var name="result" dataType="java.lang.Integer" contextVarName="deepServiceResult" inOutType="return"/>
+          </extensionElements>
+        </serviceTask>
+        <sequenceFlow id="subFlow3" sourceRef="serviceTask1" targetRef="subEnd2"/>
+        <endEvent id="subEnd2" name="Sub End 2"/>
+      </subProcess>
+      <sequenceFlow id="subFlow4" sourceRef="subprocess2" targetRef="subEnd1"/>
+      <endEvent id="subEnd1" name="Sub End 1"/>
+    </subProcess>
+    <sequenceFlow id="flow2" sourceRef="subprocess1" targetRef="end"/>
+    <endEvent id="end" name="End"/>
+  </process>
+</definitions> 

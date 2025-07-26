@@ -17,6 +17,7 @@
 package com.alibaba.compileflow.engine.definition.bpmn;
 
 import com.alibaba.compileflow.engine.definition.common.HasVar;
+import com.alibaba.compileflow.engine.definition.common.NodeType;
 import com.alibaba.compileflow.engine.definition.common.TransitionNode;
 import com.alibaba.compileflow.engine.definition.common.var.IVar;
 
@@ -24,6 +25,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class FlowNode extends FlowElement implements TransitionNode, HasVar {
+
+    private NodeType nodeType;
+    public NodeType getNodeType() { return nodeType; }
+    public void setNodeType(NodeType nodeType) { this.nodeType = nodeType; }
 
     private String tag;
 

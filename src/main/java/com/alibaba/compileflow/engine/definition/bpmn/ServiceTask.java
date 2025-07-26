@@ -20,7 +20,12 @@ import com.alibaba.compileflow.engine.definition.common.Stateless;
 import com.alibaba.compileflow.engine.definition.common.action.HasAction;
 import com.alibaba.compileflow.engine.definition.common.action.IAction;
 
+/**
+ * @author yusu
+ */
 public class ServiceTask extends Task implements HasAction, Stateless {
+    public ServiceTask() {
+    }
 
     private String implementation;
 

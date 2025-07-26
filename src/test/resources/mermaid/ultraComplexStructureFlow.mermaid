@@ -1,0 +1,82 @@
+graph TD
+    subgraph "主流程"
+        Start[开始] --> G0{G0: 前置网关}
+
+        subgraph "备用路径"
+            direction LR
+            AltPath[备用路径处理] --> AltDecision{备用决策}
+            AltDecision --> AltTask1[备用任务1] --> AltMerge[备用合并]
+            AltDecision --> AltTask2[备用任务2] --> AltMerge
+        end
+
+        G0 --> |主路径| G1{G1: 网关 G1}
+        G0 --> |备用路径| AltPath
+        AltMerge --> G1
+
+
+        subgraph "G1 -> 分支 A (深度嵌套)"
+            direction LR
+            A[A: 任务 A] --> G1_1{G1_1: 嵌套网关1}
+            G1_1 --> SubA1[子任务A1] --> G1_2{G1_2: 嵌套网关2}
+            G1_1 --> SubA2[子任务A2] --> G1_2
+            G1_2 --> SubA3[子任务A3] --> MergeA[合并点A]
+            G1_2 --> SubA4[子任务A4] --> MergeA
+            MergeA --> G2{G2: 网关 G2}
+        end
+
+        subgraph "G1 -> 分支 X (循环与决策)"
+            direction LR
+            X[X: 任务 X] --> LoopStart[循环开始] --> LoopDecision{循环决策}
+            LoopDecision -- 继续循环 --> LoopTask[循环任务] --> G3
+            LoopDecision -- 结束循环 --> LoopEnd[循环结束] --> G3{G3: 决策网关}
+            G3 --> Parallel1[决策任务1] --> MergeParallel[决策合并]
+            G3 --> Parallel2[决策任务2] --> MergeParallel
+            G3 --> Parallel3[决策任务3] --> MergeParallel
+            MergeParallel --> Y[Y: 任务 Y]
+        end
+
+        G1 --> A
+        G1 --> X
+
+        subgraph "G2 -> 支付路径 (双重嵌套)"
+            direction LR
+            subgraph "分支 B"
+                B[B: 任务 B] --> G2_1{G2_1: 嵌套网关B}
+                G2_1 --> SubB1[子任务B1] --> MergeB[合并点B]
+                G2_1 --> SubB2[子任务B2] --> MergeB
+            end
+            subgraph "分支 C"
+                C[C: 任务 C] --> G2_2{G2_2: 嵌套网关C}
+                G2_2 --> SubC1[子任务C1] --> MergeC[合并点C]
+                G2_2 --> SubC2[子任务C2] --> MergeC
+            end
+            G2 --> B
+            G2 --> C
+            MergeB --> J[J: 任务 J]
+            MergeC --> J
+            J --> K{K: 网关 K}
+        end
+
+        subgraph "K -> 后续路径"
+            direction LR
+            subgraph "分支 F"
+                F[F: 任务 F] --> G4{G4: 后置网关}
+                G4 --> PostF1[后置任务F1] --> MergeF[合并点F]
+                G4 --> PostF2[后置任务F2] --> MergeF
+            end
+            subgraph "分支 G"
+                G[G: 任务 G] --> G5{G5: 后置网关}
+                G5 --> PostG1[后置任务G1] --> MergeG[合并点G]
+                G5 --> PostG2[后置任务G2] --> MergeG
+            end
+            K --> F
+            K --> G
+            MergeF --> H[H: 任务 H]
+            MergeG --> H
+            H --> FinalDecision{最终决策}
+            FinalDecision --> |路径 Y| Y
+            FinalDecision --> |路径 Z| Z[Z: 任务 Z] --> End[结束]
+        end
+
+        Y --> End
+    end

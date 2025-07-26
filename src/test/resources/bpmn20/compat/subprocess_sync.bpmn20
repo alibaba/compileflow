@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:cf="http://compileflow.alibaba.com"
+             targetNamespace="http://example.com/compileflow">
+  <process id="subprocess_sync" name="SubProcess Sync Flow" isExecutable="true">
+    <extensionElements>
+      <cf:var name="a" dataType="java.lang.Integer" inOutType="param" defaultValue="1"/>
+      <cf:var name="b" dataType="java.lang.Integer" inOutType="param" defaultValue="2"/>
+      <cf:var name="subServiceResult" description="子流程服务结果" dataType="java.lang.Integer" inOutType="return"/>
+    </extensionElements>
+    <startEvent id="start" name="Start"/>
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="subprocess1"/>
+    <subProcess id="subprocess1" name="SubProcess">
+      <startEvent id="subStart" name="Sub Start"/>
+      <sequenceFlow id="subFlow1" sourceRef="subStart" targetRef="serviceTask1"/>
+      <serviceTask id="serviceTask1" name="Sub Service Task"
+                   cf:type="java"
+                   cf:class="com.alibaba.compileflow.engine.process.mock.MockJavaClazz"
+                   cf:method="add">
+        <extensionElements>
+          <cf:var name="a" dataType="java.lang.Integer" contextVarName="a" inOutType="param"/>
+          <cf:var name="b" dataType="java.lang.Integer" contextVarName="b" inOutType="param"/>
+          <cf:var name="result" dataType="java.lang.Integer" contextVarName="subServiceResult" inOutType="return"/>
+        </extensionElements>
+      </serviceTask>
+      <sequenceFlow id="subFlow2" sourceRef="serviceTask1" targetRef="subEnd"/>
+      <endEvent id="subEnd" name="Sub End"/>
+    </subProcess>
+    <sequenceFlow id="flow2" sourceRef="subprocess1" targetRef="end"/>
+    <endEvent id="end" name="End"/>
+  </process>
+</definitions> 

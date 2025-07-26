@@ -16,6 +16,8 @@
  */
 package com.alibaba.compileflow.engine.definition.bpmn;
 
+/**
+ * @author yusu
+ */
 public abstract class LoopCharacteristics extends BaseElement {
-
 }

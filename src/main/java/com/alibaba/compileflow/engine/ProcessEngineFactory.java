@@ -16,7 +16,7 @@
  */
 package com.alibaba.compileflow.engine;
 
-import com.alibaba.compileflow.engine.common.constant.FlowModelType;
+import com.alibaba.compileflow.engine.common.constants.FlowModelType;
 import com.alibaba.compileflow.engine.process.impl.BpmnProcessEngineImpl;
 import com.alibaba.compileflow.engine.process.impl.TbbpmProcessEngineImpl;
 

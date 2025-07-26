@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:cf="http://compileflow.alibaba.com"
+             targetNamespace="http://example.com/compileflow">
+  <process id="simple_service" name="Simple Service Flow" isExecutable="true">
+    <extensionElements>
+      <cf:var name="serviceTask1Result" description="服务任务结果" dataType="java.lang.Integer" inOutType="return"/>
+    </extensionElements>
+    <startEvent id="start" name="Start"/>
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="serviceTask1"/>
+    <serviceTask id="serviceTask1" name="Service Task">
+      <extensionElements>
+        <cf:action type="java">
+          <cf:actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="add">
+            <cf:var name="a" dataType="java.lang.Integer" contextVarName="a" inOutType="param"/>
+            <cf:var name="b" dataType="java.lang.Integer" contextVarName="b" inOutType="param"/>
+            <cf:var name="result" dataType="java.lang.Integer" contextVarName="serviceTask1Result" inOutType="return"/>
+          </cf:actionHandle>
+        </cf:action>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow2" sourceRef="serviceTask1" targetRef="end"/>
+    <endEvent id="end" name="End"/>
+  </process>
+</definitions> 

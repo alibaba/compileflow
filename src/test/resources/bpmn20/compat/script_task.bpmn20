@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:cf="http://alibaba.com/compileflow"
+             targetNamespace="http://example.com/compileflow">
+  <process id="script_task" name="Script Task Flow" isExecutable="true">
+    <extensionElements>
+      <cf:var name="scriptResult" description="脚本任务结果" dataType="java.lang.Object" inOutType="return"/>
+    </extensionElements>
+    <startEvent id="start" name="Start"/>
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="scriptTask1"/>
+    <scriptTask id="scriptTask1" name="Script Task" scriptFormat="groovy">
+      <script><![CDATA[result = 1 + 1;]]></script>
+    </scriptTask>
+    <sequenceFlow id="flow2" sourceRef="scriptTask1" targetRef="end"/>
+    <endEvent id="end" name="End"/>
+  </process>
+</definitions>

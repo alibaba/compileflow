@@ -18,14 +18,46 @@ package com.alibaba.compileflow.engine.definition.bpmn;
 
 import java.util.List;
 
+/**
+ * @author yusu
+ */
 public class InputOutputSpecification extends BaseElement {
 
-    private List<DataInput> dataInput;
+    private List<DataInput> dataInputs;
+    private List<DataOutput> dataOutputs;
+    private List<InputSet> inputSets;
+    private List<OutputSet> outputSets;
 
-    private List<DataOutput> dataOutput;
+    public List<DataInput> getDataInputs() {
+        return dataInputs;
+    }
 
-    private List<InputSet> inputSet;
+    public void setDataInputs(List<DataInput> dataInputs) {
+        this.dataInputs = dataInputs;
+    }
 
-    private List<OutputSet> outputSet;
+    public List<DataOutput> getDataOutputs() {
+        return dataOutputs;
+    }
+
+    public void setDataOutputs(List<DataOutput> dataOutputs) {
+        this.dataOutputs = dataOutputs;
+    }
+
+    public List<InputSet> getInputSets() {
+        return inputSets;
+    }
+
+    public void setInputSets(List<InputSet> inputSets) {
+        this.inputSets = inputSets;
+    }
+
+    public List<OutputSet> getOutputSets() {
+        return outputSets;
+    }
+
+    public void setOutputSets(List<OutputSet> outputSets) {
+        this.outputSets = outputSets;
+    }
 
 }

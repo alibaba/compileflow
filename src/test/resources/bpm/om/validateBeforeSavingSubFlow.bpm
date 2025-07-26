@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <bpm code="bpm.om.validateBeforeSavingSubFlow" type="process" name="订单保存前校验子流程">
-    <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+    <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
          contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
     <start id="1" name="开始节点" g="297,109,40,40" tag="start">
         <transition g=":-15,20" to="8"/>
@@ -10,9 +10,9 @@
         <transition g=":-15,20" to="9"/>
         <action type="spring-bean">
             <actionHandle bean="orderValidateActivity"
-                          clazz="com.allibaba.compileflow.test.om.activity.OrderValidateActivity"
+                          clazz="com.alibaba.compileflow.engine.process.om.activity.OrderValidateActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>
@@ -21,9 +21,9 @@
         <transition g=":-15,20" to="10"/>
         <action type="spring-bean">
             <actionHandle bean="promotionValidateActivity"
-                          clazz="com.allibaba.compileflow.test.om.activity.PromotionValidateActivity"
+                          clazz="com.alibaba.compileflow.engine.process.om.activity.PromotionValidateActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>
@@ -32,9 +32,9 @@
         <transition g=":-15,20" to="11"/>
         <action type="spring-bean">
             <actionHandle bean="priceValidateActivity"
-                          clazz="com.allibaba.compileflow.test.om.activity.PriceValidateActivity"
+                          clazz="com.alibaba.compileflow.engine.process.om.activity.PriceValidateActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>
@@ -43,9 +43,9 @@
         <transition g=":-15,20" to="2"/>
         <action type="spring-bean">
             <actionHandle bean="deliveryValidateActivity"
-                          clazz="com.allibaba.compileflow.test.om.activity.DeliveryValidateActivity"
+                          clazz="com.alibaba.compileflow.engine.process.om.activity.DeliveryValidateActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>

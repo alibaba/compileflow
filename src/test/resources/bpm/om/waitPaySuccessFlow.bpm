@@ -9,7 +9,7 @@
   <autoTask id="17" name="计算平方根" tag="rate" g="95,160,88,48">
     <transition to="29" g=":-15,20"/>
     <action type="java">
-      <actionHandle clazz="com.allibaba.compileflow.test.mock.MockJavaClazz" method="mockReturnMethod">
+      <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="mockReturnMethod">
         <var name="input" dataType="java.lang.Integer" contextVarName="num" inOutType="param"/>
         <var name="output" dataType="java.lang.Integer" contextVarName="numSqrt" inOutType="return"/>
       </actionHandle>
@@ -18,7 +18,7 @@
   <waitEventTask id="29" name="֧等待支付成功事件" tag="PaymentPendingCallback" eventName="PaymentPendingCallback" g="100,370,101,53">
     <transition to="38" g=":-15,20"/>
     <inAction type="java">
-      <actionHandle clazz="com.allibaba.compileflow.test.mock.MockJavaClazz" method="calPrice">
+      <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="calPrice">
         <var name="input" dataType="java.lang.Integer" contextVarName="num" defaultValue="1" inOutType="param"/>
         <var name="output" dataType="java.lang.Integer" contextVarName="numSqrt" defaultValue="2" inOutType="return"/>
       </actionHandle>
@@ -27,7 +27,7 @@
   <autoTask id="38" name="计算价格2" tag="rate2" g="95,545,88,48">
     <transition to="11" g=":-15,20"/>
     <action type="java">
-      <actionHandle clazz="com.allibaba.compileflow.test.mock.MockJavaClazz" method="calPrice">
+      <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="calPrice">
         <var name="input" dataType="java.lang.Integer" contextVarName="num" inOutType="param"/>
         <var name="output" dataType="java.lang.Integer" contextVarName="numSqrt" inOutType="return"/>
       </actionHandle>

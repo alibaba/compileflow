@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns:cf="http://compileflow.alibaba.com" xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             targetNamespace="http://example.com/compileflow">
+  <process id="variableScopeComplexTest" name="Variable Scope Complex Test" isExecutable="true">
+    <extensionElements>
+      <cf:var name="a" dataType="java.lang.Integer" inOutType="param" defaultValue="1"/>
+      <cf:var name="b" dataType="java.lang.Integer" inOutType="param" defaultValue="2"/>
+      <cf:var name="sum" dataType="java.lang.Integer" inOutType="inner" defaultValue="0"/>
+    </extensionElements>
+    <startEvent id="start" name="Start"/>
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="addTask1"/>
+    <serviceTask id="addTask1" name="Add Task 1" cf:type="java" cf:class="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" cf:method="add">
+      <extensionElements>
+        <cf:var name="p1" dataType="java.lang.Integer" contextVarName="a" inOutType="param"/>
+        <cf:var name="p2" dataType="java.lang.Integer" contextVarName="b" inOutType="param"/>
+        <cf:var name="sum" dataType="java.lang.Integer" contextVarName="sum" inOutType="return"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow2" sourceRef="addTask1" targetRef="addTask2"/>
+    <serviceTask id="addTask2" name="Add Task 2" cf:type="java" cf:class="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" cf:method="add">
+      <extensionElements>
+        <cf:var name="p1" dataType="java.lang.Integer" contextVarName="sum" inOutType="param"/>
+        <cf:var name="p2" dataType="java.lang.Integer" contextVarName="b" inOutType="param"/>
+        <cf:var name="sum" dataType="java.lang.Integer" contextVarName="sum" inOutType="return"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow3" sourceRef="addTask2" targetRef="end"/>
+    <endEvent id="end" name="End"/>
+  </process>
+</definitions>

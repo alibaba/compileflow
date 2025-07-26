@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <bpm code="bpm.om.paySuccessCallbackSubFlow" name="支付成功回调子流程" type="process">
-    <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+    <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
          contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
     <start id="1" name="开始节点" tag="start" g="297,109,40,40">
         <transition g=":-15,20" to="8"/>
@@ -10,9 +10,9 @@
         <transition g=":-15,20" to="9"/>
         <action type="spring-bean">
             <actionHandle bean="priceCalculateActivity"
-                          clazz="com.allibaba.compileflow.test.om.activity.PriceCalculateActivity"
+                          clazz="com.alibaba.compileflow.engine.process.om.activity.PriceCalculateActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>
@@ -21,9 +21,9 @@
         <transition g=":-15,20" to="10"/>
         <action type="spring-bean">
             <actionHandle bean="timeoutCancelActivity"
-                          clazz="com.allibaba.compileflow.test.om.activity.TimeoutCancelActivity"
+                          clazz="com.alibaba.compileflow.engine.process.om.activity.TimeoutCancelActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>
@@ -32,9 +32,9 @@
         <transition g=":-15,20" to="12"/>
         <action type="spring-bean">
             <actionHandle bean="paymentFundApportionActivity"
-                          clazz="com.allibaba.compileflow.test.om.activity.PaymentFundApportionActivity"
+                          clazz="com.alibaba.compileflow.engine.process.om.activity.PaymentFundApportionActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>
@@ -43,9 +43,9 @@
         <transition g=":-15,20" to="2"/>
         <action type="spring-bean">
             <actionHandle bean="paymentCallbackInfoUpdateActivity"
-                          clazz="com.allibaba.compileflow.test.om.activity.PaymentCallbackInfoUpdateActivity"
+                          clazz="com.alibaba.compileflow.engine.process.om.activity.PaymentCallbackInfoUpdateActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>
@@ -54,9 +54,9 @@
         <transition g=":-15,20" to="11"/>
         <action type="spring-bean">
             <actionHandle bean="userTagUpdateActivity"
-                          clazz="com.allibaba.compileflow.test.om.activity.UserTagUpdateActivity"
+                          clazz="com.alibaba.compileflow.engine.process.om.activity.UserTagUpdateActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.allibaba.compileflow.test.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>

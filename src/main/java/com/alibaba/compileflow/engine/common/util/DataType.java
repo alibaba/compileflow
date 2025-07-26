@@ -817,13 +817,11 @@ public class DataType {
                 try {
                     nf.setMaximumFractionDigits(precision);
                     nf.setGroupingUsed(false);
-                    result = nf
-                        .format(nf.parse(value.toString()).doubleValue());
+                    result = nf.format(nf.parse(value.toString()).doubleValue());
                 } catch (Exception ex) {
                     ex.printStackTrace();
                     result = value.toString();
                 }
-
             } else {
                 result = value.toString();
             }

@@ -19,6 +19,8 @@ package com.alibaba.compileflow.engine.definition.bpmn;
 import com.alibaba.compileflow.engine.definition.common.Stateless;
 
 public class ScriptTask extends Task implements Stateless {
+    public ScriptTask() {
+    }
 
     private String script;
 

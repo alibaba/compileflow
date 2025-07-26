@@ -55,6 +55,13 @@ public class Process extends CallableElement implements ElementContainer<FlowEle
 
     private List<IVar> vars = new ArrayList<>();
 
+    public List<DataObject> getDataObjects() {
+        return flowElements.stream()
+            .filter(e -> e instanceof DataObject)
+            .map(e -> (DataObject)e)
+            .collect(Collectors.toList());
+    }
+
     public Auditing getAuditing() {
         return auditing;
     }

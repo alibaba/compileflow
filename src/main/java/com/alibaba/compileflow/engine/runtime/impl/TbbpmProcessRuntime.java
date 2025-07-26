@@ -16,13 +16,13 @@
  */
 package com.alibaba.compileflow.engine.runtime.impl;
 
-import com.alibaba.compileflow.engine.common.constant.FlowModelType;
+import com.alibaba.compileflow.engine.common.constants.FlowModelType;
 import com.alibaba.compileflow.engine.definition.common.NodeContainer;
 import com.alibaba.compileflow.engine.definition.common.TransitionNode;
 import com.alibaba.compileflow.engine.definition.tbbpm.*;
-import com.alibaba.compileflow.engine.process.preruntime.generator.factory.GeneratorProviderFactory;
-import com.alibaba.compileflow.engine.process.preruntime.generator.impl.tbbpm.*;
-import com.alibaba.compileflow.engine.process.preruntime.generator.provider.impl.TbbpmNodeGeneratorProvider;
+import com.alibaba.compileflow.engine.process.build.generator.factory.GeneratorProviderFactory;
+import com.alibaba.compileflow.engine.process.build.generator.impl.tbbpm.*;
+import com.alibaba.compileflow.engine.process.build.generator.provider.impl.TbbpmNodeGeneratorProvider;
 
 /**
  * @author wuxiang
@@ -51,6 +51,9 @@ public class TbbpmProcessRuntime extends AbstractProcessRuntime<TbbpmModel> {
     @Override
     @SuppressWarnings("unchecked")
     public void registerNodeGenerator(NodeContainer<TransitionNode> nodeContainer) {
+        if (nodeContainer == null) {
+            throw new IllegalArgumentException("NodeContainer cannot be null");
+        }
         for (TransitionNode node : nodeContainer.getAllNodes()) {
 
             if (node instanceof AutoTaskNode) {

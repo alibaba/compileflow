@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:cf="http://alibaba.com/compileflow"
+             targetNamespace="http://example.com/compileflow">
+  <process id="exclusive_gateway" name="Exclusive Gateway Flow" isExecutable="true">
+    <extensionElements>
+      <cf:var name="flag" description="分支标志" dataType="java.lang.Boolean" inOutType="param"/>
+    </extensionElements>
+    <startEvent id="start" name="Start"/>
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="gateway1"/>
+    <exclusiveGateway id="gateway1" name="Decision"/>
+    <sequenceFlow id="flow2" sourceRef="gateway1" targetRef="serviceTask1">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${flag == true}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow3" sourceRef="gateway1" targetRef="serviceTask2">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${flag == false}]]></conditionExpression>
+    </sequenceFlow>
+    <serviceTask id="serviceTask1" name="Service Task 1"/>
+    <serviceTask id="serviceTask2" name="Service Task 2"/>
+    <sequenceFlow id="flow4" sourceRef="serviceTask1" targetRef="end"/>
+    <sequenceFlow id="flow5" sourceRef="serviceTask2" targetRef="end"/>
+    <endEvent id="end" name="End"/>
+  </process>
+</definitions> 

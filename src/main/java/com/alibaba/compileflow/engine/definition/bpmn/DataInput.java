@@ -16,14 +16,28 @@
  */
 package com.alibaba.compileflow.engine.definition.bpmn;
 
+/**
+ * @author yusu
+ */
 public class DataInput extends BaseElement {
 
-    private DataState dataState;
-
     private String name;
+    private boolean isCollection;
 
-    private String itemSubjectRef;
+    public String getName() {
+        return name;
+    }
 
-    private Boolean isCollection;
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public boolean isCollection() {
+        return isCollection;
+    }
+
+    public void setCollection(boolean collection) {
+        isCollection = collection;
+    }
 
 }

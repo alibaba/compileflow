@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.gateway.complexBranchMerge" name="网关流程示例" type="statefulProcess" description="包含com.alibaba.compileflow.engine.process网关的流程示例">
+    <var name="A" description="入参" dataType="java.lang.String" inOutType="param"/>
+    <var name="X" description="入参" dataType="java.lang.String" inOutType="param"/>
+    <var name="B" description="入参" dataType="java.lang.String" inOutType="param"/>
+    <var name="C" description="入参" dataType="java.lang.String" inOutType="param"/>
+    <var name="J" description="入参" dataType="java.lang.String" inOutType="param"/>
+    <var name="F" description="入参" dataType="java.lang.String" inOutType="param"/>
+    <var name="G" description="入参" dataType="java.lang.String" inOutType="param"/>
+    <var name="H" description="入参" dataType="java.lang.String" inOutType="param"/>
+
+    <!-- 开始节点 -->
+    <start id="start" name="开始" tag="start" g="100,100,40,40">
+        <transition to="G1"/>
+    </start>
+
+    <!-- com.alibaba.compileflow.engine.process网关 G1 -->
+    <decision id="G1" name="网关 G1" tag="gatewayG1" g="200,100,88,48">
+        <transition expression="true" name="路径A" to="A"/>
+        <transition expression="false" name="路径X" to="X"/>
+    </decision>
+
+    <!-- 自动任务 A -->
+    <autoTask id="A" name="任务 A" tag="taskA" g="300,50,88,48">
+        <transition to="G2"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="A" description="" dataType="java.lang.String" contextVarName="A" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <!-- 自动任务 X -->
+    <autoTask id="X" name="任务 X" tag="taskX" g="300,150,88,48">
+        <transition to="H"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="X" description="" dataType="java.lang.String" contextVarName="X" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <!-- com.alibaba.compileflow.engine.process网关 G2 -->
+    <decision id="G2" name="网关 G2" tag="gatewayG2" g="400,50,88,48">
+        <transition expression="true" name="路径B" to="B"/>
+        <transition expression="false" name="路径C" to="C"/>
+    </decision>
+
+    <!-- 自动任务 B -->
+    <autoTask id="B" name="任务 B" tag="taskB" g="500,30,88,48">
+        <transition to="J"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="B" description="" dataType="java.lang.String" contextVarName="B" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <!-- 自动任务 C -->
+    <autoTask id="C" name="任务 C" tag="taskC" g="500,70,88,48">
+        <transition to="J"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="C" description="" dataType="java.lang.String" contextVarName="C" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <!-- 自动任务 J -->
+    <autoTask id="J" name="任务 J" tag="taskJ" g="600,50,88,48">
+        <transition to="K"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="J" description="" dataType="java.lang.String" contextVarName="J" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <!-- com.alibaba.compileflow.engine.process网关 K -->
+    <decision id="K" name="网关 K" tag="gatewayK" g="700,50,88,48">
+        <transition expression="true" name="路径F" to="F"/>
+        <transition expression="false" name="路径G" to="G"/>
+    </decision>
+
+    <!-- 自动任务 F -->
+    <autoTask id="F" name="任务 F" tag="taskF" g="800,30,88,48">
+        <transition to="H"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="F" description="" dataType="java.lang.String" contextVarName="F" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <!-- 自动任务 G -->
+    <autoTask id="G" name="任务 G" tag="taskG" g="800,70,88,48">
+        <transition to="H"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="G" description="" dataType="java.lang.String" contextVarName="G" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <!-- 自动任务 H -->
+    <autoTask id="H" name="任务 H" tag="taskH" g="900,100,88,48">
+        <transition to="end"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="H" description="" dataType="java.lang.String" contextVarName="H" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <!-- 结束节点 -->
+    <end id="end" name="结束" tag="end" g="1000,100,40,40"/>
+</bpm>

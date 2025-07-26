@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.gateway.sampleBranchMerge" name="Sample Branch Merge" type="process" description="分支汇合示例">
+    <var name="route" description="分支E的路由选择" dataType="java.lang.String" inOutType="param"/>
+    <var name="next" description="汇合C的路由选择" dataType="java.lang.String" inOutType="param"/>
+    <var name="echoResult" description="mock节点返回值" dataType="java.lang.String" inOutType="inner"/>
+    <start id="start" name="开始" g="100,20,30,30">
+        <transition g=":-15,20" to="decisionE"/>
+    </start>
+    <decision id="decisionE" name="分支E" g="100,70,88,48">
+        <transition expression="route == 'A'" name="到A" priority="10" g=":-15,20" to="A"/>
+        <transition expression="route == 'X'" name="到X" priority="5" g=":-15,20" to="X"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="p1" description="路由选择" dataType="java.lang.String" contextVarName="route" inOutType="param"/>
+                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </decision>
+    <autoTask id="A" name="A" g="50,140,88,48">
+        <transition g=":-15,20" to="B"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="p1" description="A节点" dataType="java.lang.String" contextVarName="'A'" inOutType="param"/>
+                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="B" name="B" g="50,210,88,48">
+        <transition g=":-15,20" to="C"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="p1" description="B节点" dataType="java.lang.String" contextVarName="'B'" inOutType="param"/>
+                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="X" name="X" g="200,140,88,48">
+        <transition g=":-15,20" to="Y"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="p1" description="X节点" dataType="java.lang.String" contextVarName="'X'" inOutType="param"/>
+                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="Y" name="Y" g="200,210,88,48">
+        <transition g=":-15,20" to="C"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="p1" description="Y节点" dataType="java.lang.String" contextVarName="'Y'" inOutType="param"/>
+                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <decision id="C" name="汇合C" g="125,280,88,48">
+        <transition expression="next == 'D'" name="到D" priority="10" g=":-15,20" to="D"/>
+        <transition expression="next == 'Z'" name="到Z" priority="5" g=":-15,20" to="Z"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="p1" description="汇合选择" dataType="java.lang.String" contextVarName="next" inOutType="param"/>
+                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </decision>
+    <autoTask id="D" name="D" g="50,350,88,48">
+        <transition g=":-15,20" to="K"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="p1" description="D节点" dataType="java.lang.String" contextVarName="'D'" inOutType="param"/>
+                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="Z" name="Z" g="200,350,88,48">
+        <transition g=":-15,20" to="K"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="p1" description="Z节点" dataType="java.lang.String" contextVarName="'Z'" inOutType="param"/>
+                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="K" name="K" g="125,420,88,48">
+        <transition g=":-15,20" to="end"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="p1" description="K节点" dataType="java.lang.String" contextVarName="'K'" inOutType="param"/>
+                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <end id="end" name="结束" g="125,500,30,30"/>
+</bpm>

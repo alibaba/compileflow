@@ -5,6 +5,6 @@
  http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
     <bean id="applicationContextProvider"
-          class="com.alibaba.compileflow.engine.process.preruntime.generator.bean.SpringApplicationContextProvider"/>
+          class="com.alibaba.compileflow.engine.process.build.generator.bean.SpringApplicationContextProvider"/>
 
 </beans>

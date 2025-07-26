@@ -19,6 +19,7 @@ package com.alibaba.compileflow.engine.definition.common.action;
 /**
  * @author wuxiang
  * @author yusu
+ * inAction（进入节点时执行），outAction（事件触发时执行）。
  */
 public interface HasInOutAction {
 

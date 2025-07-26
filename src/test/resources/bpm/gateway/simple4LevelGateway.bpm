@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.gateway.simple4LevelGateway" name="四层嵌套决策网关" type="statefulProcess" description="四层嵌套决策网关测试结构">
+    <!-- 仅使用一个变量简化测试 -->
+    <var name="flag" description="决策标志" dataType="java.lang.Boolean" inOutType="param"/>
+    <!-- 为每个任务添加专用变量定义 -->
+    <var name="A1_T" description="任务1_T标志" dataType="java.lang.Boolean" inOutType="param"/>
+    <var name="A1_F" description="任务1_F标志" dataType="java.lang.Boolean" inOutType="param"/>
+    <var name="A2_T" description="任务2_T标志" dataType="java.lang.Boolean" inOutType="param"/>
+    <var name="A2_F" description="任务2_F标志" dataType="java.lang.Boolean" inOutType="param"/>
+    <var name="A3_T" description="任务3_T标志" dataType="java.lang.Boolean" inOutType="param"/>
+    <var name="A3_F" description="任务3_F标志" dataType="java.lang.Boolean" inOutType="param"/>
+    <var name="A4_T" description="任务4_T标志" dataType="java.lang.Boolean" inOutType="param"/>
+    <var name="A4_F" description="任务4_F标志" dataType="java.lang.Boolean" inOutType="param"/>
+
+    <!-- 开始节点 -->
+    <start id="start" name="开始" tag="start" g="100,300,40,40">
+        <transition to="D1"/>
+    </start>
+
+    <!-- ========== 第一层决策 ========== -->
+    <decision id="D1" name="决策1" tag="decision1" g="200,300,88,48">
+        <transition expression="flag == true" name="路径T1" to="A1_T"/>
+        <transition expression="flag == false" name="路径F1" to="A1_F"/>
+    </decision>
+
+    <autoTask id="A1_T" name="任务1_T" tag="task1T" g="350,250,100,48">
+        <transition to="D2"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="flag" dataType="java.lang.String" contextVarName="A1_T" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <autoTask id="A1_F" name="任务1_F" tag="task1F" g="350,350,100,48">
+        <transition to="D2"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="flag" dataType="java.lang.String" contextVarName="A1_F" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <!-- ========== 第二层决策 ========== -->
+    <decision id="D2" name="决策2" tag="decision2" g="500,300,88,48">
+        <transition expression="flag == true" name="路径T2" to="A2_T"/>
+        <transition expression="flag == false" name="路径F2" to="A2_F"/>
+    </decision>
+
+    <autoTask id="A2_T" name="任务2_T" tag="task2T" g="650,200,100,48">
+        <transition to="D3"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="flag" dataType="java.lang.String" contextVarName="A2_T" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <autoTask id="A2_F" name="任务2_F" tag="task2F" g="650,400,100,48">
+        <transition to="D3"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="flag" dataType="java.lang.String" contextVarName="A2_F" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <!-- ========== 第三层决策 ========== -->
+    <decision id="D3" name="决策3" tag="decision3" g="800,300,88,48">
+        <transition expression="flag == true" name="路径T3" to="A3_T"/>
+        <transition expression="flag == false" name="路径F3" to="A3_F"/>
+    </decision>
+
+    <autoTask id="A3_T" name="任务3_T" tag="task3T" g="950,150,100,48">
+        <transition to="D4"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="flag" dataType="java.lang.String" contextVarName="A3_T" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <autoTask id="A3_F" name="任务3_F" tag="task3F" g="950,450,100,48">
+        <transition to="D4"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="flag" dataType="java.lang.String" contextVarName="A3_F" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <!-- ========== 第四层决策 ========== -->
+    <decision id="D4" name="决策4" tag="decision4" g="1100,300,88,48">
+        <transition expression="flag == true" name="路径T4" to="A4_T"/>
+        <transition expression="flag == false" name="路径F4" to="A4_F"/>
+    </decision>
+
+    <autoTask id="A4_T" name="任务4_T" tag="task4T" g="1250,100,100,48">
+        <transition to="end"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="flag" dataType="java.lang.String" contextVarName="A4_T" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <autoTask id="A4_F" name="任务4_F" tag="task4F" g="1250,500,100,48">
+        <transition to="end"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
+                <var name="flag" dataType="java.lang.String" contextVarName="A4_F" inOutType="param"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <!-- 结束节点 -->
+    <end id="end" name="结束" tag="end" g="1400,300,40,40"/>
+</bpm>

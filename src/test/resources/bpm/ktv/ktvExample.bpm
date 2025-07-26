@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<bpm code="bpm.ktv.ktvExample" name="ktv example" type="process" description="ktv example">
+<bpm code="bpm.gateway.ktvExample" name="branch example" type="process" description="branch example">
     <var name="price" description="支付价格" dataType="java.lang.Integer" inOutType="return"/>
     <var name="totalPrice" description="实付价" dataType="java.lang.Integer" inOutType="inner"/>
     <var name="pList" description="人员" dataType="java.util.List&lt;java.lang.String&gt;" inOutType="param"/>
@@ -7,7 +7,7 @@
     <autoTask id="12" name="付款" g="72,469,88,48">
         <transition g=":-15,20" to="11"/>
         <action type="java">
-            <actionHandle clazz="com.allibaba.compileflow.test.mock.KtvService" method="payMoney">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.KtvService" method="payMoney">
                 <var name="p1" description="价格" dataType="java.lang.Integer" contextVarName="price" defaultValue=""
                      inOutType="param"/>
             </actionHandle>
@@ -29,7 +29,7 @@
         <transition g=":-15,20" to="8"/>
         <autoTask id="13-1" name="每人唱一首歌" g="70,95,88,48">
             <action type="spring-bean">
-                <actionHandle bean="ktvService" clazz="com.allibaba.compileflow.test.mock.KtvService" method="sing">
+                <actionHandle bean="ktvService" clazz="com.alibaba.compileflow.engine.process.mock.KtvService" method="sing">
                     <var name="p1" description="" dataType="java.lang.String" contextVarName="p" defaultValue=""
                          inOutType="param"/>
                 </actionHandle>
@@ -40,7 +40,7 @@
         <transition expression="" name="不超过400" priority="1" g=":-15,20" to="9"/>
         <transition expression="totalPrice&gt;=400" name="超过400" priority="10" g=":-15,20" to="10"/>
         <action type="java">
-            <actionHandle clazz="com.allibaba.compileflow.test.mock.MockJavaClazz" method="calPrice">
+            <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="calPrice">
                 <var name="p1" description="人数" dataType="java.lang.Integer" contextVarName="pList.size()"
                      defaultValue="" inOutType="param"/>
                 <var name="p2" description="价格" dataType="java.lang.Integer" contextVarName="totalPrice" defaultValue=""

@@ -4,6 +4,8 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
  http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-    <bean id="ktvService" class="com.allibaba.compileflow.test.mock.KtvService"/>
+    <!-- Mock beans for testing -->
+    <bean id="ktvService" class="com.alibaba.compileflow.engine.process.mock.KtvService"/>
+    <bean id="mockJavaClazz" class="com.alibaba.compileflow.engine.process.mock.MockJavaClazz"/>
 
 </beans>

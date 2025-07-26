@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<definitions xmlns:cf="http://compileflow.alibaba.com"
+<definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:cf="http://compileflow.alibaba.com"
              xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
              typeLanguage="http://www.w3.org/2001/XMLSchema"
              expressionLanguage="http://www.w3.org/1999/XPath"
@@ -18,14 +18,14 @@
         <sequenceFlow id="flow1" sourceRef="start" targetRef="singLoop"/>
 
         <subProcess id="singLoop" name="sing loop">
-            <standardLoopCharacteristics cf:collection="pList" cf:elementVar="p"
+            <multiInstanceLoopCharacteristics cf:collection="pList" cf:elementVar="p"
                                          cf:indexVar="i" cf:elementVarClass="java.lang.String">
-            </standardLoopCharacteristics>
+            </multiInstanceLoopCharacteristics>
             <startEvent id="singStart"/>
             <sequenceFlow id="subFlow1" sourceRef="singStart" targetRef="sing"/>
             <serviceTask id="sing" name="sing task" cf:type="spring-bean"
                          cf:bean="ktvService"
-                         cf:class="com.allibaba.compileflow.test.mock.KtvService"
+                         cf:class="com.alibaba.compileflow.engine.process.mock.KtvService"
                          cf:method="sing">
                 <extensionElements>
                     <cf:var name="p1" description="" dataType="java.lang.String" contextVarName="p" defaultValue=""
@@ -39,7 +39,7 @@
         <sequenceFlow id="flow2" sourceRef="singLoop" targetRef="calPrice"/>
 
         <serviceTask id="calPrice" name="calPrice" cf:type="java"
-                     cf:class="com.allibaba.compileflow.test.mock.MockJavaClazz"
+                     cf:class="com.alibaba.compileflow.engine.process.mock.MockJavaClazz"
                      cf:method="calPrice">
             <extensionElements>
                 <cf:var name="p1" description="人数" dataType="java.lang.Integer" contextVarName="pList.size()"
@@ -56,10 +56,17 @@
         <exclusiveGateway id="payDecision"/>
 
         <sequenceFlow id="flow4" sourceRef="payDecision" targetRef="originalPrice">
+            <conditionExpression xsi:type="tFormalExpression" language="java">
+                <![CDATA[${totalPrice>=300}]]>
+            </conditionExpression>
+        </sequenceFlow>
+        <!--  或者
+        <sequenceFlow id="flow4" sourceRef="payDecision" targetRef="originalPrice">
             <conditionExpression cf:type="java">
                 <![CDATA[totalPrice>=300]]>
             </conditionExpression>
         </sequenceFlow>
+        -->
         <sequenceFlow id="flow5" sourceRef="payDecision" targetRef="promotionPrice"/>
 
         <scriptTask id="originalPrice" name="original price" scriptFormat="ql">
@@ -88,7 +95,7 @@
         <sequenceFlow id="flow7" sourceRef="promotionPrice" targetRef="pay"/>
 
         <serviceTask id="pay" name="pay" cf:type="java"
-                     cf:class="com.allibaba.compileflow.test.mock.KtvService"
+                     cf:class="com.alibaba.compileflow.engine.process.mock.KtvService"
                      cf:method="payMoney">
             <extensionElements>
                 <cf:var name="p1" description="价格" dataType="java.lang.Integer"

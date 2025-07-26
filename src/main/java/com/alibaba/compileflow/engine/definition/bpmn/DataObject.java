@@ -16,12 +16,19 @@
  */
 package com.alibaba.compileflow.engine.definition.bpmn;
 
+/**
+ * @author yusu
+ */
 public class DataObject extends FlowElement {
 
-    private DataState dataState;
+    private boolean isCollection;
 
-    private String itemSubjectRef;
+    public boolean isCollection() {
+        return isCollection;
+    }
 
-    private Boolean isCollection;
+    public void setCollection(boolean collection) {
+        isCollection = collection;
+    }
 
 }
