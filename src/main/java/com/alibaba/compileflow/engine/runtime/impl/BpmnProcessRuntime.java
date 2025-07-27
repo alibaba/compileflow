@@ -5,9 +5,9 @@ import com.alibaba.compileflow.engine.common.constants.FlowModelType;
 import com.alibaba.compileflow.engine.definition.bpmn.*;
 import com.alibaba.compileflow.engine.definition.common.NodeContainer;
 import com.alibaba.compileflow.engine.definition.common.TransitionNode;
-import com.alibaba.compileflow.engine.process.build.generator.factory.GeneratorProviderFactory;
-import com.alibaba.compileflow.engine.process.build.generator.impl.bpmn.*;
-import com.alibaba.compileflow.engine.process.build.generator.provider.impl.BpmnNodeGeneratorProvider;
+import com.alibaba.compileflow.engine.process.builder.generator.factory.GeneratorProviderFactory;
+import com.alibaba.compileflow.engine.process.builder.generator.impl.bpmn.*;
+import com.alibaba.compileflow.engine.process.builder.generator.provider.impl.BpmnNodeGeneratorProvider;
 
 /**
  * @author wuxiang

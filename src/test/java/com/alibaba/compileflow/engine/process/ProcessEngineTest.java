@@ -4,7 +4,7 @@ import com.alibaba.compileflow.engine.ProcessEngine;
 import com.alibaba.compileflow.engine.ProcessEngineFactory;
 import com.alibaba.compileflow.engine.common.constants.FlowModelType;
 import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModel;
-import com.alibaba.compileflow.engine.process.build.converter.impl.TbbpmModelConverter;
+import com.alibaba.compileflow.engine.process.builder.converter.impl.TbbpmModelConverter;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;

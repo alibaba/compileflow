@@ -4,8 +4,8 @@ package com.alibaba.compileflow.engine.process.impl;
 import com.alibaba.compileflow.engine.ProcessEngine;
 import com.alibaba.compileflow.engine.common.constants.FlowModelType;
 import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModel;
-import com.alibaba.compileflow.engine.process.build.converter.FlowModelConverter;
-import com.alibaba.compileflow.engine.process.build.converter.impl.TbbpmModelConverter;
+import com.alibaba.compileflow.engine.process.builder.converter.FlowModelConverter;
+import com.alibaba.compileflow.engine.process.builder.converter.impl.TbbpmModelConverter;
 import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;
 import com.alibaba.compileflow.engine.runtime.impl.TbbpmProcessRuntime;
 

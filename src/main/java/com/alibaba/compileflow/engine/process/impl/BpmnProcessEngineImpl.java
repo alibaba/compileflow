@@ -3,8 +3,8 @@ package com.alibaba.compileflow.engine.process.impl;
 import com.alibaba.compileflow.engine.ProcessEngine;
 import com.alibaba.compileflow.engine.common.constants.FlowModelType;
 import com.alibaba.compileflow.engine.definition.bpmn.BpmnModel;
-import com.alibaba.compileflow.engine.process.build.converter.FlowModelConverter;
-import com.alibaba.compileflow.engine.process.build.converter.impl.BpmnModelConverter;
+import com.alibaba.compileflow.engine.process.builder.converter.FlowModelConverter;
+import com.alibaba.compileflow.engine.process.builder.converter.impl.BpmnModelConverter;
 import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;
 import com.alibaba.compileflow.engine.runtime.impl.BpmnProcessRuntime;
 
