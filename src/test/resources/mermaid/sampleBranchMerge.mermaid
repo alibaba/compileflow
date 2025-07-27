@@ -1,0 +1,19 @@
+flowchart TD
+    start(("开始")) --> decisionE{"分支E"}
+
+    decisionE --> |"route == 'A'"| A["A"]
+    decisionE --> |"route == 'X'"| X["X"]
+
+    A --> B["B"]
+    B --> C{"汇合C"}
+
+    X --> Y["Y"]
+    Y --> C
+
+    C --> |"next == 'D'"| D["D"]
+    C --> |"next == 'Z'"| Z["Z"]
+
+    D --> K["K"]
+    Z --> K
+
+    K --> endpoint(("结束"))
