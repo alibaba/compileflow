@@ -31,6 +31,7 @@ public interface MyService extends Extension {
     void doSomething();
 }
 ```
+在 META-INF/extensions 目录下创建文件：com.alibaba.compileflow.engine.extension.MyService（扩展点类名）
 
 ### 3.2 实现扩展
 
@@ -47,11 +48,10 @@ public class MyServiceImpl implements MyService {
 }
 ```
 
-### 3.3 注册和使用扩展
+### 3.3 使用扩展
 
 ```java
 ExtensionManager manager = ExtensionManager.getInstance();
-manager.init();
 List<MyService> services = manager.getExtensions("myService", MyService.class);
 for (MyService service : services) {
     service.doSomething();
