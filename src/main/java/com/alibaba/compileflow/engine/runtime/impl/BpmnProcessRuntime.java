@@ -3,11 +3,7 @@ package com.alibaba.compileflow.engine.runtime.impl;
 
 import com.alibaba.compileflow.engine.common.constants.FlowModelType;
 import com.alibaba.compileflow.engine.definition.bpmn.*;
-import com.alibaba.compileflow.engine.definition.common.NodeContainer;
-import com.alibaba.compileflow.engine.definition.common.TransitionNode;
-import com.alibaba.compileflow.engine.process.builder.generator.factory.GeneratorProviderFactory;
-import com.alibaba.compileflow.engine.process.builder.generator.impl.bpmn.*;
-import com.alibaba.compileflow.engine.process.builder.generator.provider.impl.BpmnNodeGeneratorProvider;
+import com.alibaba.compileflow.engine.runtime.ProcessCodeGenerator;
 
 /**
  * @author wuxiang
@@ -29,40 +25,8 @@ public class BpmnProcessRuntime extends AbstractProcessRuntime<BpmnModel> {
     }
 
     @Override
-    protected void registerNodeGenerator(NodeContainer<TransitionNode> nodeContainer) {
-        for (TransitionNode node : nodeContainer.getAllNodes()) {
-            if (node instanceof ServiceTask) {
-                registerGenerator(node, new ServiceTaskGenerator(this, (ServiceTask) node));
-            } else if (node instanceof ScriptTask) {
-                registerGenerator(node, new ScriptTaskGenerator(this, (ScriptTask) node));
-            } else if (node instanceof ExclusiveGateway) {
-                registerGenerator(node, new ExclusiveGatewayGenerator(this, (ExclusiveGateway) node));
-            } else if (node instanceof StartEvent) {
-                registerGenerator(node, new StartEventGenerator(this, (StartEvent) node));
-            } else if (node instanceof EndEvent) {
-                registerGenerator(node, new EndEventGenerator(this, (EndEvent) node));
-            } else if (node instanceof SubProcess) {
-                registerGenerator(node, new SubProcessGenerator(this, (SubProcess) node));
-            } else if (node instanceof ReceiveTask) {
-                registerGenerator(node, new ReceiveTaskGenerator(this, (ReceiveTask) node));
-            } else if (node instanceof ParallelGateway) {
-                registerGenerator(node, new ParallelGatewayGenerator(this, (ParallelGateway) node));
-            }
-
-            if (node instanceof NodeContainer) {
-                registerNodeGenerator((NodeContainer) node);
-            }
-        }
-    }
-
-    @Override
     protected boolean isBpmn20() {
         return false;
-    }
-
-    @Override
-    protected GeneratorProviderFactory getGeneratorProviderFactory() {
-        return () -> new BpmnNodeGeneratorProvider(this);
     }
 
     @Override
@@ -73,6 +37,11 @@ public class BpmnProcessRuntime extends AbstractProcessRuntime<BpmnModel> {
     @Override
     public void stop() {
         super.stop();
+    }
+
+    @Override
+    protected ProcessCodeGenerator getProcessCodeGenerator() {
+        return new BpmnProcessCodeGenerator(this);
     }
 
 }

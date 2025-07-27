@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * @author yusu <kangzhiqiang@kuaishou.com>
+ * @author yusu
  */
 @ExtensionRealization()
 public class DefaultProcessGraphAnalyzer implements ProcessGraphAnalyzer {

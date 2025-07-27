@@ -17,12 +17,8 @@
 package com.alibaba.compileflow.engine.runtime.impl;
 
 import com.alibaba.compileflow.engine.common.constants.FlowModelType;
-import com.alibaba.compileflow.engine.definition.common.NodeContainer;
-import com.alibaba.compileflow.engine.definition.common.TransitionNode;
 import com.alibaba.compileflow.engine.definition.tbbpm.*;
-import com.alibaba.compileflow.engine.process.builder.generator.factory.GeneratorProviderFactory;
-import com.alibaba.compileflow.engine.process.builder.generator.impl.tbbpm.*;
-import com.alibaba.compileflow.engine.process.builder.generator.provider.impl.TbbpmNodeGeneratorProvider;
+import com.alibaba.compileflow.engine.runtime.ProcessCodeGenerator;
 
 /**
  * @author wuxiang
@@ -49,55 +45,13 @@ public class TbbpmProcessRuntime extends AbstractProcessRuntime<TbbpmModel> {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public void registerNodeGenerator(NodeContainer<TransitionNode> nodeContainer) {
-        if (nodeContainer == null) {
-            throw new IllegalArgumentException("NodeContainer cannot be null");
-        }
-        for (TransitionNode node : nodeContainer.getAllNodes()) {
-
-            if (node instanceof AutoTaskNode) {
-                registerGenerator(node, new AutoTaskGenerator(this, (AutoTaskNode) node));
-            } else if (node instanceof ScriptTaskNode) {
-                registerGenerator(node, new ScriptTaskGenerator(this, (ScriptTaskNode) node));
-            } else if (node instanceof DecisionNode) {
-                registerGenerator(node, new DecisionGenerator(this, (DecisionNode) node));
-            } else if (node instanceof StartNode) {
-                registerGenerator(node, new StartGenerator(this, (StartNode) node));
-            } else if (node instanceof EndNode) {
-                registerGenerator(node, new EndGenerator(this, (EndNode) node));
-            } else if (node instanceof LoopProcessNode) {
-                registerGenerator(node, new LoopProcessGenerator(this, (LoopProcessNode) node));
-            } else if (node instanceof BreakNode) {
-                registerGenerator(node, new BreakGenerator(this, (BreakNode) node));
-            } else if (node instanceof ContinueNode) {
-                registerGenerator(node, new ContinueGenerator(this, (ContinueNode) node));
-            } else if (node instanceof SubBpmNode) {
-                registerGenerator(node, new SubBpmGenerator(this, (SubBpmNode) node));
-            } else if (node instanceof NoteNode) {
-                registerGenerator(node, new NoteGenerator(this, (NoteNode) node));
-            } else if (node instanceof WaitTaskNode) {
-                registerGenerator(node, new WaitTaskGenerator(this, (WaitTaskNode) node));
-            } else if (node instanceof WaitEventTaskNode) {
-                registerGenerator(node, new WaitEventTaskGenerator(this, (WaitEventTaskNode) node));
-            } else {
-                throw new IllegalStateException("Unknown node type: " + node.getClass().getName());
-            }
-
-            if (node instanceof NodeContainer) {
-                registerNodeGenerator((NodeContainer) node);
-            }
-        }
-    }
-
-    @Override
     public void init() {
         super.init();
     }
 
     @Override
-    protected GeneratorProviderFactory getGeneratorProviderFactory() {
-        return () -> new TbbpmNodeGeneratorProvider(this);
+    protected ProcessCodeGenerator getProcessCodeGenerator() {
+        return new TbbpmProcessCodeGenerator(this);
     }
 
 }

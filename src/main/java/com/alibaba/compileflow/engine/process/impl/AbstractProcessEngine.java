@@ -78,6 +78,22 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
         code2ContentMap.forEach((code, content) -> preCompile(classLoader, code, content));
     }
 
+    @Override
+    public void reCompile(String... codes) {
+        reCompile(null, codes);
+    }
+
+    @Override
+    public void reCompile(ClassLoader classLoader, String... codes) {
+        if (ArrayUtils.isEmpty(codes)) {
+            throw new CompileFlowException("No process to compile");
+        }
+
+        for (String code : codes) {
+            preCompile(classLoader, code);
+        }
+    }
+
     protected <R extends AbstractProcessRuntime> R getProcessRuntime(String code) {
         return getProcessRuntime(code, null);
     }
@@ -96,6 +112,15 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
     private void preCompile(ClassLoader classLoader, String code, String content) {
         AbstractProcessRuntime runtime = getProcessRuntime(code, content);
         runtime.compile(classLoader);
+    }
+
+    private void reCompile(ClassLoader classLoader, String code) {
+        reCompile(classLoader, code, null);
+    }
+
+    private void reCompile(ClassLoader classLoader, String code, String content) {
+        AbstractProcessRuntime runtime = getProcessRuntime(code, content);
+        runtime.recompile(classLoader);
     }
 
     private AbstractProcessRuntime getCompiledRuntime(String code, String content) {
@@ -150,14 +175,14 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
     }
 
     @Override
-    public String getTestCode(String code) {
-        return getTestCode(code, null);
+    public String getTestJavaCode(String code) {
+        return getTestJavaCode(code, null);
     }
 
     @Override
-    public String getTestCode(String code, String content) {
+    public String getTestJavaCode(String code, String content) {
         AbstractProcessRuntime runtime = getRuntimeFromSource(code, content);
-        return runtime.generateTestCode();
+        return runtime.generateTestJavaCode();
     }
 
     private void checkContinuous(T flowModel) {

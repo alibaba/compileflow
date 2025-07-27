@@ -63,7 +63,6 @@ public class CompilerImpl implements Compiler {
     }
 
     private File writeJavaFile(File dirFile, String fullClassName, String javaCode) {
-
         int index = fullClassName.lastIndexOf(".");
         if (index >= 0) {
             String packageName = fullClassName.substring(0, index);

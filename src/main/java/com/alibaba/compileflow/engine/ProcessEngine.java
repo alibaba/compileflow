@@ -73,6 +73,21 @@ public interface ProcessEngine<T extends FlowModel> {
     void preCompile(ClassLoader classLoader, String... codes);
 
     /**
+     * Re-compiles a set of process flows by their codes.
+     *
+     * @param codes Array of unique identifiers for process flows to re-compile
+     */
+    void reCompile(String... codes);
+
+    /**
+     * Re-compiles a set of process flows with a custom class loader.
+     *
+     * @param classLoader Custom class loader to use during compilation
+     * @param codes       Array of unique identifiers for process flows to re-compile
+     */
+    void reCompile(ClassLoader classLoader, String... codes);
+
+    /**
      * Loads a process flow by its code.
      *
      * @param code Unique identifier of the process flow to load
@@ -94,7 +109,7 @@ public interface ProcessEngine<T extends FlowModel> {
      * @param code Unique identifier of the process flow
      * @return Test code as a string
      */
-    String getTestCode(String code);
+    String getTestJavaCode(String code);
 
     // --- Methods with content input ---
 
@@ -171,6 +186,6 @@ public interface ProcessEngine<T extends FlowModel> {
      * @param content BPM content in string format
      * @return Test code as a string
      */
-    String getTestCode(String code, String content);
+    String getTestJavaCode(String code, String content);
 
 }

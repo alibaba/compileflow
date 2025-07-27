@@ -32,12 +32,6 @@ public class SpringApplicationContextProvider implements ApplicationContextAware
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         SpringApplicationContextProvider.applicationContext = applicationContext;
-        init();
-    }
-
-    private void init() {
-        PluginManager.getInstance().init();
-        ExtensionManager.getInstance().init();
     }
 
 }

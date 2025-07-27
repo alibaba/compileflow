@@ -1,7 +1,7 @@
 package com.alibaba.compileflow.engine.process.builder.converter.impl.parser.model;
 
 /**
- * @author yusu <kangzhiqiang@kuaishou.com>
+ * @author yusu
  * Created on 2022-12-08
  */
 public abstract class AbstractFlowSource<T> implements FlowSource<T> {

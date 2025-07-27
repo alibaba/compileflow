@@ -39,4 +39,16 @@ public interface ProcessRuntime {
      */
     Map<String, Object> trigger(String tag, String event, Map<String, Object> context);
 
+    String generateJavaCode();
+
+    String generateTestJavaCode();
+
+    void compile();
+
+    void recompile();
+
+    void compile(ClassLoader classLoader);
+
+    void recompile(ClassLoader classLoader);
+
 }
