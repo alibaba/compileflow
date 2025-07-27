@@ -48,7 +48,7 @@ public class ConditionExpressionParser extends AbstractBpmnElementParser<Express
 
     @Override
     protected void parseChildElements(XMLSource xmlSource, Expression element, ParseContext parseContext)
-        throws Exception {
+            throws Exception {
     }
 
     @Override

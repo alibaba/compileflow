@@ -33,7 +33,7 @@ import java.util.List;
  * @author yusu
  */
 public abstract class AbstractActionGenerator extends AbstractRuntimeGenerator
-    implements ActionGenerator, ActionMethodGenerator {
+        implements ActionGenerator, ActionMethodGenerator {
 
     protected IActionHandle actionHandle;
 
@@ -50,11 +50,11 @@ public abstract class AbstractActionGenerator extends AbstractRuntimeGenerator
                 addImportedType(codeTargetSupport, DataType.getJavaClass(v.getDataType()));
                 if (v.getContextVarName() != null) {
                     String param = DataType.getVarTransferString(getVarType(v.getContextVarName()),
-                        DataType.getJavaClass(v.getDataType()), v.getContextVarName());
+                            DataType.getJavaClass(v.getDataType()), v.getContextVarName());
                     params.add(param);
                 } else {
                     String param = DataType.getDefaultValueString(DataType.getJavaClass(v.getDataType()),
-                        v.getDefaultValue());
+                            v.getDefaultValue());
                     params.add(param);
                 }
             }

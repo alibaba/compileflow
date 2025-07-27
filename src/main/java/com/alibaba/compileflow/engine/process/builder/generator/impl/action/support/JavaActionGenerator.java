@@ -50,9 +50,9 @@ public class JavaActionGenerator extends AbstractActionGenerator {
         addImportedType(codeTargetSupport, clazz);
         ClassWrapper classWrapper = ClassWrapper.of(clazz);
         codeTargetSupport.addBodyLine(
-            getReturnVarCode() + "((" + classWrapper.getShortName()
-                + ")ObjectFactory.getInstance(\"" + clazz + "\"))"
-                + "." + getMethod() + "(" + generateParameterCode(codeTargetSupport) + ");");
+                getReturnVarCode() + "((" + classWrapper.getShortName()
+                        + ")ObjectFactory.getInstance(\"" + clazz + "\"))"
+                        + "." + getMethod() + "(" + generateParameterCode(codeTargetSupport) + ");");
     }
 
     private String getClazz() {

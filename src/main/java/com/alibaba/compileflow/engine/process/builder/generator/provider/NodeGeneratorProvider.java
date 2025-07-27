@@ -22,7 +22,7 @@ import com.alibaba.compileflow.engine.process.builder.generator.Generator;
 /**
  * Interface defining a provider for generators associated with specific nodes.
  * This provider manages the mapping between nodes and their corresponding code generation logic.
-
+ *
  * @author yusu
  */
 public interface NodeGeneratorProvider {
@@ -38,7 +38,7 @@ public interface NodeGeneratorProvider {
     /**
      * Registers a generator to be used for the specified node.
      *
-     * @param node The node to associate with the generator
+     * @param node      The node to associate with the generator
      * @param generator The generator to handle code generation for the node
      */
     void registerGenerator(Node node, Generator generator);

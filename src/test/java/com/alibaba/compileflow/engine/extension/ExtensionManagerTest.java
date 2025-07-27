@@ -1,10 +1,9 @@
 package com.alibaba.compileflow.engine.extension;
 
-import org.junit.Assert;
-import org.junit.Test;
-
 import com.alibaba.compileflow.engine.extension.mock.MockService;
 import com.alibaba.compileflow.engine.extension.mock.MockServiceWithParam;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * 测试目的：验证 ExtensionManager 的扩展点注册、扩展实现聚合、优先级处理等功能。

@@ -2,7 +2,7 @@ package com.alibaba.compileflow.engine.runtime.impl;
 
 
 import com.alibaba.compileflow.engine.common.constants.FlowModelType;
-import com.alibaba.compileflow.engine.definition.bpmn.*;
+import com.alibaba.compileflow.engine.definition.bpmn.BpmnModel;
 import com.alibaba.compileflow.engine.runtime.ProcessCodeGenerator;
 
 /**

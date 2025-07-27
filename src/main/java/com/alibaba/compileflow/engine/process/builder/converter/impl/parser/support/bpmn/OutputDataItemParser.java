@@ -16,10 +16,14 @@ public class OutputDataItemParser extends AbstractBpmnElementParser<OutputDataIt
         item.setId(xmlSource.getString("id"));
         return item;
     }
+
     @Override
     protected void attachChildElement(Element childElement, OutputDataItem element, ParseContext parseContext) {
         // outputDataItem 没有子元素
     }
+
     @Override
-    public String getName() { return "outputDataItem"; }
+    public String getName() {
+        return "outputDataItem";
+    }
 }

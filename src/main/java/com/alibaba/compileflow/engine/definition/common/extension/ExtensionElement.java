@@ -61,7 +61,7 @@ public class ExtensionElement extends AbstractExtensionElement {
     public void addChildElement(ExtensionElement childElement) {
         if (childElement != null && StringUtils.isNotEmpty(childElement.getName())) {
             List<ExtensionElement> extensionElements = childElements.computeIfAbsent(childElement.getName(),
-                (name) -> new ArrayList<>());
+                    (name) -> new ArrayList<>());
             extensionElements.add(childElement);
         }
     }

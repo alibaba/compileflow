@@ -146,35 +146,35 @@ public class DataType {
             return DATATYPE_STRING;
         }
         if (type.equalsIgnoreCase(DATATYPE_SHORT)
-            || type.equalsIgnoreCase(DATATYPE_L_SHORT)) {
+                || type.equalsIgnoreCase(DATATYPE_L_SHORT)) {
             return DATATYPE_SHORT;
         }
         if (type.equalsIgnoreCase(DATATYPE_INTEGER)
-            || type.equalsIgnoreCase(DATATYPE_L_INT)) {
+                || type.equalsIgnoreCase(DATATYPE_L_INT)) {
             return DATATYPE_INTEGER;
         }
         if (type.equalsIgnoreCase(DATATYPE_LONG)
-            || type.equalsIgnoreCase(DATATYPE_L_LONG)) {
+                || type.equalsIgnoreCase(DATATYPE_L_LONG)) {
             return DATATYPE_LONG;
         }
         if (type.equalsIgnoreCase(DATATYPE_DOUBLE)
-            || type.equalsIgnoreCase(DATATYPE_L_DOUBLE)) {
+                || type.equalsIgnoreCase(DATATYPE_L_DOUBLE)) {
             return DATATYPE_DOUBLE;
         }
         if (type.equalsIgnoreCase(DATATYPE_FLOAT)
-            || type.equalsIgnoreCase(DATATYPE_L_FLOAT)) {
+                || type.equalsIgnoreCase(DATATYPE_L_FLOAT)) {
             return DATATYPE_FLOAT;
         }
         if (type.equalsIgnoreCase(DATATYPE_BYTE)
-            || type.equalsIgnoreCase(DATATYPE_L_BYTE)) {
+                || type.equalsIgnoreCase(DATATYPE_L_BYTE)) {
             return "Byte";
         }
         if (type.equalsIgnoreCase(DATATYPE_CHARACTER)
-            || type.equalsIgnoreCase(DATATYPE_L_CHAR)) {
+                || type.equalsIgnoreCase(DATATYPE_L_CHAR)) {
             return "Character";
         }
         if (type.equalsIgnoreCase(DATATYPE_BOOLEAN)
-            || type.equalsIgnoreCase(DATATYPE_L_BOOLEAN)) {
+                || type.equalsIgnoreCase(DATATYPE_L_BOOLEAN)) {
             return "Boolean";
         }
         if (type.equalsIgnoreCase(DATATYPE_DATE)) {
@@ -617,35 +617,35 @@ public class DataType {
             return "";
         }
         if (type.equalsIgnoreCase(DATATYPE_SHORT)
-            || type.equalsIgnoreCase(DATATYPE_L_SHORT)) {
+                || type.equalsIgnoreCase(DATATYPE_L_SHORT)) {
             return "shortValue";
         }
         if (type.equalsIgnoreCase(DATATYPE_INTEGER)
-            || type.equalsIgnoreCase(DATATYPE_L_INT)) {
+                || type.equalsIgnoreCase(DATATYPE_L_INT)) {
             return "intValue";
         }
         if (type.equalsIgnoreCase(DATATYPE_LONG)
-            || type.equalsIgnoreCase(DATATYPE_L_LONG)) {
+                || type.equalsIgnoreCase(DATATYPE_L_LONG)) {
             return "longValue";
         }
         if (type.equalsIgnoreCase(DATATYPE_DOUBLE)
-            || type.equalsIgnoreCase(DATATYPE_L_DOUBLE)) {
+                || type.equalsIgnoreCase(DATATYPE_L_DOUBLE)) {
             return "doubleValue";
         }
         if (type.equalsIgnoreCase(DATATYPE_FLOAT)
-            || type.equalsIgnoreCase(DATATYPE_L_FLOAT)) {
+                || type.equalsIgnoreCase(DATATYPE_L_FLOAT)) {
             return "floatValue";
         }
         if (type.equalsIgnoreCase(DATATYPE_BYTE)
-            || type.equalsIgnoreCase(DATATYPE_L_BYTE)) {
+                || type.equalsIgnoreCase(DATATYPE_L_BYTE)) {
             return "byteValue";
         }
         if (type.equalsIgnoreCase(DATATYPE_CHARACTER)
-            || type.equalsIgnoreCase(DATATYPE_L_CHAR)) {
+                || type.equalsIgnoreCase(DATATYPE_L_CHAR)) {
             return "charValue";
         }
         if (type.equalsIgnoreCase(DATATYPE_BOOLEAN)
-            || type.equalsIgnoreCase(DATATYPE_L_BOOLEAN)) {
+                || type.equalsIgnoreCase(DATATYPE_L_BOOLEAN)) {
             return "booleanValue";
         }
         if (type.equalsIgnoreCase(DATATYPE_DATE)) {
@@ -694,7 +694,7 @@ public class DataType {
             String content = value.toString();
             if (content.length() > 2000) {
                 stmt.setCharacterStream(index, new StringReader(content),
-                    content.length());
+                        content.length());
             } else {
                 stmt.setString(index, content);
             }
@@ -753,7 +753,7 @@ public class DataType {
             if (value instanceof java.util.Date) {
                 try {
                     SimpleDateFormat dataFormatYyyymmdd = new SimpleDateFormat(
-                        "yyyy-MM-dd");
+                            "yyyy-MM-dd");
                     result = dataFormatYyyymmdd.format(value);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -778,7 +778,7 @@ public class DataType {
             if (value instanceof java.util.Date) {
                 try {
                     SimpleDateFormat dataFormatHhmmss = new SimpleDateFormat(
-                        "HH:mm:ss");
+                            "HH:mm:ss");
                     result = dataFormatHhmmss.format(value);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -802,7 +802,7 @@ public class DataType {
             if (value instanceof java.util.Date) {
                 try {
                     SimpleDateFormat dataFormatYyyymmddhhmmss = new SimpleDateFormat(
-                        "yyyy-MM-dd HH:mm:ss");
+                            "yyyy-MM-dd HH:mm:ss");
                     result = dataFormatYyyymmddhhmmss.format(value);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -899,7 +899,7 @@ public class DataType {
                 return value;
             } else if (value instanceof java.util.Date) {
                 return new java.sql.Timestamp(
-                    ((java.util.Date) value).getTime());
+                        ((java.util.Date) value).getTime());
             } else {
                 try {
                     SimpleDateFormat a = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -918,7 +918,7 @@ public class DataType {
                 @SuppressWarnings("deprecation")
                 java.util.Date date = new java.util.Date(value.toString());
                 SimpleDateFormat a = new SimpleDateFormat(
-                    "yyyy-MM-dd HH:mm:ss");
+                        "yyyy-MM-dd HH:mm:ss");
                 return new java.util.Date(a.parse(a.format(date)).getTime());
             } catch (Exception e) {
                 String msg = "Date type convert failed:" + value;
@@ -949,7 +949,7 @@ public class DataType {
                 return Boolean.FALSE;
             } else if (value instanceof String) {
                 if ("true".equalsIgnoreCase((String) value)
-                    || "y".equalsIgnoreCase((String) value)) {
+                        || "y".equalsIgnoreCase((String) value)) {
                     return Boolean.TRUE;
                 }
                 return Boolean.FALSE;
@@ -979,35 +979,35 @@ public class DataType {
         }
 
         if (type.equalsIgnoreCase(DATATYPE_SHORT)
-            || type.equalsIgnoreCase(DATATYPE_LANG_SHORT)
-            || type.equalsIgnoreCase(DATATYPE_L_SHORT)) {
+                || type.equalsIgnoreCase(DATATYPE_LANG_SHORT)
+                || type.equalsIgnoreCase(DATATYPE_L_SHORT)) {
             if (value instanceof Short) {
                 return value;
             }
             return new java.math.BigDecimal(value.toString()).shortValue();
         } else if (type.equalsIgnoreCase(DATATYPE_INTEGER)
-            || type.equalsIgnoreCase(DATATYPE_LANG_INTEGER)
-            || type.equalsIgnoreCase(DATATYPE_L_INT)) {
+                || type.equalsIgnoreCase(DATATYPE_LANG_INTEGER)
+                || type.equalsIgnoreCase(DATATYPE_L_INT)) {
             if (value instanceof Integer) {
                 return value;
             }
             return new java.math.BigDecimal(value.toString()).intValue();
         } else if (type.equalsIgnoreCase(DATATYPE_CHARACTER)
-            || type.equalsIgnoreCase(DATATYPE_LANG_CHAR)
-            || type.equalsIgnoreCase(DATATYPE_L_CHAR)) {
+                || type.equalsIgnoreCase(DATATYPE_LANG_CHAR)
+                || type.equalsIgnoreCase(DATATYPE_L_CHAR)) {
             if (value instanceof Character) {
                 return value;
             }
             return value.toString().charAt(0);
         } else if (type.equalsIgnoreCase(DATATYPE_LONG)
-            || type.equalsIgnoreCase(DATATYPE_L_LONG)
-            || type.equalsIgnoreCase(DATATYPE_LANG_LONG)) {
+                || type.equalsIgnoreCase(DATATYPE_L_LONG)
+                || type.equalsIgnoreCase(DATATYPE_LANG_LONG)) {
             if (value instanceof Long) {
                 return value;
             }
             return new java.math.BigDecimal(value.toString()).longValue();
         } else if (type.equalsIgnoreCase(DATATYPE_STRING)
-            || type.equalsIgnoreCase(DATATYPE_LANG_STRING)) {
+                || type.equalsIgnoreCase(DATATYPE_LANG_STRING)) {
             if (value instanceof String) {
                 return value;
             }
@@ -1049,7 +1049,7 @@ public class DataType {
                 return value;
             } else if (value instanceof java.util.Date) {
                 return new java.sql.Timestamp(
-                    ((java.util.Date) value).getTime());
+                        ((java.util.Date) value).getTime());
             } else {
                 try {
                     SimpleDateFormat a = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -1064,25 +1064,25 @@ public class DataType {
                 }
             }
         } else if (type.equalsIgnoreCase(DATATYPE_DOUBLE) || type.equalsIgnoreCase(DATATYPE_LANG_DOUBLE)
-            || type.equalsIgnoreCase(DATATYPE_L_DOUBLE)) {
+                || type.equalsIgnoreCase(DATATYPE_L_DOUBLE)) {
             if (value instanceof Double) {
                 return value;
             }
             return new java.math.BigDecimal(value.toString()).doubleValue();
         } else if (type.equalsIgnoreCase(DATATYPE_FLOAT) || type.equalsIgnoreCase(DATATYPE_LANG_FLOAT)
-            || type.equalsIgnoreCase(DATATYPE_L_FLOAT)) {
+                || type.equalsIgnoreCase(DATATYPE_L_FLOAT)) {
             if (value instanceof Float) {
                 return value;
             }
             return new java.math.BigDecimal(value.toString()).floatValue();
         } else if (type.equalsIgnoreCase(DATATYPE_BYTE) || type.equalsIgnoreCase(DATATYPE_LANG_BYTE)
-            || type.equalsIgnoreCase(DATATYPE_L_BYTE)) {
+                || type.equalsIgnoreCase(DATATYPE_L_BYTE)) {
             if (value instanceof Byte) {
                 return value;
             }
             return new java.math.BigDecimal(value.toString()).byteValue();
         } else if (type.equalsIgnoreCase(DATATYPE_BOOLEAN) || type.equalsIgnoreCase(DATATYPE_LANG_BOOLEAN)
-            || type.equalsIgnoreCase(DATATYPE_L_BOOLEAN)) {
+                || type.equalsIgnoreCase(DATATYPE_L_BOOLEAN)) {
             if (value instanceof Boolean) {
                 return value;
             } else if (value instanceof Number) {
@@ -1092,7 +1092,7 @@ public class DataType {
                 return Boolean.FALSE;
             } else if (value instanceof String) {
                 if ("true".equalsIgnoreCase((String) value)
-                    || "y".equalsIgnoreCase((String) value)) {
+                        || "y".equalsIgnoreCase((String) value)) {
                     return Boolean.TRUE;
                 }
                 return Boolean.FALSE;
@@ -1189,7 +1189,7 @@ public class DataType {
         if (obj instanceof Character) {
             return (Character) obj;
         } else if ((obj instanceof String) && (
-            ((String) obj).length() == 1)) {
+                ((String) obj).length() == 1)) {
             return ((String) obj).charAt(0);
         } else {
             return (Character) transfer(obj, Character.class);
@@ -1310,12 +1310,12 @@ public class DataType {
 
     public static String[] getDataTypeNames() {
         return new String[]{DATATYPE_STRING, DATATYPE_SHORT,
-            DATATYPE_INTEGER, DATATYPE_LONG, DATATYPE_DOUBLE,
-            DATATYPE_FLOAT, DATATYPE_BYTE, DATATYPE_CHARACTER, DATATYPE_BOOLEAN,
-            DATATYPE_DATE, DATATYPE_TIME, DATATYPE_DATETIME,
-            DATATYPE_OBJECT, DATATYPE_L_SHORT, DATATYPE_L_INT, DATATYPE_L_LONG,
-            DATATYPE_L_LONG, DATATYPE_L_FLOAT, DATATYPE_L_BYTE, DATATYPE_L_CHAR,
-            DATATYPE_L_BOOLEAN, "UserInfoInterface"};
+                DATATYPE_INTEGER, DATATYPE_LONG, DATATYPE_DOUBLE,
+                DATATYPE_FLOAT, DATATYPE_BYTE, DATATYPE_CHARACTER, DATATYPE_BOOLEAN,
+                DATATYPE_DATE, DATATYPE_TIME, DATATYPE_DATETIME,
+                DATATYPE_OBJECT, DATATYPE_L_SHORT, DATATYPE_L_INT, DATATYPE_L_LONG,
+                DATATYPE_L_LONG, DATATYPE_L_FLOAT, DATATYPE_L_BYTE, DATATYPE_L_CHAR,
+                DATATYPE_L_BOOLEAN, "UserInfoInterface"};
     }
 
     public static Class<?> getPrimitiveClass(Class<?> type) {
@@ -1423,26 +1423,26 @@ public class DataType {
         }
         if (dest.isPrimitive() && sour.isPrimitive()) {
             if ((sour == Byte.TYPE)
-                && (dest == Short.TYPE || dest == Integer.TYPE
-                || dest == Long.TYPE || dest == Float.TYPE || dest == Double.TYPE)) {
+                    && (dest == Short.TYPE || dest == Integer.TYPE
+                    || dest == Long.TYPE || dest == Float.TYPE || dest == Double.TYPE)) {
                 return true;
             }
             if ((sour == Short.TYPE)
-                && (dest == Integer.TYPE || dest == Long.TYPE
-                || dest == Float.TYPE || dest == Double.TYPE)) {
+                    && (dest == Integer.TYPE || dest == Long.TYPE
+                    || dest == Float.TYPE || dest == Double.TYPE)) {
                 return true;
             }
             if ((sour == Character.TYPE)
-                && (dest == Integer.TYPE || dest == Long.TYPE
-                || dest == Float.TYPE || dest == Double.TYPE)) {
+                    && (dest == Integer.TYPE || dest == Long.TYPE
+                    || dest == Float.TYPE || dest == Double.TYPE)) {
                 return true;
             }
             if ((sour == Integer.TYPE)
-                && (dest == Long.TYPE || dest == Float.TYPE || dest == Double.TYPE)) {
+                    && (dest == Long.TYPE || dest == Float.TYPE || dest == Double.TYPE)) {
                 return true;
             }
             if ((sour == Long.TYPE)
-                && (dest == Float.TYPE || dest == Double.TYPE)) {
+                    && (dest == Float.TYPE || dest == Double.TYPE)) {
                 return true;
             }
             return (sour == Float.TYPE) && (dest == Double.TYPE);
@@ -1526,7 +1526,7 @@ public class DataType {
             return "new Boolean(" + value + ")";
         }
         return "(" + getClassName(type) + ")DataType.transfer(" + "\""
-            + value + "\", " + getClassName(type) + ".class)";
+                + value + "\", " + getClassName(type) + ".class)";
     }
 
     public static String getVarTransferString(Class<?> sourceType,
@@ -1542,15 +1542,15 @@ public class DataType {
         }
 
         String tmpVar = sourceType.isPrimitive() ?
-            "new " + getClassName(getPrimitiveClass(sourceType)) + "(" + varName + ")"
-            : varName;
+                "new " + getClassName(getPrimitiveClass(sourceType)) + "(" + varName + ")"
+                : varName;
         return destType.isPrimitive() ?
-            "((" + getClassName(getPrimitiveClass(destType))
-                + ")DataType.transfer(" + tmpVar + ","
-                + getClassName(destType) + ".class))."
-                + getTransFunc(destType)
-            : "(" + getClassName(destType) + ")DataType.transfer("
-            + tmpVar + ", " + getClassName(destType) + ".class)";
+                "((" + getClassName(getPrimitiveClass(destType))
+                        + ")DataType.transfer(" + tmpVar + ","
+                        + getClassName(destType) + ".class))."
+                        + getTransFunc(destType)
+                : "(" + getClassName(destType) + ")DataType.transfer("
+                + tmpVar + ", " + getClassName(destType) + ".class)";
     }
 
 }

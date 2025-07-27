@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<bpm code="bpm.gateway.ultraComplexStructure" name="超复杂网关结构示例" type="statefulProcess" description="包含多层嵌套com.alibaba.compileflow.engine.process网关的流程示例">
+<bpm code="bpm.gateway.ultraComplexStructure" name="超复杂网关结构示例" type="statefulProcess"
+     description="包含多层嵌套com.alibaba.compileflow.engine.process网关的流程示例">
     <!-- 变量定义保持不变 -->
     <var name="A" description="入参" dataType="java.lang.String" inOutType="param"/>
     <var name="X" description="入参" dataType="java.lang.String" inOutType="param"/>
@@ -45,11 +46,6 @@
     <var name="PostG2" description="入参" dataType="java.lang.String" inOutType="param"/>
 
 
-
-
-
-
-
     <!-- 开始节点 -->
     <start id="start" name="开始" tag="start" g="100,100,40,40">
         <transition to="G0"/>
@@ -66,7 +62,8 @@
         <transition to="AltDecision"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="AltPath" description="" dataType="java.lang.String" contextVarName="AltPath" inOutType="param"/>
+                <var name="AltPath" description="" dataType="java.lang.String" contextVarName="AltPath"
+                     inOutType="param"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -81,7 +78,8 @@
         <transition to="AltMerge"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="AltTask1" description="" dataType="java.lang.String" contextVarName="AltTask1" inOutType="param"/>
+                <var name="AltTask1" description="" dataType="java.lang.String" contextVarName="AltTask1"
+                     inOutType="param"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -90,7 +88,8 @@
         <transition to="AltMerge"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="AltTask2" description="" dataType="java.lang.String" contextVarName="AltTask2" inOutType="param"/>
+                <var name="AltTask2" description="" dataType="java.lang.String" contextVarName="AltTask2"
+                     inOutType="param"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -99,7 +98,8 @@
         <transition to="G1"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="AltMerge" description="" dataType="java.lang.String" contextVarName="AltMerge" inOutType="param"/>
+                <var name="AltMerge" description="" dataType="java.lang.String" contextVarName="AltMerge"
+                     inOutType="param"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -171,7 +171,8 @@
         <transition to="G2"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="MergeA" description="" dataType="java.lang.String" contextVarName="MergeA" inOutType="param"/>
+                <var name="MergeA" description="" dataType="java.lang.String" contextVarName="MergeA"
+                     inOutType="param"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -191,7 +192,8 @@
         <transition to="LoopDecision"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="LoopStart" description="" dataType="java.lang.String" contextVarName="LoopStart" inOutType="param"/>
+                <var name="LoopStart" description="" dataType="java.lang.String" contextVarName="LoopStart"
+                     inOutType="param"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -205,7 +207,8 @@
         <transition to="G3"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="LoopTask" description="" dataType="java.lang.String" contextVarName="LoopTask" inOutType="param"/>
+                <var name="LoopTask" description="" dataType="java.lang.String" contextVarName="LoopTask"
+                     inOutType="param"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -214,7 +217,8 @@
         <transition to="G3"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="LoopEnd" description="" dataType="java.lang.String" contextVarName="LoopEnd" inOutType="param"/>
+                <var name="LoopEnd" description="" dataType="java.lang.String" contextVarName="LoopEnd"
+                     inOutType="param"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -230,7 +234,8 @@
         <transition to="MergeParallel"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="Parallel1" description="" dataType="java.lang.String" contextVarName="Parallel1" inOutType="param"/>
+                <var name="Parallel1" description="" dataType="java.lang.String" contextVarName="Parallel1"
+                     inOutType="param"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -239,7 +244,8 @@
         <transition to="MergeParallel"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="Parallel2" description="" dataType="java.lang.String" contextVarName="Parallel2" inOutType="param"/>
+                <var name="Parallel2" description="" dataType="java.lang.String" contextVarName="Parallel2"
+                     inOutType="param"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -248,7 +254,8 @@
         <transition to="MergeParallel"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="Parallel3" description="" dataType="java.lang.String" contextVarName="Parallel3" inOutType="param"/>
+                <var name="Parallel3" description="" dataType="java.lang.String" contextVarName="Parallel3"
+                     inOutType="param"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -257,7 +264,8 @@
         <transition to="Y"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="MergeParallel" description="" dataType="java.lang.String" contextVarName="MergeParallel" inOutType="param"/>
+                <var name="MergeParallel" description="" dataType="java.lang.String" contextVarName="MergeParallel"
+                     inOutType="param"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -316,7 +324,8 @@
         <transition to="J"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="MergeB" description="" dataType="java.lang.String" contextVarName="MergeB" inOutType="param"/>
+                <var name="MergeB" description="" dataType="java.lang.String" contextVarName="MergeB"
+                     inOutType="param"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -359,7 +368,8 @@
         <transition to="J"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="MergeC" description="" dataType="java.lang.String" contextVarName="MergeC" inOutType="param"/>
+                <var name="MergeC" description="" dataType="java.lang.String" contextVarName="MergeC"
+                     inOutType="param"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -400,7 +410,8 @@
         <transition to="MergeF"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="PostF1" description="" dataType="java.lang.String" contextVarName="PostF1" inOutType="param"/>
+                <var name="PostF1" description="" dataType="java.lang.String" contextVarName="PostF1"
+                     inOutType="param"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -409,7 +420,8 @@
         <transition to="MergeF"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="PostF2" description="" dataType="java.lang.String" contextVarName="PostF2" inOutType="param"/>
+                <var name="PostF2" description="" dataType="java.lang.String" contextVarName="PostF2"
+                     inOutType="param"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -418,7 +430,8 @@
         <transition to="H"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="MergeF" description="" dataType="java.lang.String" contextVarName="MergeF" inOutType="param"/>
+                <var name="MergeF" description="" dataType="java.lang.String" contextVarName="MergeF"
+                     inOutType="param"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -443,7 +456,8 @@
         <transition to="MergeG"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="PostG1" description="" dataType="java.lang.String" contextVarName="PostG1" inOutType="param"/>
+                <var name="PostG1" description="" dataType="java.lang.String" contextVarName="PostG1"
+                     inOutType="param"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -452,7 +466,8 @@
         <transition to="MergeG"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="PostG2" description="" dataType="java.lang.String" contextVarName="PostG2" inOutType="param"/>
+                <var name="PostG2" description="" dataType="java.lang.String" contextVarName="PostG2"
+                     inOutType="param"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -461,7 +476,8 @@
         <transition to="H"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="MergeG" description="" dataType="java.lang.String" contextVarName="MergeG" inOutType="param"/>
+                <var name="MergeG" description="" dataType="java.lang.String" contextVarName="MergeG"
+                     inOutType="param"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -477,7 +493,8 @@
     </autoTask>
 
     <!-- 最终com.alibaba.compileflow.engine.process -->
-    <decision id="FinalDecision" name="最终com.alibaba.compileflow.engine.process" tag="finalDecision" g="2900,30,88,48">
+    <decision id="FinalDecision" name="最终com.alibaba.compileflow.engine.process" tag="finalDecision"
+              g="2900,30,88,48">
         <transition expression="true" name="路径Y" to="Y"/>
         <transition expression="false" name="路径Z" to="Z"/>
     </decision>

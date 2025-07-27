@@ -37,7 +37,7 @@ public class AbstractExtensionElement extends AbstractElement {
     public void addExtensionElement(ExtensionElement extensionElement) {
         if (extensionElement != null && StringUtils.isNotEmpty(extensionElement.getName())) {
             List<ExtensionElement> extensionElements = this.extensionElements.computeIfAbsent(
-                extensionElement.getName(), name -> new ArrayList<>());
+                    extensionElement.getName(), name -> new ArrayList<>());
             extensionElements.add(extensionElement);
         }
     }
@@ -45,7 +45,7 @@ public class AbstractExtensionElement extends AbstractElement {
     public void addAttribute(ExtensionAttribute extensionAttribute) {
         if (extensionAttribute != null && StringUtils.isNotEmpty(extensionAttribute.getName())) {
             List<ExtensionAttribute> extensionAttributes = this.extensionAttributes.computeIfAbsent(
-                extensionAttribute.getName(), name -> new ArrayList<>());
+                    extensionAttribute.getName(), name -> new ArrayList<>());
             extensionAttributes.add(extensionAttribute);
         }
     }
@@ -62,10 +62,10 @@ public class AbstractExtensionElement extends AbstractElement {
         List<ExtensionAttribute> attributes = extensionAttributes.get(name);
         if (CollectionUtils.isNotEmpty(attributes)) {
             return attributes.stream()
-                .filter(attribute -> (StringUtils.isEmpty(attribute.getNamespacePrefix())
-                    && StringUtils.isEmpty(namespace))
-                    || attribute.getNamespacePrefix().equals(namespace))
-                .map(ExtensionAttribute::getValue).findFirst().orElse(null);
+                    .filter(attribute -> (StringUtils.isEmpty(attribute.getNamespacePrefix())
+                            && StringUtils.isEmpty(namespace))
+                            || attribute.getNamespacePrefix().equals(namespace))
+                    .map(ExtensionAttribute::getValue).findFirst().orElse(null);
         }
         return null;
     }

@@ -16,8 +16,6 @@
  */
 package com.alibaba.compileflow.engine.process.builder.generator.bean;
 
-import com.alibaba.compileflow.engine.extension.ExtensionManager;
-import com.alibaba.compileflow.engine.extension.PluginManager;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;

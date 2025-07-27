@@ -48,14 +48,14 @@ public class JdkJavaCompiler implements JavaCompiler {
         StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
         List<StringJavaFileObject> javaFileObjects = new ArrayList<>();
         StringJavaFileObject srcObject = new StringJavaFileObject(javaSource.getTargetFullClassName(),
-            javaSource.getJavaSourceCode());
+                javaSource.getJavaSourceCode());
         javaFileObjects.add(srcObject);
 
         Iterable<String> options = Arrays.asList("-d", outputFile.getPath());
 
         javax.tools.JavaCompiler.CompilationTask task = compiler.getTask(
-            CompileLogHelper.getInstance().getLogPrintWriter(), fileManager, null,
-            options, null, javaFileObjects);
+                CompileLogHelper.getInstance().getLogPrintWriter(), fileManager, null,
+                options, null, javaFileObjects);
         boolean result = task.call();
 
         if (!result) {
@@ -69,7 +69,7 @@ public class JdkJavaCompiler implements JavaCompiler {
 
         public StringJavaFileObject(String name, String code) {
             super(URI.create("string:///" + name.replace('.', '/') + Kind.SOURCE.extension),
-                Kind.SOURCE);
+                    Kind.SOURCE);
             this.code = code;
         }
 

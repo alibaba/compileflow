@@ -57,9 +57,9 @@ public class Process extends CallableElement implements ElementContainer<FlowEle
 
     public List<DataObject> getDataObjects() {
         return flowElements.stream()
-            .filter(e -> e instanceof DataObject)
-            .map(e -> (DataObject)e)
-            .collect(Collectors.toList());
+                .filter(e -> e instanceof DataObject)
+                .map(e -> (DataObject) e)
+                .collect(Collectors.toList());
     }
 
     public Auditing getAuditing() {
@@ -119,7 +119,7 @@ public class Process extends CallableElement implements ElementContainer<FlowEle
     }
 
     public void setCorrelationSubscriptions(
-        List<CorrelationSubscription> correlationSubscriptions) {
+            List<CorrelationSubscription> correlationSubscriptions) {
         this.correlationSubscriptions = correlationSubscriptions;
     }
 
@@ -180,13 +180,13 @@ public class Process extends CallableElement implements ElementContainer<FlowEle
     @Override
     public FlowElement getElement(String id) {
         return flowElements.stream().filter(e -> e.getId().equals(id))
-            .findFirst().orElseThrow(() -> new CompileFlowException("No element found, id is " + id));
+                .findFirst().orElseThrow(() -> new CompileFlowException("No element found, id is " + id));
     }
 
     @Override
     public List<FlowNode> getAllNodes() {
         return flowElements.stream().filter(e -> e instanceof FlowNode)
-            .map(e -> (FlowNode) e).collect(Collectors.toList());
+                .map(e -> (FlowNode) e).collect(Collectors.toList());
     }
 
     @Override
@@ -202,13 +202,13 @@ public class Process extends CallableElement implements ElementContainer<FlowEle
     @Override
     public FlowNode getStartNode() {
         return getAllNodes().stream().filter(node -> node instanceof StartEvent).findFirst()
-            .orElseThrow(() -> new CompileFlowException("No start node found"));
+                .orElseThrow(() -> new CompileFlowException("No start node found"));
     }
 
     @Override
     public FlowNode getEndNode() {
         return getAllNodes().stream().filter(node -> node instanceof EndEvent).findFirst()
-            .orElseThrow(() -> new CompileFlowException("No end node found"));
+                .orElseThrow(() -> new CompileFlowException("No end node found"));
     }
 
     @Override

@@ -1,78 +1,103 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <bpm code="OutpatientMaterialFulfillmentSubProcess" name="结算子流程" type="process" description="结算子流程">
-  <var name="context" description="入参" dataType="com.xx.bizprocess.common.param.OrderFulfillmentContext" contextVarName="context" inOutType="param"></var>
-  <var name="orderCreateReqs" description="入参" dataType="java.util.List&lt;com.xx.client.trade.request.OrderCreateReq&gt;" contextVarName="orderCreateReqs" inOutType="param"></var>
-  <var name="ordersCreateResult" description="开根号结果" dataType="com.xx.bizprocess.common.param.OrderCreateContext.OrdersCreateResult" contextVarName="ordersCreateResult" inOutType="return"></var>
-  <autoTask id="1627891686688" name="更新订单统一状态/履约状态/结算状态" tag="1627891686688" g="-5,560,260,45">
-    <transition to="1627713639748"></transition>
-    <action type="spring-bean">
-      <actionHandle bean="orderBizCancelActivity" clazz="com.xx.bizprocess.process.bpm.activity.standardActivity.OrderBizCancelActivity" method="cancelOrder">
-        <var name="context" dataType="com.xx.bizprocess.common.param.OrderFulfillmentContext" contextVarName="context" inOutType="param"></var>
-      </actionHandle>
-    </action>
-  </autoTask>
-  <autoTask id="1627891868424" name="更新结算状态为已结算" tag="1627891868424" g="485,305,165,50">
-    <transition to="1627891883181"></transition>
-    <action type="spring-bean">
-      <actionHandle bean="oPMaterialChargeStatusUpdateActivity" clazz="com.xx.bizprocess.process.bpm.activity.outpatient.material.OPMaterialChargeStatusUpdateActivity" method="updateChargeStatus">
-        <var name="context" dataType="com.xx.bizprocess.common.param.OrderFulfillmentContext" contextVarName="context" inOutType="param"></var>
-      </actionHandle>
-    </action>
-  </autoTask>
-  <autoTask id="1627891679930" name="校验订单结算状态" tag="1627891679930" g="50,270,180,35">
-    <transition to="1627891686688"></transition>
-    <action type="spring-bean">
-      <actionHandle bean="orderBizCancelActivity" clazz="com.xx.bizprocess.process.bpm.activity.standardActivity.OrderBizCancelActivity" method="checkOrderStatus">
-        <var name="context" dataType="com.xx.bizprocess.common.param.OrderFulfillmentContext" contextVarName="context" inOutType="param"></var>
-      </actionHandle>
-    </action>
-  </autoTask>
-  <waitEventTask id="1627891671654" name="等待业务方取消" tag="orderBizCancelCompleteCallback"
-                 eventName="orderBizCancelCompleteCallback" g="105,150,80,40">
-      <transition to="1627891679930"></transition>
-  </waitEventTask>
-  <start id="1" name="开始" tag="1" g="370,25,30,30">
-    <transition to="1627876102229"></transition>
-  </start>
+    <var name="context" description="入参" dataType="com.xx.bizprocess.common.param.OrderFulfillmentContext"
+         contextVarName="context" inOutType="param"></var>
+    <var name="orderCreateReqs" description="入参"
+         dataType="java.util.List&lt;com.xx.client.trade.request.OrderCreateReq&gt;" contextVarName="orderCreateReqs"
+         inOutType="param"></var>
+    <var name="ordersCreateResult" description="开根号结果"
+         dataType="com.xx.bizprocess.common.param.OrderCreateContext.OrdersCreateResult"
+         contextVarName="ordersCreateResult" inOutType="return"></var>
+    <autoTask id="1627891686688" name="更新订单统一状态/履约状态/结算状态" tag="1627891686688" g="-5,560,260,45">
+        <transition to="1627713639748"></transition>
+        <action type="spring-bean">
+            <actionHandle bean="orderBizCancelActivity"
+                          clazz="com.xx.bizprocess.process.bpm.activity.standardActivity.OrderBizCancelActivity"
+                          method="cancelOrder">
+                <var name="context" dataType="com.xx.bizprocess.common.param.OrderFulfillmentContext"
+                     contextVarName="context" inOutType="param"></var>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="1627891868424" name="更新结算状态为已结算" tag="1627891868424" g="485,305,165,50">
+        <transition to="1627891883181"></transition>
+        <action type="spring-bean">
+            <actionHandle bean="oPMaterialChargeStatusUpdateActivity"
+                          clazz="com.xx.bizprocess.process.bpm.activity.outpatient.material.OPMaterialChargeStatusUpdateActivity"
+                          method="updateChargeStatus">
+                <var name="context" dataType="com.xx.bizprocess.common.param.OrderFulfillmentContext"
+                     contextVarName="context" inOutType="param"></var>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="1627891679930" name="校验订单结算状态" tag="1627891679930" g="50,270,180,35">
+        <transition to="1627891686688"></transition>
+        <action type="spring-bean">
+            <actionHandle bean="orderBizCancelActivity"
+                          clazz="com.xx.bizprocess.process.bpm.activity.standardActivity.OrderBizCancelActivity"
+                          method="checkOrderStatus">
+                <var name="context" dataType="com.xx.bizprocess.common.param.OrderFulfillmentContext"
+                     contextVarName="context" inOutType="param"></var>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <waitEventTask id="1627891671654" name="等待业务方取消" tag="orderBizCancelCompleteCallback"
+                   eventName="orderBizCancelCompleteCallback" g="105,150,80,40">
+        <transition to="1627891679930"></transition>
+    </waitEventTask>
+    <start id="1" name="开始" tag="1" g="370,25,30,30">
+        <transition to="1627876102229"></transition>
+    </start>
     <waitEventTask id="1627891823021" name="等待结算完成" tag="waitChargeComplete" eventName="waitChargeComplete"
                    g="515,230,105,40">
         <transition to="1627891868424"></transition>
     </waitEventTask>
-  <end id="1627713639748" name="结束" tag="1627713639748" g="365,690,30,30"></end>
-  <autoTask id="1627891883181" name="通知修改结算状态（待结算-&gt;已结算）" tag="1627891883181" g="445,510,255,50">
-    <transition to="1627713639748"></transition>
-    <action type="spring-bean">
-      <actionHandle bean="chargeStatusMessageSendActivity" clazz="com.xx.bizprocess.process.bpm.activity.standardActivity.ChargeStatusMessageSendActivity" method="sendChargeMessage">
-        <var name="context" dataType="com.xx.bizprocess.common.param.OrderFulfillmentContext" contextVarName="context" inOutType="param"></var>
-      </actionHandle>
-    </action>
-  </autoTask>
-  <autoTask id="1630810840274" name="通知修改结算状态（待结算）" tag="1630810840274" g="150,385,255,50">
-    <transition to="1627713639748"></transition>
-    <action type="spring-bean">
-      <actionHandle bean="chargeStatusMessageSendActivity" clazz="com.xx.bizprocess.process.bpm.activity.standardActivity.ChargeStatusMessageSendActivity" method="sendChargeMessage">
-        <var name="context" dataType="com.xx.bizprocess.common.param.OrderFulfillmentContext" contextVarName="context" inOutType="param"></var>
-      </actionHandle>
-    </action>
-  </autoTask>
+    <end id="1627713639748" name="结束" tag="1627713639748" g="365,690,30,30"></end>
+    <autoTask id="1627891883181" name="通知修改结算状态（待结算-&gt;已结算）" tag="1627891883181" g="445,510,255,50">
+        <transition to="1627713639748"></transition>
+        <action type="spring-bean">
+            <actionHandle bean="chargeStatusMessageSendActivity"
+                          clazz="com.xx.bizprocess.process.bpm.activity.standardActivity.ChargeStatusMessageSendActivity"
+                          method="sendChargeMessage">
+                <var name="context" dataType="com.xx.bizprocess.common.param.OrderFulfillmentContext"
+                     contextVarName="context" inOutType="param"></var>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="1630810840274" name="通知修改结算状态（待结算）" tag="1630810840274" g="150,385,255,50">
+        <transition to="1627713639748"></transition>
+        <action type="spring-bean">
+            <actionHandle bean="chargeStatusMessageSendActivity"
+                          clazz="com.xx.bizprocess.process.bpm.activity.standardActivity.ChargeStatusMessageSendActivity"
+                          method="sendChargeMessage">
+                <var name="context" dataType="com.xx.bizprocess.common.param.OrderFulfillmentContext"
+                     contextVarName="context" inOutType="param"></var>
+            </actionHandle>
+        </action>
+    </autoTask>
     <waitEventTask id="1630810802664" name="等待取消结算" tag="restoreToWaitingChargeComplete"
                    eventName="restoreToWaitingChargeComplete" g="285,195,80,40">
         <transition to="1630810813431"></transition>
     </waitEventTask>
-  <autoTask id="1630810813431" name="更新结算状态为待结算" tag="1630810813431" g="260,305,165,50">
-    <transition to="1630810840274"></transition>
-    <action type="spring-bean">
-      <actionHandle bean="oPMaterialChargeStatusUpdateActivity" clazz="com.xx.bizprocess.process.bpm.activity.outpatient.material.OPMaterialChargeStatusUpdateActivity" method="updateChargeStatus">
-        <var name="context" dataType="com.xx.bizprocess.common.param.OrderFulfillmentContext" contextVarName="context" inOutType="param"></var>
-      </actionHandle>
-    </action>
-  </autoTask>
-  <decision id="1627876102229" name="履约分支" tag="1627876102229" g="340,80,90,50">
-    <transition to="1627891823021" priority="2" name="结算" expression="1==2"></transition>
-    <transition to="1627891671654" priority="1" name="业务方取消" expression="1==1"></transition>
-    <transition to="1630810802664" priority="4" name="取消结算" expression="1==4"></transition>
-    <action type="spring-bean">
-      <actionHandle bean="blankRouterActivity" clazz="com.xx.bizprocess.process.bpm.activity.standardActivity.BlankRouterActivity" method="handleBlankRoute"></actionHandle>
-    </action>
-  </decision>
+    <autoTask id="1630810813431" name="更新结算状态为待结算" tag="1630810813431" g="260,305,165,50">
+        <transition to="1630810840274"></transition>
+        <action type="spring-bean">
+            <actionHandle bean="oPMaterialChargeStatusUpdateActivity"
+                          clazz="com.xx.bizprocess.process.bpm.activity.outpatient.material.OPMaterialChargeStatusUpdateActivity"
+                          method="updateChargeStatus">
+                <var name="context" dataType="com.xx.bizprocess.common.param.OrderFulfillmentContext"
+                     contextVarName="context" inOutType="param"></var>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <decision id="1627876102229" name="履约分支" tag="1627876102229" g="340,80,90,50">
+        <transition to="1627891823021" priority="2" name="结算" expression="1==2"></transition>
+        <transition to="1627891671654" priority="1" name="业务方取消" expression="1==1"></transition>
+        <transition to="1630810802664" priority="4" name="取消结算" expression="1==4"></transition>
+        <action type="spring-bean">
+            <actionHandle bean="blankRouterActivity"
+                          clazz="com.xx.bizprocess.process.bpm.activity.standardActivity.BlankRouterActivity"
+                          method="handleBlankRoute"></actionHandle>
+        </action>
+    </decision>
 </bpm>

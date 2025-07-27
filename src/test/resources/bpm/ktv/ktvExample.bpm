@@ -29,7 +29,8 @@
         <transition g=":-15,20" to="8"/>
         <autoTask id="13-1" name="每人唱一首歌" g="70,95,88,48">
             <action type="spring-bean">
-                <actionHandle bean="ktvService" clazz="com.alibaba.compileflow.engine.process.mock.KtvService" method="sing">
+                <actionHandle bean="ktvService" clazz="com.alibaba.compileflow.engine.process.mock.KtvService"
+                              method="sing">
                     <var name="p1" description="" dataType="java.lang.String" contextVarName="p" defaultValue=""
                          inOutType="param"/>
                 </actionHandle>
@@ -43,7 +44,8 @@
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="calPrice">
                 <var name="p1" description="人数" dataType="java.lang.Integer" contextVarName="pList.size()"
                      defaultValue="" inOutType="param"/>
-                <var name="p2" description="价格" dataType="java.lang.Integer" contextVarName="totalPrice" defaultValue=""
+                <var name="p2" description="价格" dataType="java.lang.Integer" contextVarName="totalPrice"
+                     defaultValue=""
                      inOutType="return"/>
             </actionHandle>
         </action>

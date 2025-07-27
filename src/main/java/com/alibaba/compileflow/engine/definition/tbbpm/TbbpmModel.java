@@ -111,30 +111,30 @@ public class TbbpmModel extends AbstractFlowModel<FlowNode> {
     @Override
     public List<TransitionNode> getTransitionNodes() {
         return getRuntimeNodes().stream().filter(Objects::nonNull)
-            .collect(Collectors.toList());
+                .collect(Collectors.toList());
     }
 
     @Override
     public FlowNode getNode(String id) {
         return getAllNodes().stream().filter(node -> id.equals(node.getId())).findFirst()
-            .orElseThrow(() -> new CompileFlowException("Undefined node, node id is " + id));
+                .orElseThrow(() -> new CompileFlowException("Undefined node, node id is " + id));
     }
 
     public FlowNode getNodeByTag(String tag) {
         return getAllNodes().stream().filter(node -> tag.equals(node.getTag())).findFirst()
-            .orElseThrow(() -> new CompileFlowException("Undefined node, node tag is " + tag));
+                .orElseThrow(() -> new CompileFlowException("Undefined node, node tag is " + tag));
     }
 
     @Override
     public FlowNode getStartNode() {
         return getAllNodes().stream().filter(node -> node instanceof StartNode).findFirst()
-            .orElseThrow(() -> new CompileFlowException("No start node found"));
+                .orElseThrow(() -> new CompileFlowException("No start node found"));
     }
 
     @Override
     public FlowNode getEndNode() {
         return getAllNodes().stream().filter(node -> node instanceof EndNode).findFirst()
-            .orElseThrow(() -> new CompileFlowException("No end node found"));
+                .orElseThrow(() -> new CompileFlowException("No end node found"));
     }
 
 }

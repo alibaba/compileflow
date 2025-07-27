@@ -1,11 +1,10 @@
 package com.alibaba.compileflow.engine.extension;
 
-import org.junit.Test;
-import org.junit.Assert;
-
 import com.alibaba.compileflow.engine.extension.mock.MockService;
 import com.alibaba.compileflow.engine.extension.mock.MockServiceWithParam;
 import com.alibaba.compileflow.engine.extension.mock.MockServiceWithParamImpl;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * 测试目的：验证 ExtensionInvoker 的扩展点调用、参数传递、异常处理等功能。
@@ -32,7 +31,9 @@ public class ExtensionInvokerTest {
 
     @Test
     public void testExceptionHandling() {
-        MockService service = () -> { throw new RuntimeException("fail"); };
+        MockService service = () -> {
+            throw new RuntimeException("fail");
+        };
         try {
             service.hello();
             Assert.fail();

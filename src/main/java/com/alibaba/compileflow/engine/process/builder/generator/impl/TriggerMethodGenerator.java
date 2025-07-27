@@ -11,7 +11,7 @@ public class TriggerMethodGenerator extends AbstractGenerator {
     @Override
     public void generateCode(CodeTargetSupport codeTargetSupport) {
         codeTargetSupport.addBodyLine("return " + MethodConstants.TRIGGER_METHOD_NAME +
-            "(tag, null, _pContext);");
+                "(tag, null, _pContext);");
     }
 
 }

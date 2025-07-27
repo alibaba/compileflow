@@ -24,7 +24,7 @@ import java.io.File;
 public class CompileConstants {
 
     public static final String FLOW_COMPILE_CLASS_DIR = System.getProperty("user.dir") + File.separator
-        + ".flowclasses" + File.separator;
+            + ".flowclasses" + File.separator;
 
     public static void main(String[] args) {
         System.out.println(FLOW_COMPILE_CLASS_DIR);

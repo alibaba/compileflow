@@ -32,7 +32,7 @@ public class MvelExecutor implements ScriptExecutor<Map<String, Object>> {
     @Override
     public Object execute(String expression, Map<String, Object> context) {
         Object compileExpression = COMPILE_EXPRESSION_MAP.computeIfAbsent(expression,
-            MVEL::compileExpression);
+                MVEL::compileExpression);
         return MVEL.executeExpression(compileExpression, context);
     }
 

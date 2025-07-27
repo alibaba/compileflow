@@ -16,10 +16,14 @@ public class LoopDataOutputRefParser extends AbstractBpmnElementParser<LoopDataO
         ref.setValue(xmlSource.getElementText());
         return ref;
     }
+
     @Override
     protected void attachChildElement(Element childElement, LoopDataOutputRef element, ParseContext parseContext) {
         // loopDataOutputRef 没有子元素
     }
+
     @Override
-    public String getName() { return "loopDataOutputRef"; }
+    public String getName() {
+        return "loopDataOutputRef";
+    }
 }

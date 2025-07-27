@@ -54,8 +54,8 @@ public class ExtensionInvoker {
             return null;
         }
         ExtensionSpec extensionSpec = extensions.stream()
-            .filter(em -> extension.isInstance(em.getExtension()))
-            .findFirst().orElse(null);
+                .filter(em -> extension.isInstance(em.getExtension()))
+                .findFirst().orElse(null);
 
         return (T) invoke(extensionSpec, args);
     }
@@ -67,8 +67,8 @@ public class ExtensionInvoker {
             return null;
         }
         List<ExtensionSpec> extensionSpecs = extensions.stream()
-            .filter(em -> extension.isInstance(em.getExtension()))
-            .collect(Collectors.toList());
+                .filter(em -> extension.isInstance(em.getExtension()))
+                .collect(Collectors.toList());
 
         return (T) invoke(extensionSpecs, reduceFilter, args);
     }
@@ -83,14 +83,14 @@ public class ExtensionInvoker {
             }
 
             return (T) extensions.stream().map(em -> invoke(em, args))
-                .filter(predicate::test)
-                .findFirst().orElse(null);
+                    .filter(predicate::test)
+                    .findFirst().orElse(null);
         }
 
         if (ReducePolicy.ALL_MATCH.equals(reducePolicy)) {
             List results = extensions.stream().map(em -> invoke(em, args))
-                .filter(t -> predicate == null || predicate.test(t))
-                .collect(Collectors.toList());
+                    .filter(t -> predicate == null || predicate.test(t))
+                    .collect(Collectors.toList());
 
             if (extensionSpec.isCollectionFlat()) {
                 List<List> listsResults = (List<List>) results;
@@ -112,8 +112,8 @@ public class ExtensionInvoker {
 
     private Object invoke(ExtensionSpec extensionSpec, Object... args) {
         return Optional.ofNullable(extensionSpec).map(spec -> (MethodExtensionSpec) spec)
-            .map(MethodExtensionSpec::getMethodInvoker).map(
-                methodInvoker -> this.invoke(methodInvoker, args)).orElse(null);
+                .map(MethodExtensionSpec::getMethodInvoker).map(
+                        methodInvoker -> this.invoke(methodInvoker, args)).orElse(null);
     }
 
     private Object invoke(MethodInvoker methodInvoker, Object[] args) {

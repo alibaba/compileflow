@@ -43,22 +43,22 @@ public class BpmnModel extends AbstractFlowModel<FlowNode> {
 
     public <T extends FlowElement> T getFlowElement(String id) {
         return (T) processes.stream().map(process -> process.getElement(id))
-            .filter(Objects::nonNull).findFirst()
-            .orElseThrow(() -> new CompileFlowException("Undefined element, element id is " + id));
+                .filter(Objects::nonNull).findFirst()
+                .orElseThrow(() -> new CompileFlowException("Undefined element, element id is " + id));
     }
 
     @Override
     public List<TransitionNode> getTransitionNodes() {
         return processes.stream().map(Process::getFlowElements).flatMap(Collection::stream)
-            .filter(flowElement -> flowElement instanceof TransitionNode)
-            .map(flowElement -> (TransitionNode) flowElement)
-            .collect(Collectors.toList());
+                .filter(flowElement -> flowElement instanceof TransitionNode)
+                .map(flowElement -> (TransitionNode) flowElement)
+                .collect(Collectors.toList());
     }
 
     @Override
     public List<FlowNode> getAllNodes() {
         return processes.stream().map(Process::getAllNodes)
-            .flatMap(Collection::stream).collect(Collectors.toList());
+                .flatMap(Collection::stream).collect(Collectors.toList());
     }
 
     @Override
@@ -74,24 +74,24 @@ public class BpmnModel extends AbstractFlowModel<FlowNode> {
     @Override
     public FlowNode getNode(String id) {
         return getAllNodes().stream().filter(node -> id.equals(node.getId())).findFirst()
-            .orElseThrow(() -> new CompileFlowException("Undefined node, node id is " + id));
+                .orElseThrow(() -> new CompileFlowException("Undefined node, node id is " + id));
     }
 
     public FlowNode getNodeByTag(String tag) {
         return getAllNodes().stream().filter(node -> tag.equals(node.getTag())).findFirst()
-            .orElseThrow(() -> new CompileFlowException("Undefined node, node tag is " + tag));
+                .orElseThrow(() -> new CompileFlowException("Undefined node, node tag is " + tag));
     }
 
     @Override
     public FlowNode getStartNode() {
         return getAllNodes().stream().filter(node -> node instanceof StartEvent).findFirst()
-            .orElseThrow(() -> new CompileFlowException("No start node found"));
+                .orElseThrow(() -> new CompileFlowException("No start node found"));
     }
 
     @Override
     public FlowNode getEndNode() {
         return getAllNodes().stream().filter(node -> node instanceof EndEvent).findFirst()
-            .orElseThrow(() -> new CompileFlowException("No end node found"));
+                .orElseThrow(() -> new CompileFlowException("No end node found"));
     }
 
 }

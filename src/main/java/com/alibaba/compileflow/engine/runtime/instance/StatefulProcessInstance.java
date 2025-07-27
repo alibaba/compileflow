@@ -12,7 +12,7 @@ public interface StatefulProcessInstance extends ProcessInstance {
     /**
      * Triggers a state transition for the process instance with a specific tag and context.
      *
-     * @param tag Identifier of the process instance to trigger
+     * @param tag     Identifier of the process instance to trigger
      * @param context The context containing variables and metadata for the trigger
      * @return A runtime result encapsulating the outcome of the trigger operation
      * @throws Exception If an error occurs during the process execution
@@ -22,8 +22,8 @@ public interface StatefulProcessInstance extends ProcessInstance {
     /**
      * Triggers a state transition for the process instance with a specific tag, event, and context.
      *
-     * @param tag Identifier of the process instance to trigger
-     * @param event The event to trigger within the process instance
+     * @param tag     Identifier of the process instance to trigger
+     * @param event   The event to trigger within the process instance
      * @param context The context containing variables and metadata for the trigger
      * @return A runtime result encapsulating the outcome of the trigger operation
      * @throws Exception If an error occurs during the process execution

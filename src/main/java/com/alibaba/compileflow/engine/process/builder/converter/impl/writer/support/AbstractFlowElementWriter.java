@@ -25,7 +25,7 @@ import javax.xml.stream.XMLStreamWriter;
  * @author yusu
  */
 public abstract class AbstractFlowElementWriter<S extends Element> extends AbstractFlowWriterSupport
-    implements FlowElementWriter<S> {
+        implements FlowElementWriter<S> {
 
     @Override
     public void write(S element, XMLStreamWriter xsw) throws Exception {

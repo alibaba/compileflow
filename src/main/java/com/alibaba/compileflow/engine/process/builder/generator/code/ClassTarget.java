@@ -191,7 +191,7 @@ public class ClassTarget extends AbstractCodeTargetSupport implements CodeTarget
         if (CollectionUtils.isNotEmpty(superInterfaces)) {
             codeBuffer.append("implements ");
             codeBuffer.append(superInterfaces.stream().map(ClassWrapper::getShortRawName)
-                .collect(Collectors.joining(", ")));
+                    .collect(Collectors.joining(", ")));
             addSpace();
         }
 
@@ -224,7 +224,7 @@ public class ClassTarget extends AbstractCodeTargetSupport implements CodeTarget
 
     private boolean notContainImportedType(ClassWrapper classWrapper) {
         return importedTypes.stream().map(this::getImportName).noneMatch(
-            importName -> importName.equals(getImportName(classWrapper)));
+                importName -> importName.equals(getImportName(classWrapper)));
     }
 
     private boolean notContainField(String name) {

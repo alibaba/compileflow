@@ -26,7 +26,7 @@ import org.apache.commons.lang3.StringUtils;
  * @author yusu
  */
 public abstract class AbstractNodeGenerator<N extends Node>
-    extends AbstractRuntimeGenerator {
+        extends AbstractRuntimeGenerator {
 
     protected N flowNode;
 

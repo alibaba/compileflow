@@ -48,7 +48,7 @@ public class ExtensionElementsParser extends AbstractBpmnElementParser<Extension
 
     @Override
     protected void parseChildElements(XMLSource xmlSource, ExtensionElements element, ParseContext parseContext)
-        throws Exception {
+            throws Exception {
 
     }
 

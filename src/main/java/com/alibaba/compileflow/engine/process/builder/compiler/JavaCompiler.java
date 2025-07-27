@@ -26,7 +26,7 @@ import java.io.File;
  * Represents an extension point for compiling Java source code into bytecode.
  * Implementations of this interface are responsible for transforming Java source
  * into class files according to the specified options.
-
+ *
  * @author yusu
  */
 public interface JavaCompiler extends Extension {
@@ -36,8 +36,8 @@ public interface JavaCompiler extends Extension {
     /**
      * Compiles the given Java source and writes the compiled output to a file.
      *
-     * @param javaSource The Java source object containing source code and meta-data
-     * @param outputFile The target file to write the compiled class
+     * @param javaSource    The Java source object containing source code and meta-data
+     * @param outputFile    The target file to write the compiled class
      * @param compileOption Options for the compilation process
      * @throws Exception Any exception that occurs during the compilation process
      */

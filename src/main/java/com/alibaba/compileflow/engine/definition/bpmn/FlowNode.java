@@ -27,8 +27,14 @@ import java.util.List;
 public abstract class FlowNode extends FlowElement implements TransitionNode, HasVar {
 
     private NodeType nodeType;
-    public NodeType getNodeType() { return nodeType; }
-    public void setNodeType(NodeType nodeType) { this.nodeType = nodeType; }
+
+    public NodeType getNodeType() {
+        return nodeType;
+    }
+
+    public void setNodeType(NodeType nodeType) {
+        this.nodeType = nodeType;
+    }
 
     private String tag;
 

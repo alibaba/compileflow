@@ -49,24 +49,24 @@ public class SubProcessGenerator extends AbstractBpmnNodeGenerator<SubProcess> {
         codeTargetSupport.addBodyLine("{");
 
         if (StringUtils.isNotEmpty(flowNode.getSubProcessCode())
-            && CollectionUtils.isNotEmpty(flowNode.getAllNodes())) {
+                && CollectionUtils.isNotEmpty(flowNode.getAllNodes())) {
             codeTargetSupport.addBodyLine("Map<String, Object> _SubProcessContext = new HashMap<>();");
             for (IVar param : params) {
                 String var = param.getContextVarName() != null ?
-                    DataType.getVarTransferString(getVarType(param.getContextVarName()),
-                        DataType.getJavaClass(param.getDataType()), param.getContextVarName())
-                    : DataType.getDefaultValueString(DataType.getJavaClass(param.getDataType()),
-                    param.getDefaultValue());
+                        DataType.getVarTransferString(getVarType(param.getContextVarName()),
+                                DataType.getJavaClass(param.getDataType()), param.getContextVarName())
+                        : DataType.getDefaultValueString(DataType.getJavaClass(param.getDataType()),
+                        param.getDefaultValue());
 
                 codeTargetSupport.addBodyLine("_SubProcessContext.put(\"" + param.getName() + "\", " + var + ");");
             }
             String noReturnCode = "(ProcessEngineFactory.getProcessEngine()).start(\""
-                + flowNode.getSubProcessCode() + "\", _SubProcessContext)";
+                    + flowNode.getSubProcessCode() + "\", _SubProcessContext)";
 
             if (returnVar != null) {
                 String code = returnVar.getContextVarName()
-                    + " = (" + DataType.getJavaObjectType(returnVar.getDataType()) + ")"
-                    + "(" + noReturnCode + ").get(\"" + returnVar.getName() + "\");";
+                        + " = (" + DataType.getJavaObjectType(returnVar.getDataType()) + ")"
+                        + "(" + noReturnCode + ").get(\"" + returnVar.getName() + "\");";
                 codeTargetSupport.addBodyLine(code);
             } else {
                 codeTargetSupport.addBodyLine(noReturnCode + ";");

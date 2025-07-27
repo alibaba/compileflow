@@ -28,7 +28,7 @@ import com.alibaba.compileflow.engine.process.builder.converter.impl.parser.prov
  * @author yusu
  */
 public abstract class AbstractFlowElementParser<E extends Element> implements FlowElementParser<E>,
-    ParserProviderSupport<AbstractFlowElementParserProvider> {
+        ParserProviderSupport<AbstractFlowElementParserProvider> {
 
     @Override
     public E parse(XMLSource xmlSource, ParseContext parseContext) throws Exception {
@@ -49,7 +49,7 @@ public abstract class AbstractFlowElementParser<E extends Element> implements Fl
             String elementName = xmlSource.nextElementName();
             if (elementName != null) {
                 Element childElement = getParserProvider().getParser(elementName)
-                    .parse(xmlSource, parseContext);
+                        .parse(xmlSource, parseContext);
                 if (!attachPlatformChildElement(childElement, element, parseContext)) {
                     attachChildElement(childElement, element, parseContext);
                 }

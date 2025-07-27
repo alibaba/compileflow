@@ -23,5 +23,7 @@ public class LoopDataInputRefParser extends AbstractBpmnElementParser<LoopDataIn
     }
 
     @Override
-    public String getName() { return "loopDataInputRef"; }
+    public String getName() {
+        return "loopDataInputRef";
+    }
 }

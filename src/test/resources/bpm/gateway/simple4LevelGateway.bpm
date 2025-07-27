@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<bpm code="bpm.gateway.simple4LevelGateway" name="四层嵌套决策网关" type="statefulProcess" description="四层嵌套决策网关测试结构">
+<bpm code="bpm.gateway.simple4LevelGateway" name="四层嵌套决策网关" type="statefulProcess"
+     description="四层嵌套决策网关测试结构">
     <!-- 仅使用一个变量简化测试 -->
     <var name="flag" description="决策标志" dataType="java.lang.Boolean" inOutType="param"/>
     <!-- 为每个任务添加专用变量定义 -->

@@ -1,8 +1,8 @@
 package com.alibaba.compileflow.engine.extension.spec;
 
 import com.alibaba.compileflow.engine.extension.Extension;
-import com.alibaba.compileflow.engine.extension.annotation.ExtensionRealization;
 import com.alibaba.compileflow.engine.extension.annotation.ExtensionPoint;
+import com.alibaba.compileflow.engine.extension.annotation.ExtensionRealization;
 
 /**
  * @author yusu

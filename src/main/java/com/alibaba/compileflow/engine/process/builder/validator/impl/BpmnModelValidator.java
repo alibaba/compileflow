@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
  * @author yusu
  */
 public class BpmnModelValidator extends AbstractFlowModelValidator<BpmnModel>
-    implements com.alibaba.compileflow.engine.process.builder.validator.BpmnModelValidator {
+        implements com.alibaba.compileflow.engine.process.builder.validator.BpmnModelValidator {
 
     @Override
     public List<ValidateMessage> validate(BpmnModel flowModel) {
@@ -38,9 +38,9 @@ public class BpmnModelValidator extends AbstractFlowModelValidator<BpmnModel>
 
     private void validateGatewayNode(BpmnModel flowModel, List<ValidateMessage> validateMessages) {
         List<FlowNode> gatewayNodes = flowModel.getAllNodes().stream()
-            .filter(node -> node instanceof ExclusiveGateway || node instanceof InclusiveGateway
-                || node instanceof EventBasedGateway)
-            .collect(Collectors.toList());
+                .filter(node -> node instanceof ExclusiveGateway || node instanceof InclusiveGateway
+                        || node instanceof EventBasedGateway)
+                .collect(Collectors.toList());
         if (CollectionUtils.isEmpty(gatewayNodes)) {
             return;
         }
@@ -48,21 +48,21 @@ public class BpmnModelValidator extends AbstractFlowModelValidator<BpmnModel>
         for (FlowNode gatewayNode : gatewayNodes) {
             if (gatewayNode.getIncomingFlows().size() < 1) {
                 validateMessages.add(ValidateMessage.fail(
-                    "Gateway node should have at least one incoming transition, but found "
-                        + gatewayNode.getIncomingFlows().size() + ", please check this gateway node, id is "
-                        + gatewayNode.getId()));
+                        "Gateway node should have at least one incoming transition, but found "
+                                + gatewayNode.getIncomingFlows().size() + ", please check this gateway node, id is "
+                                + gatewayNode.getId()));
             }
             if (gatewayNode.getOutgoingFlows().size() <= 1) {
                 validateMessages.add(ValidateMessage.fail(
-                    "Gateway node should have more than one outgoing transition, but found "
-                        + gatewayNode.getOutgoingFlows().size() + ", please check this gateway node, id is "
-                        + gatewayNode.getId()));
+                        "Gateway node should have more than one outgoing transition, but found "
+                                + gatewayNode.getOutgoingFlows().size() + ", please check this gateway node, id is "
+                                + gatewayNode.getId()));
             }
         }
 
         List<FlowNode> parallelGatewayNodes = flowModel.getAllNodes().stream()
-            .filter(node -> node instanceof ParallelGateway)
-            .collect(Collectors.toList());
+                .filter(node -> node instanceof ParallelGateway)
+                .collect(Collectors.toList());
         if (CollectionUtils.isEmpty(parallelGatewayNodes)) {
             return;
         }
@@ -70,19 +70,19 @@ public class BpmnModelValidator extends AbstractFlowModelValidator<BpmnModel>
         for (FlowNode gatewayNode : gatewayNodes) {
             if (!isValidParallelGateway(gatewayNode)) {
                 validateMessages.add(ValidateMessage.fail(
-                    "ParallelGateway node should have one incoming transition and more than one outgoing transition "
-                        + "or one outgoing transition and more than one incoming transition , but found "
-                        + gatewayNode.getIncomingFlows().size() + " incoming transition and "
-                        + gatewayNode.getOutgoingFlows().size()
-                        + " outgoing transition, please check this gateway node, id is "
-                        + gatewayNode.getId()));
+                        "ParallelGateway node should have one incoming transition and more than one outgoing transition "
+                                + "or one outgoing transition and more than one incoming transition , but found "
+                                + gatewayNode.getIncomingFlows().size() + " incoming transition and "
+                                + gatewayNode.getOutgoingFlows().size()
+                                + " outgoing transition, please check this gateway node, id is "
+                                + gatewayNode.getId()));
             }
         }
     }
 
     private boolean isValidParallelGateway(FlowNode gatewayNode) {
         return (gatewayNode.getIncomingFlows().size() == 1 && gatewayNode.getOutgoingFlows().size() > 1)
-            || (gatewayNode.getOutgoingFlows().size() == 1 && gatewayNode.getIncomingFlows().size() > 1);
+                || (gatewayNode.getOutgoingFlows().size() == 1 && gatewayNode.getIncomingFlows().size() > 1);
     }
 
 }

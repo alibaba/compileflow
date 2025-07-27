@@ -1,9 +1,8 @@
 package com.alibaba.compileflow.engine.extension;
 
-import org.junit.Test;
-import org.junit.Assert;
-
 import com.alibaba.compileflow.engine.extension.mock.MockService;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * 测试目的：验证 Extension 标记接口的实现和扩展点集成。

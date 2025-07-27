@@ -63,17 +63,17 @@ public class IOUtils {
     }
 
     public static long copy(final InputStream input, final OutputStream output, final int bufferSize)
-        throws IOException {
+            throws IOException {
         return copyLarge(input, output, new byte[bufferSize]);
     }
 
     public static long copyLarge(final InputStream input, final OutputStream output)
-        throws IOException {
+            throws IOException {
         return copy(input, output, DEFAULT_BUFFER_SIZE);
     }
 
     public static long copyLarge(final InputStream input, final OutputStream output, final byte[] buffer)
-        throws IOException {
+            throws IOException {
         long count = 0;
         int n;
         while (EOF != (n = input.read(buffer))) {

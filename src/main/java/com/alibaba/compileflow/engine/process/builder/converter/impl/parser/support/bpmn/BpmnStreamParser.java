@@ -18,8 +18,8 @@ package com.alibaba.compileflow.engine.process.builder.converter.impl.parser.sup
 
 import com.alibaba.compileflow.engine.common.CompileFlowException;
 import com.alibaba.compileflow.engine.common.util.VarUtils;
-import com.alibaba.compileflow.engine.definition.bpmn.Process;
 import com.alibaba.compileflow.engine.definition.bpmn.*;
+import com.alibaba.compileflow.engine.definition.bpmn.Process;
 import com.alibaba.compileflow.engine.definition.common.Element;
 import com.alibaba.compileflow.engine.definition.common.ElementContainer;
 import com.alibaba.compileflow.engine.process.builder.converter.impl.parser.constants.ParseConstants;
@@ -109,20 +109,20 @@ public class BpmnStreamParser extends AbstractFlowStreamParser<BpmnModel> {
         Process process = bpmnModel.getProcess();
         buildFlowTransition(process);
         process.getFlowElements().stream().filter(flowElement -> flowElement instanceof SubProcess)
-            .map(e -> (SubProcess) e)
-            .forEach(this::buildFlowTransition);
+                .map(e -> (SubProcess) e)
+                .forEach(this::buildFlowTransition);
     }
 
     private void buildFlowTransition(ElementContainer<FlowElement, FlowNode> elementContainer) {
         elementContainer.getAllElements().stream().filter(flowElement -> flowElement instanceof SequenceFlow)
-            .map(e -> (SequenceFlow) e).forEach(sequenceFlow -> {
-                FlowNode source = elementContainer.getNode(sequenceFlow.getSourceRef());
-                FlowNode target = elementContainer.getNode(sequenceFlow.getTargetRef());
-                source.addOutgoingFlow(sequenceFlow);
-                source.addOutgoingNode(target);
-                target.addIncomingFlow(sequenceFlow);
-                target.addIncomingNode(source);
-            });
+                .map(e -> (SequenceFlow) e).forEach(sequenceFlow -> {
+                    FlowNode source = elementContainer.getNode(sequenceFlow.getSourceRef());
+                    FlowNode target = elementContainer.getNode(sequenceFlow.getTargetRef());
+                    source.addOutgoingFlow(sequenceFlow);
+                    source.addOutgoingNode(target);
+                    target.addIncomingFlow(sequenceFlow);
+                    target.addIncomingNode(source);
+                });
     }
 
     @Override

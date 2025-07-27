@@ -36,7 +36,7 @@ public class QLExecutor implements ScriptExecutor<IExpressContext> {
         List<String> errorList = new ArrayList<>();
         try {
             return EXPRESS_RUNNER.execute(expression, context, errorList,
-                true, false);
+                    true, false);
         } catch (Exception e) {
             throw new CompileFlowException(errorList.toString(), e);
         }

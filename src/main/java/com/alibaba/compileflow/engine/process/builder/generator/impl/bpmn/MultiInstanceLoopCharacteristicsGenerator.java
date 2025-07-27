@@ -32,8 +32,8 @@ public class MultiInstanceLoopCharacteristicsGenerator extends AbstractWrapperGe
     private MultiInstanceLoopCharacteristics loopCharacteristics;
 
     public MultiInstanceLoopCharacteristicsGenerator(AbstractProcessRuntime runtime,
-                                                MultiInstanceLoopCharacteristics loopCharacteristics,
-                                                Generator generator) {
+                                                     MultiInstanceLoopCharacteristics loopCharacteristics,
+                                                     Generator generator) {
         super(runtime, generator);
         this.loopCharacteristics = loopCharacteristics;
     }

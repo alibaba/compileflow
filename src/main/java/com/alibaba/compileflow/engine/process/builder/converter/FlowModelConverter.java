@@ -24,7 +24,7 @@ import java.io.OutputStream;
  * Interface for converting a FlowStreamSource to a model and vice versa.
  * Provides methods to convert a flow stream source into a model object and
  * to generate a stream representation of the model.
-
+ *
  * @param <T> The type of the converted model
  * @author yusu
  */

@@ -11,8 +11,10 @@
         <transition expression="route == 'X'" name="到X" priority="5" g=":-15,20" to="X"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="p1" description="路由选择" dataType="java.lang.String" contextVarName="route" inOutType="param"/>
-                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult" inOutType="return"/>
+                <var name="p1" description="路由选择" dataType="java.lang.String" contextVarName="route"
+                     inOutType="param"/>
+                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult"
+                     inOutType="return"/>
             </actionHandle>
         </action>
     </decision>
@@ -21,7 +23,8 @@
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
                 <var name="p1" description="A节点" dataType="java.lang.String" contextVarName="'A'" inOutType="param"/>
-                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult" inOutType="return"/>
+                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult"
+                     inOutType="return"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -30,7 +33,8 @@
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
                 <var name="p1" description="B节点" dataType="java.lang.String" contextVarName="'B'" inOutType="param"/>
-                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult" inOutType="return"/>
+                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult"
+                     inOutType="return"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -39,7 +43,8 @@
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
                 <var name="p1" description="X节点" dataType="java.lang.String" contextVarName="'X'" inOutType="param"/>
-                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult" inOutType="return"/>
+                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult"
+                     inOutType="return"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -48,7 +53,8 @@
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
                 <var name="p1" description="Y节点" dataType="java.lang.String" contextVarName="'Y'" inOutType="param"/>
-                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult" inOutType="return"/>
+                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult"
+                     inOutType="return"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -57,8 +63,10 @@
         <transition expression="next == 'Z'" name="到Z" priority="5" g=":-15,20" to="Z"/>
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
-                <var name="p1" description="汇合选择" dataType="java.lang.String" contextVarName="next" inOutType="param"/>
-                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult" inOutType="return"/>
+                <var name="p1" description="汇合选择" dataType="java.lang.String" contextVarName="next"
+                     inOutType="param"/>
+                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult"
+                     inOutType="return"/>
             </actionHandle>
         </action>
     </decision>
@@ -67,7 +75,8 @@
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
                 <var name="p1" description="D节点" dataType="java.lang.String" contextVarName="'D'" inOutType="param"/>
-                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult" inOutType="return"/>
+                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult"
+                     inOutType="return"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -76,7 +85,8 @@
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
                 <var name="p1" description="Z节点" dataType="java.lang.String" contextVarName="'Z'" inOutType="param"/>
-                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult" inOutType="return"/>
+                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult"
+                     inOutType="return"/>
             </actionHandle>
         </action>
     </autoTask>
@@ -85,7 +95,8 @@
         <action type="java">
             <actionHandle clazz="com.alibaba.compileflow.engine.process.mock.MockJavaClazz" method="echo">
                 <var name="p1" description="K节点" dataType="java.lang.String" contextVarName="'K'" inOutType="param"/>
-                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult" inOutType="return"/>
+                <var name="result" description="返回值" dataType="java.lang.String" contextVarName="echoResult"
+                     inOutType="return"/>
             </actionHandle>
         </action>
     </autoTask>

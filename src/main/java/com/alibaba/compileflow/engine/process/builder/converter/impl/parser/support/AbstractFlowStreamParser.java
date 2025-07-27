@@ -61,10 +61,10 @@ public abstract class AbstractFlowStreamParser<R> implements FlowStreamParser<R>
             InputStreamReader inputStreamReader = new InputStreamReader(source.getFlow(), parseConfig.getEncoding());
             XMLStreamReader xmlStreamReader = xmlInputFactory.createXMLStreamReader(inputStreamReader);
             xmlStreamReader = xmlInputFactory.createFilteredReader(
-                xmlStreamReader, reader -> XMLStreamConstants.START_DOCUMENT == reader.getEventType()
-                    || XMLStreamConstants.END_DOCUMENT == reader.getEventType()
-                    || XMLStreamConstants.START_ELEMENT == reader.getEventType()
-                    || XMLStreamConstants.END_ELEMENT == reader.getEventType());
+                    xmlStreamReader, reader -> XMLStreamConstants.START_DOCUMENT == reader.getEventType()
+                            || XMLStreamConstants.END_DOCUMENT == reader.getEventType()
+                            || XMLStreamConstants.START_ELEMENT == reader.getEventType()
+                            || XMLStreamConstants.END_ELEMENT == reader.getEventType());
 
             return parseFlowModel(XMLStreamReaderSource.of(xmlStreamReader));
         } catch (UnsupportedEncodingException e) {

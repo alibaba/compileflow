@@ -51,9 +51,9 @@ public class SpringActionGenerator extends AbstractActionGenerator {
         addImportedType(codeTargetSupport, clazz);
         ClassWrapper classWrapper = ClassWrapper.of(clazz);
         codeTargetSupport.addBodyLine(
-            getReturnVarCode() + "((" + classWrapper.getShortName()
-                + ")BeanProvider.getBean(\"" + bean + "\"))"
-                + "." + getMethod() + "(" + generateParameterCode(codeTargetSupport) + ");");
+                getReturnVarCode() + "((" + classWrapper.getShortName()
+                        + ")BeanProvider.getBean(\"" + bean + "\"))"
+                        + "." + getMethod() + "(" + generateParameterCode(codeTargetSupport) + ");");
     }
 
     private String getBean() {

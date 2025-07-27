@@ -132,7 +132,7 @@ public final class BpmnModelConstants {
     public static final String BPMN_ELEMENT_RESOURCE = "resource";
     public static final String BPMN_ELEMENT_RESOURCE_PARAMETER_BINDING = "resourceParameterBinding";
     public static final String BPMN_ELEMENT_RESOURCE_ASSIGNMENT_EXPRESSION =
-        "resourceAssignmentExpression";
+            "resourceAssignmentExpression";
     public static final String BPMN_ELEMENT_RESOURCE_ROLE = "resourceRole";
     public static final String BPMN_ELEMENT_RESOURCE_REF = "resourceRef";
     public static final String BPMN_ELEMENT_PERFORMER = "performer";
@@ -151,7 +151,7 @@ public final class BpmnModelConstants {
     public static final String BPMN_ELEMENT_CANCEL_EVENT_DEFINITION = "cancelEventDefinition";
     public static final String BPMN_ELEMENT_COMPENSATE_EVENT_DEFINITION = "compensateEventDefinition";
     public static final String BPMN_ELEMENT_CONDITIONAL_EVENT_DEFINITION =
-        "conditionalEventDefinition";
+            "conditionalEventDefinition";
     public static final String BPMN_ELEMENT_CONDITION = "condition";
     public static final String BPMN_ELEMENT_ERROR_EVENT_DEFINITION = "errorEventDefinition";
     public static final String BPMN_ELEMENT_LINK_EVENT_DEFINITION = "linkEventDefinition";
@@ -167,12 +167,12 @@ public final class BpmnModelConstants {
     public static final String BPMN_ELEMENT_LANE = "lane";
     public static final String BPMN_ELEMENT_ARTIFACT = "artifact";
     public static final String BPMN_ELEMENT_CORRELATION_PROPERTY_RETRIEVAL_EXPRESSION =
-        "correlationPropertyRetrievalExpression";
+            "correlationPropertyRetrievalExpression";
     public static final String BPMN_ELEMENT_MESSAGE_PATH = "messagePath";
     public static final String BPMN_ELEMENT_DATA_PATH = "dataPath";
     public static final String BPMN_ELEMENT_CALL_ACTIVITY = "callActivity";
     public static final String BPMN_ELEMENT_CORRELATION_PROPERTY_BINDING =
-        "correlationPropertyBinding";
+            "correlationPropertyBinding";
     public static final String BPMN_ELEMENT_CORRELATION_PROPERTY = "correlationProperty";
     public static final String BPMN_ELEMENT_CORRELATION_PROPERTY_REF = "correlationPropertyRef";
     public static final String BPMN_ELEMENT_CORRELATION_KEY = "correlationKey";
@@ -232,9 +232,9 @@ public final class BpmnModelConstants {
     public static final String BPMN_ELEMENT_TEXT = "text";
     public static final String BPMN_ELEMENT_COMPLEX_BEHAVIOR_DEFINITION = "complexBehaviorDefinition";
     public static final String BPMN_ELEMENT_STANDARD_LOOP_CHARACTERISTICS =
-        "standardLoopCharacteristics";
+            "standardLoopCharacteristics";
     public static final String BPMN_ELEMENT_MULTI_INSTANCE_LOOP_CHARACTERISTICS =
-        "multiInstanceLoopCharacteristics";
+            "multiInstanceLoopCharacteristics";
     public static final String BPMN_ELEMENT_LOOP_CARDINALITY = "loopCardinality";
     public static final String BPMN_ELEMENT_COMPLETION_CONDITION = "completionCondition";
     public static final String BPMN_ELEMENT_OUTPUT_DATA_ITEM = "outputDataItem";
@@ -352,9 +352,9 @@ public final class BpmnModelConstants {
     public static final String BPMN_ATTRIBUTE_PROCESS_REF = "processRef";
     public static final String BPMN_ATTRIBUTE_CALLED_COLLABORATION_REF = "calledCollaborationRef";
     public static final String BPMN_ATTRIBUTE_INNER_CONVERSATION_NODE_REF =
-        "innerConversationNodeRef";
+            "innerConversationNodeRef";
     public static final String BPMN_ATTRIBUTE_OUTER_CONVERSATION_NODE_REF =
-        "outerConversationNodeRef";
+            "outerConversationNodeRef";
     public static final String BPMN_ATTRIBUTE_INNER_MESSAGE_FLOW_REF = "innerMessageFlowRef";
     public static final String BPMN_ATTRIBUTE_OUTER_MESSAGE_FLOW_REF = "outerMessageFlowRef";
     public static final String BPMN_ATTRIBUTE_ASSOCIATION_DIRECTION = "associationDirection";
@@ -413,7 +413,7 @@ public final class BpmnModelConstants {
     public static final String BPMNDI_ATTRIBUTE_IS_MESSAGE_VISIBLE = "isMessageVisible";
     public static final String BPMNDI_ATTRIBUTE_PARTICIPANT_BAND_KIND = "participantBandKind";
     public static final String BPMNDI_ATTRIBUTE_CHOREOGRAPHY_ACTIVITY_SHAPE =
-        "choreographyActivityShape";
+            "choreographyActivityShape";
     public static final String BPMNDI_ATTRIBUTE_LABEL_STYLE = "labelStyle";
 
     /**

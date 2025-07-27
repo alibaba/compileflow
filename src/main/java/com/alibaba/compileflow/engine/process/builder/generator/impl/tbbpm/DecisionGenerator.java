@@ -56,10 +56,10 @@ public class DecisionGenerator extends AbstractTbbpmActionNodeGenerator<Decision
 //
 //                generateFollowingNodeCode(codeTargetSupport);
 //            } else {
-                generateNodeComment(codeTargetSupport);
-                generateActionMethodCode(codeTargetSupport, flowNode.getAction());
-                generateBranchNodeCode(codeTargetSupport);
-                generateFollowingNodeCode(codeTargetSupport);
+            generateNodeComment(codeTargetSupport);
+            generateActionMethodCode(codeTargetSupport, flowNode.getAction());
+            generateBranchNodeCode(codeTargetSupport);
+            generateFollowingNodeCode(codeTargetSupport);
 //            }
         }
     }

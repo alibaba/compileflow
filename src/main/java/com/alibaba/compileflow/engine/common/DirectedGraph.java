@@ -64,12 +64,12 @@ public class DirectedGraph<V> {
 
     public Map<V, Integer> inDegree() {
         return neighbors.entrySet().stream().collect(
-            Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getIncomings().size()));
+                Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getIncomings().size()));
     }
 
     public Map<V, Integer> outDegree() {
         return neighbors.entrySet().stream().collect(
-            Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getOutgoings().size()));
+                Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getOutgoings().size()));
     }
 
     public List<V> topSort() {

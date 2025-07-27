@@ -47,9 +47,9 @@ public abstract class AbstractBpmnElementParser<E extends Element> extends Abstr
     protected boolean attachPlatformChildElement(Element childElement, E element, ParseContext parseContext) {
         if (element instanceof HasVar && childElement instanceof ExtensionElements) {
             ((ExtensionElements) childElement).getExtensionElements().stream()
-                .filter(extensionElement -> "var".equals(extensionElement.getName()))
-                .map(this::buildExtensionVar)
-                .forEach(((HasVar) element)::addVar);
+                    .filter(extensionElement -> "var".equals(extensionElement.getName()))
+                    .map(this::buildExtensionVar)
+                    .forEach(((HasVar) element)::addVar);
             return false;
         }
         if (element instanceof ElementContainer && childElement instanceof FlowElement) {

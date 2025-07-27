@@ -102,8 +102,8 @@ public class ClassWrapper {
         }
         int index = name.indexOf("<");
         return index == -1 ? Collections.emptyList() :
-            Arrays.stream(name.substring(index + 1, name.lastIndexOf(">")).split(","))
-                .map(String::trim).map(ClassWrapper::of).collect(Collectors.toList());
+                Arrays.stream(name.substring(index + 1, name.lastIndexOf(">")).split(","))
+                        .map(String::trim).map(ClassWrapper::of).collect(Collectors.toList());
     }
 
     public String getName() {
@@ -152,7 +152,7 @@ public class ClassWrapper {
 
         if (CollectionUtils.isNotEmpty(parameterizedType)) {
             sb.append("<").append(parameterizedType.stream().map(ClassWrapper::getBaseShortName)
-                .collect(Collectors.joining(", "))).append(">");
+                    .collect(Collectors.joining(", "))).append(">");
         }
 
         return sb.toString();

@@ -61,7 +61,7 @@ public class PluginConfig {
     }
 
     public void setPluginDependencyConfigs(
-        List<PluginDependencyConfig> pluginDependencyConfigs) {
+            List<PluginDependencyConfig> pluginDependencyConfigs) {
         this.pluginDependencyConfigs = pluginDependencyConfigs;
     }
 

@@ -84,8 +84,8 @@ public class ExtensionManager implements Lifecycle {
             return Collections.emptyList();
         }
         return extensionSpecs.stream().map(ExtensionSpec::getExtension)
-            .filter(extension -> extensionClass.isAssignableFrom(extension.getClass()))
-            .map(extension -> (T) extension).collect(Collectors.toList());
+                .filter(extension -> extensionClass.isAssignableFrom(extension.getClass()))
+                .map(extension -> (T) extension).collect(Collectors.toList());
     }
 
     public void registerExtensionPoint(Class<? extends Extension> extensionPointClass) {
@@ -96,7 +96,7 @@ public class ExtensionManager implements Lifecycle {
         ExtensionPoint extensionPointAnnotation = AnnotationUtils.findAnnotation(extensionPointClass, ExtensionPoint.class);
         if (extensionPointAnnotation != null) {
             ExtensionPointSpec extensionPointSpec = ClassExtensionPointSpec.of(extensionPointAnnotation,
-                extensionPointClass);
+                    extensionPointClass);
             extensionPointSpecs.add(extensionPointSpec);
             extensionPointSpecMap.put(extensionPointSpec.getCode(), extensionPointSpec);
         }
@@ -106,7 +106,7 @@ public class ExtensionManager implements Lifecycle {
             extensionPointAnnotation = AnnotationUtils.findAnnotation(method, ExtensionPoint.class);
             if (extensionPointAnnotation != null) {
                 ExtensionPointSpec extensionPointSpec = MethodExtensionPointSpec.of(extensionPointAnnotation,
-                    extensionPointClass, method);
+                        extensionPointClass, method);
                 extensionPointSpecs.add(extensionPointSpec);
                 extensionPointSpecMap.put(extensionPointSpec.getCode(), extensionPointSpec);
             }
@@ -149,7 +149,7 @@ public class ExtensionManager implements Lifecycle {
         ExtensionPoint extensionPointAnnotation = AnnotationUtils.findAnnotation(extensionClass, ExtensionPoint.class);
         if (extensionPointAnnotation != null) {
             ExtensionSpec extensionSpec = ClassExtensionSpec.of(extensionRealizationAnnotation,
-                extensionPointAnnotation, extension);
+                    extensionPointAnnotation, extension);
             extensionSpecs.add(extensionSpec);
             extensionSpecMap.put(extensionSpec.getCode(), extensionSpec);
         }
@@ -159,7 +159,7 @@ public class ExtensionManager implements Lifecycle {
             extensionPointAnnotation = AnnotationUtils.findAnnotation(method, ExtensionPoint.class);
             if (extensionPointAnnotation != null) {
                 ExtensionSpec extensionSpec = MethodExtensionSpec.of(extensionRealizationAnnotation,
-                    extensionPointAnnotation, extension, method);
+                        extensionPointAnnotation, extension, method);
                 extensionSpecs.add(extensionSpec);
                 extensionSpecMap.put(extensionSpec.getCode(), extensionSpec);
             }

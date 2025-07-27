@@ -27,7 +27,7 @@ import javax.xml.stream.XMLStreamWriter;
  * @author yusu
  */
 public abstract class AbstractTbbpmActionNodeWriter<S extends ActionNode>
-    extends AbstractTbbpmFlowElementWriter<S> {
+        extends AbstractTbbpmFlowElementWriter<S> {
 
     @Override
     protected void doWrite(S element, XMLStreamWriter xsw) throws Exception {

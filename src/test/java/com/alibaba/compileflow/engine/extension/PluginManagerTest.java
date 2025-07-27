@@ -1,7 +1,7 @@
 package com.alibaba.compileflow.engine.extension;
 
-import org.junit.Test;
 import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * 测试目的：验证 PluginManager 的插件加载、依赖管理、扩展点批量注册等功能。

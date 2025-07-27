@@ -195,7 +195,7 @@ public class ProcessEngineTest {
     }
 
     @Test
-        public void testUltraComplexStructure() {
+    public void testUltraComplexStructure() {
         final String code = "bpm.gateway.ultraComplexStructure";
         final Map<String, Object> context = new HashMap<>();
         final ProcessEngine processEngine = ProcessEngineFactory.getProcessEngine();

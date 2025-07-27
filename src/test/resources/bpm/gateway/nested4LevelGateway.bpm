@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<bpm code="bpm.gateway.nested4LevelGateway" name="四层嵌套决策流程" type="statefulProcess" description="四层嵌套决策网关流程示例">
+<bpm code="bpm.gateway.nested4LevelGateway" name="四层嵌套决策流程" type="statefulProcess"
+     description="四层嵌套决策网关流程示例">
     <!-- 变量定义 -->
     <var name="flag1" description="第一层决策标志" dataType="java.lang.Boolean" inOutType="param"/>
     <var name="flag2" description="第二层决策标志" dataType="java.lang.Boolean" inOutType="param"/>

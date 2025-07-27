@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<bpm code="bpm.gateway.complexBranchMerge" name="网关流程示例" type="statefulProcess" description="包含com.alibaba.compileflow.engine.process网关的流程示例">
+<bpm code="bpm.gateway.complexBranchMerge" name="网关流程示例" type="statefulProcess"
+     description="包含com.alibaba.compileflow.engine.process网关的流程示例">
     <var name="A" description="入参" dataType="java.lang.String" inOutType="param"/>
     <var name="X" description="入参" dataType="java.lang.String" inOutType="param"/>
     <var name="B" description="入参" dataType="java.lang.String" inOutType="param"/>

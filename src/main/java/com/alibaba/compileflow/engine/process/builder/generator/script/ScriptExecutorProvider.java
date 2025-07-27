@@ -35,15 +35,15 @@ public class ScriptExecutorProvider {
     @SuppressWarnings("unchecked")
     public <T extends ScriptExecutor> T getScriptExecutor(String name) {
         return (T) Optional.ofNullable(scriptExecutorMap.get(name))
-            .orElseThrow(() -> new CompileFlowException("No script executor found, name is " + name));
+                .orElseThrow(() -> new CompileFlowException("No script executor found, name is " + name));
     }
 
     public void registerScriptExecutor(ScriptExecutor executor) {
         ScriptExecutor existedExecutor = scriptExecutorMap.get(executor.getName());
         if (existedExecutor != null && !existedExecutor.getClass().equals(executor.getClass())) {
             throw new CompileFlowException(
-                "Duplicated executor name[" + executor.getName() + "] founded, "
-                    + "[" + executor.getClass().getName() + ", " + existedExecutor.getClass().getName() + "]");
+                    "Duplicated executor name[" + executor.getName() + "] founded, "
+                            + "[" + executor.getClass().getName() + ", " + existedExecutor.getClass().getName() + "]");
         }
         scriptExecutors.add(executor);
         scriptExecutorMap.put(executor.getName(), executor);

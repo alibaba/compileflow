@@ -30,25 +30,25 @@ public class MultiInstanceLoopCharacteristicsParser extends AbstractBpmnElementP
 
     @Override
     protected MultiInstanceLoopCharacteristics doParse(XMLSource xmlSource, ParseContext parseContext)
-        throws Exception {
+            throws Exception {
         MultiInstanceLoopCharacteristics multiInstanceLoopCharacteristics = new MultiInstanceLoopCharacteristics();
         multiInstanceLoopCharacteristics.setId(xmlSource.getString(BpmnModelConstants.BPMN_ATTRIBUTE_ID));
         multiInstanceLoopCharacteristics.setTestBefore(xmlSource.getBoolean(BpmnModelConstants.BPMN_ATTRIBUTE_TEST_BEFORE));
         multiInstanceLoopCharacteristics.setLoopCondition(
-            xmlSource.getString(BpmnModelConstants.BPMN_ATTRIBUTE_LOOP_CONDITION));
+                xmlSource.getString(BpmnModelConstants.BPMN_ATTRIBUTE_LOOP_CONDITION));
         multiInstanceLoopCharacteristics.setLoopMaximum(xmlSource.getLong(BpmnModelConstants.BPMN_ATTRIBUTE_LOOP_MAXIMUM));
         String isSequentialStr = xmlSource.getString("isSequential");
         multiInstanceLoopCharacteristics.setSequential("true".equalsIgnoreCase(isSequentialStr));
 
 
         multiInstanceLoopCharacteristics.setCollection(
-            xmlSource.getCfString(BpmnModelConstants.BPMN_EXT_ATTRIBUTE_COLLECTION));
+                xmlSource.getCfString(BpmnModelConstants.BPMN_EXT_ATTRIBUTE_COLLECTION));
         multiInstanceLoopCharacteristics.setElementVar(
-            xmlSource.getCfString(BpmnModelConstants.BPMN_EXT_ATTRIBUTE_ELEMENT_VAR));
+                xmlSource.getCfString(BpmnModelConstants.BPMN_EXT_ATTRIBUTE_ELEMENT_VAR));
         multiInstanceLoopCharacteristics.setIndexVar(
-            xmlSource.getCfString(BpmnModelConstants.BPMN_EXT_ATTRIBUTE_INDEX_VAR));
+                xmlSource.getCfString(BpmnModelConstants.BPMN_EXT_ATTRIBUTE_INDEX_VAR));
         multiInstanceLoopCharacteristics.setElementVarClass(
-            xmlSource.getCfString(BpmnModelConstants.BPMN_EXT_ATTRIBUTE_ELEMENT_VAR_CLASS));
+                xmlSource.getCfString(BpmnModelConstants.BPMN_EXT_ATTRIBUTE_ELEMENT_VAR_CLASS));
         return multiInstanceLoopCharacteristics;
     }
 

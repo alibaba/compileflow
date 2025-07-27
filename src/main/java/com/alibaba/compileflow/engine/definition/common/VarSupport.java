@@ -39,22 +39,22 @@ public interface VarSupport extends HasVar {
 
     default List<IVar> getParamVars() {
         return getVars().stream().filter(var -> VARIABLE_TYPE_PARAM.equals(var.getInOutType()))
-            .collect(Collectors.toList());
+                .collect(Collectors.toList());
     }
 
     default List<IVar> getReturnVars() {
         return getVars().stream().filter(var -> VARIABLE_TYPE_RETURN.equals(var.getInOutType()))
-            .collect(Collectors.toList());
+                .collect(Collectors.toList());
     }
 
     default List<IVar> getInnerVars() {
         return getVars().stream().filter(var -> VARIABLE_TYPE_INNER.equals(var.getInOutType()))
-            .collect(Collectors.toList());
+                .collect(Collectors.toList());
     }
 
     default IVar getReturnVar() {
         return getVars().stream().filter(var -> VARIABLE_TYPE_RETURN.equals(var.getInOutType()))
-            .findFirst().orElse(null);
+                .findFirst().orElse(null);
     }
 
 }

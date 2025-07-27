@@ -59,7 +59,7 @@ public abstract class AbstractNodeGeneratorProvider implements NodeGeneratorProv
 
     private Generator getGenerator(String id) {
         return Optional.ofNullable(generatorMap.get(id))
-            .orElseThrow(() -> new CompileFlowException("No generator found, node is " + id));
+                .orElseThrow(() -> new CompileFlowException("No generator found, node is " + id));
     }
 
     private void registerGenerator(String id, Generator generator) {

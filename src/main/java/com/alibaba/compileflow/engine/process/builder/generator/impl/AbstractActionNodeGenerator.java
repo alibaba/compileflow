@@ -29,7 +29,7 @@ import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;
  * @author yusu
  */
 public abstract class AbstractActionNodeGenerator<N extends Node>
-    extends AbstractNodeGenerator<N> {
+        extends AbstractNodeGenerator<N> {
 
     public AbstractActionNodeGenerator(AbstractProcessRuntime runtime, N flowNode) {
         super(runtime, flowNode);
@@ -53,11 +53,11 @@ public abstract class AbstractActionNodeGenerator<N extends Node>
     protected void generateActionMethodCode(CodeTargetSupport codeTargetSupport, IAction action) {
         if (action != null) {
             ActionMethodGenerator actionMethodGenerator = GeneratorFactory.getInstance()
-                .getActionGenerator(action, runtime);
+                    .getActionGenerator(action, runtime);
             actionMethodGenerator.generateActionMethodCode(codeTargetSupport);
 
             codeTargetSupport.addBodyLine(
-                actionMethodGenerator.generateActionMethodName(codeTargetSupport) + "();");
+                    actionMethodGenerator.generateActionMethodName(codeTargetSupport) + "();");
         }
     }
 

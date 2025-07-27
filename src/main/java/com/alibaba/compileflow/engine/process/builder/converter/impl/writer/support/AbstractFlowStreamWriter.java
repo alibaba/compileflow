@@ -32,7 +32,7 @@ import java.io.OutputStreamWriter;
  * @author yusu
  */
 public abstract class AbstractFlowStreamWriter<T extends FlowModel> extends AbstractFlowWriterSupport
-    implements FlowStreamWriter<T> {
+        implements FlowStreamWriter<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractFlowStreamWriter.class);
 

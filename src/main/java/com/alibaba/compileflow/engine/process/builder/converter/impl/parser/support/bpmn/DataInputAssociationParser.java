@@ -17,10 +17,14 @@ public class DataInputAssociationParser extends AbstractBpmnElementParser<DataIn
         assoc.setTargetRef(xmlSource.getString("targetRef"));
         return assoc;
     }
+
     @Override
     protected void attachChildElement(Element childElement, DataInputAssociation element, ParseContext parseContext) {
         // 可扩展 assignment、transformation 等
     }
+
     @Override
-    public String getName() { return "dataInputAssociation"; }
+    public String getName() {
+        return "dataInputAssociation";
+    }
 }

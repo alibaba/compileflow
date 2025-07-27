@@ -17,7 +17,7 @@
 package com.alibaba.compileflow.engine.runtime.impl;
 
 import com.alibaba.compileflow.engine.common.constants.FlowModelType;
-import com.alibaba.compileflow.engine.definition.tbbpm.*;
+import com.alibaba.compileflow.engine.definition.tbbpm.TbbpmModel;
 import com.alibaba.compileflow.engine.runtime.ProcessCodeGenerator;
 
 /**

@@ -22,8 +22,8 @@ import com.alibaba.compileflow.engine.process.builder.compiler.CompileOption;
 import com.alibaba.compileflow.engine.process.builder.compiler.JavaCompiler;
 import com.alibaba.compileflow.engine.process.builder.compiler.JavaSource;
 import org.eclipse.jdt.core.compiler.IProblem;
-import org.eclipse.jdt.internal.compiler.Compiler;
 import org.eclipse.jdt.internal.compiler.*;
+import org.eclipse.jdt.internal.compiler.Compiler;
 import org.eclipse.jdt.internal.compiler.classfmt.ClassFileReader;
 import org.eclipse.jdt.internal.compiler.env.ICompilationUnit;
 import org.eclipse.jdt.internal.compiler.env.INameEnvironment;
@@ -68,8 +68,8 @@ public class EcJavaCompiler implements JavaCompiler {
      * 允许的java规范版本
      */
     private static final Set<String> ALLOWED_SPEC_VERSION = new HashSet<>(Arrays.asList(
-        "1.7",
-        "1.8"
+            "1.7",
+            "1.8"
     ));
 
     @Override
@@ -78,21 +78,21 @@ public class EcJavaCompiler implements JavaCompiler {
 
         File javaSourceFile = javaSource.getJavaSourceFile();
         String targetClassName = javaSource.getTargetFullClassName();
-        String[] fileNames = new String[] {javaSourceFile.getAbsolutePath()};
-        String[] classNames = new String[] {targetClassName};
+        String[] fileNames = new String[]{javaSourceFile.getAbsolutePath()};
+        String[] classNames = new String[]{targetClassName};
 
         List<IProblem> problems = new ArrayList<>();
         INameEnvironment env = new INameEnvironment() {
             @Override
             public NameEnvironmentAnswer findType(char[][] compoundTypeName) {
                 return findType(Arrays.stream(compoundTypeName).map(String::new)
-                    .collect(Collectors.joining(".")));
+                        .collect(Collectors.joining(".")));
             }
 
             @Override
             public NameEnvironmentAnswer findType(char[] typeName, char[][] packageName) {
                 return findType(Arrays.stream(packageName).map(String::new).collect(Collectors.joining("."))
-                    .concat("." + new String(typeName)));
+                        .concat("." + new String(typeName)));
             }
 
             private NameEnvironmentAnswer findType(String className) {
@@ -100,7 +100,7 @@ public class EcJavaCompiler implements JavaCompiler {
                 try {
                     if (className.equals(targetClassName)) {
                         ICompilationUnit compilationUnit = new CompilationUnit(javaSourceFile.getAbsolutePath(),
-                            className, compileOption.getEncoding());
+                                className, compileOption.getEncoding());
                         return new NameEnvironmentAnswer(compilationUnit, null);
                     }
                     String resourceName = className.replace('.', '/') + ".class";
@@ -145,7 +145,7 @@ public class EcJavaCompiler implements JavaCompiler {
             @Override
             public boolean isPackage(char[][] parentPackageName, char[] packageName) {
                 String result = parentPackageName != null ? Arrays.stream(parentPackageName).map(String::new)
-                    .collect(Collectors.joining(".")) : "";
+                        .collect(Collectors.joining(".")) : "";
                 String pName = new String(packageName);
                 if (Character.isUpperCase(pName.charAt(0))) {
                     if (!isPackage(result)) {
@@ -196,7 +196,7 @@ public class EcJavaCompiler implements JavaCompiler {
                     for (ClassFile classFile : classFiles) {
                         char[][] compoundName = classFile.getCompoundName();
                         String className = Arrays.stream(compoundName).map(String::new).collect(
-                            Collectors.joining("."));
+                                Collectors.joining("."));
                         byte[] bytes = classFile.getBytes();
 
                         String outFile = outputFile + "/" + className.replace('.', '/') + ".class";
@@ -240,7 +240,7 @@ public class EcJavaCompiler implements JavaCompiler {
         StringBuilder sb = new StringBuilder();
 
         sb.append("compile file[").append(javaFile.getAbsoluteFile()).append("] to class[").append(className)
-            .append("] failed,");
+                .append("] failed,");
 
         for (IProblem problem : errors) {
             sb.append(problem).append(System.getProperty("line.separator"));

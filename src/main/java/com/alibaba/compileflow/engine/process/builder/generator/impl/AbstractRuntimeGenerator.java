@@ -46,8 +46,8 @@ public abstract class AbstractRuntimeGenerator extends AbstractGenerator {
     protected Class<?> getVarType(String varName) {
         List<IVar> vars = runtime.getVars();
         Class<?> clazz = vars.stream().filter(var -> var.getName().equals(varName))
-            .findFirst().map(IVar::getDataType).map(DataType::getJavaClass)
-            .orElse(null);
+                .findFirst().map(IVar::getDataType).map(DataType::getJavaClass)
+                .orElse(null);
         return clazz == null ? Object.class : clazz;
     }
 

@@ -12,7 +12,8 @@
             <actionHandle bean="orderValidateActivity"
                           clazz="com.alibaba.compileflow.engine.process.om.activity.OrderValidateActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>
@@ -23,7 +24,8 @@
             <actionHandle bean="promotionValidateActivity"
                           clazz="com.alibaba.compileflow.engine.process.om.activity.PromotionValidateActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>
@@ -34,7 +36,8 @@
             <actionHandle bean="priceValidateActivity"
                           clazz="com.alibaba.compileflow.engine.process.om.activity.PriceValidateActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>
@@ -45,7 +48,8 @@
             <actionHandle bean="deliveryValidateActivity"
                           clazz="com.alibaba.compileflow.engine.process.om.activity.DeliveryValidateActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>

@@ -67,7 +67,7 @@ public class ExclusiveGatewayGenerator extends AbstractBpmnActionNodeGenerator<E
         List<SequenceFlow> transitions = flowNode.getOutgoingFlows();
         for (SequenceFlow transition : transitions) {
             String condition = StringUtils.isEmpty(transition.getExpression())
-                ? "true" : transition.getExpression();
+                    ? "true" : transition.getExpression();
             Map<String, List<TransitionNode>> branchGraph = runtime.getBranchGraph();
             String branchKey = ProcessUtils.buildBranchKey(flowNode, runtime.getNodeById(transition.getTargetRef()));
             List<TransitionNode> branchNodes = branchGraph.get(branchKey);
@@ -78,7 +78,7 @@ public class ExclusiveGatewayGenerator extends AbstractBpmnActionNodeGenerator<E
                 executeNodes(branchNodes, codeTargetSupport);
                 codeTargetSupport.addBodyLine("}");
             } else if (StringUtils.isEmpty(transition.getExpression())
-                && transition.equals(transitions.get(transitions.size() - 1))) {
+                    && transition.equals(transitions.get(transitions.size() - 1))) {
                 if (isEndNode(transition.getTargetRef())) {
                     return;
                 }
@@ -111,7 +111,7 @@ public class ExclusiveGatewayGenerator extends AbstractBpmnActionNodeGenerator<E
     private void executeNodes(List<TransitionNode> branchNodes, CodeTargetSupport codeTargetSupport) {
         if (CollectionUtils.isNotEmpty(branchNodes)) {
             branchNodes.stream().map(flowNode -> runtime.getNodeGeneratorProvider().getGenerator(flowNode))
-                .forEach(generator -> generator.generateCode(codeTargetSupport));
+                    .forEach(generator -> generator.generateCode(codeTargetSupport));
         }
     }
 

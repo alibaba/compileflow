@@ -145,19 +145,19 @@ public class BpmNode implements NodeContainer<FlowNode>, HasVar, Element {
     @Override
     public FlowNode getNode(String id) {
         return allNodes.stream().filter(node -> id.equals(node.getId())).findFirst()
-            .orElseThrow(() -> new CompileFlowException("Undefined node, node id is " + id));
+                .orElseThrow(() -> new CompileFlowException("Undefined node, node id is " + id));
     }
 
     @Override
     public FlowNode getStartNode() {
         return allNodes.stream().filter(node -> node instanceof StartNode).findFirst()
-            .orElseThrow(() -> new CompileFlowException("No start node found"));
+                .orElseThrow(() -> new CompileFlowException("No start node found"));
     }
 
     @Override
     public FlowNode getEndNode() {
         return allNodes.stream().filter(node -> node instanceof EndNode).findFirst()
-            .orElseThrow(() -> new CompileFlowException("No end node found"));
+                .orElseThrow(() -> new CompileFlowException("No end node found"));
     }
 
 }

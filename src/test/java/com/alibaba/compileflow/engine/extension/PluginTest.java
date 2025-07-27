@@ -1,7 +1,7 @@
 package com.alibaba.compileflow.engine.extension;
 
-import org.junit.Test;
 import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * 测试目的：验证 Plugin 抽象类的基本属性和方法。
@@ -16,7 +16,8 @@ import org.junit.Assert;
 public class PluginTest {
     @Test
     public void testPluginProperties() {
-        Plugin plugin = new Plugin() {};
+        Plugin plugin = new Plugin() {
+        };
         plugin.setId("id");
         plugin.setName("name");
         plugin.setVersion("1.0");
@@ -29,14 +30,16 @@ public class PluginTest {
 
     @Test
     public void testExtensionRegistration() {
-        Plugin plugin = new Plugin() {};
+        Plugin plugin = new Plugin() {
+        };
         Assert.assertNotNull(plugin.getExtensionPointClasses());
         Assert.assertNotNull(plugin.getExtensionClasses());
     }
 
     @Test
     public void testIsEnabled() {
-        Plugin plugin = new Plugin() {};
+        Plugin plugin = new Plugin() {
+        };
         Assert.assertTrue(plugin.isEnabled(null));
     }
 }

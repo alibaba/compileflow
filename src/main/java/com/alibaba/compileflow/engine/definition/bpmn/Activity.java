@@ -53,7 +53,7 @@ public abstract class Activity extends FlowNode {
     }
 
     public void setDataInputAssociations(
-        List<DataInputAssociation> dataInputAssociations) {
+            List<DataInputAssociation> dataInputAssociations) {
         this.dataInputAssociations = dataInputAssociations;
     }
 
@@ -62,7 +62,7 @@ public abstract class Activity extends FlowNode {
     }
 
     public void setDataOutputAssociations(
-        List<DataOutputAssociation> dataOutputAssociations) {
+            List<DataOutputAssociation> dataOutputAssociations) {
         this.dataOutputAssociations = dataOutputAssociations;
     }
 

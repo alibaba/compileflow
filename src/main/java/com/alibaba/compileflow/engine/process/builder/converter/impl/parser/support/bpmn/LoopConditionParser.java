@@ -27,7 +27,8 @@ public class LoopConditionParser extends AbstractBpmnElementParser<LoopCondition
     }
 
     @Override
-    protected void attachChildElement(Element childElement, LoopCondition element, ParseContext parseContext) {}
+    protected void attachChildElement(Element childElement, LoopCondition element, ParseContext parseContext) {
+    }
 
     @Override
     public String getName() {

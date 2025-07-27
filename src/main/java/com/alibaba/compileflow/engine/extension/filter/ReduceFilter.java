@@ -1,14 +1,13 @@
 package com.alibaba.compileflow.engine.extension.filter;
 
+import com.alibaba.compileflow.engine.extension.constant.ReducePolicy;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
-
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
-
-import com.alibaba.compileflow.engine.extension.constant.ReducePolicy;
 
 /**
  * @author yusu

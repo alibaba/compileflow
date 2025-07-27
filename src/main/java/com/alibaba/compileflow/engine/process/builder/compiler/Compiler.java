@@ -27,8 +27,8 @@ public interface Compiler {
      * Compiles the given Java source code into a class, using the specified fully qualified class name and class loader.
      *
      * @param fullClassName The fully qualified name of the class to be compiled
-     * @param sourceCode The Java source code to compile
-     * @param classLoader The class loader used for loading the compiled class
+     * @param sourceCode    The Java source code to compile
+     * @param classLoader   The class loader used for loading the compiled class
      * @return The generated class after successful compilation
      */
     Class<?> compileJavaCode(String fullClassName, String sourceCode, ClassLoader classLoader);

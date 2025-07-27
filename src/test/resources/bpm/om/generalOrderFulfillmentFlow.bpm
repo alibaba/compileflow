@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<bpm code="bpm.om.generalOrderFulfillmentFlow" name="通用订单履约流程" type="statefulProcess" description="通用订单履约流程">
+<bpm code="bpm.om.generalOrderFulfillmentFlow" name="通用订单履约流程" type="statefulProcess"
+     description="通用订单履约流程">
     <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
          contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
     <var name="paymentType" dataType="java.lang.String" contextVarName="paymentType" inOutType="return"/>
@@ -18,7 +19,8 @@
             <actionHandle bean="securityManualCheckCallbackActivity"
                           clazz="com.alibaba.compileflow.engine.process.om.activity.SecurityManualCheckCallbackActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </outAction>
@@ -30,7 +32,8 @@
             <actionHandle bean="workFlowRouter"
                           clazz="com.alibaba.compileflow.engine.process.om.router.WorkFlowRouter"
                           method="isReduceInventorySuccess">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
                 <var name="inventoryReduceFlag" dataType="java.lang.Boolean" contextVarName="inventoryReduceFlag"
                      inOutType="return"/>
@@ -43,7 +46,8 @@
             <actionHandle bean="deliveredCallbackActivity"
                           clazz="com.alibaba.compileflow.engine.process.om.activity.DeliveredCallbackActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </outAction>
@@ -54,7 +58,8 @@
             <actionHandle bean="deliveryOrderCreateActivity"
                           clazz="com.alibaba.compileflow.engine.process.om.activity.DeliveryOrderCreateActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>
@@ -65,7 +70,8 @@
             <actionHandle bean="securityValidateStatusUpdateActivity"
                           clazz="com.alibaba.compileflow.engine.process.om.activity.SecurityValidateStatusUpdateActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>
@@ -75,8 +81,10 @@
         <transition g=":-15,20" to="2"/>
         <action type="spring-bean">
             <actionHandle bean="orderReverseActivity"
-                          clazz="com.alibaba.compileflow.engine.process.om.activity.OrderReverseActivity" method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                          clazz="com.alibaba.compileflow.engine.process.om.activity.OrderReverseActivity"
+                          method="execute">
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>
@@ -88,7 +96,8 @@
             <actionHandle bean="workFlowRouter"
                           clazz="com.alibaba.compileflow.engine.process.om.router.WorkFlowRouter"
                           method="isPureZero">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
                 <var name="pureZero" dataType="java.lang.Boolean" contextVarName="pureZero" inOutType="return"/>
             </actionHandle>
@@ -100,7 +109,8 @@
             <actionHandle bean="inventoryReduceActivity"
                           clazz="com.alibaba.compileflow.engine.process.om.activity.InventoryReduceActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>
@@ -113,7 +123,8 @@
             <actionHandle bean="workFlowRouter"
                           clazz="com.alibaba.compileflow.engine.process.om.router.WorkFlowRouter"
                           method="getPaymentType">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
                 <var name="paymentType" dataType="java.lang.String" contextVarName="paymentType" inOutType="return"/>
             </actionHandle>
@@ -128,7 +139,8 @@
             <actionHandle bean="waitPaymentSuccessActivity"
                           clazz="com.alibaba.compileflow.engine.process.om.activity.WaitPaymentSuccessActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </outAction>
@@ -137,8 +149,10 @@
         <transition to="38"/>
         <action type="spring-bean">
             <actionHandle bean="autoChargeActivity"
-                          clazz="com.alibaba.compileflow.engine.process.om.activity.AutoChargeActivity" method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                          clazz="com.alibaba.compileflow.engine.process.om.activity.AutoChargeActivity"
+                          method="execute">
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>
@@ -149,7 +163,8 @@
             <actionHandle bean="paymentOrderCreateActivity"
                           clazz="com.alibaba.compileflow.engine.process.om.activity.PaymentOrderCreateActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>
@@ -161,7 +176,8 @@
             <actionHandle bean="workFlowRouter"
                           clazz="com.alibaba.compileflow.engine.process.om.router.WorkFlowRouter"
                           method="amendmentJudgement">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
                 <var name="amendmentJudgementFlag" dataType="java.lang.Boolean" contextVarName="amendmentJudgementFlag"
                      inOutType="return"/>
@@ -172,8 +188,10 @@
         <transition to="1564467580907"/>
         <action type="spring-bean">
             <actionHandle bean="orderCreateActivity"
-                          clazz="com.alibaba.compileflow.engine.process.om.activity.OrderCreateActivity" method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                          clazz="com.alibaba.compileflow.engine.process.om.activity.OrderCreateActivity"
+                          method="execute">
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>
@@ -198,7 +216,8 @@
             <actionHandle bean="orderGroupCreateActivity"
                           clazz="com.alibaba.compileflow.engine.process.om.activity.OrderGroupCreateActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>
@@ -210,7 +229,8 @@
             <actionHandle bean="workFlowRouter"
                           clazz="com.alibaba.compileflow.engine.process.om.router.WorkFlowRouter"
                           method="isSecurityManualCheckPass">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
                 <var name="securityManualCheckFlag" dataType="java.lang.Boolean"
                      contextVarName="securityManualCheckFlag" inOutType="return"/>
@@ -222,7 +242,8 @@
         <action type="spring-bean">
             <actionHandle bean="zeroPayActivity"
                           clazz="com.alibaba.compileflow.engine.process.om.activity.ZeroPayActivity" method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </action>
@@ -234,7 +255,8 @@
             <actionHandle bean="workFlowRouter"
                           clazz="com.alibaba.compileflow.engine.process.om.router.WorkFlowRouter"
                           method="isSecurityAutoCheckPass">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
                 <var name="securityAutoCheckFlag" dataType="java.lang.Boolean" contextVarName="securityAutoCheckFlag"
                      inOutType="return"/>
@@ -247,7 +269,8 @@
             <actionHandle bean="paymentPendingCallbackActivity"
                           clazz="com.alibaba.compileflow.engine.process.om.activity.PaymentPendingCallbackActivity"
                           method="execute">
-                <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
+                <var name="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.process.om.context.BusinessContext"
                      contextVarName="BUSINESS_CONTEXT" inOutType="param"/>
             </actionHandle>
         </outAction>

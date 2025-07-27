@@ -40,15 +40,15 @@ public class AbstractFlowModelValidator<T extends FlowModel> implements FlowMode
 
         if (CollectionUtils.isEmpty(nodes)) {
             validateMessages.add(ValidateMessage
-                .fail("flow model has no node, please check flow definition, code is " + flowModel.getCode()));
+                    .fail("flow model has no node, please check flow definition, code is " + flowModel.getCode()));
         }
 
         List<String> nodeIds = nodes.stream().map(Element::getId).collect(Collectors.toList());
         Set<String> duplicateNodeIdSet = findDuplicateNodeId(nodeIds);
         if (CollectionUtils.isNotEmpty(duplicateNodeIdSet)) {
             validateMessages.add(ValidateMessage
-                .fail("flow model has duplicate node id, please check flow definition, code is " + flowModel.getCode()
-                    + ", duplicate id:[" + String.join(",", duplicateNodeIdSet) + "]"));
+                    .fail("flow model has duplicate node id, please check flow definition, code is " + flowModel.getCode()
+                            + ", duplicate id:[" + String.join(",", duplicateNodeIdSet) + "]"));
         }
 
         validateStartEndNode(flowModel, validateMessages);
@@ -60,26 +60,26 @@ public class AbstractFlowModelValidator<T extends FlowModel> implements FlowMode
                                       List<ValidateMessage> validateMessages) {
         List<Node> nodes = flowModel.getAllNodes();
         List<Node> startNodes = nodes.stream().filter(node -> node instanceof StartElement).collect(
-            Collectors.toList());
+                Collectors.toList());
         if (startNodes.size() == 0) {
             validateMessages.add(ValidateMessage.fail(
-                "no start node found in the flow, please check flow definition, code is " + flowModel.getCode()));
+                    "no start node found in the flow, please check flow definition, code is " + flowModel.getCode()));
         } else if (startNodes.size() > 1) {
             validateMessages.add(ValidateMessage.fail(
-                "more than one start node(node "
-                    + startNodes.stream().map(Node::getId).collect(Collectors.joining(","))
-                    + ") found in the flow, please check flow definition, code is " + flowModel.getCode()));
+                    "more than one start node(node "
+                            + startNodes.stream().map(Node::getId).collect(Collectors.joining(","))
+                            + ") found in the flow, please check flow definition, code is " + flowModel.getCode()));
         }
 
         List<Node> endNodes = nodes.stream().filter(node -> node instanceof EndElement).collect(Collectors.toList());
         if (endNodes.size() == 0) {
             validateMessages.add(ValidateMessage.fail(
-                "no end node found in the flow, please check flow definition, code is " + flowModel.getCode()));
+                    "no end node found in the flow, please check flow definition, code is " + flowModel.getCode()));
         } else if (endNodes.size() > 1) {
             validateMessages.add(ValidateMessage.fail(
-                "more than one end node(node "
-                    + endNodes.stream().map(Node::getId).collect(Collectors.joining(","))
-                    + ") found in the flow, please check flow definition, code is " + flowModel.getCode()));
+                    "more than one end node(node "
+                            + endNodes.stream().map(Node::getId).collect(Collectors.joining(","))
+                            + ") found in the flow, please check flow definition, code is " + flowModel.getCode()));
         }
     }
 

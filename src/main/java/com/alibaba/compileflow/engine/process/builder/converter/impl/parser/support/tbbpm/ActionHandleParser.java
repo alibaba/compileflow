@@ -36,12 +36,12 @@ public class ActionHandleParser extends AbstractTbbpmElementParser<ActionHandle>
     protected ActionHandle doParse(XMLSource xmlSource, ParseContext parseContext) throws Exception {
         IAction parent = (IAction) parseContext.getParent();
         return (ActionHandle) TbbpmElementParserProvider.getInstance()
-            .getParser(parent.getType() + "ActionHandle").parse(xmlSource, parseContext);
+                .getParser(parent.getType() + "ActionHandle").parse(xmlSource, parseContext);
     }
 
     @Override
     protected void parseChildElements(XMLSource xmlSource, ActionHandle element, ParseContext parseContext)
-        throws Exception {
+            throws Exception {
 
     }
 

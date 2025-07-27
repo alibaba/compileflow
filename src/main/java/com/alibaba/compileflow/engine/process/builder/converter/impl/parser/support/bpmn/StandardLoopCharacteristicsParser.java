@@ -31,7 +31,7 @@ public class StandardLoopCharacteristicsParser extends AbstractBpmnElementParser
 
     @Override
     protected void attachChildElement(Element childElement, StandardLoopCharacteristics element,
-            ParseContext parseContext) {
+                                      ParseContext parseContext) {
         if (childElement instanceof LoopCondition) {
             element.setLoopCondition(((LoopCondition) childElement).getValue());
         }

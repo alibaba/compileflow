@@ -99,17 +99,17 @@ public class PackageUtils {
             return;
         }
         File[] files = dir.listFiles(file -> (recursive && file.isDirectory())
-            || (file.getName().endsWith(CLASS_SUFFIX)));
+                || (file.getName().endsWith(CLASS_SUFFIX)));
         if (null == files || files.length == 0) {
             return;
         }
         for (File file : files) {
             if (file.isDirectory()) {
                 scanClassInDir(classes, packageName + "." + file.getName(),
-                    file.getAbsolutePath(), recursive);
+                        file.getAbsolutePath(), recursive);
             } else {
                 String className = file.getName().substring(0,
-                    file.getName().length() - CLASS_SUFFIX.length());
+                        file.getName().length() - CLASS_SUFFIX.length());
                 String classFullName = packageName + '.' + className;
 
                 try {

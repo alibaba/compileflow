@@ -129,13 +129,13 @@ public class MethodTarget extends AbstractCodeTargetSupport implements CodeTarge
 
         super.addOpenParen();
         codeBuffer.append(parameterTypes.stream().map(ParamTarget::generateCode)
-            .collect(Collectors.joining(", ")));
+                .collect(Collectors.joining(", ")));
         super.addCloseParen();
 
         if (CollectionUtils.isNotEmpty(exceptionTypes)) {
             codeBuffer.append(" throws ");
             codeBuffer.append(exceptionTypes.stream().map(ClassWrapper::getShortName)
-                .collect(Collectors.joining(", ")));
+                    .collect(Collectors.joining(", ")));
         }
 
         super.addSpace();
@@ -181,7 +181,7 @@ public class MethodTarget extends AbstractCodeTargetSupport implements CodeTarge
         }
         for (int i = 0; i < method.getParameterTypes().size(); i++) {
             if (!method.getParameterTypes().get(i).getType().getName()
-                .equals(parameterTypes.get(i).getType().getName())) {
+                    .equals(parameterTypes.get(i).getType().getName())) {
                 return false;
             }
         }

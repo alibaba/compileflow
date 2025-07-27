@@ -159,7 +159,8 @@
             </actionHandle>
         </action>
     </autoTask>
-    <note id="46" name="注释节点" g="705,1265,235,64" comment="需要透出「操作来自改约或者改地址」的信息给预占" visible="false">
+    <note id="46" name="注释节点" g="705,1265,235,64" comment="需要透出「操作来自改约或者改地址」的信息给预占"
+          visible="false">
         <transition g=":-15,20" to="59"/>
     </note>
     <decision id="62" name="主品是否履行仓路由成功" g="930,1455,144,48">

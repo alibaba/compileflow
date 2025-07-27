@@ -35,6 +35,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * </ul>
  * <p>
  * 扩展点会被 ExtensionManager 自动扫描和注册，扩展实现需通过 @ExtensionRealization 注解标记。
+ *
  * @author yusu
  */
 @Retention(RUNTIME)

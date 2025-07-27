@@ -24,7 +24,7 @@ import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;
  * @author yusu
  */
 public abstract class AbstractBpmnActionNodeGenerator<N extends FlowNode>
-    extends AbstractActionNodeGenerator<N> {
+        extends AbstractActionNodeGenerator<N> {
 
     public AbstractBpmnActionNodeGenerator(AbstractProcessRuntime runtime, N flowNode) {
         super(runtime, flowNode);

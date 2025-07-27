@@ -36,7 +36,7 @@ public abstract class AbstractParserProvider<T extends Parser> implements Parser
     @SuppressWarnings("unchecked")
     public T getParser(String name) {
         return Optional.ofNullable((T) parserMap.get(name)).orElseThrow(
-            () -> new CompileFlowException("No parser found, name is " + name));
+                () -> new CompileFlowException("No parser found, name is " + name));
     }
 
     @Override
@@ -44,8 +44,8 @@ public abstract class AbstractParserProvider<T extends Parser> implements Parser
         Parser existedParser = parserMap.get(parser.getName());
         if (existedParser != null && !existedParser.getClass().equals(parser.getClass())) {
             throw new CompileFlowException(
-                "Duplicated parser name[" + parser.getName() + "] found, "
-                    + "[" + parser.getClass().getName() + ", " + existedParser.getClass().getName() + "]");
+                    "Duplicated parser name[" + parser.getName() + "] found, "
+                            + "[" + parser.getClass().getName() + ", " + existedParser.getClass().getName() + "]");
         }
         parsers.add(parser);
         parserMap.put(parser.getName(), parser);

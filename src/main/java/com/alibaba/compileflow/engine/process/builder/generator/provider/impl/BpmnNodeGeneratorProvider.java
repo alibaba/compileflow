@@ -42,11 +42,11 @@ public class BpmnNodeGeneratorProvider extends AbstractNodeGeneratorProvider {
             LoopCharacteristics loopCharacteristics = ((Activity) node).getLoopCharacteristics();
             if (loopCharacteristics instanceof StandardLoopCharacteristics) {
                 return new StandardLoopCharacteristicsGenerator(runtime,
-                    (StandardLoopCharacteristics) loopCharacteristics, generator);
+                        (StandardLoopCharacteristics) loopCharacteristics, generator);
             }
             if (loopCharacteristics instanceof MultiInstanceLoopCharacteristics) {
                 return new MultiInstanceLoopCharacteristicsGenerator(runtime,
-                    (MultiInstanceLoopCharacteristics) loopCharacteristics, generator);
+                        (MultiInstanceLoopCharacteristics) loopCharacteristics, generator);
             }
         }
         return generator;

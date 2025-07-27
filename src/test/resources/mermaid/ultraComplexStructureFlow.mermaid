@@ -9,10 +9,9 @@ graph TD
             AltDecision --> AltTask2[备用任务2] --> AltMerge
         end
 
-        G0 --> |主路径| G1{G1: 网关 G1}
-        G0 --> |备用路径| AltPath
+        G0 -->|主路径| G1{G1: 网关 G1}
+        G0 -->|备用路径| AltPath
         AltMerge --> G1
-
 
         subgraph "G1 -> 分支 A (深度嵌套)"
             direction LR
@@ -74,8 +73,8 @@ graph TD
             MergeF --> H[H: 任务 H]
             MergeG --> H
             H --> FinalDecision{最终决策}
-            FinalDecision --> |路径 Y| Y
-            FinalDecision --> |路径 Z| Z[Z: 任务 Z] --> End[结束]
+            FinalDecision -->|路径 Y| Y
+            FinalDecision -->|路径 Z| Z[Z: 任务 Z] --> End[结束]
         end
 
         Y --> End
