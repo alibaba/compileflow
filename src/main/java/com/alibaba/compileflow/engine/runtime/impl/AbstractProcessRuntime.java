@@ -60,6 +60,8 @@ import com.alibaba.compileflow.engine.process.builder.generator.script.impl.QLEx
 import com.alibaba.compileflow.engine.process.builder.validator.FlowModelValidator;
 import com.alibaba.compileflow.engine.process.builder.validator.ValidateMessage;
 import com.alibaba.compileflow.engine.process.builder.validator.factory.ModelValidatorFactory;
+import com.alibaba.compileflow.engine.runtime.ProcessCompiler;
+import com.alibaba.compileflow.engine.runtime.ProcessExecutor;
 import com.alibaba.compileflow.engine.runtime.ProcessRuntime;
 import com.alibaba.compileflow.engine.runtime.graph.ProcessGraph;
 import com.alibaba.compileflow.engine.runtime.graph.ProcessGraphAnalyzer;
@@ -80,11 +82,11 @@ import java.util.stream.Collectors;
  */
 public abstract class AbstractProcessRuntime<T extends FlowModel> implements ProcessRuntime, Lifecycle {
 
-    private static final Compiler COMPILER = new CompilerImpl();
     private static final AtomicBoolean inited = new AtomicBoolean(false);
     private ProcessGraph processGraph;
     private final Map<String, String> javaCodeCache = new ConcurrentHashMap<>();
-    private final Map<String, Class<?>> compiledClassCache = new ConcurrentHashMap<>();
+    private static final ProcessCompiler compiler = new ProcessCompiler();
+    private static final ProcessExecutor executor = new ProcessExecutor();
     protected T flowModel;
     protected ClassTarget classTarget;
     protected NodeGeneratorProvider nodeGeneratorProvider;
@@ -105,7 +107,6 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         this.id = flowModel.getId();
         this.code = flowModel.getCode();
         this.name = flowModel.getName();
-        this.vars = flowModel.getVars();
         this.vars = flowModel.getVars();
         this.paramVars = flowModel.getParamVars();
         this.returnVars = flowModel.getReturnVars();
@@ -137,38 +138,41 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         return (P) nodeGeneratorProvider;
     }
 
-    public void compile() {
-        compiledClassCache.computeIfAbsent(code, c -> compileJavaCode(getJavaCode(code)));
-    }
-
-    public void compile(ClassLoader classLoader) {
-        compiledClassCache.computeIfAbsent(code, c -> compileJavaCode(getJavaCode(code), classLoader));
-    }
-
-    public void recompile(String code) {
-        compiledClassCache.computeIfPresent(code, (k, v) -> compileJavaCode(generateJavaCode()));
-    }
-
     public Node getNodeById(String id) {
         return flowModel.getNode(id);
     }
 
     @Override
     public Map<String, Object> start(Map<String, Object> context) {
-        compile();
-        return executeProcessInstance(context);
+        Class<?> compiledClass = getOrCompile(null);
+        return executor.execute(code, (Class<? extends ProcessInstance>) compiledClass, context);
     }
 
     @Override
     public Map<String, Object> trigger(String tag, Map<String, Object> context) {
-        compile();
-        return triggerProcessInstance(tag, context);
+        Class<?> compiledClass = getOrCompile(null);
+        return executor.trigger(code, (Class<? extends StatefulProcessInstance>) compiledClass, tag, context);
     }
 
     @Override
     public Map<String, Object> trigger(String tag, String event, Map<String, Object> context) {
-        compile();
-        return triggerProcessInstance(tag, event, context);
+        Class<?> compiledClass = getOrCompile(null);
+        return executor.trigger(code, (Class<? extends StatefulProcessInstance>) compiledClass, tag, event, context);
+    }
+
+    public void compile() {
+        getOrCompile(null);
+    }
+
+    public void compile(ClassLoader classLoader) {
+        getOrCompile(classLoader);
+    }
+
+    public void recompile(String code) {
+        String javaSource = generateJavaCode();
+        String fullClassName = classTarget.getFullName();
+        compiler.recompile(code, fullClassName, javaSource, null);
+        javaCodeCache.put(code, javaSource);
     }
 
     public abstract FlowModelType getFlowModelType();
@@ -264,6 +268,19 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
 
     protected abstract boolean isBpmn20();
 
+    private Class<?> getOrCompile(ClassLoader classLoader) {
+        Class<?> clazz = compiler.getCompiledClass(code);
+        if (clazz == null) {
+            String javaCode = getJavaCode(code);
+            String fullClassName = classTarget.getFullName();
+            clazz = compiler.getOrCompile(code, fullClassName, javaCode, classLoader);
+        }
+        if (clazz == null) {
+            throw new CompileFlowException("Failed to compile or get compiled class for process code: " + code);
+        }
+        return clazz;
+    }
+
     private void addTestImport(ClassTarget classTarget) {
         classTarget.addImportedType(ClassWrapper.of("org.junit.Test"));
         classTarget.addImportedType(ClassWrapper.of(ProcessEngine.class));
@@ -282,38 +299,9 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         return javaCodeCache.computeIfAbsent(code, c -> generateJavaCode());
     }
 
-    private Map<String, Object> executeProcessInstance(Map<String, Object> context) {
-        try {
-            ProcessInstance instance = getProcessInstance();
-            return instance.execute(context);
-        } catch (CompileFlowException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new CompileFlowException("Failed to execute process, code is " + code, e);
-        }
-    }
-
-    private Map<String, Object> triggerProcessInstance(String tag, Map<String, Object> context) {
-        try {
-            StatefulProcessInstance instance = getProcessInstance();
-            return instance.trigger(tag, context);
-        } catch (Exception e) {
-            throw new CompileFlowException("Failed to trigger process, code is " + code, e);
-        }
-    }
-
-    private Map<String, Object> triggerProcessInstance(String tag, String event, Map<String, Object> context) {
-        try {
-            StatefulProcessInstance instance = getProcessInstance();
-            return instance.trigger(tag, event, context);
-        } catch (Exception e) {
-            throw new CompileFlowException("Failed to trigger process, code is " + code, e);
-        }
-    }
-
     @SuppressWarnings("unchecked")
     protected <T extends ProcessInstance> T getProcessInstance() {
-        Class<?> clazz = compiledClassCache.get(code);
+        Class<?> clazz = compiler.getCompiledClass(code);
         if (clazz == null) {
             throw new CompileFlowException("Failed to get compile class, code is " + code);
         }
@@ -322,14 +310,6 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
         } catch (Exception e) {
             throw new CompileFlowException("Failed to get process instance, code is " + code, e);
         }
-    }
-
-    private Class<?> compileJavaCode(String source) {
-        return compileJavaCode(source, null);
-    }
-
-    private Class<?> compileJavaCode(String source, ClassLoader classLoader) {
-        return COMPILER.compileJavaCode(classTarget.getFullName(), source, classLoader);
     }
 
     protected MethodTarget generateFlowMethod(String methodName,
@@ -427,9 +407,9 @@ public abstract class AbstractProcessRuntime<T extends FlowModel> implements Pro
     }
 
     private void initGatewayGraph() {
-       processGraph = ExtensionInvoker.getInstance().invoke(ProcessGraphAnalyzer.EXT_BUILD_PROCESS_GRAPH,
+        processGraph = ExtensionInvoker.getInstance().invoke(ProcessGraphAnalyzer.EXT_BUILD_PROCESS_GRAPH,
                 ReduceFilter.first(), flowModel);
-        System.out.println("=== followingGraph ===");
+//        System.out.println("=== followingGraph ===");
 //        for (Map.Entry<String, List<TransitionNode>> entry : getFollowingGraph().entrySet()) {
 //            String nodeId = entry.getKey();
 //            List<TransitionNode> nextNodes = entry.getValue();
