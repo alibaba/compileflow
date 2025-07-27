@@ -15,16 +15,17 @@ public class StandardProcessGraphAnalyzer implements ProcessGraphAnalyzer {
 
     @Override
     public ProcessGraph buildProcessGraph(NodeContainer<Node> nodeContainer) {
-        List<TransitionNode> nodes = nodeContainer.getAllNodes().stream().filter(n -> n instanceof TransitionNode).map(n -> (TransitionNode) n).collect(Collectors.toList());
-
         final Map<TransitionNode, TransitionNode> immediateDominators = new HashMap<>();
         final Map<TransitionNode, TransitionNode> immediatePostDominators = new HashMap<>();
-        TransitionNode startNode = findUniqueStartNode(nodes)
-                .orElseThrow(() -> new IllegalStateException("A single, unique start node is required for analysis."));
-        TransitionNode endNode = findUniqueEndNode(nodes)
-                .orElseThrow(() -> new IllegalStateException("A single, unique end node is required for analysis."));
-        AnalysisContext context = new AnalysisContext(nodes, startNode, endNode, immediateDominators, immediatePostDominators);
+        TransitionNode startNode = findUniqueStartNode(nodeContainer);
+        TransitionNode endNode = findUniqueEndNode(nodeContainer);
 
+        List<TransitionNode> nodes = nodeContainer.getAllNodes().stream()
+                .filter(n -> n instanceof TransitionNode)
+                .map(n -> (TransitionNode) n)
+                .collect(Collectors.toList());
+        
+        AnalysisContext context = new AnalysisContext(nodes, startNode, endNode, immediateDominators, immediatePostDominators);
         calculateDominatorTree(context);
         calculatePostDominatorTree(context);
 
@@ -45,10 +46,10 @@ public class StandardProcessGraphAnalyzer implements ProcessGraphAnalyzer {
         }
 
 
-//        nodes.stream()
-//                .filter(flowNode -> flowNode instanceof NodeContainer)
-//                .map(e -> (NodeContainer) e)
-//                .forEach(this::buildProcessGraph);
+        nodes.stream()
+                .filter(flowNode -> flowNode instanceof NodeContainer)
+                .map(e -> (NodeContainer) e)
+                .forEach(this::buildProcessGraph);
 
         return new ProcessGraph(followingGraph, branchGraph);
     }
@@ -324,12 +325,12 @@ public class StandardProcessGraphAnalyzer implements ProcessGraphAnalyzer {
         sorted.addFirst(node);
     }
 
-    private Optional<TransitionNode> findUniqueStartNode(List<TransitionNode> allNodes) {
-        return allNodes.stream().filter(node -> node instanceof StartElement).findFirst();
+    private TransitionNode findUniqueStartNode(NodeContainer<Node> nodeContainer) {
+        return (TransitionNode) nodeContainer.getStartNode();
     }
 
-    private Optional<TransitionNode> findUniqueEndNode(List<TransitionNode> allNodes) {
-        return allNodes.stream().filter(node -> node instanceof EndElement).findFirst();
+    private TransitionNode findUniqueEndNode(NodeContainer<Node> nodeContainer) {
+        return (TransitionNode) nodeContainer.getEndNode();
     }
 
     private static class AnalysisContext {
