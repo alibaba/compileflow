@@ -71,7 +71,7 @@ public abstract class AbstractProcessCodeGenerator<T extends FlowModel, R extend
     private final List<IVar> paramVars;
     private final List<IVar> returnVars;
     private final List<IVar> innerVars;
-    public NodeGeneratorProvider nodeGeneratorProvider;
+    private NodeGeneratorProvider nodeGeneratorProvider;
 
     public AbstractProcessCodeGenerator(R runtime) {
         this.runtime = runtime;
