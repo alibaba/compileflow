@@ -52,4 +52,9 @@ public class MockJavaClazz {
         System.out.println("wait payment task");
     }
 
+    public String echoResult(String value) {
+        System.out.println("echo: " + value);
+        return value;
+    }
+
 }

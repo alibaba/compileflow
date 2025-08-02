@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<bpm code="bpm.gateway.ktvExample" name="branch example" type="process" description="branch example">
+<bpm code="bpm.ktv.ktvExample" name="ktv example" type="process" description="ktv example">
     <var name="price" description="支付价格" dataType="java.lang.Integer" inOutType="return"/>
     <var name="totalPrice" description="实付价" dataType="java.lang.Integer" inOutType="inner"/>
     <var name="pList" description="人员" dataType="java.util.List&lt;java.lang.String&gt;" inOutType="param"/>
