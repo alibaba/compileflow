@@ -40,26 +40,56 @@ import java.util.List;
 @ExtensionRealization()
 public class JdkJavaCompiler implements JavaCompiler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(JdkJavaCompiler.class);
-
     @Override
     public void compile(JavaSource javaSource, File outputFile, CompileOption compileOption) throws Exception {
-        javax.tools.JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-        StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
-        List<StringJavaFileObject> javaFileObjects = new ArrayList<>();
-        StringJavaFileObject srcObject = new StringJavaFileObject(javaSource.getTargetFullClassName(),
-                javaSource.getJavaSourceCode());
-        javaFileObjects.add(srcObject);
+        CompileLogHelper logHelper = CompileLogHelper.getInstance();
+        String className = javaSource.getTargetFullClassName();
+        long startTime = System.currentTimeMillis();
 
-        Iterable<String> options = Arrays.asList("-d", outputFile.getPath());
+        try {
+            // 记录编译开始
+            logHelper.logCompileStart(className);
+            logHelper.logConcurrentCompile(className, Thread.currentThread().getName());
 
-        javax.tools.JavaCompiler.CompilationTask task = compiler.getTask(
-                CompileLogHelper.getInstance().getLogPrintWriter(), fileManager, null,
-                options, null, javaFileObjects);
-        boolean result = task.call();
+            javax.tools.JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+            if (compiler == null) {
+                String errorMsg = "No Java compiler available. Please ensure JDK is properly installed.";
+                logHelper.logCompileError(className, errorMsg);
+                throw new RuntimeException(errorMsg);
+            }
 
-        if (!result) {
-            LOGGER.error("Compile class error, class name is " + javaSource.getTargetFullClassName());
+            StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
+            List<StringJavaFileObject> javaFileObjects = new ArrayList<>();
+            StringJavaFileObject srcObject = new StringJavaFileObject(className,
+                    javaSource.getJavaSourceCode());
+            javaFileObjects.add(srcObject);
+
+            Iterable<String> options = Arrays.asList("-d", outputFile.getPath());
+
+            javax.tools.JavaCompiler.CompilationTask task = compiler.getTask(
+                    logHelper.getLogPrintWriter(), fileManager, null,
+                    options, null, javaFileObjects);
+
+            logHelper.logCompileInfo(className, "Compilation task created, starting compilation...");
+            boolean result = task.call();
+
+            long endTime = System.currentTimeMillis();
+
+            if (result) {
+                logHelper.logCompileSuccess(className);
+                logHelper.logCompileStats(className, startTime, endTime);
+            } else {
+                String errorMsg = "Compilation task returned false";
+                logHelper.logCompileError(className, errorMsg);
+                logHelper.logCompileStats(className, startTime, endTime);
+                throw new RuntimeException("Compilation failed for class: " + className);
+            }
+
+        } catch (Exception e) {
+            long endTime = System.currentTimeMillis();
+            logHelper.logCompileError(className, e.getMessage());
+            logHelper.logCompileStats(className, startTime, endTime);
+            throw e;
         }
     }
 
@@ -86,45 +116,148 @@ public class JdkJavaCompiler implements JavaCompiler {
 
         private static final String COMPILE_LOG = CompileConstants.FLOW_COMPILE_CLASS_DIR + "compile.log";
 
-        private static volatile CompileLogHelper instance;
+        private static final CompileLogHelper INSTANCE;
+        private static final PrintWriter LOG_PRINT_WRITER;
 
-        private static PrintWriter logPrintWriter;
-
-        public static CompileLogHelper getInstance() {
-            if (instance == null) {
-                synchronized (CompileLogHelper.class) {
-                    if (instance == null) {
-                        init();
-                        instance = new CompileLogHelper();
-                    }
+        static {
+            try {
+                File logDir = new File(CompileConstants.FLOW_COMPILE_CLASS_DIR);
+                if (!logDir.exists() && !logDir.mkdirs()) {
+                    throw new RuntimeException("Failed to create compile log directory: " + logDir.getAbsolutePath());
                 }
+
+                File logfile = new File(COMPILE_LOG);
+                if (!logfile.exists() && !logfile.createNewFile()) {
+                    throw new RuntimeException("Failed to create compile log file: " + logfile.getAbsolutePath());
+                }
+
+                OutputStreamWriter outputStreamWriter = new OutputStreamWriter(
+                    new FileOutputStream(logfile, true), StandardCharsets.UTF_8);
+                LOG_PRINT_WRITER = new PrintWriter(outputStreamWriter, true);
+
+                INSTANCE = new CompileLogHelper();
+
+                LOG_PRINT_WRITER.println("[" + new java.util.Date() + "] CompileLogHelper initialized successfully");
+                LOG_PRINT_WRITER.flush();
+            } catch (Exception e) {
+                LOGGER.error("Failed to initialize CompileLogHelper", e);
+                throw new RuntimeException("Failed to initialize CompileLogHelper", e);
             }
-            return instance;
         }
 
-        private static void init() {
-            File logfile = new File(COMPILE_LOG);
-            if (!logfile.exists()) {
-                try {
-                    if (!logfile.createNewFile()) {
-                        LOGGER.error("Create java compile log error");
-                    }
-                } catch (IOException e) {
-                    LOGGER.error("Create java compile log error", e);
-                }
-            }
-            try {
-                OutputStreamWriter outputStreamWriter = new OutputStreamWriter(new FileOutputStream(logfile), StandardCharsets.UTF_8);
-                logPrintWriter = new PrintWriter(outputStreamWriter, true);
-            } catch (Exception e) {
-                LOGGER.error("Create java compile log printWriter error", e);
-            }
+        private CompileLogHelper() {
+        }
+
+        public static CompileLogHelper getInstance() {
+            return INSTANCE;
         }
 
         public PrintWriter getLogPrintWriter() {
-            return logPrintWriter;
+            return LOG_PRINT_WRITER;
         }
 
+        /**
+         * 记录编译开始日志
+         */
+        public void logCompileStart(String className) {
+            if (LOG_PRINT_WRITER != null) {
+                LOG_PRINT_WRITER.println("[" + new java.util.Date() + "] Starting compilation for class: " + className);
+                LOG_PRINT_WRITER.flush();
+            }
+        }
+
+        /**
+         * 记录编译成功日志
+         */
+        public void logCompileSuccess(String className) {
+            if (LOG_PRINT_WRITER != null) {
+                LOG_PRINT_WRITER.println("[" + new java.util.Date() + "] Compilation successful for class: " + className);
+                LOG_PRINT_WRITER.flush();
+            }
+        }
+
+        /**
+         * 记录编译失败日志
+         */
+        public void logCompileError(String className, String errorMessage) {
+            if (LOG_PRINT_WRITER != null) {
+                LOG_PRINT_WRITER.println("[" + new java.util.Date() + "] Compilation failed for class: " + className + " - Error: " + errorMessage);
+                LOG_PRINT_WRITER.flush();
+            }
+            LOGGER.error("Compilation failed for class: {} - Error: {}", className, errorMessage);
+        }
+
+        /**
+         * 记录编译警告日志
+         */
+        public void logCompileWarning(String className, String warningMessage) {
+            if (LOG_PRINT_WRITER != null) {
+                LOG_PRINT_WRITER.println("[" + new java.util.Date() + "] Compilation warning for class: " + className + " - Warning: " + warningMessage);
+                LOG_PRINT_WRITER.flush();
+            }
+            LOGGER.warn("Compilation warning for class: {} - Warning: {}", className, warningMessage);
+        }
+
+        /**
+         * 记录编译信息日志
+         */
+        public void logCompileInfo(String className, String infoMessage) {
+            if (LOG_PRINT_WRITER != null) {
+                LOG_PRINT_WRITER.println("[" + new java.util.Date() + "] Compilation info for class: " + className + " - Info: " + infoMessage);
+                LOG_PRINT_WRITER.flush();
+            }
+            LOGGER.info("Compilation info for class: {} - Info: {}", className, infoMessage);
+        }
+
+        /**
+         * 记录并发编译信息
+         */
+        public void logConcurrentCompile(String className, String threadName) {
+            if (LOG_PRINT_WRITER != null) {
+                LOG_PRINT_WRITER.println("[" + new java.util.Date() + "] Concurrent compilation for class: " + className + " by thread: " + threadName);
+                LOG_PRINT_WRITER.flush();
+            }
+        }
+
+        /**
+         * 关闭日志输出流
+         */
+        public void close() {
+            if (LOG_PRINT_WRITER != null) {
+                try {
+                    LOG_PRINT_WRITER.println("[" + new java.util.Date() + "] CompileLogHelper shutting down");
+                    LOG_PRINT_WRITER.flush();
+                    LOG_PRINT_WRITER.close();
+                } catch (Exception e) {
+                    LOGGER.error("Error closing CompileLogHelper", e);
+                }
+            }
+        }
+
+        public boolean isAvailable() {
+            return LOG_PRINT_WRITER != null && !LOG_PRINT_WRITER.checkError();
+        }
+
+        public String getLogFilePath() {
+            return COMPILE_LOG;
+        }
+
+        public void flush() {
+            if (LOG_PRINT_WRITER != null) {
+                LOG_PRINT_WRITER.flush();
+            }
+        }
+
+        /**
+         * 记录编译统计信息
+         */
+        public void logCompileStats(String className, long startTime, long endTime) {
+            if (LOG_PRINT_WRITER != null) {
+                long duration = endTime - startTime;
+                LOG_PRINT_WRITER.println("[" + new java.util.Date() + "] Compilation stats for class: " + className + " - Duration: " + duration + "ms");
+                LOG_PRINT_WRITER.flush();
+            }
+        }
     }
 
 }

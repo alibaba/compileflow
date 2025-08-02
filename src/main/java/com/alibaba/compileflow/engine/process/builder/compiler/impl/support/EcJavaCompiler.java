@@ -34,6 +34,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -236,17 +238,77 @@ public class EcJavaCompiler implements JavaCompiler {
         }
     }
 
-    private String getErrorMsg(File javaFile, String className, Collection<IProblem> errors) {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("compile file[").append(javaFile.getAbsoluteFile()).append("] to class[").append(className)
-                .append("] failed,");
-
-        for (IProblem problem : errors) {
-            sb.append(problem).append(System.getProperty("line.separator"));
+    private static String getErrorMsg(File javaFile,
+                                      String className,
+                                      Collection<IProblem> problems) {
+        final String source;
+        try {
+            source = new String(Files.readAllBytes(javaFile.toPath()), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new CompileFlowException(e);
         }
+        String[] sourceLines = source.split("\\R", -1);
 
+        StringBuilder sb = new StringBuilder()
+                .append("compile file[")
+                .append(javaFile.getAbsolutePath())
+                .append("] to class[")
+                .append(className)
+                .append("] failed:")
+                .append(System.lineSeparator());
+
+        for (IProblem p : problems) {
+            String severity = p.isError() ? "ERROR"
+                    : p.isWarning() ? "WARNING"
+                    : "INFO";
+            int line    = p.getSourceLineNumber();
+            int absBeg  = p.getSourceStart();
+            int absEnd  = p.getSourceEnd();
+            if (absBeg < 0 || absEnd < absBeg) {
+                // 某些语法错误可能返回 -1；直接跳过行定位
+                absBeg = absEnd = 0;
+            }
+
+            sb.append(String.format(
+                    "%s %s:%d:%d-%d (id=%d)%n    %s%n",
+                    severity,
+                    new String(p.getOriginatingFileName()),
+                    line, absBeg, absEnd,
+                    p.getID(),
+                    p.getMessage()
+            ));
+
+            // === 源码行 & “^” ===
+            if (line > 0 && line <= sourceLines.length) {
+                String codeLine = sourceLines[line - 1];
+                sb.append("    ").append(codeLine).append(System.lineSeparator());
+
+                // 找到该行在整份源码中的起点
+                int lineStartInFile = source.lastIndexOf('\n', absBeg);
+                lineStartInFile = (lineStartInFile == -1) ? 0 : lineStartInFile + 1;
+
+                int caretPos   = absBeg - lineStartInFile;
+                int caretCount = Math.max(1, absEnd - absBeg + 1);
+
+                // 若列号超过行长，截断
+                caretPos   = Math.min(caretPos, codeLine.length());
+                caretCount = Math.min(caretCount, Math.max(1, codeLine.length() - caretPos));
+
+                sb.append("    ")
+                        .append(repeat(' ', caretPos))
+                        .append(repeat('^', caretCount))
+                        .append(System.lineSeparator());
+            }
+        }
         return sb.toString();
+    }
+
+    private static String repeat(char ch, int count) {
+        StringBuilder r = new StringBuilder(Math.max(0, count));
+        for (int i = 0; i < count; i++) {
+            r.append(ch);
+        }
+        return r.toString();
     }
 
     static class CompilationUnit implements ICompilationUnit {

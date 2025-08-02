@@ -24,18 +24,14 @@ import com.alibaba.compileflow.engine.process.builder.converter.impl.parser.supp
  */
 public class BpmnElementParserProvider extends AbstractFlowElementParserProvider {
 
-    private static volatile BpmnElementParserProvider bpmnElementParserProvider;
+    private static final BpmnElementParserProvider INSTANCE = new BpmnElementParserProvider();
+
+    static {
+        INSTANCE.init();
+    }
 
     public static BpmnElementParserProvider getInstance() {
-        if (bpmnElementParserProvider == null) {
-            synchronized (BpmnElementParserProvider.class) {
-                if (bpmnElementParserProvider == null) {
-                    bpmnElementParserProvider = new BpmnElementParserProvider();
-                    bpmnElementParserProvider.init();
-                }
-            }
-        }
-        return bpmnElementParserProvider;
+        return INSTANCE;
     }
 
     public void init() {

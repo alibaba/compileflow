@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,12 +34,12 @@ import com.alibaba.compileflow.engine.process.builder.loader.FlowSourceLoader;
 import com.alibaba.compileflow.engine.runtime.impl.AbstractProcessRuntime;
 import org.apache.commons.collections4.CollectionUtils;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author wuxiang
@@ -47,50 +47,133 @@ import java.util.stream.Collectors;
  */
 public abstract class AbstractProcessEngine<T extends FlowModel<? extends TransitionNode>> implements ProcessEngine<T> {
 
-    private final Map<String, AbstractProcessRuntime> runtimeCache = new ConcurrentHashMap<>();
+    protected final Map<String, AbstractProcessRuntime> runtimeCache = new ConcurrentHashMap<>();
 
-    @Override
-    public void preCompile(String... codes) {
-        preCompile(null, codes);
+    private boolean concurrentCompilation;
+    private ExecutorService compilationExecutorService;
+    private static final ExecutorService SHARED_COMPILATION_EXECUTOR = Executors.newFixedThreadPool(
+            Runtime.getRuntime().availableProcessors(),
+            new CompileFlowThreadFactory());
+    private ClassLoader classLoader;
+
+    /**
+     * Sets a default ClassLoader for this process engine instance.
+     * This ClassLoader will be used for flow compilation and class loading
+     * unless a different one is provided in a specific method call.
+     *
+     * @param classLoader The default class loader to use.
+     */
+    public void setClassLoader(ClassLoader classLoader) {
+        this.classLoader = classLoader;
+    }
+
+    static class CompileFlowThreadFactory implements ThreadFactory {
+        private final AtomicInteger threadNumber = new AtomicInteger(1);
+        private final String namePrefix = "compileflow-shared-pool-thread-";
+
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread t = new Thread(r, namePrefix + threadNumber.getAndIncrement());
+            t.setDaemon(true);
+            return t;
+        }
+    }
+
+    public void setConcurrentCompilation(boolean concurrentCompilation) {
+        this.concurrentCompilation = concurrentCompilation;
+    }
+
+    public void setCompilationExecutorService(ExecutorService compilationExecutorService) {
+        this.compilationExecutorService = compilationExecutorService;
     }
 
     @Override
-    public void preCompile(ClassLoader classLoader, String... codes) {
+    public void preCompile(String... codes) {
         if (ArrayUtils.isEmpty(codes)) {
             throw new CompileFlowException("No process to compile");
         }
 
-        for (String code : codes) {
-            preCompile(classLoader, code);
+        if (this.concurrentCompilation) {
+            executeInParallel(Arrays.stream(codes), code -> preCompile(code));
+        } else {
+            for (String code : codes) {
+                preCompile(code);
+            }
         }
     }
 
     @Override
     public void preCompile(Map<String, String> code2ContentMap) {
-        preCompile(null, code2ContentMap);
-    }
-
-    @Override
-    public void preCompile(ClassLoader classLoader, Map<String, String> code2ContentMap) {
         if (MapUtils.isEmpty(code2ContentMap)) {
             return;
         }
-        code2ContentMap.forEach((code, content) -> preCompile(classLoader, code, content));
+
+        if (this.concurrentCompilation) {
+            executeInParallel(code2ContentMap.entrySet().stream(),
+                    entry -> preCompile(entry.getKey(), entry.getValue()));
+        } else {
+            code2ContentMap.forEach((code, content) -> preCompile(code, content));
+        }
     }
 
     @Override
     public void reCompile(String... codes) {
-        reCompile(null, codes);
+        reCompile(this.classLoader, codes);
     }
 
     @Override
     public void reCompile(ClassLoader classLoader, String... codes) {
         if (ArrayUtils.isEmpty(codes)) {
-            throw new CompileFlowException("No process to compile");
+            throw new CompileFlowException("No process to re-compile");
         }
 
-        for (String code : codes) {
-            preCompile(classLoader, code);
+        if (this.concurrentCompilation) {
+            executeInParallel(Arrays.stream(codes), code -> reCompile(classLoader, code));
+        } else {
+            for (String code : codes) {
+                reCompile(classLoader, code);
+            }
+        }
+    }
+
+    @Override
+    public void reCompile(ClassLoader classLoader, Map<String, String> code2ContentMap) {
+        if (MapUtils.isEmpty(code2ContentMap)) {
+            return;
+        }
+
+        if (this.concurrentCompilation) {
+            executeInParallel(code2ContentMap.entrySet().stream(),
+                    entry -> reCompile(entry.getKey(), entry.getValue()));
+        } else {
+            code2ContentMap.forEach((code, content) -> reCompile(code, content));
+        }
+    }
+
+    @Override
+    public void reCompile(Map<String, String> code2ContentMap) {
+        reCompile(null, code2ContentMap);
+    }
+
+    /**
+     * Executes a given action on each element of a stream in parallel.
+     * This method centralizes the logic for choosing between a custom ExecutorService
+     * and the default ExecutorService, as well as handling exceptions.
+     *
+     * @param stream The stream of items to process.
+     * @param action The action to perform on each item.
+     * @param <E>    The type of elements in the stream.
+     */
+    private <E> void executeInParallel(Stream<E> stream, Consumer<E> action) {
+        ExecutorService executor = (this.compilationExecutorService != null) ?
+                this.compilationExecutorService : SHARED_COMPILATION_EXECUTOR;
+        try {
+            List<CompletableFuture<Void>> futures = stream
+                    .map(item -> CompletableFuture.runAsync(() -> action.accept(item), executor))
+                    .collect(Collectors.toList());
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        } catch (CompletionException e) {
+            throw new CompileFlowException(e);
         }
     }
 
@@ -105,13 +188,12 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
         return (R) runtime;
     }
 
-    private void preCompile(ClassLoader classLoader, String code) {
-        preCompile(classLoader, code, null);
+    private void preCompile(String code) {
+        preCompile(code, null);
     }
 
-    private void preCompile(ClassLoader classLoader, String code, String content) {
-        AbstractProcessRuntime runtime = getProcessRuntime(code, content);
-        runtime.compile(classLoader);
+    private void preCompile(String code, String content) {
+        getProcessRuntime(code, content);
     }
 
     private void reCompile(ClassLoader classLoader, String code) {
@@ -119,13 +201,17 @@ public abstract class AbstractProcessEngine<T extends FlowModel<? extends Transi
     }
 
     private void reCompile(ClassLoader classLoader, String code, String content) {
-        AbstractProcessRuntime runtime = getProcessRuntime(code, content);
-        runtime.recompile(classLoader);
+        String cacheKey = getCacheKey(code);
+        runtimeCache.compute(cacheKey, (key, oldRuntime) -> {
+            AbstractProcessRuntime newRuntime = getRuntimeFromSource(key, content);
+            newRuntime.recompile(classLoader);
+            return newRuntime;
+        });
     }
 
     private AbstractProcessRuntime getCompiledRuntime(String code, String content) {
         AbstractProcessRuntime runtime = getRuntimeFromSource(code, content);
-        runtime.compile();
+        runtime.compile(this.classLoader);
         return runtime;
     }
 

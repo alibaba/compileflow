@@ -21,6 +21,7 @@ import com.alibaba.compileflow.engine.process.builder.converter.impl.parser.Pars
 import com.alibaba.compileflow.engine.process.builder.converter.impl.parser.provider.ParserProvider;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author wuxiang
@@ -30,7 +31,7 @@ public abstract class AbstractParserProvider<T extends Parser> implements Parser
 
     private List<Parser> parsers = new ArrayList<>();
 
-    private Map<String, Parser> parserMap = new HashMap<>();
+    private final Map<String, Parser> parserMap = new ConcurrentHashMap<>();
 
     @Override
     @SuppressWarnings("unchecked")
@@ -41,14 +42,16 @@ public abstract class AbstractParserProvider<T extends Parser> implements Parser
 
     @Override
     public void registerParser(Parser parser) {
-        Parser existedParser = parserMap.get(parser.getName());
-        if (existedParser != null && !existedParser.getClass().equals(parser.getClass())) {
-            throw new CompileFlowException(
-                    "Duplicated parser name[" + parser.getName() + "] found, "
-                            + "[" + parser.getClass().getName() + ", " + existedParser.getClass().getName() + "]");
+        Parser oldParser = parserMap.putIfAbsent(parser.getName(), parser);
+        if (oldParser != null) {
+            if (!oldParser.getClass().equals(parser.getClass())) {
+                throw new CompileFlowException(
+                        "Duplicated parser name[" + parser.getName() + "] found, "
+                                + "[" + parser.getClass().getName() + ", " + oldParser.getClass().getName() + "]");
+            }
+            return;
         }
         parsers.add(parser);
-        parserMap.put(parser.getName(), parser);
     }
 
 }

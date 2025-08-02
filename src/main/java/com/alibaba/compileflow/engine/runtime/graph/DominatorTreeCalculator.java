@@ -123,7 +123,7 @@ public class DominatorTreeCalculator {
      * 用于计算并缓存一个节点到根节点的路径。
      */
     public List<TransitionNode> getPathToRoot(TransitionNode node,
-                                               Map<TransitionNode, TransitionNode> tree,
+                                               Map<TransitionNode, TransitionNode> dominators,
                                                Map<TransitionNode, List<TransitionNode>> cache,
                                                TransitionNode root) {
         return cache.computeIfAbsent(node, n -> {
@@ -134,7 +134,7 @@ public class DominatorTreeCalculator {
                 if (currentNode.equals(root)) {
                     break;
                 }
-                currentNode = tree.get(currentNode);
+                currentNode = dominators.get(currentNode);
             }
             return path;
         });

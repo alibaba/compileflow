@@ -65,14 +65,6 @@ public interface ProcessEngine<T extends FlowModel> {
     void preCompile(String... codes);
 
     /**
-     * Pre-compiles a set of process flows with a custom class loader.
-     *
-     * @param classLoader Custom class loader to use during compilation
-     * @param codes       Array of unique identifiers for process flows to compile
-     */
-    void preCompile(ClassLoader classLoader, String... codes);
-
-    /**
      * Re-compiles a set of process flows by their codes.
      *
      * @param codes Array of unique identifiers for process flows to re-compile
@@ -154,12 +146,20 @@ public interface ProcessEngine<T extends FlowModel> {
     void preCompile(Map<String, String> code2ContentMap);
 
     /**
-     * Pre-compiles a set of process flows with their corresponding BPM content and a custom class loader.
+     * Re-compiles a set of process flows with their corresponding BPM content.
+     *
+     * @param code2ContentMap Mapping between unique identifiers and BPM content strings
+     */
+    void reCompile(Map<String, String> code2ContentMap);
+
+
+    /**
+     * Re-compiles a set of process flows with their corresponding BPM content and a custom class loader.
      *
      * @param classLoader     Custom class loader to use during compilation
      * @param code2ContentMap Mapping between unique identifiers and BPM content strings
      */
-    void preCompile(ClassLoader classLoader, Map<String, String> code2ContentMap);
+    void reCompile(ClassLoader classLoader, Map<String, String> code2ContentMap);
 
     /**
      * Loads a process flow by its code and BPM content.

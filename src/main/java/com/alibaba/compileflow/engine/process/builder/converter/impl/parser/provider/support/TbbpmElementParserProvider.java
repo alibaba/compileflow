@@ -24,18 +24,14 @@ import com.alibaba.compileflow.engine.process.builder.converter.impl.parser.supp
  */
 public class TbbpmElementParserProvider extends AbstractFlowElementParserProvider {
 
-    private static volatile TbbpmElementParserProvider tbbpmElementParserProvider;
+    private static final TbbpmElementParserProvider INSTANCE = new TbbpmElementParserProvider();
+
+    static {
+        INSTANCE.init();
+    }
 
     public static TbbpmElementParserProvider getInstance() {
-        if (tbbpmElementParserProvider == null) {
-            synchronized (TbbpmElementParserProvider.class) {
-                if (tbbpmElementParserProvider == null) {
-                    tbbpmElementParserProvider = new TbbpmElementParserProvider();
-                    tbbpmElementParserProvider.init();
-                }
-            }
-        }
-        return tbbpmElementParserProvider;
+        return INSTANCE;
     }
 
     public void init() {

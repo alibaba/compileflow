@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
  * @author yusu
  */
 @ExtensionRealization(priority = 600)
-public class StandardProcessGraphAnalyzer implements ProcessGraphAnalyzer {
+public class UpwardCheckingGraphAnalyzer implements ProcessGraphAnalyzer {
 
     private static final DominatorTreeCalculator calculator = new DominatorTreeCalculator();
 
