@@ -1,0 +1,20 @@
+flowchart TD
+    start[("Start")] --> D1{Main Decision}
+%% Main Branch
+    D1 -->|Deep Path| D2{Second Level Decision}
+    D1 -->|Simple Path| SimpleTask[Simple Task]
+%% Second Level Branch
+    D2 -->|Deeper Path| D3{Third Level Decision}
+    D2 -->|Shallow Path| ShallowTask[Shallow Task]
+%% Third Level Branch
+    D3 -->|Deepest Path| D4{Fourth Level Decision}
+    D3 -->|Mid - level Path| MidLevelTask[Mid-level Task]
+%% Fourth Level Branch
+    D4 -->|Final Branch T| DeepTaskT[Deep Task T]
+    D4 -->|Final Branch F| DeepTaskF[Deep Task F]
+%% All paths converge to the end node
+    SimpleTask --> stop[("End")]
+    ShallowTask --> stop
+    MidLevelTask --> stop
+    DeepTaskT --> stop
+    DeepTaskF --> stop

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.stateful.multiWaitEventFlow" name="多等待事件流程" type="statefulProcess"
+     description="测试多个waitEventTask节点的stateful流程">
+    <var name="orderData" description="订单数据" dataType="java.lang.String" inOutType="param"/>
+    <var name="payment_received" dataType="java.lang.String" inOutType="param"/>
+    <var name="delivery_completed" dataType="java.lang.String" inOutType="param"/>
+    <var name="paymentResult" description="支付结果" dataType="java.lang.String" inOutType="return"/>
+    <var name="deliveryResult" description="配送结果" dataType="java.lang.String" inOutType="return"/>
+    <var name="finalResult" description="最终结果" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="开始" tag="start" g="100,50,30,30">
+        <transition to="createOrder" g=":-15,20"/>
+    </start>
+
+    <autoTask id="createOrder" name="创建订单" tag="createOrder" g="80,120,88,48">
+        <transition to="waitPayment" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="orderData" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="orderData" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <waitEventTask id="waitPayment" name="等待支付完成" tag="waitPaymentComplete" event="paymentComplete"
+                   g="70,200,120,60">
+        <transition to="waitDelivery" g=":-15,20"/>
+        <inAction type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="payment_received" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="paymentResult" inOutType="return"/>
+            </actionHandle>
+        </inAction>
+    </waitEventTask>
+
+    <waitEventTask id="waitDelivery" name="等待配送完成" tag="waitDeliveryComplete" event="deliveryComplete"
+                   g="70,300,120,60">
+        <transition to="completeOrder" g=":-15,20"/>
+        <inAction type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="delivery_completed" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="deliveryResult" inOutType="return"/>
+            </actionHandle>
+        </inAction>
+    </waitEventTask>
+
+    <autoTask id="completeOrder" name="完成订单" tag="completeOrder" g="80,400,88,48">
+        <transition to="end" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+                <var name="payment" dataType="java.lang.String" contextVarName="paymentResult" inOutType="param"/>
+                <var name="delivery" dataType="java.lang.String" contextVarName="deliveryResult" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="finalResult" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <end id="end" name="结束" tag="end" g="100,480,30,30"/>
+</bpm>
+
+

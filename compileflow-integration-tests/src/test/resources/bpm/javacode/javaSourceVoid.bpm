@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.javacode.javaSourceVoid" name="Source Void Method" type="process"
+     description="java-source with void method; no return var mapped">
+    <var name="inputA" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="inputB" dataType="java.lang.Integer" inOutType="param"/>
+
+    <start id="start" name="Start" g="50,50,32,32">
+        <transition to="log"/>
+    </start>
+
+    <autoTask id="log" name="Log (java-source void)" g="150,40,240,48">
+        <action type="java-source">
+            <actionHandle method="log">
+                <code><![CDATA[
+          public class LoggerOps {
+            public static void log(Integer a, Integer b) {
+              System.out.println("[LoggerOps] a=" + a + ", b=" + b);
+            }
+          }
+        ]]></code>
+
+                <var name="a" dataType="java.lang.Integer" inOutType="param" contextVarName="inputA"/>
+                <var name="b" dataType="java.lang.Integer" inOutType="param" contextVarName="inputB"/>
+            </actionHandle>
+        </action>
+        <transition to="end"/>
+    </autoTask>
+
+    <end id="end" name="End" g="420,50,32,32"/>
+</bpm>

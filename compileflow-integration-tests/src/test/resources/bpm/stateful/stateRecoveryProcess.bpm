@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.stateful.stateRecoveryProcess" name="状态恢复流程" type="statefulProcess"
+     description="测试状态恢复的stateful流程">
+    <var name="processId" description="流程ID" dataType="java.lang.String" inOutType="param"/>
+    <var name="error_condition" description="错误条件" dataType="java.lang.Boolean" inOutType="param"/>
+    <var name="recovery_data" description="恢复数据" dataType="java.lang.String" inOutType="param"/>
+    <var name="errorHandled" description="错误处理" dataType="java.lang.String" inOutType="return"/>
+    <var name="recoveredState" description="恢复状态" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="开始" tag="start" g="100,50,30,30">
+        <transition to="initializeRecoveryProcess" g=":-15,20"/>
+    </start>
+
+    <autoTask id="initializeRecoveryProcess" name="初始化恢复流程" tag="initializeRecoveryProcess" g="80,120,88,48">
+        <transition to="waitErrorCondition" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="processId" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="processId" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <waitEventTask id="waitErrorCondition" name="等待错误条件" tag="waitErrorCondition" event="errorOccurred"
+                   g="70,200,120,60">
+        <transition to="handleError" g=":-15,20"/>
+        <inAction type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.Boolean" contextVarName="error_condition" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="errorHandled" inOutType="return"/>
+            </actionHandle>
+        </inAction>
+    </waitEventTask>
+
+    <autoTask id="handleError" name="处理错误" tag="handleError" g="80,300,88,48">
+        <transition to="waitRecovery" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+                <var name="payment" dataType="java.lang.String" contextVarName="processId" inOutType="param"/>
+                <var name="delivery" dataType="java.lang.String" contextVarName="errorHandled" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="errorHandled" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <waitEventTask id="waitRecovery" name="等待恢复" tag="waitRecovery" event="recoveryComplete" g="70,400,120,60">
+        <transition to="processRecovery" g=":-15,20"/>
+        <inAction type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="recovery_data" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="recoveredState" inOutType="return"/>
+            </actionHandle>
+        </inAction>
+    </waitEventTask>
+
+    <autoTask id="processRecovery" name="处理恢复" tag="processRecovery" g="80,500,88,48">
+        <transition to="end" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+                <var name="payment" dataType="java.lang.String" contextVarName="errorHandled" inOutType="param"/>
+                <var name="delivery" dataType="java.lang.String" contextVarName="recoveredState" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="recoveredState" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <end id="end" name="结束" tag="end" g="100,600,30,30"/>
+</bpm>
+

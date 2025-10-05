@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.stateful.deeplyNestedStatefulProcess" name="深度嵌套状态流程" type="statefulProcess"
+     description="测试深度嵌套状态流程的stateful流程">
+    <var name="mainProcessData" description="主流程数据" dataType="java.lang.String" inOutType="param"/>
+    <var name="subProcessLevel1Data" description="子流程1级数据" dataType="java.lang.String" inOutType="param"/>
+    <var name="subProcessLevel2Data" description="子流程2级数据" dataType="java.lang.String" inOutType="param"/>
+    <var name="level1_trigger_data" description="1级触发数据" dataType="java.lang.String" inOutType="param"/>
+    <var name="level2_trigger_data" description="2级触发数据" dataType="java.lang.String" inOutType="param"/>
+    <var name="level3_trigger_data" description="3级触发数据" dataType="java.lang.String" inOutType="param"/>
+    <var name="finalNestedResult" description="最终嵌套结果" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="开始" tag="start" g="100,50,30,30">
+        <transition to="initializeMainProcess" g=":-15,20"/>
+    </start>
+
+    <autoTask id="initializeMainProcess" name="初始化主流程" tag="initializeMainProcess" g="80,120,88,48">
+        <transition to="waitLevel1Event" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="mainProcessData" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="mainProcessData" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <waitEventTask id="waitLevel1Event" name="等待1级事件" tag="waitLevel1Event" event="level1EventComplete"
+                   g="70,200,120,60">
+        <transition to="processLevel1" g=":-15,20"/>
+        <inAction type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="level1_trigger_data" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="level1_trigger_data" inOutType="return"/>
+            </actionHandle>
+        </inAction>
+    </waitEventTask>
+
+    <autoTask id="processLevel1" name="处理1级" tag="processLevel1" g="80,300,88,48">
+        <transition to="waitLevel2Event" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+                <var name="payment" dataType="java.lang.String" contextVarName="mainProcessData" inOutType="param"/>
+                <var name="delivery" dataType="java.lang.String" contextVarName="level1_trigger_data"
+                     inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="subProcessLevel1Data"
+                     inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <waitEventTask id="waitLevel2Event" name="等待2级事件" tag="waitLevel2Event" event="level2EventComplete"
+                   g="70,400,120,60">
+        <transition to="processLevel2" g=":-15,20"/>
+        <inAction type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="level2_trigger_data" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="level2_trigger_data" inOutType="return"/>
+            </actionHandle>
+        </inAction>
+    </waitEventTask>
+
+    <autoTask id="processLevel2" name="处理2级" tag="processLevel2" g="80,500,88,48">
+        <transition to="waitLevel3Event" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+                <var name="payment" dataType="java.lang.String" contextVarName="subProcessLevel1Data"
+                     inOutType="param"/>
+                <var name="delivery" dataType="java.lang.String" contextVarName="level2_trigger_data"
+                     inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="subProcessLevel2Data"
+                     inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <waitEventTask id="waitLevel3Event" name="等待3级事件" tag="waitLevel3Event" event="level3EventComplete"
+                   g="70,600,120,60">
+        <transition to="processLevel3" g=":-15,20"/>
+        <inAction type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="level3_trigger_data" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="level3_trigger_data" inOutType="return"/>
+            </actionHandle>
+        </inAction>
+    </waitEventTask>
+
+    <autoTask id="processLevel3" name="处理3级" tag="processLevel3" g="80,700,88,48">
+        <transition to="finalizeProcess" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+                <var name="payment" dataType="java.lang.String" contextVarName="subProcessLevel2Data"
+                     inOutType="param"/>
+                <var name="delivery" dataType="java.lang.String" contextVarName="level3_trigger_data"
+                     inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="finalNestedResult" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <autoTask id="finalizeProcess" name="完成流程" tag="finalizeProcess" g="80,800,88,48">
+        <transition to="end" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="finalNestedResult" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="finalNestedResult" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <end id="end" name="结束" tag="end" g="100,900,30,30"/>
+</bpm>
+

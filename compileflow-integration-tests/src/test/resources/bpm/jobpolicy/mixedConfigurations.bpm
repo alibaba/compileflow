@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.jobpolicy.mixedConfigurations" name="JobPolicy Mixed Configurations Test" type="process">
+    <var name="result1" dataType="java.lang.String" inOutType="return"/>
+    <var name="result2" dataType="java.lang.String" inOutType="return"/>
+    <var name="result3" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="Start" g="50,50,32,32">
+        <transition to="task1"/>
+    </start>
+
+    <!-- Task with minimal JobPolicy -->
+    <autoTask id="task1" name="Minimal Policy Task" g="150,40,120,48">
+        <jobPolicy
+                timeout="PT1S"
+                retry="R0/PT0S"
+                retryOn="never"
+                onFailure="incident"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.JobPolicyTestService" method="simpleSuccess">
+                <var name="result" dataType="java.lang.String" inOutType="return" contextVarName="result1"/>
+            </actionHandle>
+        </action>
+        <transition to="task2"/>
+    </autoTask>
+
+    <!-- Task with moderate JobPolicy -->
+    <autoTask id="task2" name="Moderate Policy Task" g="300,40,120,48">
+        <jobPolicy
+                timeout="PT2S"
+                retry="R2/PT1S"
+                retryPolicy="transient"
+                onFailure="incident"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.JobPolicyTestService" method="simpleSuccess">
+                <var name="result" dataType="java.lang.String" inOutType="return" contextVarName="result2"/>
+            </actionHandle>
+        </action>
+        <transition to="task3"/>
+    </autoTask>
+
+    <!-- Task with comprehensive JobPolicy -->
+    <autoTask id="task3" name="Comprehensive Policy Task" g="450,40,120,48">
+        <jobPolicy
+                timeout="PT10S"
+                retry="R3/PT0.2S"
+                retryPolicy="transient"
+                onFailure="incident"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.JobPolicyTestService" method="simpleSuccess">
+                <var name="result" dataType="java.lang.String" inOutType="return" contextVarName="result3"/>
+            </actionHandle>
+        </action>
+        <transition to="end"/>
+    </autoTask>
+
+    <end id="end" name="End" g="600,50,32,32"/>
+</bpm>

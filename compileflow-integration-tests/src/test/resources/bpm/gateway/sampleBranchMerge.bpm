@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.gateway.sampleBranchMerge" name="Sample Branch Merge" type="process" description="分支汇合示例">
+    <var name="route" dataType="java.lang.String" inOutType="param"/>
+    <var name="next" dataType="java.lang.String" inOutType="param"/>
+    <var name="A" dataType="java.lang.String" inOutType="param"/>
+    <var name="B" dataType="java.lang.String" inOutType="param"/>
+    <var name="C" dataType="java.lang.String" inOutType="param"/>
+    <var name="D" dataType="java.lang.String" inOutType="param"/>
+    <var name="X" dataType="java.lang.String" inOutType="param"/>
+    <var name="Y" dataType="java.lang.String" inOutType="param"/>
+    <var name="Z" dataType="java.lang.String" inOutType="param"/>
+    <var name="K" dataType="java.lang.String" inOutType="param"/>
+    <var name="echoResult" dataType="java.lang.String" inOutType="inner"/>
+    <start id="start" name="Start" g="100,20,30,30">
+        <transition g=":-15,20" to="decisionE"/>
+    </start>
+    <decision id="decisionE" name="Branch E" g="100,70,88,48">
+        <transition expression='route == "A"' name="To A" priority="10" g=":-15,20" to="A"/>
+        <transition expression='route == "X"' name="To X" priority="10" g=":-15,20" to="X"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="echoResult">
+                <var name="p1" dataType="java.lang.String" contextVarName="route"
+                     inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="echoResult"
+                     inOutType="return"/>
+            </actionHandle>
+        </action>
+    </decision>
+    <autoTask id="A" name="A" g="50,140,88,48">
+        <transition g=":-15,20" to="B"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="echoResult">
+                <var name="A" dataType="java.lang.String" contextVarName="A" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="echoResult"
+                     inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="B" name="B" g="50,210,88,48">
+        <transition g=":-15,20" to="C"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="echoResult">
+                <var name="B" dataType="java.lang.String" contextVarName="B" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="echoResult"
+                     inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="X" name="X" g="200,140,88,48">
+        <transition g=":-15,20" to="Y"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="echoResult">
+                <var name="X" dataType="java.lang.String" contextVarName="X" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="echoResult"
+                     inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="Y" name="Y" g="200,210,88,48">
+        <transition g=":-15,20" to="C"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="echoResult">
+                <var name="Y" dataType="java.lang.String" contextVarName="Y" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="echoResult"
+                     inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <decision id="C" name="Merge C" g="125,280,88,48">
+        <transition expression='route == "D"' name="To D" priority="10" g=":-15,20" to="D"/>
+        <transition expression='route == "Z"' name="To Z" priority="10" g=":-15,20" to="Z"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="echoResult">
+                <var name="C" description="汇合选择" dataType="java.lang.String" contextVarName="C"
+                     inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="echoResult"
+                     inOutType="return"/>
+            </actionHandle>
+        </action>
+    </decision>
+    <autoTask id="D" name="D" g="50,350,88,48">
+        <transition g=":-15,20" to="K"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="echoResult">
+                <var name="D" description="D节点" dataType="java.lang.String" contextVarName="D" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="echoResult"
+                     inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="Z" name="Z" g="200,350,88,48">
+        <transition g=":-15,20" to="K"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="echoResult">
+                <var name="Z" description="Z节点" dataType="java.lang.String" contextVarName="Z" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="echoResult"
+                     inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <autoTask id="K" name="K" g="125,420,88,48">
+        <transition g=":-15,20" to="end"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="echoResult">
+                <var name="K" dataType="java.lang.String" contextVarName="K" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="echoResult"
+                     inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+    <end id="end" name="End" g="125,500,30,30"/>
+</bpm>

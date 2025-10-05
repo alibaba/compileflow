@@ -1,0 +1,43 @@
+## CompileFlow Spring Boot Configuration Example
+## This file demonstrates optimal configuration for different environments
+#
+#compileflow:
+#  # Master switch - can be disabled for testing
+#  enabled: true
+#
+#  # Process model type
+#  model-type: TBBPM  # or BPMN
+#
+#  # Performance settings
+#  parallel-compilation-enabled: true
+#
+#  # Thread pool configuration
+#  executor:
+#    # Compilation threads (1-4 recommended)
+#    compilation-threads: 2
+#    # Execution threads (CPU cores to CPU*2)
+#    execution-threads: 8
+#
+#  # Cache configuration
+#  cache:
+#    # Most important setting - adjust based on environment
+#    runtime-max-size: 2000  # 100-500 for dev, 2000-10000 for prod
+#    # Advanced cache settings (rarely need adjustment)
+#    compile-futures-max-size: 1000
+#    dynamic-class-max-size: 500
+#    dynamic-class-expire-minutes: 60
+#
+#  # Compilation behavior
+#  compilation:
+#    timeout-seconds: 30
+#    max-attempts: 3
+#
+#  # ClassLoader management
+#  class-loader:
+#    maintenance-interval-minutes: 30
+#
+#  # Monitoring and observability
+#  observability:
+#    enabled: true
+#    metrics-enabled: true
+#    events-async: true

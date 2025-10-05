@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.javacode.javaInlineMix" name="并发/包容/循环/超时示例" type="process" description="java-inline 综合示例">
+    <var name="items" dataType="java.util.List&lt;java.lang.Integer&gt;" inOutType="param"/>
+    <var name="okCnt" dataType="java.lang.Integer" inOutType="inner"/>
+    <var name="failCnt" dataType="java.lang.Integer" inOutType="inner"/>
+    <var name="sum" dataType="java.lang.Integer" inOutType="inner"/>
+    <var name="result" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="s" name="开始" g="50,50,32,32">
+        <transition to="loop"/>
+    </start>
+
+    <!-- 循环：累计 sum -->
+    <loopProcess id="loop" name="累加" g="100,50,200,140"
+                 collectionVarName="items" variableName="x" indexVarName="idx"
+                 variableClass="java.lang.Integer" startNodeId="loop-body" endNodeId="loop-body">
+        <transition to="P"/>
+        <autoTask id="loop-body" name="sum += x" g="120,70,120,48">
+            <action type="java-inline">
+                <actionHandle>
+                    <code mode="block"><![CDATA[
+                        if (sum == null) sum = 0;
+                        sum += (x == null ? 0 : x);
+                    ]]></code>
+                </actionHandle>
+            </action>
+        </autoTask>
+    </loopProcess>
+
+    <!-- 并行：两条校验支路 -->
+    <parallel id="P" name="并行校验" g="320,80,120,48">
+        <action type="java-inline">
+            <actionHandle>
+                <code mode="block"><![CDATA[
+                    // 占位：这里可以记录开始时间、traceId 等
+                ]]></code>
+            </actionHandle>
+        </action>
+        <transition to="check-positive"/>
+        <transition to="check-threshold"/>
+    </parallel>
+
+    <autoTask id="check-positive" name="正数校验" g="470,40,160,48">
+        <transition to="merge"/>
+        <action type="java-inline">
+            <actionHandle>
+                <code mode="block"><![CDATA[
+                    boolean ok = (sum != null && sum >= 0);
+                    if (ok) okCnt = (okCnt == null ? 1 : okCnt + 1);
+                    else    failCnt = (failCnt == null ? 1 : failCnt + 1);
+                ]]></code>
+            </actionHandle>
+        </action>
+        <jobPolicy timeout="PT2S" retry="R3/PT0.2S" retryOn="transient" onFailure="continue"/>
+    </autoTask>
+
+    <autoTask id="check-threshold" name="阈值校验(>=100)" g="470,120,160,48">
+        <transition to="merge"/>
+        <action type="java-inline">
+            <actionHandle>
+                <code mode="block"><![CDATA[
+                    boolean ok = (sum != null && sum >= 100);
+                    if (ok) okCnt = (okCnt == null ? 1 : okCnt + 1);
+                    else    failCnt = (failCnt == null ? 1 : failCnt + 1);
+                ]]></code>
+            </actionHandle>
+        </action>
+        <jobPolicy timeout="PT2S" retry="R2/PT0.3S" retryOn="always" onFailure="continue"/>
+    </autoTask>
+
+    <inclusive id="merge" name="包容汇合" g="660,80,140,48">
+        <transition to="render" expression="sum != null &amp;&amp; sum >= 0" name="正常渲染"/>
+        <transition to="error-handler" expression="sum == null || sum &lt; 0" name="错误处理"/>
+        <transition to="special-case" expression="sum != null &amp;&amp; sum > 1000" name="特殊情况"/>
+    </inclusive>
+
+    <autoTask id="render" name="渲染结果" g="820,40,160,48">
+        <transition to="end"/>
+        <action type="java-inline">
+            <actionHandle>
+                <var name="ret" dataType="java.lang.String" inOutType="return" contextVarName="result"/>
+                <code mode="expr"><![CDATA[
+                    "sum=" + sum + ", ok=" + (okCnt==null?0:okCnt) + ", fail=" + (failCnt==null?0:failCnt)
+                ]]></code>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <autoTask id="error-handler" name="错误处理" g="820,120,160,48">
+        <transition to="end"/>
+        <action type="java-inline">
+            <actionHandle>
+                <var name="ret" dataType="java.lang.String" inOutType="return" contextVarName="result"/>
+                <code mode="expr"><![CDATA[
+                    "ERROR: sum=" + sum + ", ok=" + (okCnt==null?0:okCnt) + ", fail=" + (failCnt==null?0:failCnt)
+                ]]></code>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <autoTask id="special-case" name="特殊情况处理" g="820,200,160,48">
+        <transition to="end"/>
+        <action type="java-inline">
+            <actionHandle>
+                <var name="ret" dataType="java.lang.String" inOutType="return" contextVarName="result"/>
+                <code mode="expr"><![CDATA[
+                    "SPECIAL: sum=" + sum + ", ok=" + (okCnt==null?0:okCnt) + ", fail=" + (failCnt==null?0:failCnt)
+                ]]></code>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <end id="end" name="结束" g="1000,80,32,32"/>
+</bpm>

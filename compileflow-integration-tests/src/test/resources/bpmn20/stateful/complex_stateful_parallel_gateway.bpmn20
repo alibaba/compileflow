@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:cf="http://www.compileflow.org/schema/1.0"
+             targetNamespace="http://www.compileflow.org/bpmn/test">
+  <process id="bpmn20.stateful.complex_stateful_parallel_gateway" name="Complex Stateful Parallel Gateway" isExecutable="true">
+    <extensionElements>
+      <cf:var name="processData" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="fast_processing_result" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="slow_processing_result" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="conditional_processing_result" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="error_handling_result" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="finalResult" dataType="java.lang.String" inOutType="return"/>
+    </extensionElements>
+
+    <startEvent id="startEvent" name="Start"/>
+
+    <sequenceFlow id="flow1" sourceRef="startEvent" targetRef="parallelGateway" />
+
+    <parallelGateway id="parallelGateway" name="Parallel Gateway"/>
+
+    <sequenceFlow id="flow3" sourceRef="parallelGateway" targetRef="receiveTask1" />
+    <sequenceFlow id="flow4" sourceRef="parallelGateway" targetRef="receiveTask2" />
+    <sequenceFlow id="flow5" sourceRef="parallelGateway" targetRef="receiveTask3" />
+    <sequenceFlow id="flow6" sourceRef="parallelGateway" targetRef="receiveTask4" />
+
+    <receiveTask id="receiveTask1" name="Receive Task 1" messageRef="fastProcessingMessage">
+      <extensionElements>
+        <cf:inAction type="java">
+          <cf:actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+            <cf:var name="input" dataType="java.lang.String" contextVarName="fast_processing_result" inOutType="param"/>
+            <cf:var name="result" dataType="java.lang.String" contextVarName="finalResult" inOutType="return"/>
+          </cf:actionHandle>
+        </cf:inAction>
+      </extensionElements>
+    </receiveTask>
+
+    <receiveTask id="receiveTask2" name="Receive Task 2" messageRef="slowProcessingMessage">
+      <extensionElements>
+        <cf:inAction type="java">
+          <cf:actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+            <cf:var name="input" dataType="java.lang.String" contextVarName="slow_processing_result" inOutType="param"/>
+            <cf:var name="result" dataType="java.lang.String" contextVarName="finalResult" inOutType="return"/>
+          </cf:actionHandle>
+        </cf:inAction>
+      </extensionElements>
+    </receiveTask>
+
+    <receiveTask id="receiveTask3" name="Receive Task 3" messageRef="conditionalProcessingMessage">
+      <extensionElements>
+        <cf:inAction type="java">
+          <cf:actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+            <cf:var name="input" dataType="java.lang.String" contextVarName="conditional_processing_result" inOutType="param"/>
+            <cf:var name="result" dataType="java.lang.String" contextVarName="finalResult" inOutType="return"/>
+          </cf:actionHandle>
+        </cf:inAction>
+      </extensionElements>
+    </receiveTask>
+
+    <receiveTask id="receiveTask4" name="Receive Task 4" messageRef="errorHandlingMessage">
+      <extensionElements>
+        <cf:inAction type="java">
+          <cf:actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+            <cf:var name="input" dataType="java.lang.String" contextVarName="error_handling_result" inOutType="param"/>
+            <cf:var name="result" dataType="java.lang.String" contextVarName="finalResult" inOutType="return"/>
+          </cf:actionHandle>
+        </cf:inAction>
+      </extensionElements>
+    </receiveTask>
+
+    <sequenceFlow id="flow7" sourceRef="receiveTask1" targetRef="joinGateway" />
+    <sequenceFlow id="flow8" sourceRef="receiveTask2" targetRef="joinGateway" />
+    <sequenceFlow id="flow9" sourceRef="receiveTask3" targetRef="joinGateway" />
+    <sequenceFlow id="flow10" sourceRef="receiveTask4" targetRef="joinGateway" />
+
+    <parallelGateway id="joinGateway" name="Join Gateway"/>
+
+    <sequenceFlow id="flow11" sourceRef="joinGateway" targetRef="endEvent" />
+
+    <endEvent id="endEvent" name="End"/>
+  </process>
+
+  <message id="fastProcessingMessage" name="Fast Processing Message"/>
+  <message id="slowProcessingMessage" name="Slow Processing Message"/>
+  <message id="conditionalProcessingMessage" name="Conditional Processing Message"/>
+  <message id="errorHandlingMessage" name="Error Handling Message"/>
+</definitions>
+

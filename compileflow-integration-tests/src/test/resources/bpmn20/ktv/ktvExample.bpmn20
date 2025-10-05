@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:cf="http://www.compileflow.org/schema/1.0"
+             xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             typeLanguage="http://www.w3.org/2001/XMLSchema"
+             expressionLanguage="http://www.w3.org/1999/XPath"
+             targetNamespace="http://www.compileflow.org/bpmn/test">
+
+    <process id="bpmn20.ktv.ktvExample" name="ktvExample" isExecutable="true">
+        <extensionElements>
+            <cf:var name="price" description="Payment Price" dataType="java.lang.Integer" inOutType="return"/>
+            <cf:var name="totalPrice" description="Actual Price" dataType="java.lang.Integer" inOutType="inner"/>
+            <cf:var name="pList" description="Personnel" dataType="java.util.List&lt;java.lang.String&gt;"
+                    inOutType="param"/>
+        </extensionElements>
+
+        <startEvent id="start"/>
+
+        <sequenceFlow id="flow1" sourceRef="start" targetRef="singLoop"/>
+
+        <subProcess id="singLoop" name="sing loop">
+            <multiInstanceLoopCharacteristics cf:collection="pList" cf:elementVar="p"
+                                         cf:indexVar="i" cf:elementVarClass="java.lang.String">
+            </multiInstanceLoopCharacteristics>
+            <startEvent id="singStart"/>
+            <sequenceFlow id="subFlow1" sourceRef="singStart" targetRef="sing"/>
+            <serviceTask id="sing" name="sing task"
+                         cf:bean="ktvService"
+                         cf:clazz="com.alibaba.compileflow.engine.test.mock.KtvService"
+                         cf:method="sing">
+                <extensionElements>
+                    <cf:var name="p1" description="" dataType="java.lang.String" contextVarName="p" defaultValue=""
+                            inOutType="param"/>
+                </extensionElements>
+            </serviceTask>
+            <sequenceFlow id="subFlow2" sourceRef="sing" targetRef="singEnd"/>
+            <endEvent id="singEnd"/>
+        </subProcess>
+
+        <sequenceFlow id="flow2" sourceRef="singLoop" targetRef="calPrice"/>
+
+        <serviceTask id="calPrice" name="calPrice"
+                     cf:clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz"
+                     cf:method="calPrice">
+            <extensionElements>
+                <cf:var name="p1" description="Number of People" dataType="java.lang.Integer" contextVarName="pList.size()"
+                        defaultValue=""
+                        inOutType="param"/>
+                <cf:var name="p2" description="Price" dataType="java.lang.Integer" contextVarName="totalPrice"
+                        defaultValue=""
+                        inOutType="return"/>
+            </extensionElements>
+        </serviceTask>
+
+        <sequenceFlow id="flow3" sourceRef="calPrice" targetRef="payDecision"/>
+
+        <exclusiveGateway id="payDecision" default="flow5"/>
+
+        <sequenceFlow id="flow4" sourceRef="payDecision" targetRef="originalPrice">
+            <conditionExpression xsi:type="tFormalExpression" language="java">
+                <![CDATA[${totalPrice>=300}]]>
+            </conditionExpression>
+        </sequenceFlow>
+
+        <sequenceFlow id="flow5" sourceRef="payDecision" targetRef="promotionPrice"/>
+
+        <scriptTask id="originalPrice" name="original price" scriptFormat="ql">
+            <extensionElements>
+                <cf:var name="price" description="Price" dataType="java.lang.Integer" contextVarName="totalPrice"
+                        defaultValue="" inOutType="param"/>
+                <cf:var name="price" description="Price" dataType="java.lang.Integer" contextVarName="price"
+                        defaultValue=""
+                        inOutType="return"/>
+            </extensionElements>
+            <script><![CDATA[(round(price*0.9,0)).intValue()]]></script>
+        </scriptTask>
+
+        <scriptTask id="promotionPrice" name="promotion task" scriptFormat="ql">
+            <extensionElements>
+                <cf:var name="price" description="Price" dataType="java.lang.Integer" contextVarName="totalPrice"
+                        defaultValue="" inOutType="param"/>
+                <cf:var name="price" description="Price" dataType="java.lang.Integer" contextVarName="price"
+                        defaultValue=""
+                        inOutType="return"/>
+            </extensionElements>
+            <script><![CDATA[(round(price*0.9,0)).intValue()]]></script>
+        </scriptTask>
+
+        <sequenceFlow id="flow6" sourceRef="originalPrice" targetRef="pay"/>
+        <sequenceFlow id="flow7" sourceRef="promotionPrice" targetRef="pay"/>
+
+        <serviceTask id="pay" name="pay"
+                     cf:clazz="com.alibaba.compileflow.engine.test.mock.KtvService"
+                     cf:method="payMoney">
+            <extensionElements>
+                <cf:var name="p1" description="Price" dataType="java.lang.Integer"
+                        contextVarName="price" defaultValue="" inOutType="param"/>
+            </extensionElements>
+        </serviceTask>
+
+        <sequenceFlow id="flow8" sourceRef="pay" targetRef="end"/>
+
+        <endEvent id="end"/>
+    </process>
+
+</definitions>

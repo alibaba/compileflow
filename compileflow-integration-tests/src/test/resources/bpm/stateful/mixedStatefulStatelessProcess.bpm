@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.stateful.mixedStatefulStatelessProcess" name="混合状态无状态流程" type="statefulProcess"
+     description="测试混合状态和无状态节点的stateful流程">
+    <var name="processData" description="流程数据" dataType="java.lang.String" inOutType="param"/>
+    <var name="stateful_trigger_data" description="状态触发数据" dataType="java.lang.String" inOutType="param"/>
+    <var name="statelessResult" description="无状态结果" dataType="java.lang.String" inOutType="param"/>
+    <var name="statefulResult" description="状态结果" dataType="java.lang.String" inOutType="param"/>
+    <var name="mixedResult" description="混合结果" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="开始" tag="start" g="100,50,30,30">
+        <transition to="statelessTask" g=":-15,20"/>
+    </start>
+
+    <autoTask id="statelessTask" name="无状态任务" tag="statelessTask" g="80,120,88,48">
+        <transition to="waitStatefulEvent" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="processData" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="statelessResult" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <waitEventTask id="waitStatefulEvent" name="等待状态事件" tag="waitStatefulEvent" event="statefulEventComplete"
+                   g="70,200,120,60">
+        <transition to="processStatefulResult" g=":-15,20"/>
+        <inAction type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="stateful_trigger_data" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="statefulResult" inOutType="return"/>
+            </actionHandle>
+        </inAction>
+    </waitEventTask>
+
+    <autoTask id="processStatefulResult" name="处理状态结果" tag="processStatefulResult" g="80,300,88,48">
+        <transition to="combineMixedResults" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+                <var name="payment" dataType="java.lang.String" contextVarName="statelessResult" inOutType="param"/>
+                <var name="delivery" dataType="java.lang.String" contextVarName="statefulResult" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="mixedResult" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <autoTask id="combineMixedResults" name="合并混合结果" tag="combineMixedResults" g="80,400,88,48">
+        <transition to="end" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="mixedResult" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="mixedResult" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <end id="end" name="结束" tag="end" g="100,500,30,30"/>
+</bpm>
+

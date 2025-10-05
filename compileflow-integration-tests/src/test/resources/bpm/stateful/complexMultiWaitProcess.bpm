@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.stateful.complexMultiWaitProcess" name="复杂多等待流程" type="statefulProcess"
+     description="测试复杂多等待的stateful流程">
+    <var name="processId" description="流程ID" dataType="java.lang.String" inOutType="param"/>
+    <var name="step1_data" description="步骤1数据" dataType="java.lang.String" inOutType="param"/>
+    <var name="step2_data" description="步骤2数据" dataType="java.lang.String" inOutType="param"/>
+    <var name="step3_data" description="步骤3数据" dataType="java.lang.String" inOutType="param"/>
+    <var name="step4_data" description="步骤4数据" dataType="java.lang.String" inOutType="param"/>
+    <var name="step5_data" description="步骤5数据" dataType="java.lang.String" inOutType="param"/>
+    <var name="finalComplexResult" description="最终复杂结果" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="开始" tag="start" g="100,50,30,30">
+        <transition to="initializeComplexProcess" g=":-15,20"/>
+    </start>
+
+    <autoTask id="initializeComplexProcess" name="初始化复杂流程" tag="initializeComplexProcess" g="80,120,88,48">
+        <transition to="waitStep1" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="processId" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="processId" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <waitEventTask id="waitStep1" name="等待步骤1" tag="waitStep1" event="step1Complete" g="70,200,120,60">
+        <transition to="processStep1" g=":-15,20"/>
+        <inAction type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="step1_data" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="step1_data" inOutType="return"/>
+            </actionHandle>
+        </inAction>
+    </waitEventTask>
+
+    <autoTask id="processStep1" name="处理步骤1" tag="processStep1" g="80,300,88,48">
+        <transition to="waitStep2" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+                <var name="payment" dataType="java.lang.String" contextVarName="processId" inOutType="param"/>
+                <var name="delivery" dataType="java.lang.String" contextVarName="step1_data" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="step1_data" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <waitEventTask id="waitStep2" name="等待步骤2" tag="waitStep2" event="step2Complete" g="70,400,120,60">
+        <transition to="processStep2" g=":-15,20"/>
+        <inAction type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="step2_data" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="step2_data" inOutType="return"/>
+            </actionHandle>
+        </inAction>
+    </waitEventTask>
+
+    <autoTask id="processStep2" name="处理步骤2" tag="processStep2" g="80,500,88,48">
+        <transition to="waitStep3" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+                <var name="payment" dataType="java.lang.String" contextVarName="step1_data" inOutType="param"/>
+                <var name="delivery" dataType="java.lang.String" contextVarName="step2_data" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="step2_data" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <waitEventTask id="waitStep3" name="等待步骤3" tag="waitStep3" event="step3Complete" g="70,600,120,60">
+        <transition to="processStep3" g=":-15,20"/>
+        <inAction type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="step3_data" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="step3_data" inOutType="return"/>
+            </actionHandle>
+        </inAction>
+    </waitEventTask>
+
+    <autoTask id="processStep3" name="处理步骤3" tag="processStep3" g="80,700,88,48">
+        <transition to="waitStep4" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+                <var name="payment" dataType="java.lang.String" contextVarName="step2_data" inOutType="param"/>
+                <var name="delivery" dataType="java.lang.String" contextVarName="step3_data" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="step3_data" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <waitEventTask id="waitStep4" name="等待步骤4" tag="waitStep4" event="step4Complete" g="70,800,120,60">
+        <transition to="processStep4" g=":-15,20"/>
+        <inAction type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="step4_data" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="step4_data" inOutType="return"/>
+            </actionHandle>
+        </inAction>
+    </waitEventTask>
+
+    <autoTask id="processStep4" name="处理步骤4" tag="processStep4" g="80,900,88,48">
+        <transition to="waitStep5" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+                <var name="payment" dataType="java.lang.String" contextVarName="step3_data" inOutType="param"/>
+                <var name="delivery" dataType="java.lang.String" contextVarName="step4_data" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="step4_data" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <waitEventTask id="waitStep5" name="等待步骤5" tag="waitStep5" event="step5Complete" g="70,1000,120,60">
+        <transition to="processStep5" g=":-15,20"/>
+        <inAction type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="step5_data" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="step5_data" inOutType="return"/>
+            </actionHandle>
+        </inAction>
+    </waitEventTask>
+
+    <autoTask id="processStep5" name="处理步骤5" tag="processStep5" g="80,1100,88,48">
+        <transition to="finalizeComplexProcess" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+                <var name="payment" dataType="java.lang.String" contextVarName="step4_data" inOutType="param"/>
+                <var name="delivery" dataType="java.lang.String" contextVarName="step5_data" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="finalComplexResult" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <autoTask id="finalizeComplexProcess" name="完成复杂流程" tag="finalizeComplexProcess" g="80,1200,88,48">
+        <transition to="end" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="finalComplexResult" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="finalComplexResult" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <end id="end" name="结束" tag="end" g="100,1300,30,30"/>
+</bpm>
+

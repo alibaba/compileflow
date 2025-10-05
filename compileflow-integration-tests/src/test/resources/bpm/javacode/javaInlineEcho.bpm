@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.gateway.inlineEcho" name="网关 inline 示例" type="process">
+    <var name="A" dataType="java.lang.String" inOutType="param"/>
+    <var name="X" dataType="java.lang.String" inOutType="param"/>
+    <var name="B" dataType="java.lang.String" inOutType="param"/>
+    <var name="C" dataType="java.lang.String" inOutType="param"/>
+    <var name="J" dataType="java.lang.String" inOutType="param"/>
+    <var name="F" dataType="java.lang.String" inOutType="param"/>
+    <var name="G" dataType="java.lang.String" inOutType="param"/>
+    <var name="H" dataType="java.lang.String" inOutType="param"/>
+
+    <start id="start" name="开始" tag="start" g="100,100,40,40">
+        <transition to="G1"/>
+    </start>
+
+    <decision id="G1" name="网关 G1" tag="gatewayG1" g="200,100,88,48">
+        <action type="java-inline">
+            <actionHandle>
+                <code mode="block"><![CDATA[
+          // 可在此提前计算分流需要的上下文
+        ]]></code>
+            </actionHandle>
+        </action>
+        <transition expression="A!=null" name="路径A" to="A"/>
+        <transition expression="A==null" name="路径X" to="X"/>
+    </decision>
+
+    <autoTask id="A" name="任务 A" tag="taskA" g="300,50,120,48">
+        <action type="java-inline">
+            <actionHandle>
+                <code mode="block"><![CDATA[
+          System.out.println("A=" + A);
+        ]]></code>
+            </actionHandle>
+        </action>
+        <transition to="G2"/>
+    </autoTask>
+
+    <autoTask id="X" name="任务 X" tag="taskX" g="300,150,120,48">
+        <action type="java-inline">
+            <actionHandle>
+                <code mode="block"><![CDATA[
+          System.out.println("X=" + X);
+        ]]></code>
+            </actionHandle>
+        </action>
+        <transition to="H"/>
+    </autoTask>
+
+    <decision id="G2" name="网关 G2" tag="gatewayG2" g="400,50,120,48">
+        <transition expression="true" name="路径B" to="B"/>
+        <transition expression="false" name="路径C" to="C"/>
+    </decision>
+
+    <autoTask id="B" name="任务 B" tag="taskB" g="540,30,120,48">
+        <action type="java-inline">
+            <actionHandle>
+                <code mode="block"><![CDATA[
+          System.out.println("B=" + B);
+        ]]></code>
+            </actionHandle>
+        </action>
+        <transition to="J"/>
+    </autoTask>
+
+    <autoTask id="C" name="任务 C" tag="taskC" g="540,90,120,48">
+        <action type="java-inline">
+            <actionHandle>
+                <code mode="block"><![CDATA[
+          System.out.println("C=" + C);
+        ]]></code>
+            </actionHandle>
+        </action>
+        <transition to="J"/>
+    </autoTask>
+
+    <autoTask id="J" name="任务 J" tag="taskJ" g="700,50,120,48">
+        <action type="java-inline">
+            <actionHandle>
+                <code mode="block"><![CDATA[
+          System.out.println("J=" + J);
+        ]]></code>
+            </actionHandle>
+        </action>
+        <transition to="K"/>
+    </autoTask>
+
+    <decision id="K" name="网关 K" tag="gatewayK" g="840,50,120,48">
+        <transition expression="true" name="路径F" to="F"/>
+        <transition expression="false" name="路径G" to="G"/>
+    </decision>
+
+    <autoTask id="F" name="任务 F" tag="taskF" g="980,30,120,48">
+        <action type="java-inline">
+            <actionHandle>
+                <code mode="block"><![CDATA[
+          System.out.println("F=" + F);
+        ]]></code>
+            </actionHandle>
+        </action>
+        <transition to="H"/>
+    </autoTask>
+
+    <autoTask id="G" name="任务 G" tag="taskG" g="980,90,120,48">
+        <action type="java-inline">
+            <actionHandle>
+                <code mode="block"><![CDATA[
+          System.out.println("G=" + G);
+        ]]></code>
+            </actionHandle>
+        </action>
+        <transition to="H"/>
+    </autoTask>
+
+    <autoTask id="H" name="任务 H" tag="taskH" g="1140,100,120,48">
+        <action type="java-inline">
+            <actionHandle>
+                <code mode="block"><![CDATA[
+          System.out.println("H=" + H);
+        ]]></code>
+            </actionHandle>
+        </action>
+        <transition to="end"/>
+    </autoTask>
+
+    <end id="end" name="结束" tag="end" g="1280,100,40,40"/>
+</bpm>

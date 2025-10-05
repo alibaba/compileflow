@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:cf="http://www.compileflow.org/schema/1.0"
+             targetNamespace="http://www.compileflow.org/bpmn/test">
+  <process id="bpmn20.gateway.inclusive_gateway" name="Inclusive Gateway Flow" isExecutable="true">
+    <extensionElements>
+      <cf:var name="condition1" description="Condition 1" dataType="java.lang.Boolean" inOutType="param"/>
+      <cf:var name="condition2" description="Condition 2" dataType="java.lang.Boolean" inOutType="param"/>
+      <cf:var name="branch1" description="branch1" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="branch2" description="branch2" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="branch3" description="branch3" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="result1" description="Result 1" dataType="java.lang.String" inOutType="return"/>
+      <cf:var name="result2" description="Result 2" dataType="java.lang.String" inOutType="return"/>
+      <cf:var name="result3" description="Result 3" dataType="java.lang.String" inOutType="return"/>
+    </extensionElements>
+
+    <startEvent id="start" name="Start"/>
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="inclusiveGateway1"/>
+
+    <inclusiveGateway id="inclusiveGateway1" name="Inclusive Decision" default="flow4"/>
+
+    <sequenceFlow id="flow2" sourceRef="inclusiveGateway1" targetRef="serviceTask1">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${condition1 == true}]]></conditionExpression>
+    </sequenceFlow>
+
+    <sequenceFlow id="flow3" sourceRef="inclusiveGateway1" targetRef="serviceTask2">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${condition2 == true}]]></conditionExpression>
+    </sequenceFlow>
+
+    <sequenceFlow id="flow4" sourceRef="inclusiveGateway1" targetRef="serviceTask3"/>
+
+    <serviceTask id="serviceTask1" name="Process Branch 1">
+      <extensionElements>
+        <cf:action type="java">
+          <cf:actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+            <cf:var name="input" dataType="java.lang.String" contextVarName="branch1" inOutType="param"/>
+            <cf:var name="result" dataType="java.lang.String" contextVarName="result1" inOutType="return"/>
+          </cf:actionHandle>
+        </cf:action>
+      </extensionElements>
+    </serviceTask>
+
+    <serviceTask id="serviceTask2" name="Process Branch 2">
+      <extensionElements>
+        <cf:action type="java">
+          <cf:actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+            <cf:var name="input" dataType="java.lang.String" contextVarName="branch2" inOutType="param"/>
+            <cf:var name="result" dataType="java.lang.String" contextVarName="result2" inOutType="return"/>
+          </cf:actionHandle>
+        </cf:action>
+      </extensionElements>
+    </serviceTask>
+
+    <serviceTask id="serviceTask3" name="Default Branch">
+      <extensionElements>
+        <cf:action type="java">
+          <cf:actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+            <cf:var name="input" dataType="java.lang.String" contextVarName="branch3" inOutType="param"/>
+            <cf:var name="result" dataType="java.lang.String" contextVarName="result3" inOutType="return"/>
+          </cf:actionHandle>
+        </cf:action>
+      </extensionElements>
+    </serviceTask>
+
+    <sequenceFlow id="flow5" sourceRef="serviceTask1" targetRef="join"/>
+    <sequenceFlow id="flow6" sourceRef="serviceTask2" targetRef="join"/>
+    <sequenceFlow id="flow7" sourceRef="serviceTask3" targetRef="join"/>
+
+    <inclusiveGateway id="join" name="Join"/>
+    <sequenceFlow id="flow8" sourceRef="join" targetRef="end"/>
+    <endEvent id="end" name="End"/>
+  </process>
+</definitions>

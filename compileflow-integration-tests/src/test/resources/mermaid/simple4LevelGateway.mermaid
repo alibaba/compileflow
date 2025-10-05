@@ -1,0 +1,20 @@
+flowchart BT
+    subgraph Main Path
+        D1 --> D2
+        D1 --> SimpleTask
+    end
+
+    subgraph Second Level Path
+        D2 --> D3
+        D2 --> ShallowTask
+    end
+
+    subgraph Third Level Path
+        D3 --> D4
+        D3 --> MidLevelTask
+    end
+
+    subgraph Fourth Level Path
+        D4 --> DeepTaskT
+        D4 --> DeepTaskF
+    end

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:cf="http://www.compileflow.org/schema/1.0"
+             targetNamespace="http://www.compileflow.org/bpmn/test">
+  <process id="bpmn20.stateful.stateful_parallel_gateway" name="Stateful Parallel Gateway Flow" isExecutable="true">
+    <extensionElements>
+      <cf:var name="processData" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="branch1_data" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="branch2_data" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="branch1Result" dataType="java.lang.String" inOutType="return"/>
+      <cf:var name="branch2Result" dataType="java.lang.String" inOutType="return"/>
+      <cf:var name="finalResult" dataType="java.lang.String" inOutType="return"/>
+    </extensionElements>
+
+    <startEvent id="start" name="Start"/>
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="fork"/>
+
+    <parallelGateway id="fork" name="Fork"/>
+
+    <sequenceFlow id="flow2" sourceRef="fork" targetRef="receiveTask1"/>
+    <sequenceFlow id="flow3" sourceRef="fork" targetRef="receiveTask2"/>
+
+    <receiveTask id="receiveTask1" name="Wait Branch 1 Event" messageRef="branch1Message">
+      <extensionElements>
+        <cf:inAction type="java">
+          <cf:actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+            <cf:var name="input" dataType="java.lang.String" contextVarName="branch1_data" inOutType="param"/>
+            <cf:var name="result" dataType="java.lang.String" contextVarName="branch1Result" inOutType="return"/>
+          </cf:actionHandle>
+        </cf:inAction>
+      </extensionElements>
+    </receiveTask>
+
+    <receiveTask id="receiveTask2" name="Wait Branch 2 Event" messageRef="branch2Message">
+      <extensionElements>
+        <cf:inAction type="java">
+          <cf:actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+            <cf:var name="input" dataType="java.lang.String" contextVarName="branch2_data" inOutType="param"/>
+            <cf:var name="result" dataType="java.lang.String" contextVarName="branch2Result" inOutType="return"/>
+          </cf:actionHandle>
+        </cf:inAction>
+      </extensionElements>
+    </receiveTask>
+
+    <sequenceFlow id="flow4" sourceRef="receiveTask1" targetRef="join"/>
+    <sequenceFlow id="flow5" sourceRef="receiveTask2" targetRef="join"/>
+
+    <parallelGateway id="join" name="Join"/>
+    <sequenceFlow id="flow6" sourceRef="join" targetRef="serviceTask1"/>
+
+    <serviceTask id="serviceTask1" name="Combine Results">
+      <extensionElements>
+        <cf:action type="java">
+          <cf:actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+            <cf:var name="payment" dataType="java.lang.String" contextVarName="branch1Result" inOutType="param"/>
+            <cf:var name="delivery" dataType="java.lang.String" contextVarName="branch2Result" inOutType="param"/>
+            <cf:var name="result" dataType="java.lang.String" contextVarName="finalResult" inOutType="return"/>
+          </cf:actionHandle>
+        </cf:action>
+      </extensionElements>
+    </serviceTask>
+
+    <sequenceFlow id="flow7" sourceRef="serviceTask1" targetRef="end"/>
+    <endEvent id="end" name="End"/>
+  </process>
+  
+  <!-- Message definitions -->
+  <message id="branch1Message" name="branch1Message" />
+  <message id="branch2Message" name="branch2Message" />
+</definitions>
+
+

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.jobpolicy.customFailureHandler" name="JobPolicy Failure Handler Test - Custom" type="process">
+    <var name="scenario" dataType="java.lang.String" inOutType="param" defaultValue="transient_error"/>
+    <var name="result" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="Start" g="50,50,32,32">
+        <transition to="customFailureTask"/>
+    </start>
+
+    <autoTask id="customFailureTask" name="Custom Failure Task" g="150,40,120,48">
+        <jobPolicy
+                timeout="PT2S"
+                retry="R3/PT0.2S"
+                retryOn="transient"
+                onFailure="com.alibaba.compileflow.engine.test.execution.MyCustomErrorHandler"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.JobPolicyTestService"
+                          method="customFailureScenario">
+                <var name="scenario" dataType="java.lang.String" inOutType="param" contextVarName="scenario"/>
+                <var name="result" dataType="java.lang.String" inOutType="return" contextVarName="result"/>
+            </actionHandle>
+        </action>
+        <transition to="end"/>
+    </autoTask>
+
+    <end id="end" name="End" g="320,50,32,32"/>
+</bpm>

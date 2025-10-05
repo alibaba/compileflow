@@ -1,0 +1,3 @@
+com.alibaba.compileflow.engine.core.observability.tracing.impl.NoOpTracingProvider
+com.alibaba.compileflow.engine.core.observability.tracing.impl.SleuthTracingProvider
+com.alibaba.compileflow.engine.core.observability.tracing.impl.MicrometerTracingProvider

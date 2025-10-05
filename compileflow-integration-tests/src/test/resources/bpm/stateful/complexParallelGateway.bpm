@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.stateful.complexParallelGateway" name="复杂并行网关流程" type="statefulProcess"
+     description="测试复杂并行网关的stateful流程">
+    <var name="orderId" description="订单ID" dataType="java.lang.String" inOutType="param"/>
+    <var name="customerId" description="客户ID" dataType="java.lang.String" inOutType="param"/>
+    <var name="payment_status" description="支付状态" dataType="java.lang.String" inOutType="param"/>
+    <var name="payment_method" description="支付方式" dataType="java.lang.String" inOutType="param"/>
+    <var name="inventory_status" description="库存状态" dataType="java.lang.String" inOutType="param"/>
+    <var name="reserved_quantity" description="预留数量" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="validation_status" description="验证状态" dataType="java.lang.String" inOutType="param"/>
+    <var name="customer_tier" description="客户等级" dataType="java.lang.String" inOutType="param"/>
+    <var name="finalResult" description="最终结果" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="开始" tag="start" g="100,50,30,30">
+        <transition to="createOrder" g=":-15,20"/>
+    </start>
+
+    <autoTask id="createOrder" name="创建订单" tag="createOrder" g="80,120,88,48">
+        <transition to="parallelGateway" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="orderId" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="orderId" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <parallel id="parallelGateway" name="并行网关" tag="parallelGateway" g="80,200,88,48">
+        <transition to="waitPaymentProcessing" g=":-15,20"/>
+        <transition to="waitInventoryCheck" g=":-15,20"/>
+        <transition to="waitCustomerValidation" g=":-15,20"/>
+    </parallel>
+
+    <waitEventTask id="waitPaymentProcessing" name="等待支付处理" tag="waitPaymentProcessing" event="paymentComplete"
+                   g="70,300,120,60">
+        <transition to="joinGateway" g=":-15,20"/>
+        <inAction type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+                <var name="payment" dataType="java.lang.String" contextVarName="payment_status" inOutType="param"/>
+                <var name="delivery" dataType="java.lang.String" contextVarName="payment_method" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="payment_status" inOutType="return"/>
+            </actionHandle>
+        </inAction>
+    </waitEventTask>
+
+    <waitEventTask id="waitInventoryCheck" name="等待库存检查" tag="waitInventoryCheck" event="inventoryComplete"
+                   g="70,400,120,60">
+        <transition to="joinGateway" g=":-15,20"/>
+        <inAction type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+                <var name="payment" dataType="java.lang.String" contextVarName="inventory_status" inOutType="param"/>
+                <var name="delivery" dataType="java.lang.Integer" contextVarName="reserved_quantity" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="inventory_status" inOutType="return"/>
+            </actionHandle>
+        </inAction>
+    </waitEventTask>
+
+    <waitEventTask id="waitCustomerValidation" name="等待客户验证" tag="waitCustomerValidation"
+                   event="validationComplete" g="70,500,120,60">
+        <transition to="joinGateway" g=":-15,20"/>
+        <inAction type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+                <var name="payment" dataType="java.lang.String" contextVarName="validation_status" inOutType="param"/>
+                <var name="delivery" dataType="java.lang.String" contextVarName="customer_tier" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="validation_status" inOutType="return"/>
+            </actionHandle>
+        </inAction>
+    </waitEventTask>
+
+    <parallel id="joinGateway" name="汇合网关" tag="joinGateway" g="80,600,88,48">
+        <transition to="processFinalResult" g=":-15,20"/>
+    </parallel>
+
+    <autoTask id="processFinalResult" name="处理最终结果" tag="processFinalResult" g="80,700,88,48">
+        <transition to="end" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+                <var name="payment" dataType="java.lang.String" contextVarName="payment_status" inOutType="param"/>
+                <var name="delivery" dataType="java.lang.String" contextVarName="inventory_status" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="finalResult" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <end id="end" name="结束" tag="end" g="100,800,30,30"/>
+</bpm>

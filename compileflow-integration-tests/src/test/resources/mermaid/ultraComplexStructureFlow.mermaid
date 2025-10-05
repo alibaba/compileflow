@@ -1,0 +1,81 @@
+graph TD
+    subgraph "Main Process"
+        Start[Start] --> G0{G0: Pre-Gateway}
+
+        subgraph "Alternative Path"
+            direction LR
+            AltPath[Alt Path Processing] --> AltDecision{Alt Decision}
+            AltDecision --> AltTask1[Alt Task 1] --> AltMerge[Alt Merge]
+            AltDecision --> AltTask2[Alt Task 2] --> AltMerge
+        end
+
+        G0 -->|Main Path| G1{G1: Gateway G1}
+        G0 -->|Alternative Path| AltPath
+        AltMerge --> G1
+
+        subgraph "G1 -> Branch A (Deeply Nested)"
+            direction LR
+            A[A: Task A] --> G1_1{G1_1: Nested Gateway 1}
+            G1_1 --> SubA1[Sub-Task A1] --> G1_2{G1_2: Nested Gateway 2}
+            G1_1 --> SubA2[Sub-Task A2] --> G1_2
+            G1_2 --> SubA3[Sub-Task A3] --> MergeA[Merge Point A]
+            G1_2 --> SubA4[Sub-Task A4] --> MergeA
+            MergeA --> G2{G2: Gateway G2}
+        end
+
+        subgraph "G1 -> Branch X (Loop and Decision)"
+            direction LR
+            X[X: Task X] --> LoopStart[Loop Start] --> LoopDecision{Loop Decision}
+            LoopDecision -- Continue Loop --> LoopTask[Loop Task] --> G3
+            LoopDecision -- End Loop --> LoopEnd[Loop End] --> G3{G3: Decision Gateway}
+            G3 --> Parallel1[Decision Task 1] --> MergeParallel[Decision Merge]
+            G3 --> Parallel2[Decision Task 2] --> MergeParallel
+            G3 --> Parallel3[Decision Task 3] --> MergeParallel
+            MergeParallel --> Y[Y: Task Y]
+        end
+
+        G1 --> A
+        G1 --> X
+
+        subgraph "G2 -> Payment Path (Double Nested)"
+            direction LR
+            subgraph "Branch B"
+                B[B: Task B] --> G2_1{G2_1: Nested Gateway B}
+                G2_1 --> SubB1[Sub-Task B1] --> MergeB[Merge Point B]
+                G2_1 --> SubB2[Sub-Task B2] --> MergeB
+            end
+            subgraph "Branch C"
+                C[C: Task C] --> G2_2{G2_2: Nested Gateway C}
+                G2_2 --> SubC1[Sub-Task C1] --> MergeC[Merge Point C]
+                G2_2 --> SubC2[Sub-Task C2] --> MergeC
+            end
+            G2 --> B
+            G2 --> C
+            MergeB --> J[J: Task J]
+            MergeC --> J
+            J --> K{K: Gateway K}
+        end
+
+        subgraph "K -> Subsequent Path"
+            direction LR
+            subgraph "Branch F"
+                F[F: Task F] --> G4{G4: Post-Gateway}
+                G4 --> PostF1[Post-Task F1] --> MergeF[Merge Point F]
+                G4 --> PostF2[Post-Task F2] --> MergeF
+            end
+            subgraph "Branch G"
+                G[G: Task G] --> G5{G5: Post-Gateway}
+                G5 --> PostG1[Post-Task G1] --> MergeG[Merge Point G]
+                G5 --> PostG2[Post-Task G2] --> MergeG
+            end
+            K --> F
+            K --> G
+            MergeF --> H[H: Task H]
+            MergeG --> H
+            H --> FinalDecision{Final Decision}
+            FinalDecision -->|Path Y| Y
+            FinalDecision -->|Path Z| Z[Z: Task Z] --> End[End]
+        end
+
+        Y --> End
+    end

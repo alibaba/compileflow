@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.jobpolicy.retryTransientFailures" name="JobPolicy Retry Test - Transient Failures" type="process">
+    <var name="failUntilAttempt" dataType="java.lang.Integer" inOutType="param" defaultValue="2"/>
+    <var name="result" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="Start" g="50,50,32,32">
+        <transition to="retryTask"/>
+    </start>
+
+    <autoTask id="retryTask" name="Retry Task" g="150,40,120,48">
+        <jobPolicy
+                timeout="PT1S"
+                retry="R3/PT0.2S"
+                retryOn="always"
+                onFailure="incident"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.JobPolicyTestService" method="retryableTask">
+                <var name="failUntilAttempt" dataType="java.lang.Integer" inOutType="param"
+                     contextVarName="failUntilAttempt"/>
+                <var name="result" dataType="java.lang.String" inOutType="return" contextVarName="result"/>
+            </actionHandle>
+        </action>
+        <transition to="end"/>
+    </autoTask>
+
+    <end id="end" name="End" g="320,50,32,32"/>
+</bpm>

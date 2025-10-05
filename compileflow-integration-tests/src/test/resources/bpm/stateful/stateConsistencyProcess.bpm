@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.stateful.stateConsistencyProcess" name="状态一致性流程" type="statefulProcess"
+     description="测试状态一致性的stateful流程">
+    <var name="sessionId" description="会话ID" dataType="java.lang.String" inOutType="param"/>
+    <var name="userId" description="用户ID" dataType="java.lang.String" inOutType="param"/>
+    <var name="initial_data" description="初始数据" dataType="java.lang.String" inOutType="param"/>
+    <var name="update_data" description="更新数据" dataType="java.lang.String" inOutType="param"/>
+    <var name="finalize_data" description="完成数据" dataType="java.lang.String" inOutType="param"/>
+    <var name="stateData" description="状态数据" dataType="java.lang.String" inOutType="return"/>
+    <var name="updatedStateData" description="更新状态数据" dataType="java.lang.String" inOutType="return"/>
+    <var name="finalStateData" description="最终状态数据" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="开始" tag="start" g="100,50,30,30">
+        <transition to="initializeState" g=":-15,20"/>
+    </start>
+
+    <autoTask id="initializeState" name="初始化状态" tag="initializeState" g="80,120,88,48">
+        <transition to="waitInitialization" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="sessionId" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="sessionId" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <waitEventTask id="waitInitialization" name="等待初始化" tag="waitInitialization" event="initializationComplete"
+                   g="70,200,120,60">
+        <transition to="processInitialization" g=":-15,20"/>
+        <inAction type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="initial_data" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="stateData" inOutType="return"/>
+            </actionHandle>
+        </inAction>
+    </waitEventTask>
+
+    <autoTask id="processInitialization" name="处理初始化" tag="processInitialization" g="80,300,88,48">
+        <transition to="waitStateUpdate" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+                <var name="payment" dataType="java.lang.String" contextVarName="sessionId" inOutType="param"/>
+                <var name="delivery" dataType="java.lang.String" contextVarName="stateData" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="stateData" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <waitEventTask id="waitStateUpdate" name="等待状态更新" tag="waitStateUpdate" event="stateUpdateComplete"
+                   g="70,400,120,60">
+        <transition to="processStateUpdate" g=":-15,20"/>
+        <inAction type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="update_data" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="updatedStateData" inOutType="return"/>
+            </actionHandle>
+        </inAction>
+    </waitEventTask>
+
+    <autoTask id="processStateUpdate" name="处理状态更新" tag="processStateUpdate" g="80,500,88,48">
+        <transition to="waitStateFinalization" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+                <var name="payment" dataType="java.lang.String" contextVarName="stateData" inOutType="param"/>
+                <var name="delivery" dataType="java.lang.String" contextVarName="updatedStateData" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="updatedStateData" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <waitEventTask id="waitStateFinalization" name="等待状态完成" tag="waitStateFinalization"
+                   event="stateFinalizationComplete" g="70,600,120,60">
+        <transition to="processStateFinalization" g=":-15,20"/>
+        <inAction type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="finalize_data" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="finalStateData" inOutType="return"/>
+            </actionHandle>
+        </inAction>
+    </waitEventTask>
+
+    <autoTask id="processStateFinalization" name="处理状态完成" tag="processStateFinalization" g="80,700,88,48">
+        <transition to="end" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+                <var name="payment" dataType="java.lang.String" contextVarName="updatedStateData" inOutType="param"/>
+                <var name="delivery" dataType="java.lang.String" contextVarName="finalStateData" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="finalStateData" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <end id="end" name="结束" tag="end" g="100,800,30,30"/>
+</bpm>
+

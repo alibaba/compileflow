@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.javacode.javaCodeKtv" name="KTV inline/source demo" type="process"
+     description="KTV with java-inline java-source">
+    <var name="price" description="支付价格" dataType="java.lang.Integer" inOutType="return"/>
+    <var name="totalPrice" description="实付价(内部计算)" dataType="java.lang.Integer" inOutType="inner"/>
+    <var name="pList" description="人员" dataType="java.util.List&lt;java.lang.String&gt;" inOutType="param"/>
+
+    <start id="start" name="开始" g="105,17,30,30">
+        <transition to="singLoop"/>
+    </start>
+
+    <loopProcess id="singLoop" name="循环节点" g="20,75,198,190"
+                 collectionVarName="pList" variableName="p" indexVarName="i"
+                 variableClass="java.lang.String" startNodeId="sing" endNodeId="sing">
+        <transition to="calcFee"/>
+        <autoTask id="sing" name="每人唱一首歌" g="70,95,120,48">
+            <action type="java-inline">
+                <actionHandle>
+                    <code mode="block"><![CDATA[
+                        System.out.println("sing: Person " + i + " , name is " + p);
+                        if (totalPrice == null) totalPrice = 0;
+                        totalPrice += 80;
+                      ]]>
+                    </code>
+                </actionHandle>
+            </action>
+        </autoTask>
+    </loopProcess>
+
+    <decision id="calcFee" name="计算费用" g="72,309,120,48">
+        <action type="java-inline">
+            <actionHandle>
+                <code mode="block"><![CDATA[
+                      int count = (pList == null) ? 0 : pList.size();
+                      int byLoop = (totalPrice == null) ? 0 : totalPrice;
+                      int base = Math.max(80 * count, byLoop);
+                      totalPrice = base;
+                      System.out.println("totalPrice = " + totalPrice);
+                    ]]>
+                </code>
+            </actionHandle>
+        </action>
+        <transition name="不超过400" priority="1" to="noDiscount"/>
+        <transition name="超过400" priority="10" to="discount" expression="totalPrice>=400"/>
+    </decision>
+
+    <scriptTask id="noDiscount" name="原价" g="132,389,120,48">
+        <action type="java-inline">
+            <actionHandle>
+                <var name="price" dataType="java.lang.Integer" inOutType="return" contextVarName="price"/>
+                <code mode="expr"><![CDATA[ totalPrice ]]></code>
+            </actionHandle>
+        </action>
+        <transition to="pay"/>
+    </scriptTask>
+
+    <scriptTask id="discount" name="9折优惠" g="12,389,120,48">
+        <action type="java-inline">
+            <actionHandle>
+                <var name="price" dataType="java.lang.Integer" inOutType="return" contextVarName="price"/>
+                <code mode="expr"><![CDATA[ (int)Math.round(totalPrice * 0.9) ]]></code>
+            </actionHandle>
+        </action>
+        <transition to="pay"/>
+    </scriptTask>
+
+    <autoTask id="pay" name="付款" g="72,469,120,48">
+        <action type="java-source">
+            <actionHandle method="payMoney" clazz="com.example.bpm.KtvPay">
+                <var name="p1" dataType="java.lang.Integer" inOutType="param" contextVarName="price"/>
+                <imports>
+                    <import>java.time.LocalDateTime</import>
+                </imports>
+                <code><![CDATA[
+                    public class KtvPay {
+                      public static Integer payMoney(Integer price) {
+                        System.out.println("[KtvPay] " + java.time.LocalDateTime.now() + " Pay: " + price + " Yuan");
+                        if (price == null || price < 0) {
+                          throw new IllegalArgumentException("invalid price: " + price);
+                        }
+                        return price;
+                      }
+                    }]]>
+                </code>
+            </actionHandle>
+        </action>
+        <transition to="end"/>
+    </autoTask>
+
+    <end id="end" name="结束" g="101,549,30,30"/>
+</bpm>

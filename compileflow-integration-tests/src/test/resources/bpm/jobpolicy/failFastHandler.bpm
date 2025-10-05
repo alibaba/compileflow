@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.jobpolicy.failFastHandler" name="JobPolicy Failure Handler Test - Fail Fast" type="process">
+    <var name="result" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="Start" g="50,50,32,32">
+        <transition to="failFastTask"/>
+    </start>
+
+    <autoTask id="failFastTask" name="Fail Fast Task" g="150,40,120,48">
+        <jobPolicy
+                timeout="PT1S"
+                retry="R0/PT0S"
+                retryOn="never"
+                onFailure="incident"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.JobPolicyTestService"
+                          method="transientFailure">
+                <var name="result" dataType="java.lang.String" inOutType="return" contextVarName="result"/>
+            </actionHandle>
+        </action>
+        <transition to="end"/>
+    </autoTask>
+
+    <end id="end" name="End" g="320,50,32,32"/>
+</bpm>

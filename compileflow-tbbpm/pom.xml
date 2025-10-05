@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.alibaba.compileflow</groupId>
+        <artifactId>compileflow</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>compileflow-tbbpm</artifactId>
+    <name>compileflow-tbbpm</name>
+    <description>CompileFlow TBBPM - An implementation plugin for the TBBPM specification.</description>
+
+    <dependencies>
+        <!-- Internal Module Dependencies -->
+        <dependency>
+            <groupId>com.alibaba.compileflow</groupId>
+            <artifactId>compileflow-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.compileflow</groupId>
+            <artifactId>compileflow-core</artifactId>
+        </dependency>
+
+        <!-- Core Dependencies -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+
+        <!-- Test Dependencies -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>

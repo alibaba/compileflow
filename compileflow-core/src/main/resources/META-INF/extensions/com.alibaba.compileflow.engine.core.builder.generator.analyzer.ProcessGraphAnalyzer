@@ -1,0 +1,3 @@
+com.alibaba.compileflow.engine.core.builder.generator.analyzer.DefaultProcessGraphAnalyzer
+com.alibaba.compileflow.engine.core.builder.generator.analyzer.UpwardCheckingGraphAnalyzer
+com.alibaba.compileflow.engine.core.builder.generator.analyzer.TopDownCorrectionGraphAnalyzer

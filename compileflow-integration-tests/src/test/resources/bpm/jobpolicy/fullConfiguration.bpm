@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.jobpolicy.fullConfiguration" name="JobPolicy Full Configuration Test" type="process">
+    <var name="result" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="Start" g="50,50,32,32">
+        <transition to="fullConfigTask"/>
+    </start>
+
+    <autoTask id="fullConfigTask" name="Full Configuration Task" g="150,40,120,48">
+        <jobPolicy
+                timeout="PT5S"
+                retry="R3/PT0.2S"
+                retryOn="transient"
+                onFailure="incident"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.JobPolicyTestService" method="simpleSuccess">
+                <var name="result" dataType="java.lang.String" inOutType="return" contextVarName="result"/>
+            </actionHandle>
+        </action>
+        <transition to="end"/>
+    </autoTask>
+
+    <end id="end" name="End" g="320,50,32,32"/>
+</bpm>

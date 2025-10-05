@@ -1,0 +1,16 @@
+flowchart TD
+    start(("Start")) --> G1{Gateway G1}
+    G1 -->|Path A| A[Task A]
+    G1 -->|Path X| X[Task X]
+    A --> G2{Gateway G2}
+    G2 -->|Path B| B[Task B]
+    G2 -->|Path C| C[Task C]
+    B --> J[Task J]
+    C --> J
+    J --> K{Gateway K}
+    K -->|Path F| F[Task F]
+    K -->|Path G| G[Task G]
+    X --> H[Task H]
+    F --> H
+    G --> H
+    H --> stop(("End"))

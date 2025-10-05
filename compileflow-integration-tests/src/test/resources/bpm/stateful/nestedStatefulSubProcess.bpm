@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.stateful.nestedStatefulSubProcess" name="嵌套状态子流程" type="statefulProcess"
+     description="测试嵌套的stateful子流程">
+    <var name="mainData" description="主流程数据" dataType="java.lang.String" inOutType="param"/>
+    <var name="subResult1" description="子流程结果1" dataType="java.lang.String" inOutType="return"/>
+    <var name="subResult2" description="子流程结果2" dataType="java.lang.String" inOutType="return"/>
+    <var name="finalResult" description="最终结果" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="开始" tag="start" g="100,50,30,30">
+        <transition to="mainWait" g=":-15,20"/>
+    </start>
+
+    <waitEventTask id="mainWait" name="等待主流程事件" tag="waitMainEvent" event="mainEvent" g="70,120,120,60">
+        <transition to="subProcess1" g=":-15,20"/>
+        <inAction type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
+                <var name="input" dataType="java.lang.String" contextVarName="mainData" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="mainData" inOutType="return"/>
+            </actionHandle>
+        </inAction>
+    </waitEventTask>
+
+    <subBpm id="subProcess1" name="子流程1" tag="subProcess1" subBpmCode="bpm.stateful.waitTaskFlow"
+            type="statefulProcess" waitForCompletion="false" waitForTrigger="true" g="70,220,120,60">
+        <transition to="subProcess2" g=":-15,20"/>
+        <var name="taskData" dataType="java.lang.String" contextVarName="mainData" inOutType="param"/>
+        <var name="waitResult" dataType="java.lang.String" contextVarName="subResult1" inOutType="return"/>
+    </subBpm>
+
+    <subBpm id="subProcess2" name="子流程2" tag="subProcess2" subBpmCode="bpm.stateful.waitTaskFlow"
+            type="statefulProcess" waitForCompletion="false" waitForTrigger="true" g="70,320,120,60">
+        <transition to="combineResults" g=":-15,20"/>
+        <var name="taskData" dataType="java.lang.String" contextVarName="subResult1" inOutType="param"/>
+        <var name="waitResult" dataType="java.lang.String" contextVarName="subResult2" inOutType="return"/>
+    </subBpm>
+
+    <autoTask id="combineResults" name="合并结果" tag="combineResults" g="80,420,88,48">
+        <transition to="end" g=":-15,20"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
+                <var name="payment" dataType="java.lang.String" contextVarName="subResult1" inOutType="param"/>
+                <var name="delivery" dataType="java.lang.String" contextVarName="subResult2" inOutType="param"/>
+                <var name="result" dataType="java.lang.String" contextVarName="finalResult" inOutType="return"/>
+            </actionHandle>
+        </action>
+    </autoTask>
+
+    <end id="end" name="结束" tag="end" g="100,500,30,30"/>
+</bpm>
+
+

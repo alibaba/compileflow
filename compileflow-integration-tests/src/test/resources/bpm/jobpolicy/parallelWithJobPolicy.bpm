@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.jobpolicy.parallelWithJobPolicy" name="JobPolicy Parallel Gateway Test" type="process">
+    <var name="a" dataType="java.lang.Integer" inOutType="param" defaultValue="10"/>
+    <var name="b" dataType="java.lang.Integer" inOutType="param" defaultValue="20"/>
+    <var name="branch1Result" dataType="java.lang.String" inOutType="return"/>
+    <var name="branch2Result" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="Start" g="50,50,32,32">
+        <transition to="fork"/>
+    </start>
+
+    <parallel id="fork" name="Fork" g="150,40,48,48">
+        <transition to="branch1Task"/>
+        <transition to="branch2Task"/>
+    </parallel>
+
+    <autoTask id="branch1Task" name="Branch 1 Task" g="260,10,120,48">
+        <jobPolicy
+                timeout="PT1S"
+                retry="R0/PT0S"
+                retryOn="never"
+                onFailure="incident"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.JobPolicyTestService"
+                          method="parallelBranch1">
+                <var name="a" dataType="java.lang.Integer" inOutType="param" contextVarName="a"/>
+                <var name="result" dataType="java.lang.String" inOutType="return" contextVarName="branch1Result"/>
+            </actionHandle>
+        </action>
+        <transition to="join"/>
+    </autoTask>
+
+    <autoTask id="branch2Task" name="Branch 2 Task" g="260,80,120,48">
+        <jobPolicy
+                timeout="PT1S"
+                retry="R0/PT0S"
+                retryOn="transient"
+                onFailure="incident"/>
+        <action type="java">
+            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.JobPolicyTestService"
+                          method="parallelBranch2">
+                <var name="b" dataType="java.lang.Integer" inOutType="param" contextVarName="b"/>
+                <var name="result" dataType="java.lang.String" inOutType="return" contextVarName="branch2Result"/>
+            </actionHandle>
+        </action>
+        <transition to="join"/>
+    </autoTask>
+
+    <parallel id="join" name="Join" g="420,40,48,48">
+        <transition to="end"/>
+    </parallel>
+
+    <end id="end" name="End" g="520,50,32,32"/>
+</bpm>
