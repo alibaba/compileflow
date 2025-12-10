@@ -10,14 +10,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
+import java.io.InputStreamReader;
 import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLDecoder;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
  */
 public class ExtensionManager {
 
-    private static final String EXTENSION_DIRECTORY = "META-INF/extensions/";
+    private static final String EXTENSION_DIRECTORY = "classpath*:META-INF/extensions/**";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExtensionManager.class);
 
@@ -198,28 +198,22 @@ public class ExtensionManager {
     private void loadExtensionsFromSPI() {
         LOGGER.debug("Loading extensions from SPI files in {}", EXTENSION_DIRECTORY);
 
-        URL[] extensionDirUrls = ClassLoaderUtils.getResources(EXTENSION_DIRECTORY);
-        if (ArrayUtils.isEmpty(extensionDirUrls)) {
-            LOGGER.debug("No SPI extension directories found");
-            return;
-        }
-
         int spiExtensionCount = 0;
-        for (URL extensionDirUrl : extensionDirUrls) {
-            try {
-                String filePath = URLDecoder.decode(extensionDirUrl.getFile(), "UTF-8");
-                File dir = new File(filePath);
-                if (!dir.exists() || !dir.isDirectory()) {
+        try {
+            ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+            Resource[] resources = resolver.getResources(EXTENSION_DIRECTORY);
+            if (ArrayUtils.isEmpty(resources)) {
+                LOGGER.debug("No SPI extension found");
+                return;
+            }
+            for (Resource resource : resources) {
+                String fileName = resource.getFilename();
+                if (StringUtils.isBlank(fileName)) {
                     continue;
                 }
-                File[] files = dir.listFiles();
-                if (null == files || files.length == 0) {
-                    continue;
-                }
-                for (File file : files) {
-                    Class<Extension> extensionClass = ClassLoaderUtils.loadClass(file.getName());
-                    registerExtensionPoint(extensionClass);
-                    BufferedReader reader = new BufferedReader(new FileReader(file));
+                Class<Extension> extensionClass = ClassLoaderUtils.loadClass(fileName);
+                registerExtensionPoint(extensionClass);
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream()))){
                     String line;
                     while ((line = reader.readLine()) != null) {
                         String classFullName = line.trim();
@@ -229,12 +223,11 @@ public class ExtensionManager {
                             spiExtensionCount++;
                         }
                     }
-                    reader.close();
                 }
-            } catch (Exception e) {
-                LOGGER.error("Failed to load SPI extension: path={}, errorType={}, message={}",
-                        extensionDirUrl.getFile(), e.getClass().getSimpleName(), e.getMessage(), e);
             }
+        } catch (Exception e) {
+            LOGGER.error("Failed to load SPI extension: path={}, errorType={}, message={}",
+                    EXTENSION_DIRECTORY, e.getClass().getSimpleName(), e.getMessage(), e);
         }
 
         if (spiExtensionCount > 0) {
