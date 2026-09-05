@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.gateway.exclusive-declaration-order"
+     name="Exclusive declaration order">
+    <var name="value" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="route" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" g="0,0,32,32">
+        <transition to="gateway" g=":-15,20"/>
+    </start>
+    <exclusive id="gateway" g="80,0,48,48">
+        <transition to="low" condition="value &gt; 0" g=":-15,20"/>
+        <transition to="high" condition="value &gt;= 10" g=":-15,20"/>
+        <transition to="fallback" g=":-15,20"/>
+    </exclusive>
+    <scriptTask id="low" g="180,0,100,48">
+        <action type="script" language="java">
+                <output dataType="java.lang.String" target="route"/>
+                <code>return "low";</code>
+
+        </action>
+        <transition to="end" g=":-15,20"/>
+    </scriptTask>
+    <scriptTask id="high" g="180,80,100,48">
+        <action type="script" language="java">
+                <output dataType="java.lang.String" target="route"/>
+                <code>return "high";</code>
+
+        </action>
+        <transition to="end" g=":-15,20"/>
+    </scriptTask>
+    <scriptTask id="fallback" g="180,160,100,48">
+        <action type="script" language="java">
+                <output dataType="java.lang.String" target="route"/>
+                <code>return "fallback";</code>
+
+        </action>
+        <transition to="end" g=":-15,20"/>
+    </scriptTask>
+    <end id="end" g="320,0,32,32"/>
+</bpm>

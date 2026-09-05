@@ -12,43 +12,14 @@
     </parent>
 
     <artifactId>compileflow-deploy</artifactId>
-    <name>compileflow-deploy</name>
-    <description>CompileFlow Deploy - (hot) deployment features</description>
+    <packaging>pom</packaging>
+    <name>CompileFlow Deployment</name>
+    <description>Deployment API, control plane, runtime, and transport SPI.</description>
 
-    <dependencies>
-        <!-- Internal module dependencies -->
-        <dependency>
-            <groupId>com.alibaba.compileflow</groupId>
-            <artifactId>compileflow-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.alibaba.compileflow</groupId>
-            <artifactId>compileflow-core</artifactId>
-        </dependency>
-
-        <!-- Base dependencies -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-
-        <!-- Nacos client dependencies -->
-        <dependency>
-            <groupId>com.alibaba.nacos</groupId>
-            <artifactId>nacos-client</artifactId>
-        </dependency>
-
-        <!-- Test dependencies -->
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+    <modules>
+        <module>compileflow-deploy-api</module>
+        <module>compileflow-deploy-control-plane</module>
+        <module>compileflow-deploy-runtime</module>
+    </modules>
 
 </project>

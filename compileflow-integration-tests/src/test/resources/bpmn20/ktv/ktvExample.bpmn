@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:cf="http://www.compileflow.org"
+             xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             typeLanguage="http://www.w3.org/2001/XMLSchema"
+             expressionLanguage="http://www.w3.org/1999/XPath"
+             targetNamespace="http://www.compileflow.org/bpmn/test">
+
+    <process id="bpmn20.ktv.ktvExample" name="ktvExample" isExecutable="true">
+        <extensionElements>
+            <cf:var name="price" dataType="java.lang.Integer" inOutType="return"/>
+            <cf:var name="totalPrice" description="Actual Price" dataType="java.lang.Integer" inOutType="inner"/>
+            <cf:var name="pList" dataType="java.util.List&lt;java.lang.String&gt;" inOutType="param"/>
+        </extensionElements>
+
+        <startEvent id="start"/>
+
+        <sequenceFlow id="flow1" sourceRef="start" targetRef="singLoop"/>
+
+        <subProcess id="singLoop" name="sing loop">
+            <multiInstanceLoopCharacteristics isSequential="true" cf:collection="pList" cf:item="p"
+                                         cf:index="i" cf:itemType="java.lang.String">
+            </multiInstanceLoopCharacteristics>
+            <startEvent id="singStart"/>
+            <sequenceFlow id="subFlow1" sourceRef="singStart" targetRef="sing"/>
+            <serviceTask id="sing" name="sing task">
+                <extensionElements>
+                    <cf:action type="spring-bean" bean="ktvService" class="com.alibaba.compileflow.engine.test.support.mocks.KtvService" method="sing">
+                            <cf:input target="p1" dataType="java.lang.String" source="p"/>
+
+                    </cf:action>
+                </extensionElements>
+            </serviceTask>
+            <sequenceFlow id="subFlow2" sourceRef="sing" targetRef="singEnd"/>
+            <endEvent id="singEnd"/>
+        </subProcess>
+
+        <sequenceFlow id="flow2" sourceRef="singLoop" targetRef="calPrice"/>
+
+        <serviceTask id="calPrice" name="calPrice">
+            <extensionElements>
+                <cf:action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="calculatePrice">
+                        <cf:input target="p1" dataType="java.lang.Integer" source="pList.size()"/>
+                        <cf:output dataType="java.lang.Integer" target="totalPrice"/>
+
+                </cf:action>
+            </extensionElements>
+        </serviceTask>
+
+        <sequenceFlow id="flow3" sourceRef="calPrice" targetRef="payDecision"/>
+
+        <exclusiveGateway id="payDecision" default="flow5"/>
+
+        <sequenceFlow id="flow4" sourceRef="payDecision" targetRef="originalPrice">
+            <conditionExpression xsi:type="tFormalExpression" language="java">
+                <![CDATA[totalPrice>=300]]>
+            </conditionExpression>
+        </sequenceFlow>
+
+        <sequenceFlow id="flow5" sourceRef="payDecision" targetRef="promotionPrice"/>
+
+        <scriptTask id="originalPrice" name="original price" scriptFormat="qlexpress">
+            <extensionElements>
+                <cf:input target="price" dataType="java.lang.Integer" source="totalPrice"/>
+                <cf:output dataType="java.lang.Integer" target="price"/>
+            </extensionElements>
+            <script><![CDATA[(int)(price*0.9)]]></script>
+        </scriptTask>
+
+        <scriptTask id="promotionPrice" name="promotion task" scriptFormat="qlexpress">
+            <extensionElements>
+                <cf:input target="price" dataType="java.lang.Integer" source="totalPrice"/>
+                <cf:output dataType="java.lang.Integer" target="price"/>
+            </extensionElements>
+            <script><![CDATA[(int)(price*0.9)]]></script>
+        </scriptTask>
+
+        <sequenceFlow id="flow6" sourceRef="originalPrice" targetRef="pay"/>
+        <sequenceFlow id="flow7" sourceRef="promotionPrice" targetRef="pay"/>
+
+        <serviceTask id="pay" name="pay">
+            <extensionElements>
+                <cf:action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.KtvService" method="payMoney">
+                        <cf:input target="p1" dataType="java.lang.Integer" source="price"/>
+
+                </cf:action>
+            </extensionElements>
+        </serviceTask>
+
+        <sequenceFlow id="flow8" sourceRef="pay" targetRef="end"/>
+
+        <endEvent id="end"/>
+    </process>
+
+</definitions>

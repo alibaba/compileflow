@@ -1,0 +1,44 @@
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.compileflow.durable.runtime.worker;
+
+import com.alibaba.compileflow.durable.spi.store.DurableDigests;
+import java.security.SecureRandom;
+import java.util.Base64;
+import java.util.Objects;
+
+/**
+ * 256-bit random Wait capability generator.
+ *
+ * @author yusu
+ */
+public final class SecureWaitTokenIssuer implements WaitTokenIssuer {
+    private final SecureRandom random;
+
+    public SecureWaitTokenIssuer() {
+        this(new SecureRandom());
+    }
+
+    SecureWaitTokenIssuer(SecureRandom random) {
+        this.random = Objects.requireNonNull(random, "random");
+    }
+
+    @Override
+    public IssuedWaitToken issue() {
+        byte[] entropy = new byte[32];
+        random.nextBytes(entropy);
+        String token = Base64.getUrlEncoder().withoutPadding().encodeToString(entropy);
+        return new IssuedWaitToken(token, DurableDigests.sha256(token));
+    }
+}

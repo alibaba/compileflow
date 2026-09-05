@@ -1,0 +1,4 @@
+<bpm code="grandchild">
+  <start id="start" g="0,0,32,32"><transition to="end"/></start>
+  <end id="end" g="80,0,32,32"/>
+</bpm>

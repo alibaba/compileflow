@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.subprocess.recursive" name="Bounded Recursive Call">
+    <start id="start" name="Start" g="40,40,32,32">
+        <transition to="recurse"/>
+    </start>
+    <bpmCall id="recurse" name="Recursive Call"
+            code="bpm.subprocess.recursive" classpath="bpm/subprocess/recursive.bpm"
+            g="120,32,120,48">
+        <transition to="end"/>
+    </bpmCall>
+    <end id="end" name="End" g="300,40,32,32"/>
+</bpm>

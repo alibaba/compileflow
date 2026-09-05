@@ -1,0 +1,8 @@
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             targetNamespace="https://compileflow.alibaba.com/test">
+  <process id="bpmn.child" isExecutable="true">
+    <startEvent id="start"/>
+    <endEvent id="end"/>
+    <sequenceFlow id="toEnd" sourceRef="start" targetRef="end"/>
+  </process>
+</definitions>

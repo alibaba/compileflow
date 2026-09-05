@@ -1,0 +1,27 @@
+.kbd-shortcut {
+  padding: 2px 6px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-fill-secondary);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-family-mono);
+  white-space: nowrap;
+}
+
+.shortcuts-tip {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-top: var(--spacing-2);
+}
+
+.shortcuts-tip-title {
+  margin: 0;
+  margin-bottom: var(--spacing-1);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Dark mode */
+[data-theme='dark'] .kbd-shortcut {
+  border-color: var(--color-border);
+  background-color: var(--color-fill-tertiary);
+}

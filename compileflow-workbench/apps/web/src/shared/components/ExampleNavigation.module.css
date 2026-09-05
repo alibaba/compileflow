@@ -1,0 +1,136 @@
+/* ============ Fixed Bottom Navigation Bar ============ */
+
+.navigationBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-color);
+  padding: 12px 24px;
+  z-index: 100;
+  box-shadow: var(--nav-elevation-shadow);
+  backdrop-filter: blur(8px);
+}
+
+.navInner {
+  max-width: var(--page-max-width);
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ============ Navigation Halves ============ */
+
+.navHalf {
+  flex: 1;
+}
+
+.navHalfEnd {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ============ Nav Buttons ============ */
+
+.navButton {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+}
+
+.navButtonNext {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  flex-direction: row-reverse;
+  gap: 8px;
+  padding: 0 16px;
+}
+
+/* ============ Button Text Containers ============ */
+
+.prevTextContainer {
+  text-align: left;
+  max-width: 200px;
+}
+
+.nextTextContainer {
+  text-align: right;
+  max-width: 200px;
+}
+
+.navLabel {
+  font-size: 12px;
+  display: block;
+}
+
+.navLabelOnPrimary {
+  font-size: 12px;
+  display: block;
+  color: var(--text-on-accent-muted);
+}
+
+.navName {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.navNameOnPrimary {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-on-accent);
+}
+
+/* ============ Progress Indicator ============ */
+
+.progressCenter {
+  text-align: center;
+}
+
+.progressLabel {
+  font-size: var(--font-size-sm);
+}
+
+.progressDots {
+  margin-top: 4px;
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.progressDot {
+  height: 4px;
+  border-radius: 2px;
+  transition: all 0.3s;
+}
+
+.progressDotActive {
+  width: 24px;
+  background: var(--primary-500);
+}
+
+.progressDotInactive {
+  width: 8px;
+  background: var(--border-color);
+}
+
+/* ============ Dark Mode ============ */
+
+[data-theme='dark'] .navigationBar {
+  background: var(--color-bg-elevated);
+  border-color: var(--border-color);
+  box-shadow: var(--nav-elevation-shadow);
+}
+
+/* ============ Reduced Motion ============ */
+
+@media (prefers-reduced-motion: reduce) {
+  .progressDot {
+    transition: none;
+  }
+}

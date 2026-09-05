@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.gateway.nestedLoopGateway"
+     name="Nested Loop Gateway">
+    <var name="numbers"
+         dataType="java.util.List&lt;java.lang.Integer&gt;" inOutType="param"/>
+    <var name="positiveCount"
+         dataType="java.lang.Integer"
+         defaultValue="0" inOutType="return"/>
+    <var name="nonPositiveCount"
+         dataType="java.lang.Integer"
+         defaultValue="0" inOutType="return"/>
+    <var name="continuationCount"
+         dataType="java.lang.Integer"
+         defaultValue="0" inOutType="return"/>
+
+    <start id="start" g="0,0,32,32">
+        <transition to="loop" g=":-15,20"/>
+    </start>
+    <foreach id="loop"
+                 name="Route every number"
+                 collection="numbers"
+                 item="number"
+                 itemType="java.lang.Integer"
+                 g="80,0,400,240">
+        <transition to="end" g=":-15,20"/>
+        <start id="loopStart"><transition to="route"/></start>
+        <exclusive id="route" name="Sign route" g="100,40,80,48">
+            <transition to="positive"
+                        condition="number &gt; 0"
+                        g=":-15,20"/>
+            <transition to="nonPositive" g=":-15,20"/>
+        </exclusive>
+        <scriptTask id="positive" g="220,20,100,48">
+            <transition to="join" g=":-15,20"/>
+            <action type="script" language="java">
+                    <input target="count" dataType="java.lang.Integer" source="positiveCount"/>
+                    <output dataType="java.lang.Integer" target="positiveCount"/>
+                    <code>return count + 1;</code>
+
+            </action>
+        </scriptTask>
+        <scriptTask id="nonPositive" g="220,100,100,48">
+            <transition to="join" g=":-15,20"/>
+            <action type="script" language="java">
+                    <input target="count" dataType="java.lang.Integer" source="nonPositiveCount"/>
+                    <output dataType="java.lang.Integer" target="nonPositiveCount"/>
+                    <code>return count + 1;</code>
+
+            </action>
+        </scriptTask>
+        <exclusive id="join" name="Sign join" g="350,60,48,48">
+            <transition to="afterJoin" g=":-15,20"/>
+        </exclusive>
+        <scriptTask id="afterJoin"
+                  name="One continuation per iteration"
+                  g="420,60,120,48">
+            <action type="script" language="java">
+                    <input target="count" dataType="java.lang.Integer" source="continuationCount"/>
+                    <output dataType="java.lang.Integer" target="continuationCount"/>
+                    <code>return count + 1;</code>
+
+            </action>
+            <transition to="loopEnd"/>
+        </scriptTask>
+        <end id="loopEnd"/>
+    </foreach>
+    <end id="end" g="560,0,32,32"/>
+</bpm>

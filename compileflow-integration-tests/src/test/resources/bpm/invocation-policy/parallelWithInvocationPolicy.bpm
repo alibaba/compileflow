@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.invocation-policy.parallelWithInvocationPolicy" name="InvocationPolicy Parallel Gateway Test">
+    <var name="a" dataType="java.lang.Integer" defaultValue="10" inOutType="param"/>
+    <var name="b" dataType="java.lang.Integer" defaultValue="20" inOutType="param"/>
+    <var name="branch1Result" dataType="java.lang.String" inOutType="return"/>
+    <var name="branch2Result" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="Start" g="50,50,32,32">
+        <transition to="fork"/>
+    </start>
+
+    <parallel id="fork" name="Fork" g="150,40,48,48">
+        <transition to="branch1Task"/>
+        <transition to="branch2Task"/>
+    </parallel>
+
+    <autoTask id="branch1Task" name="Branch 1 Task" g="260,10,120,48">
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.InvocationPolicyTestService"
+                          method="parallelBranch1">
+                <input target="a" dataType="java.lang.Integer" source="a"/>
+                <output dataType="java.lang.String" target="branch1Result"/>
+
+
+            <invocationPolicy
+                attemptTimeout="PT1S"
+                maxAttempts="1" initialBackoff="PT0S"
+                retryOn="never"
+                onFailure="propagate"/>
+        </action>
+        <transition to="join"/>
+    </autoTask>
+
+    <autoTask id="branch2Task" name="Branch 2 Task" g="260,80,120,48">
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.InvocationPolicyTestService"
+                          method="parallelBranch2">
+                <input target="b" dataType="java.lang.Integer" source="b"/>
+                <output dataType="java.lang.String" target="branch2Result"/>
+
+
+            <invocationPolicy
+                attemptTimeout="PT1S"
+                maxAttempts="1" initialBackoff="PT0S"
+                retryOn="transient"
+                onFailure="propagate"/>
+        </action>
+        <transition to="join"/>
+    </autoTask>
+
+    <parallel id="join" name="Join" g="420,40,48,48">
+        <transition to="end"/>
+    </parallel>
+
+    <end id="end" name="End" g="520,50,32,32"/>
+</bpm>

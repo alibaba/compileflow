@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.subprocess.multipleOutputsChild"
+     name="Multiple Outputs Child">
+    <var name="value" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="doubled" dataType="java.lang.Integer" inOutType="return"/>
+    <var name="label" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" g="0,0,32,32">
+        <transition to="double"/>
+    </start>
+    <scriptTask id="double" g="60,0,100,48">
+        <action type="script" language="java">
+                <input target="value" dataType="java.lang.Integer" source="value"/>
+                <output dataType="java.lang.Integer" target="doubled"/>
+                <code>return value * 2;</code>
+
+        </action>
+        <transition to="label"/>
+    </scriptTask>
+    <scriptTask id="label" g="180,0,100,48">
+        <action type="script" language="java">
+                <input target="value" dataType="java.lang.Integer" source="value"/>
+                <output dataType="java.lang.String" target="label"/>
+                <code>return "value=" + value;</code>
+
+        </action>
+        <transition to="end"/>
+    </scriptTask>
+    <end id="end" g="300,0,32,32"/>
+</bpm>

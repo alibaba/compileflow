@@ -1,0 +1,17 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Support Policy
+    url: https://github.com/alibaba/compileflow/blob/master/SUPPORT.md
+    about: Choose the right channel before opening an issue
+  - name: GitHub Discussions
+    url: https://github.com/alibaba/compileflow/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: Documentation
+    url: https://github.com/alibaba/compileflow/tree/master/docs
+    about: Read the official CompileFlow documentation
+  - name: Examples
+    url: https://github.com/alibaba/compileflow/tree/master/docs/examples
+    about: Browse example flows and diagrams
+  - name: Security Policy
+    url: https://github.com/alibaba/compileflow/security/policy
+    about: Report vulnerabilities through the security policy instead of public issues

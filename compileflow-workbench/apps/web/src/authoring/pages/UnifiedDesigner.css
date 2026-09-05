@@ -1,0 +1,220 @@
+/* ============================================
+   1. 容器布局
+   ============================================ */
+.unified-designer-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+/* BPMN样式变量 */
+.unified-designer-container[data-type='bpmn'] {
+  --designer-primary-color: #6b57ff;
+  --designer-accent-color: #0f9f6e;
+}
+
+/* TBBPM样式变量 */
+.unified-designer-container[data-type='tbbpm'] {
+  --designer-primary-color: #722ed1;
+  --designer-accent-color: #fa8c16;
+}
+
+/* ============================================
+   2. Designer Body（设计器主体）
+   ============================================ */
+.unified-designer-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.unified-designer-body--split {
+  flex-direction: row;
+}
+
+.unified-designer-canvas-pane {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.unified-designer-canvas-pane--hidden {
+  display: none;
+}
+
+.unified-designer-body--split .unified-designer-canvas-pane {
+  flex: 1 1 55%;
+  border-right: 1px solid var(--border-color, var(--color-border-light));
+}
+
+.unified-designer-xml-pane {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.unified-designer-body--split .unified-designer-xml-pane {
+  flex: 1 1 45%;
+  min-width: 280px;
+}
+
+/* ============================================
+   3. Loading State（加载状态）
+   ============================================ */
+.unified-designer-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  background: var(--bg-secondary);
+}
+
+.loading-header-skeleton {
+  width: 100%;
+  height: 56px;
+  margin-bottom: var(--spacing-2);
+}
+
+.loading-body-skeleton {
+  display: flex;
+  flex: 1;
+  gap: 0;
+  width: 100%;
+}
+
+.loading-left-skeleton {
+  width: 260px;
+  height: 100%;
+}
+
+.loading-center-skeleton {
+  flex: 1;
+  padding: var(--spacing-6);
+}
+
+.loading-right-skeleton {
+  width: 360px;
+  height: 100%;
+}
+
+/* ============================================
+   4. Error State（错误状态）
+   ============================================ */
+.unified-designer-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  padding: 24px;
+  background: var(--bg-secondary);
+}
+
+.unified-designer-error-icon {
+  font-size: 64px;
+  color: var(--error-main);
+  margin-bottom: 16px;
+}
+
+.unified-designer-error-message {
+  font-size: var(--font-size-md, 16px);
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.unified-designer-error-description {
+  font-size: var(--font-size-base, 14px);
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+/* ============================================
+   5. 响应式适配
+   ============================================ */
+@media (max-width: 1280px) {
+  .unified-designer-container {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .unified-designer-container {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .unified-designer-body--split {
+    flex-direction: column;
+  }
+
+  .unified-designer-body--split .unified-designer-canvas-pane,
+  .unified-designer-body--split .unified-designer-xml-pane {
+    flex: 1 1 50%;
+    min-width: 0;
+  }
+
+  .unified-designer-body--split .unified-designer-canvas-pane {
+    border-right: 0;
+    border-bottom: 1px solid var(--border-color, var(--color-border-light));
+  }
+
+  .unified-designer-mobile-warning {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 24px;
+    text-align: center;
+  }
+}
+
+/* ============================================
+   6. 性能优化
+   ============================================ */
+.unified-designer-container,
+.unified-designer-body {
+  /* 硬件加速 */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+
+  /* 减少重绘 */
+  will-change: auto;
+}
+
+.unified-designer-warnings {
+  margin: 0 16px 8px;
+}
+
+.unified-designer-warnings-list {
+  margin: 0;
+  padding-left: 20px;
+}
+
+/* ============================================
+   7. 打印样式
+   ============================================ */
+@media print {
+  .unified-designer-container {
+    height: auto;
+  }
+
+  /* 隐藏工具栏 */
+  .designer-header {
+    display: none;
+  }
+}

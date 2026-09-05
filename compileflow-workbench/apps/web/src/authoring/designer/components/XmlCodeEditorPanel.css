@@ -1,0 +1,27 @@
+.xml-code-editor-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background: var(--bg-canvas, var(--color-bg-container));
+}
+
+.xml-code-editor-hint,
+.xml-code-editor-error {
+  flex-shrink: 0;
+  margin: var(--spacing-2) var(--spacing-3) 0;
+}
+
+.xml-code-editor-body {
+  flex: 1;
+  min-height: 0;
+}
+
+.xml-code-editor-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-bg-container);
+}

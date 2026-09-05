@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns:cf="http://www.compileflow.org"
+             xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             targetNamespace="urn:compileflow:test">
+  <process id="bpmn20.compat.nested_standard_loop" name="Nested Standard Loop" isExecutable="true">
+    <extensionElements>
+      <cf:var name="msg" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="processedMessage" dataType="java.lang.String" inOutType="return"/>
+    </extensionElements>
+    <startEvent id="start"/>
+    <sequenceFlow id="toOuter" sourceRef="start" targetRef="outerLoop"/>
+    <subProcess id="outerLoop">
+      <standardLoopCharacteristics loopMaximum="2"/>
+      <startEvent id="outerStart"/>
+      <sequenceFlow id="toInner" sourceRef="outerStart" targetRef="innerLoop"/>
+      <subProcess id="innerLoop">
+        <standardLoopCharacteristics loopMaximum="2"/>
+        <startEvent id="innerStart"/>
+        <sequenceFlow id="toTask" sourceRef="innerStart" targetRef="task"/>
+        <serviceTask id="task">
+          <extensionElements>
+            <cf:action type="java"
+                  class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                  method="processString">
+                <cf:input target="input" dataType="java.lang.String" source="msg"/>
+                <cf:output dataType="java.lang.String" target="processedMessage"/>
+
+            </cf:action>
+          </extensionElements>
+        </serviceTask>
+        <sequenceFlow id="toInnerEnd" sourceRef="task" targetRef="innerEnd"/>
+        <endEvent id="innerEnd"/>
+      </subProcess>
+      <sequenceFlow id="toOuterEnd" sourceRef="innerLoop" targetRef="outerEnd"/>
+      <endEvent id="outerEnd"/>
+    </subProcess>
+    <sequenceFlow id="toEnd" sourceRef="outerLoop" targetRef="end"/>
+    <endEvent id="end"/>
+  </process>
+</definitions>

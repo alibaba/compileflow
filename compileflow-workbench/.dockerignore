@@ -1,0 +1,14 @@
+.git
+.idea
+.vscode
+
+node_modules
+**/node_modules
+**/dist
+**/.vite
+**/coverage
+**/test-results
+**/playwright-report
+**/.env*
+*.log
+*.pid

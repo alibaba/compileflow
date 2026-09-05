@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:18.6-alpine3.24@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
+    environment:
+      POSTGRES_DB: ${COMPILEFLOW_WORKBENCH_DATABASE_NAME:-compileflow}
+      POSTGRES_USER: ${COMPILEFLOW_WORKBENCH_DATABASE_USERNAME:-compileflow}
+      POSTGRES_PASSWORD: ${COMPILEFLOW_WORKBENCH_DATABASE_PASSWORD:?Set COMPILEFLOW_WORKBENCH_DATABASE_PASSWORD before running docker compose}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - compileflow_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  workbench:
+    build:
+      context: ..
+      dockerfile: compileflow-workbench/docker/Dockerfile.all-in-one
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${COMPILEFLOW_WORKBENCH_DATABASE_NAME:-compileflow}
+      SPRING_DATASOURCE_USERNAME: ${COMPILEFLOW_WORKBENCH_DATABASE_USERNAME:-compileflow}
+      SPRING_DATASOURCE_PASSWORD: ${COMPILEFLOW_WORKBENCH_DATABASE_PASSWORD:?Set COMPILEFLOW_WORKBENCH_DATABASE_PASSWORD before running docker compose}
+    ports:
+      - "127.0.0.1:4173:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    stop_grace_period: 75s
+
+volumes:
+  compileflow_pg_data:

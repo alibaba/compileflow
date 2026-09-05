@@ -1,43 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpm code="bpm.gateway.simpleParallelGateway" name="Parallel Gateway Flow" type="process">
-    <var name="a" dataType="java.lang.Integer" inOutType="param" defaultValue="1"/>
-    <var name="b" dataType="java.lang.Integer" inOutType="param" defaultValue="2"/>
-    <var name="serviceTask1Result" description="服务任务1结果" dataType="java.lang.Integer" inOutType="return"/>
-    <var name="serviceTask2Result" description="服务任务2结果" dataType="java.lang.Integer" inOutType="return"/>
+<bpm code="bpm.gateway.simpleParallelGateway" name="Parallel Gateway Flow"
+     description="并行计算流程：同时执行加法和乘法运算，输出两个结果">
+    <var name="a" dataType="java.lang.Integer" defaultValue="1" inOutType="param"/>
+    <var name="b" dataType="java.lang.Integer" defaultValue="2" inOutType="param"/>
+    <var name="serviceTask1Result" dataType="java.lang.Integer" inOutType="return"/>
+    <var name="serviceTask2Result" dataType="java.lang.Integer" inOutType="return"/>
 
     <start id="start" name="Start" g="50,50,32,32">
         <transition to="fork"/>
     </start>
 
-    <parallel id="fork" name="Fork" g="150,40,48,48">
+    <parallel id="fork" name="并行分支" g="150,40,48,48">
         <transition to="serviceTask1"/>
         <transition to="serviceTask2"/>
     </parallel>
 
-    <autoTask id="serviceTask1" name="Service Task 1" g="260,10,120,48">
-        <action type="java">
-            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="add">
-                <var name="a" dataType="java.lang.Integer" inOutType="param" contextVarName="a"/>
-                <var name="b" dataType="java.lang.Integer" inOutType="param" contextVarName="b"/>
-                <var name="result" dataType="java.lang.Integer" inOutType="return" contextVarName="serviceTask1Result"/>
-            </actionHandle>
+    <autoTask id="serviceTask1" name="加法计算" g="260,10,120,48">
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="add">
+                <input target="a" dataType="java.lang.Integer" source="a"/>
+                <input target="b" dataType="java.lang.Integer" source="b"/>
+                <output dataType="java.lang.Integer" target="serviceTask1Result"/>
+
         </action>
         <transition to="join"/>
     </autoTask>
 
-    <autoTask id="serviceTask2" name="Service Task 2" g="260,80,120,48">
-        <action type="java">
-            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="multiply">
-                <!-- 入参从上下文取 a、b；结果写回 serviceTask2Result -->
-                <var name="a" dataType="java.lang.Integer" inOutType="param" contextVarName="a"/>
-                <var name="b" dataType="java.lang.Integer" inOutType="param" contextVarName="b"/>
-                <var name="result" dataType="java.lang.Integer" inOutType="return" contextVarName="serviceTask2Result"/>
-            </actionHandle>
+    <autoTask id="serviceTask2" name="乘法计算" g="260,80,120,48">
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="multiply">
+
+                <input target="a" dataType="java.lang.Integer" source="a"/>
+                <input target="b" dataType="java.lang.Integer" source="b"/>
+                <output dataType="java.lang.Integer" target="serviceTask2Result"/>
+
         </action>
         <transition to="join"/>
     </autoTask>
 
-    <parallel id="join" name="Join" g="400,40,48,48">
+    <parallel id="join" name="并行合并" g="400,40,48,48">
         <transition to="end"/>
     </parallel>
 

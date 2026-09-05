@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="durable.sample.order" name="Durable Order">
+    <var name="orderId" dataType="java.lang.String" inOutType="param"/>
+    <var name="receiptId" dataType="java.lang.String" inOutType="return"/>
+    <var name="approved" dataType="java.lang.Boolean" inOutType="return"/>
+
+    <start id="start" name="Start" g="0,0,32,32">
+        <transition to="gracePeriod"/>
+    </start>
+
+    <timerTask id="gracePeriod" name="Grace Period" duration="PT0.05S" g="80,0,120,48">
+        <transition to="charge"/>
+    </timerTask>
+
+    <autoTask id="charge" name="Charge payment" g="220,0,140,48">
+        <action type="java" execution="effect"
+                class="com.alibaba.compileflow.examples.durable.DurableSampleApplication$DemoChargeAction"
+                method="charge">
+                <input target="orderId" dataType="java.lang.String" source="orderId"/>
+                <output dataType="java.lang.String" target="receiptId"/>
+
+        </action>
+        <transition to="approval"/>
+    </autoTask>
+
+    <waitEventTask id="approval" name="Approval" event="approved" g="380,0,120,48">
+        <transition to="end"/>
+    </waitEventTask>
+
+    <end id="end" name="End" g="540,0,32,32"/>
+</bpm>

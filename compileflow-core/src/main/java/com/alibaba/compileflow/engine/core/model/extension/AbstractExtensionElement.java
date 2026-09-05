@@ -1,0 +1,89 @@
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.compileflow.engine.core.model.extension;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+
+/**
+ * Abstract base for elements that carry extension attributes and children.
+ *
+ * @author yusu
+ */
+public abstract class AbstractExtensionElement {
+    private final Map<String, List<ExtensionElement>> extensionElements = new LinkedHashMap<>();
+    private final Map<String, List<ExtensionAttribute>> extensionAttributes = new LinkedHashMap<>();
+
+    public void addExtensionElement(ExtensionElement extensionElement) {
+        if (extensionElement != null && StringUtils.isNotEmpty(extensionElement.getName())) {
+            List<ExtensionElement> extensionElements =
+                    this.extensionElements.computeIfAbsent(extensionElement.getName(), name -> new ArrayList<>());
+            extensionElements.add(extensionElement);
+        }
+    }
+
+    public void addAttribute(ExtensionAttribute extensionAttribute) {
+        if (extensionAttribute != null && StringUtils.isNotEmpty(extensionAttribute.getName())) {
+            List<ExtensionAttribute> extensionAttributes =
+                    this.extensionAttributes.computeIfAbsent(extensionAttribute.getName(), name -> new ArrayList<>());
+            extensionAttributes.add(extensionAttribute);
+        }
+    }
+
+    public List<ExtensionElement> getExtensionElements(String extensionElementName) {
+        return extensionElements.get(extensionElementName);
+    }
+
+    public ExtensionElement getOnlyExtensionElement(String extensionElementName) {
+        List<ExtensionElement> extensionElements = this.extensionElements.get(extensionElementName);
+        if (extensionElements != null && extensionElements.size() == 1) {
+            return extensionElements.get(0);
+        }
+        throw new IllegalStateException("Expected only one element of type " + extensionElementName);
+    }
+
+    public List<ExtensionAttribute> getAttributes() {
+        return extensionAttributes.values().stream().flatMap(List::stream).toList();
+    }
+
+    public String getAttributeValue(String name) {
+        return getAttributeValue("", name);
+    }
+
+    public String getAttributeValueOrDefault(String name, String defaultValue) {
+        String attributeValue = getAttributeValue("", name);
+        if (StringUtils.isBlank(attributeValue)) {
+            return defaultValue;
+        }
+        return attributeValue;
+    }
+
+    public String getAttributeValue(String namespace, String name) {
+        List<ExtensionAttribute> attributes = extensionAttributes.get(name);
+        if (CollectionUtils.isNotEmpty(attributes)) {
+            return attributes
+                .stream()
+                .filter(attribute -> (StringUtils.isEmpty(attribute.getNamespacePrefix())
+                        && StringUtils.isEmpty(namespace)) || attribute.getNamespacePrefix().equals(namespace))
+                .map(ExtensionAttribute::getValue)
+                .findFirst()
+                .orElse(null);
+        }
+        return null;
+    }
+}

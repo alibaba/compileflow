@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:cf="http://www.compileflow.org"
+             targetNamespace="http://www.compileflow.org/bpmn/test">
+  <process id="bpmn20.gateway.structured_parallel_join"
+           name="Structured Parallel Join"
+           isExecutable="true">
+    <extensionElements>
+      <cf:var name="a" dataType="java.lang.Integer" inOutType="param"/>
+      <cf:var name="b" dataType="java.lang.Integer" inOutType="param"/>
+      <cf:var name="sum" dataType="java.lang.Integer" inOutType="return"/>
+      <cf:var name="product" dataType="java.lang.Integer" inOutType="return"/>
+      <cf:var name="continuationCount"
+              dataType="java.lang.Integer" inOutType="return"/>
+    </extensionElements>
+
+    <startEvent id="start"/>
+    <sequenceFlow id="toFork" sourceRef="start" targetRef="fork"/>
+    <parallelGateway id="fork" name="Fork"/>
+    <sequenceFlow id="toSum" sourceRef="fork" targetRef="sumTask"/>
+    <sequenceFlow id="toProduct" sourceRef="fork" targetRef="productTask"/>
+
+    <serviceTask id="sumTask" name="Sum branch">
+      <extensionElements>
+        <cf:action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                           method="add">
+            <cf:input target="a" dataType="java.lang.Integer" source="a"/>
+            <cf:input target="b" dataType="java.lang.Integer" source="b"/>
+            <cf:output dataType="java.lang.Integer" target="sum"/>
+
+        </cf:action>
+      </extensionElements>
+    </serviceTask>
+    <serviceTask id="productTask" name="Product branch">
+      <extensionElements>
+        <cf:action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                           method="multiply">
+            <cf:input target="a" dataType="java.lang.Integer" source="a"/>
+            <cf:input target="b" dataType="java.lang.Integer" source="b"/>
+            <cf:output dataType="java.lang.Integer" target="product"/>
+
+        </cf:action>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="sumToJoin" sourceRef="sumTask" targetRef="join"/>
+    <sequenceFlow id="productToJoin" sourceRef="productTask" targetRef="join"/>
+    <parallelGateway id="join" name="Join"/>
+    <sequenceFlow id="joinToAfter" sourceRef="join" targetRef="afterJoin"/>
+
+    <scriptTask id="afterJoin" name="Shared continuation" scriptFormat="java">
+      <extensionElements>
+        <cf:output dataType="java.lang.Integer" target="continuationCount"/>
+      </extensionElements>
+      <script>return 1;</script>
+    </scriptTask>
+    <sequenceFlow id="toEnd" sourceRef="afterJoin" targetRef="end"/>
+    <endEvent id="end"/>
+  </process>
+</definitions>

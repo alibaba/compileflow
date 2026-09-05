@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:cf="http://www.compileflow.org"
+             targetNamespace="http://www.compileflow.org/bpmn/test">
+  <process id="bpmn20.compat.call_activity" name="Call Activity Flow" isExecutable="true">
+    <extensionElements>
+      <cf:var name="inputValue" dataType="java.lang.Integer" inOutType="param"/>
+      <cf:var name="outputValue" dataType="java.lang.Integer" inOutType="return"/>
+    </extensionElements>
+
+    <startEvent id="start" name="Start"/>
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="callActivity1"/>
+
+    <callActivity id="callActivity1" name="Call Sub Process" calledElement="bpmn20.compat.simple_service"
+                  cf:classpath="bpmn20/compat/simple_service.bpmn">
+      <extensionElements>
+        <cf:input target="a" source="inputValue"/>
+        <cf:input target="b" source="inputValue"/>
+        <cf:output source="serviceTask1Result" target="outputValue"/>
+      </extensionElements>
+    </callActivity>
+
+    <sequenceFlow id="flow2" sourceRef="callActivity1" targetRef="serviceTask1"/>
+
+    <serviceTask id="serviceTask1" name="Process Result">
+      <extensionElements>
+        <cf:action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="multiply">
+            <cf:input target="a" dataType="java.lang.Integer" source="outputValue"/>
+            <cf:input target="b" dataType="java.lang.Integer" source="2"/>
+            <cf:output dataType="java.lang.Integer" target="outputValue"/>
+
+        </cf:action>
+      </extensionElements>
+    </serviceTask>
+
+    <sequenceFlow id="flow3" sourceRef="serviceTask1" targetRef="end"/>
+    <endEvent id="end" name="End"/>
+  </process>
+</definitions>

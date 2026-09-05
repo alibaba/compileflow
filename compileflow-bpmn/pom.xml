@@ -12,8 +12,9 @@
     </parent>
 
     <artifactId>compileflow-bpmn</artifactId>
-    <name>compileflow-bpmn</name>
-    <description>CompileFlow BPMN - BPMN specification implementation plugin</description>
+    <name>CompileFlow BPMN</name>
+    <description>Provider, parser, validator, writer, and code generator for the supported BPMN 2.0 subset.
+    </description>
 
     <dependencies>
         <!-- Internal module dependencies -->
@@ -28,14 +29,13 @@
 
         <!-- Base dependencies -->
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+        </dependency>
         <!-- Test dependencies -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -43,8 +43,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

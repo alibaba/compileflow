@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.invocation-policy.customFailureHandler" name="InvocationPolicy Failure Handler Test - Custom">
+    <var name="scenario" dataType="java.lang.String" defaultValue="transient_error" inOutType="param"/>
+    <var name="result" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="Start" g="50,50,32,32">
+        <transition to="customFailureTask"/>
+    </start>
+
+    <autoTask id="customFailureTask" name="Custom Failure Task" g="150,40,120,48">
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.InvocationPolicyTestService"
+                          method="customFailureScenario">
+                <input target="scenario" dataType="java.lang.String" source="scenario"/>
+                <output dataType="java.lang.String" target="result"/>
+
+
+            <invocationPolicy
+                attemptTimeout="PT2S"
+                maxAttempts="3" initialBackoff="PT0.2S"
+                retryOn="transient"
+                onFailure="custom-failure-handler"/>
+        </action>
+        <transition to="end"/>
+    </autoTask>
+
+    <end id="end" name="End" g="320,50,32,32"/>
+</bpm>

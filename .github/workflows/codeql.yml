@@ -1,0 +1,60 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'compileflow-*/**'
+      - 'compileflow-deploy/**'
+      - 'compileflow-workbench/**'
+      - 'examples/**'
+      - 'pom.xml'
+      - '.github/workflows/codeql.yml'
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'compileflow-*/**'
+      - 'compileflow-deploy/**'
+      - 'compileflow-workbench/**'
+      - 'examples/**'
+      - 'pom.xml'
+      - '.github/workflows/codeql.yml'
+  schedule:
+    - cron: '15 3 * * 2'
+  workflow_dispatch: { }
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze ${{ matrix.language }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          - java-kotlin
+          - javascript-typescript
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@7211b7c8077ea37d8641b6271f6a365a22a5fbfa
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          queries: security-and-quality
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@7211b7c8077ea37d8641b6271f6a365a22a5fbfa
+        with:
+          category: /language:${{ matrix.language }}

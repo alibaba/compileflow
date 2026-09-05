@@ -1,103 +1,83 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpm code="bpm.stateful.complexExclusiveGateway" name="复杂排他网关流程" type="statefulProcess"
+<bpm code="bpm.stateful.complexExclusiveGateway" name="复杂排他网关流程"
      description="测试复杂排他网关的stateful流程">
-    <var name="requestType" description="请求类型" dataType="java.lang.String" inOutType="param"/>
-    <var name="amount" description="金额" dataType="java.lang.Integer" inOutType="param"/>
-    <var name="creditScore" description="信用分数" dataType="java.lang.Integer" inOutType="param"/>
-    <var name="high_approval_result" description="高金额审批结果" dataType="java.lang.String" inOutType="param"/>
-    <var name="low_approval_result" description="低金额审批结果" dataType="java.lang.String" inOutType="param"/>
-    <var name="rejection_reason" description="拒绝原因" dataType="java.lang.String" inOutType="param"/>
-    <var name="approval_reason" description="审批原因" dataType="java.lang.String" inOutType="param"/>
-    <var name="finalResult" description="最终结果" dataType="java.lang.String" inOutType="return"/>
+    <var name="requestType" dataType="java.lang.String" inOutType="param"/>
+    <var name="amount" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="creditScore" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="high_approval_result" dataType="java.lang.String" inOutType="param"/>
+    <var name="low_approval_result" dataType="java.lang.String" inOutType="param"/>
+    <var name="rejection_reason" dataType="java.lang.String" inOutType="param"/>
+    <var name="approval_reason" dataType="java.lang.String" inOutType="param"/>
+    <var name="finalResult" dataType="java.lang.String" inOutType="return"/>
 
-    <start id="start" name="开始" tag="start" g="100,50,30,30">
+    <start id="start" name="开始" g="100,50,30,30">
         <transition to="evaluateRequest" g=":-15,20"/>
     </start>
 
-    <autoTask id="evaluateRequest" name="评估请求" tag="evaluateRequest" g="80,120,88,48">
+    <autoTask id="evaluateRequest" name="评估请求" g="80,120,88,48">
         <transition to="decisionGateway" g=":-15,20"/>
-        <action type="java">
-            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
-                <var name="input" dataType="java.lang.String" contextVarName="requestType" inOutType="param"/>
-                <var name="result" dataType="java.lang.String" contextVarName="requestType" inOutType="return"/>
-            </actionHandle>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="processStep">
+                <input target="input" dataType="java.lang.String" source="requestType"/>
+                <output dataType="java.lang.String" target="requestType"/>
+
         </action>
     </autoTask>
 
-    <decision id="decisionGateway" name="决策网关" tag="decisionGateway" g="80,200,88,48">
-        <transition to="waitHighAmountApproval" name="高金额审批" expression="amount &gt; 10000" g=":-15,20"/>
+    <exclusive id="decisionGateway" name="决策网关" g="80,200,88,48">
+        <transition to="waitHighAmountApproval" name="高金额审批" condition="amount &gt; 10000" g=":-15,20"/>
         <transition to="waitLowAmountApproval" name="低金额审批"
-                    expression="amount &lt;= 10000 &amp;&amp; creditScore &gt;= 600" g=":-15,20"/>
-        <transition to="waitRejection" name="拒绝申请" expression="creditScore &lt; 600" g=":-15,20"/>
-    </decision>
+                    condition="amount &lt;= 10000 &amp;&amp; creditScore &gt;= 600" g=":-15,20"/>
+        <transition to="waitRejection" name="拒绝申请" condition="creditScore &lt; 600" g=":-15,20"/>
+    </exclusive>
 
-    <waitEventTask id="waitHighAmountApproval" name="等待高金额审批" tag="waitHighAmountApproval"
+    <waitEventTask id="waitHighAmountApproval" name="等待高金额审批"
                    event="highAmountApprovalComplete" g="70,300,120,60">
         <transition to="processHighApproval" g=":-15,20"/>
-        <inAction type="java">
-            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
-                <var name="input" dataType="java.lang.String" contextVarName="high_approval_result" inOutType="param"/>
-                <var name="result" dataType="java.lang.String" contextVarName="high_approval_result"
-                     inOutType="return"/>
-            </actionHandle>
-        </inAction>
     </waitEventTask>
 
-    <waitEventTask id="waitLowAmountApproval" name="等待低金额审批" tag="waitLowAmountApproval"
+    <waitEventTask id="waitLowAmountApproval" name="等待低金额审批"
                    event="lowAmountApprovalComplete" g="70,400,120,60">
         <transition to="processLowApproval" g=":-15,20"/>
-        <inAction type="java">
-            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
-                <var name="input" dataType="java.lang.String" contextVarName="low_approval_result" inOutType="param"/>
-                <var name="result" dataType="java.lang.String" contextVarName="low_approval_result" inOutType="return"/>
-            </actionHandle>
-        </inAction>
     </waitEventTask>
 
-    <waitEventTask id="waitRejection" name="等待拒绝处理" tag="waitRejection" event="rejectionComplete"
+    <waitEventTask id="waitRejection" name="等待拒绝处理" event="rejectionComplete"
                    g="70,500,120,60">
         <transition to="processRejection" g=":-15,20"/>
-        <inAction type="java">
-            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
-                <var name="input" dataType="java.lang.String" contextVarName="rejection_reason" inOutType="param"/>
-                <var name="result" dataType="java.lang.String" contextVarName="rejection_reason" inOutType="return"/>
-            </actionHandle>
-        </inAction>
     </waitEventTask>
 
-    <autoTask id="processHighApproval" name="处理高金额审批" tag="processHighApproval" g="80,600,88,48">
+    <autoTask id="processHighApproval" name="处理高金额审批" g="80,600,88,48">
         <transition to="end" g=":-15,20"/>
-        <action type="java">
-            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
-                <var name="payment" dataType="java.lang.String" contextVarName="high_approval_result"
-                     inOutType="param"/>
-                <var name="delivery" dataType="java.lang.String" contextVarName="approval_reason" inOutType="param"/>
-                <var name="result" dataType="java.lang.String" contextVarName="finalResult" inOutType="return"/>
-            </actionHandle>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="combineResults">
+                <input target="payment" dataType="java.lang.String" source="high_approval_result"/>
+                <input target="delivery" dataType="java.lang.String" source="approval_reason"/>
+                <output dataType="java.lang.String" target="finalResult"/>
+
         </action>
     </autoTask>
 
-    <autoTask id="processLowApproval" name="处理低金额审批" tag="processLowApproval" g="80,700,88,48">
+    <autoTask id="processLowApproval" name="处理低金额审批" g="80,700,88,48">
         <transition to="end" g=":-15,20"/>
-        <action type="java">
-            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
-                <var name="payment" dataType="java.lang.String" contextVarName="low_approval_result" inOutType="param"/>
-                <var name="delivery" dataType="java.lang.String" contextVarName="requestType" inOutType="param"/>
-                <var name="result" dataType="java.lang.String" contextVarName="finalResult" inOutType="return"/>
-            </actionHandle>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="combineResults">
+                <input target="payment" dataType="java.lang.String" source="low_approval_result"/>
+                <input target="delivery" dataType="java.lang.String" source="requestType"/>
+                <output dataType="java.lang.String" target="finalResult"/>
+
         </action>
     </autoTask>
 
-    <autoTask id="processRejection" name="处理拒绝" tag="processRejection" g="80,800,88,48">
+    <autoTask id="processRejection" name="处理拒绝" g="80,800,88,48">
         <transition to="end" g=":-15,20"/>
-        <action type="java">
-            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
-                <var name="payment" dataType="java.lang.String" contextVarName="rejection_reason" inOutType="param"/>
-                <var name="delivery" dataType="java.lang.String" contextVarName="requestType" inOutType="param"/>
-                <var name="result" dataType="java.lang.String" contextVarName="finalResult" inOutType="return"/>
-            </actionHandle>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="combineResults">
+                <input target="payment" dataType="java.lang.String" source="rejection_reason"/>
+                <input target="delivery" dataType="java.lang.String" source="requestType"/>
+                <output dataType="java.lang.String" target="finalResult"/>
+
         </action>
     </autoTask>
 
-    <end id="end" name="结束" tag="end" g="100,900,30,30"/>
+    <end id="end" name="结束" g="100,900,30,30"/>
 </bpm>

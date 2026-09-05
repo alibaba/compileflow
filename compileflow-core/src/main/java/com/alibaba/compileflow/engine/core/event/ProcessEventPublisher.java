@@ -1,10 +1,7 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -16,136 +13,141 @@
  */
 package com.alibaba.compileflow.engine.core.event;
 
-import com.alibaba.compileflow.engine.core.extension.ExtensionInvoker;
-import com.alibaba.compileflow.engine.core.infrastructure.LogContext;
-import com.alibaba.compileflow.engine.core.runtime.context.EngineExecutionContextHolder;
-import com.alibaba.compileflow.engine.core.runtime.executor.ExecutionContextPropagator;
+import com.alibaba.compileflow.engine.ProcessError;
+import com.alibaba.compileflow.engine.ProcessExecution;
+import com.alibaba.compileflow.engine.ProcessTrigger;
+import com.alibaba.compileflow.engine.config.ProcessObservabilityConfig;
+import com.alibaba.compileflow.engine.core.observability.LogContext;
+import com.alibaba.compileflow.engine.core.runtime.execution.ExecutionContextPropagator;
+import com.alibaba.compileflow.engine.core.runtime.execution.ExecutionContextPropagator.ContextSnapshot;
+import com.alibaba.compileflow.engine.spi.event.ProcessEvent;
+import com.alibaba.compileflow.engine.spi.event.ProcessEvent.ExecutionAttribution;
+import com.alibaba.compileflow.engine.spi.event.ProcessEventListener;
+import java.time.Instant;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
-
 /**
- * A stateless event publisher that dispatches events to all registered {@link ProcessEventListener}
- * SPI implementations.
+ * Dispatches engine lifecycle events to the listeners frozen into the engine configuration.
  * <p>
- * This class replaces the stateful {@code ProcessEventBus} and delegates the discovery and
- * invocation of listeners to the framework's standard {@link ExtensionInvoker}.
+ * Listener failures are isolated: one failing listener is logged and does not affect
+ * process execution or other listeners. When asynchronous dispatch is enabled, events
+ * are delivered on the engine-owned event executor, which the engine closes on shutdown.
  *
  * @author yusu
  */
-public class ProcessEventPublisher {
-
+public final class ProcessEventPublisher {
     private static final Logger LOGGER = LoggerFactory.getLogger(ProcessEventPublisher.class);
+    private final List<ProcessEventListener> listeners;
+    private final boolean async;
+    private final boolean mdcPropagationEnabled;
+    private final Executor eventExecutor;
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    public void publish(ProcessEvent event) {
-        if (event == null) {
+    /**
+     * Creates a publisher bound to one engine's listener set.
+     *
+     * @param observabilityConfig immutable observability configuration
+     * @param listeners           immutable ordered listener snapshot
+     * @param eventExecutor       engine-owned executor for asynchronous dispatch, or {@code null}
+     *                            to force synchronous dispatch
+     */
+    public ProcessEventPublisher(ProcessObservabilityConfig observabilityConfig, List<ProcessEventListener> listeners,
+            Executor eventExecutor) {
+        Objects.requireNonNull(observabilityConfig, "observabilityConfig");
+        this.listeners = List.copyOf(Objects.requireNonNull(listeners, "listeners"));
+        this.async = observabilityConfig.isEventsAsync() && eventExecutor != null;
+        this.mdcPropagationEnabled = observabilityConfig.isMdcPropagationEnabled();
+        this.eventExecutor = eventExecutor;
+    }
+
+    public void publishExecutionStarted(String namespace, String processCode, String invocationId) {
+        publish(occurredAt -> new ProcessEvent.ExecutionStarted(namespace, processCode, invocationId,
+                LogContext.getTraceId(), occurredAt));
+    }
+
+    public void publishExecutionCompleted(ProcessExecution execution, ExecutionAttribution attribution, long durationMs) {
+        publish(occurredAt -> new ProcessEvent.ExecutionCompleted(execution, attribution, durationMs, occurredAt));
+    }
+
+    public void publishExecutionFailed(ProcessExecution execution, ExecutionAttribution attribution, long durationMs,
+            ProcessError error) {
+        publish(occurredAt -> new ProcessEvent.ExecutionFailed(execution, attribution, durationMs, error, occurredAt));
+    }
+
+    public void publishTriggerStarted(String namespace, String processCode, String invocationId, ProcessTrigger trigger) {
+        publish(occurredAt -> new ProcessEvent.TriggerStarted(namespace, processCode, invocationId, trigger,
+                LogContext.getTraceId(), occurredAt));
+    }
+
+    public void publishTriggerCompleted(ProcessExecution execution, ExecutionAttribution attribution,
+            ProcessTrigger trigger, long durationMs) {
+        publish(occurredAt -> new ProcessEvent.TriggerCompleted(execution, attribution, trigger, durationMs, occurredAt));
+    }
+
+    public void publishTriggerFailed(ProcessExecution execution, ExecutionAttribution attribution,
+            ProcessTrigger trigger, long durationMs, ProcessError error) {
+        publish(occurredAt -> new ProcessEvent.TriggerFailed(execution, attribution, trigger, durationMs, error,
+                occurredAt));
+    }
+
+    private void publish(EventFactory eventFactory) {
+        if (listeners.isEmpty()) {
             return;
         }
+        ProcessEvent event = eventFactory.create(Instant.now());
+        if (async) {
+            try {
+                ContextSnapshot context = ExecutionContextPropagator.capture(mdcPropagationEnabled);
+                eventExecutor.execute(() -> dispatchAsync(event, context));
+            } catch (RejectedExecutionException ex) {
+                recordDropped(event, "event executor rejected delivery", ex);
+            } catch (RuntimeException failure) {
+                recordDropped(event, "application context capture failed", failure);
+            }
+        } else {
+            dispatch(event);
+        }
+    }
 
-        ProcessEventListener.ProcessEventExtensionContext ctx = new ProcessEventListener.ProcessEventExtensionContext(event);
+    private void dispatchAsync(ProcessEvent event, ContextSnapshot context) {
+        try {
+            ExecutionContextPropagator
+                .wrap(() -> dispatch(event), context)
+                .run();
+        } catch (RuntimeException failure) {
+            recordDropped(event, "application context binding failed", failure);
+        }
+    }
 
-        ExtensionInvoker.getInstance().invokeAll(ctx, ProcessEventListener.EXT_EVENT_LISTENER_CODE,
-                (ProcessEventListener listener) -> {
-                    try {
-                        if (listener.isAsync()) {
-                            invokeAsync(listener, event);
-                        } else {
-                            invokeSync(listener, event);
-                        }
-                    } catch (Exception e) {
-                        LOGGER.error("Synchronous event listener [{}] threw an exception for event [{}].",
-                                listener.getClass().getName(), event.getEventType(), e);
-                    }
-                    return null;
+    private static void recordDropped(ProcessEvent event, String reason, RuntimeException failure) {
+        ProcessEventDeliveryMetrics.global().recordDropped();
+        LOGGER.warn("Dropping best-effort async {} event: reason={}, failureType={}", event.getType(), reason,
+                failure.getClass().getName());
+        LOGGER.debug("Async process event delivery failure: type={}, reason={}", event.getType(), reason, failure);
+    }
+
+    private void dispatch(ProcessEvent event) {
+        for (ProcessEventListener listener : listeners) {
+            try {
+                if (listener.supports(event)) {
+                    listener.onEvent(event);
                 }
-        );
-    }
-
-    private void invokeSync(ProcessEventListener<?> listener, ProcessEvent event) {
-        ((ProcessEventListener) listener).onEvent(event);
-    }
-
-    private void invokeAsync(ProcessEventListener<?> listener, ProcessEvent event) {
-        ExecutionContextPropagator.ContextSnapshot snap = ExecutionContextPropagator.capture();
-        CompletableFuture.runAsync(ExecutionContextPropagator.wrap(() ->
-                        ((ProcessEventListener) listener).onEvent(event), snap), EngineExecutionContextHolder.event())
-                .exceptionally(ex -> {
-                    LOGGER.error("Asynchronous event listener [{}] threw an exception for event [{}].",
-                            listener.getClass().getName(), event.getEventType(), ex);
-                    return null;
-                });
-    }
-
-    public void publishExecutionStarted(String processCode) {
-        publish(new ProcessCoreEvents.ExecutionStarted(processCode,
-                buildContext(null, null)));
-    }
-
-    public void publishExecutionCompleted(String processCode, long durationMs) {
-        publish(new ProcessCoreEvents.ExecutionCompleted(processCode,
-                buildContext(durationMs, null)));
-    }
-
-    public void publishExecutionFailed(String processCode, long durationMs, String errorMessage) {
-        publish(new ProcessCoreEvents.ExecutionFailed(processCode,
-                buildContext(durationMs, errorMessage)));
-    }
-
-    public void publishTriggerStarted(String processCode, String tag, String event) {
-        publish(new ProcessCoreEvents.TriggerStarted(processCode, tag, event,
-                buildContext(null, null)));
-    }
-
-    public void publishTriggerCompleted(String processCode, String tag, String event, long durationMs) {
-        publish(new ProcessCoreEvents.TriggerCompleted(processCode, tag, event,
-                buildContext(durationMs, null)));
-    }
-
-    public void publishTriggerFailed(String processCode, String tag, String event, long durationMs, String errorMessage) {
-        publish(new ProcessCoreEvents.TriggerFailed(processCode, tag, event,
-                buildContext(durationMs, errorMessage)));
-    }
-
-    public void publishCompilationCompleted(String[] codes, long durationMs) {
-        publish(new ProcessCoreEvents.CompilationCompleted(codes,
-                buildContext(durationMs, null)));
-    }
-
-    public void publishCompilationFailed(String[] codes, long durationMs, String errorMessage) {
-        publish(new ProcessCoreEvents.CompilationFailed(codes,
-                buildContext(durationMs, errorMessage)));
-    }
-
-    private ProcessEventContext buildContext(Long durationMs, String errorMessage) {
-        return ProcessEventContext.builder()
-                .traceId(LogContext.getTraceId())
-                .threadName(Thread.currentThread().getName())
-                .durationMs(durationMs)
-                .errorMessage(errorMessage)
-                .build();
-    }
-
-    private static final class NamedThreadFactory implements ThreadFactory {
-        private final String poolName;
-        private final AtomicInteger threadCounter = new AtomicInteger(1);
-
-        private NamedThreadFactory(String poolName) {
-            this.poolName = poolName;
-        }
-
-        @Override
-        public Thread newThread(Runnable r) {
-            String threadName = String.format("compileflow-%s-%d", poolName, threadCounter.getAndIncrement());
-            Thread t = new Thread(r, threadName);
-            t.setDaemon(true);
-            t.setUncaughtExceptionHandler((th, ex) ->
-                    LOGGER.error("Uncaught exception in thread [{}].", th.getName(), ex));
-            return t;
+            } catch (RuntimeException failure) {
+                String listenerType = listener.getClass().getName();
+                LOGGER.warn("Process event listener {} failed on {} event: failureType={}", listenerType,
+                        event.getType(), failure.getClass().getName());
+                LOGGER.debug("Process event listener failure detail: listener={}, event={}", listenerType,
+                        event.getType(), failure);
+            }
         }
     }
 
+    @FunctionalInterface
+    private interface EventFactory {
+        ProcessEvent create(Instant occurredAt);
+    }
 }

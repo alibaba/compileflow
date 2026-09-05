@@ -1,0 +1,30 @@
+.card {
+  padding: var(--spacing-5);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.accent {
+  height: 3px;
+  margin: calc(-1 * var(--spacing-5)) calc(-1 * var(--spacing-5)) var(--spacing-4);
+  background: var(--border-subtle);
+}
+
+.tagRow {
+  display: flex;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-4);
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footerMeta {
+  display: flex;
+  gap: var(--spacing-2);
+}

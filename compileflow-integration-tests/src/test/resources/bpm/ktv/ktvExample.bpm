@@ -1,72 +1,64 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<bpm code="bpm.ktv.ktvExample" name="ktv example" type="process" description="ktv example">
-    <var name="price" description="Payment Price" dataType="java.lang.Integer" inOutType="return"/>
+<bpm code="bpm.ktv.ktvExample" name="ktv example" description="ktv example">
+    <var name="price" dataType="java.lang.Integer" inOutType="return"/>
     <var name="totalPrice" description="Actual Price" dataType="java.lang.Integer" inOutType="inner"/>
-    <var name="pList" description="Personnel" dataType="java.util.List&lt;java.lang.String&gt;" inOutType="param"/>
+    <var name="pList" dataType="java.util.List&lt;java.lang.String&gt;" inOutType="param"/>
     <end id="11" name="End" g="101,549,30,30"/>
     <autoTask id="12" name="Payment" g="72,469,88,48">
         <transition g=":-15,20" to="11"/>
-        <action type="java">
-            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.KtvService" method="payMoney">
-                <var name="p1" description="Price" dataType="java.lang.Integer" contextVarName="price" defaultValue=""
-                     inOutType="param"/>
-            </actionHandle>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.KtvService" method="payMoney">
+                <input target="p1" dataType="java.lang.Integer" source="price"/>
+
         </action>
     </autoTask>
     <scriptTask id="9" name="Original Price" g="132,389,88,48">
         <transition g=":-15,20" to="12"/>
-        <action type="ql">
-            <actionHandle expression="price*1">
-                <var name="price" description="Price" dataType="java.lang.Integer" contextVarName="totalPrice"
-                     defaultValue="" inOutType="param"/>
-                <var name="price" description="Price" dataType="java.lang.Integer" contextVarName="price"
-                     defaultValue=""
-                     inOutType="return"/>
-            </actionHandle>
+        <action type="script" language="qlexpress">
+                <input target="price" dataType="java.lang.Integer" source="totalPrice"/>
+                <output dataType="java.lang.Integer" target="price"/>
+                <code><![CDATA[price*1]]></code>
+
         </action>
     </scriptTask>
-    <loopProcess id="13" name="Loop Node" g="20,75,198,190" collectionVarName="pList" variableName="p" indexVarName="i"
-                 variableClass="java.lang.String" startNodeId="13-1" endNodeId="13-1">
-        <transition g=":-15,20" to="8"/>
-        <autoTask id="13-1" name="Each Person Sings a Song" g="70,95,88,48">
-            <action type="spring-bean">
-                <actionHandle bean="ktvService" clazz="com.alibaba.compileflow.engine.test.mock.KtvService"
+    <foreach id="13" name="Loop Node" g="20,75,198,190"
+                 collection="pList" item="p" index="i"
+                 itemType="java.lang.String">
+        <transition g=":-15,20" to="calculateFee"/>
+        <start id="13-start"><transition to="13-1"/></start>
+        <autoTask id="13-1" name="Everyone Sings a Song" g="70,95,88,48">
+            <action type="spring-bean" bean="ktvService" class="com.alibaba.compileflow.engine.test.support.mocks.KtvService"
                               method="sing">
-                    <var name="p1" description="" dataType="java.lang.String" contextVarName="p" defaultValue=""
-                         inOutType="param"/>
-                </actionHandle>
+                    <input target="p1" dataType="java.lang.String" source="p"/>
+
             </action>
+            <transition to="13-end"/>
         </autoTask>
-    </loopProcess>
-    <decision id="8" name="Calculate Cost" g="72,309,88,48">
-        <transition expression="" name="Not Exceeding 400" priority="1" g=":-15,20" to="9"/>
-        <transition expression="totalPrice&gt;=400" name="Exceeding 400" priority="10" g=":-15,20" to="10"/>
-        <action type="java">
-            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="calPrice">
-                <var name="p1" description="Number of People" dataType="java.lang.Integer" contextVarName="pList.size()"
-                     defaultValue="" inOutType="param"/>
-                <var name="p2" description="Price" dataType="java.lang.Integer" contextVarName="totalPrice"
-                     defaultValue=""
-                     inOutType="return"/>
-            </actionHandle>
+        <end id="13-end"/>
+    </foreach>
+    <autoTask id="calculateFee" name="Calculate Fee" g="72,280,88,48">
+        <transition to="8"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="calculatePrice">
+                <input target="p1" dataType="java.lang.Integer" source="pList.size()"/>
+                <output dataType="java.lang.Integer" target="totalPrice"/>
+
         </action>
-    </decision>
+    </autoTask>
+    <exclusive id="8" name="Calculate Fee" g="72,309,88,48">
+        <transition name="Not Over 400" g=":-15,20" to="9"/>
+        <transition condition="totalPrice&gt;=400" name="Over 400" g=":-15,20" to="10"/>
+    </exclusive>
     <start id="1" name="Start" g="105,17,30,30">
         <transition g=":-15,20" to="13"/>
     </start>
-    <note id="14" g="273,82,93,55" comment="Outer frame is loop node" visible="true">
-        <transition g=":-15,20" to="13"/>
-    </note>
-    <scriptTask id="10" name="10% Discount" g="12,389,88,48">
+    <note id="14" g="273,82,93,55" comment="The outer frame is a loop node"/>
+    <scriptTask id="10" name="10% Off Discount" g="12,389,88,48">
         <transition g=":-15,20" to="12"/>
-        <action type="ql">
-            <actionHandle expression="(round(price*0.9,0)).intValue()">
-                <var name="price" description="Price" dataType="java.lang.Integer" contextVarName="totalPrice"
-                     defaultValue="" inOutType="param"/>
-                <var name="price" description="Price" dataType="java.lang.Integer" contextVarName="price"
-                     defaultValue=""
-                     inOutType="return"/>
-            </actionHandle>
+        <action type="script" language="qlexpress">
+                <input target="price" dataType="java.lang.Integer" source="totalPrice"/>
+                <output dataType="java.lang.Integer" target="price"/>
+                <code><![CDATA[(int)(price*0.9)]]></code>
+
         </action>
     </scriptTask>
 </bpm>

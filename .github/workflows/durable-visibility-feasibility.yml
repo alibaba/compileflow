@@ -1,0 +1,135 @@
+name: Durable Visibility Feasibility
+
+on:
+  schedule:
+    - cron: '0 4 * * 3'
+  workflow_dispatch: { }
+
+permissions:
+  contents: read
+
+env:
+  PYTHONDONTWRITEBYTECODE: '1'
+
+concurrency:
+  group: durable-visibility-feasibility-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  postgres-feasibility:
+    name: Visibility feasibility (PostgreSQL ${{ matrix.postgres }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - postgres: '16.15'
+            postgres_image: postgres:16.15-alpine3.24@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+          - postgres: '17.11'
+            postgres_image: postgres:17.11-alpine3.24@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73
+          - postgres: '18.6'
+            postgres_image: postgres:18.6-alpine3.24@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
+    services:
+      postgres:
+        image: ${{ matrix.postgres_image }}
+        env:
+          POSTGRES_DB: compileflow_visibility
+          POSTGRES_USER: compileflow_visibility
+          POSTGRES_PASSWORD: visibility-evidence-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U compileflow_visibility -d compileflow_visibility"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Require PostgreSQL client
+        run: |
+          command -v psql
+          psql --version
+
+      - name: Run one-million-Run feasibility corpus
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: compileflow_visibility
+          PGUSER: compileflow_visibility
+          PGPASSWORD: visibility-evidence-only
+        run: |
+          python3 scripts/run_durable_visibility_feasibility.py \
+            --runs 1000000 \
+            --commit "${GITHUB_SHA}" \
+            --declared-postgres "${{ matrix.postgres }}" \
+            --declared-image "${{ matrix.postgres_image }}" \
+            --output "${RUNNER_TEMP}/visibility-evidence/postgres-${{ matrix.postgres }}-visibility-feasibility.json" \
+            --allow-schema-reset
+
+      - name: Verify tested source identity
+        env:
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+          test -z "$(git status --porcelain)"
+
+      - name: Upload raw Visibility evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: durable-visibility-postgres-${{ matrix.postgres }}
+          path: ${{ runner.temp }}/visibility-evidence/
+          if-no-files-found: error
+          retention-days: 30
+
+  visibility-matrix:
+    name: Visibility same-commit matrix
+    if: ${{ !cancelled() }}
+    needs: [ postgres-feasibility ]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Download raw Visibility evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c906dfced5ed9
+        with:
+          pattern: durable-visibility-postgres-*
+          path: ${{ runner.temp }}/visibility-evidence-input
+
+      - name: Verify aggregation source identity
+        env:
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+          test -z "$(git status --porcelain)"
+
+      - name: Require complete PostgreSQL 16-18 evidence
+        run: |
+          python3 scripts/verify_durable_visibility_evidence.py \
+            --evidence-root "${RUNNER_TEMP}/visibility-evidence-input" \
+            --commit "${GITHUB_SHA}" \
+            --expected-runs 1000000 \
+            --expected-postgres 16.15 \
+            --expected-postgres 17.11 \
+            --expected-postgres 18.6 \
+            --output "${RUNNER_TEMP}/visibility-evidence-output/durable-visibility-feasibility-matrix.json"
+
+      - name: Upload aggregate Visibility evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: durable-visibility-feasibility-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/visibility-evidence-output/durable-visibility-feasibility-matrix.json
+            ${{ runner.temp }}/visibility-evidence-input/**/*visibility-feasibility.json
+          if-no-files-found: error
+          retention-days: 30

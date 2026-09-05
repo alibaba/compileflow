@@ -1,0 +1,18 @@
+/* Minimal reset — design tokens live in global.css / variables.css */
+
+#root {
+  min-height: 100vh;
+}
+
+code,
+pre,
+kbd {
+  font-family: var(--font-family-code);
+}
+
+code {
+  font-size: 0.9em;
+  background: var(--code-bg);
+  padding: 0.15em 0.4em;
+  border-radius: var(--radius-sm);
+}

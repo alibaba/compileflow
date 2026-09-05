@@ -1,17 +1,48 @@
-# CompileFlow 快速开始 - 完整示例演练
+# CompileFlow 快速开始
 
-本指南提供了 `README.md` 中快速开始部分的详细代码演练。我们将构建一个完整的 Spring Boot 应用来执行一个包含决策逻辑的 KTV 计费流程。
+先运行仓库中经过测试的 Spring Boot 示例，再用最小示例把同一个 TBBPM 流程嵌入应用。CompileFlow 2.0 当前仍是未发布快照。
 
-> 💡 **目标**: 本文档旨在通过一个具体的、可运行的例子来加深您对核心概念（`ProcessEngine`, `ProcessSource`, `ProcessResult`）的理解。
+## 前置条件
 
-## 1. 项目设置
+- JDK 17、21 或 25；构建、发布与默认生产镜像统一以 Java 17 为基线。
+- 使用仓库自带的 Maven Wrapper，无需单独安装 Maven。
 
-### a. 依赖
+在仓库根目录验证工具链：
 
-首先，确保你的 `pom.xml` 中包含了 `compileflow-spring-boot-starter`。
+```bash
+java -version
+./mvnw -version
+```
+
+## 运行已验证示例
+
+先安装当前 starter 及其 reactor 依赖，再运行示例：
+
+```bash
+./mvnw install -pl compileflow-spring-boot-starter -am -DskipTests
+cd examples/spring-boot-basic
+../../mvnw -f pom.xml spring-boot:run
+```
+
+应用会执行严格 preflight，以 `value=40` 运行 `flows/hello.bpm`，并输出：
+
+```text
+Sample process completed: result=42
+```
+
+运行示例的 context 测试：
+
+```bash
+../../mvnw -f pom.xml test -Dtest=SampleApplicationTest
+```
+
+示例位于 [examples/spring-boot-basic](../../examples/spring-boot-basic/README.md)，其测试是本指南的可执行事实源。
+
+## 添加 Starter
+
+在 Spring Boot 4.1 应用中添加 starter：
 
 ```xml
-
 <dependency>
     <groupId>com.alibaba.compileflow</groupId>
     <artifactId>compileflow-spring-boot-starter</artifactId>
@@ -19,234 +50,139 @@
 </dependency>
 ```
 
-### b. Spring Boot 启动类
+Starter 创建一个线程安全的 `ProcessEngine` Bean。默认模型类型是 TBBPM；需要 BPMN 时显式配置
+`compileflow.engine.model-type=BPMN`。
 
-这是一个标准的Spring Boot应用入口。
+## 定义流程
 
-```java
-package com.example.ktv;
-
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-
-@SpringBootApplication
-public class KtvApplication {
-    public static void main(String[] args) {
-        SpringApplication.run(KtvApplication.class, args);
-    }
-}
-```
-
-## 2. 流程定义 (`ProcessSource`)
-
-我们将在 `src/main/resources/bpm/ktv/quickstart.bpm` 路径下定义流程。`ProcessEngine` 默认会从 `classpath` 加载流程文件。
-
-此流程的唯一标识是 `code` 属性: `"bpm.ktv.quickstart"`。我们将使用这个 `code` 来创建 `ProcessSource`。
-
-这个例子包含一个**决策节点**，用于根据顾客人数应用不同的定价策略。
+将下面的定义保存为 `src/main/resources/flows/hello.bpm`：
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  code="bpm.ktv.quickstart": 这是流程的唯一ID。
-  我们会用它来创建 ProcessSource: ProcessSource.fromCode("bpm.ktv.quickstart")
--->
-<bpm code="bpm.ktv.quickstart" name="KTV 计费流程 (快速开始)" type="process">
-    <!-- 定义流程变量 -->
-    <var name="price" dataType="java.lang.Integer" inOutType="return"/>
-    <var name="pList" dataType="java.util.List&lt;java.lang.String&gt;" inOutType="param"/>
-
-    <!-- 流程从这里开始 -->
-    <start id="start" name="开始">
-        <transition to="checkGroupSize"/>
+<bpm code="bpm.sample.hello" name="Hello Sample">
+    <var name="value" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="result" dataType="java.lang.Integer" inOutType="return"/>
+    <start id="1" name="Start" g="100,20,30,30">
+        <transition g=":-15,20" to="2"/>
     </start>
-
-    <!--
-      这是一个决策节点，它会根据数据来决定流程的走向。
-    -->
-    <decision id="checkGroupSize" name="是否为大团体?">
-        <!--
-          如果表达式 "pList.size() > 3" 为 true，流程将转向 "calculateDiscountedPrice" 节点。
-        -->
-        <transition to="calculateDiscountedPrice" name="是 (&gt;3 人)" expression="pList.size() &gt; 3"/>
-        <!--
-          否则（默认路径），流程将转向 "calculateStandardPrice" 节点。
-        -->
-        <transition to="calculateStandardPrice" name="否"/>
-    </decision>
-
-    <!--
-      这个脚本任务节点用于计算标准价格。
-    -->
-    <scriptTask id="calculateStandardPrice" name="计算标准价格">
-        <transition to="end"/>
-        <action type="ql">
-            <!-- 表达式: pList.size() * 30 -->
-            <actionHandle expression="pList.size() * 30">
-                <var name="price" dataType="java.lang.Integer" contextVarName="price" inOutType="return"/>
-            </actionHandle>
+    <scriptTask id="2" name="Add Two" g="70,100,88,48">
+        <action type="script" language="qlexpress">
+            <input source="value" target="value" dataType="java.lang.Integer"/>
+            <output target="result" dataType="java.lang.Integer"/>
+            <code>value + 2</code>
         </action>
+        <transition g=":-15,20" to="3"/>
     </scriptTask>
-
-    <!--
-      这个脚本任务节点用于为大团体计算折扣价。
-    -->
-    <scriptTask id="calculateDiscountedPrice" name="计算折扣价格">
-        <transition to="end"/>
-        <action type="ql">
-            <!-- 为大团体应用折扣：每人 25 -->
-            <actionHandle expression="pList.size() * 25">
-                <var name="price" dataType="java.lang.Integer" contextVarName="price" inOutType="return"/>
-            </actionHandle>
-        </action>
-    </scriptTask>
-
-    <!-- 流程在这里结束 -->
-    <end id="end" name="结束"/>
+    <end id="3" name="End" g="100,200,30,30"/>
 </bpm>
 ```
 
-## 3. 业务逻辑 (`ProcessEngine` & `ProcessResult`)
+严格 preflight 会在执行前校验 XML schema、流程图、生成的 Java 源码和编译结果。
 
-现在我们创建一个服务来调用流程引擎。
+## 执行流程
 
-- **`@Autowired ProcessEngine`**: Spring Boot Starter 会自动配置一个全局单例的 `ProcessEngine`，我们直接注入即可。
-- **类型安全的DTO**: 我们为输入 (`KtvRequest`) 和输出 (`KtvResponse`) 定义了静态内部类。这使得API调用更加清晰和安全。
-- **`processEngine.execute(...)`**: 这是执行流程的核心方法。
-- **`result.orElseThrow(...)`**: `ProcessResult` 提供了方便的函数式方法来处理成功或失败的情况。
+使用构造器注入，并显式处理 `ProcessResult`：
 
 ```java
-package com.example.ktv.service;
-
-import com.alibaba.compileflow.engine.ProcessEngine;
-import com.alibaba.compileflow.engine.ProcessResult;
-import com.alibaba.compileflow.engine.ProcessSource;
-import com.alibaba.compileflow.engine.tbbpm.definition.TbbpmModel;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-
 @Service
-public class KtvBillingService {
+public final class PricingService {
 
-    @Autowired
-    private ProcessEngine<TbbpmModel> processEngine;
+    private final ProcessEngine processEngine;
 
-    // 为类型安全的交互定义输入DTO
-    public static class KtvRequest {
-        // 字段名 "pList" 必须与流程定义中的 <var name="pList"> 匹配
-        public List<String> pList;
+    public PricingService(ProcessEngine processEngine) {
+        this.processEngine = processEngine;
     }
 
-    // 为类型安全的交互定义输出DTO
-    public static class KtvResponse {
-        // 字段名 "price" 必须与流程定义中的 <var name="price"> 匹配
-        public Integer price;
-    }
+    public int addTwo(int value) {
+        ProcessDefinition definition = ProcessDefinition.classpath(
+                "bpm.sample.hello",
+                "flows/hello.bpm");
+        ProcessResult<Map<String, Object>> result = processEngine.execute(
+                definition,
+                Map.of("value", value));
 
-    /**
-     * 执行KTV计费流程
-     */
-    public KtvResponse calculatePrice(List<String> customers) {
-        KtvRequest request = new KtvRequest();
-        request.pList = customers;
-
-        // 1. 通过唯一编码创建流程源
-        ProcessSource source = ProcessSource.fromCode("bpm.ktv.quickstart");
-
-        // 2. 执行流程，传入请求DTO并指定响应DTO类型
-        ProcessResult<KtvResponse> result = processEngine.execute(
-            source,
-            request,
-            KtvResponse.class
-        );
-
-        // 3. 检查结果。如果失败，抛出异常；如果成功，返回数据。
-        if (result.isSuccess()) {
-            return result.getData();
-        } else {
-            throw new RuntimeException("KTV计费流程执行失败: " + result.getErrorMessage());
-        }
+        Map<String, Object> output = result.orElseThrow();
+        return (Integer) output.get("result");
     }
 }
 ```
 
-## 4. 暴露API (可选)
+`ProcessDefinition.classpath` 适合打包在应用内的稳定定义。`ProcessDefinition.inline` 适合工具和校验场景，
+不应在请求链路中携带可变业务逻辑。直接 definition source 都会在精确缓存匹配前解析源码；高吞吐生产请求应先发布定义，再使用
+`ProcessRef.Version` 或 `ProcessRef.Alias`。
 
-为了方便测试，我们可以创建一个简单的Controller。
+## Preflight 与预热
+
+在应用启动或发布准备阶段校验并编译已知流程：
 
 ```java
-package com.example.ktv.controller;
+ProcessDefinition definition = ProcessDefinition.classpath(
+        "bpm.sample.hello",
+        "flows/hello.bpm");
+ProcessPreflightReport report = processEngine.tooling()
+        .preflight(definition, ProcessPreflightOptions.strict());
+if (report.getOverallStatus() != ProcessPreflightReport.OverallStatus.PASS) {
+    throw new IllegalStateException(
+            "Flow preflight failed: "
+                    + report.getItems().stream()
+                            .filter(item -> item.getStatus()
+                                    != ProcessPreflightReport.ItemStatus.PASS)
+                            .map(item -> item.getType() + "/" + item.getStatus()
+                                    + ": " + item.getMessage())
+                            .toList());
+}
+processEngine.runtime().warmUp(definition);
+```
 
-import com.example.ktv.service.KtvBillingService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+`runtime().warmUp(...)` 只把精确定义内容编译到当前引擎的本地运行时缓存，不创建 code 或 version binding；
+它不是分布式发布操作，也不会修改Alias 路由。
 
-import java.util.List;
+## 独立模式
 
-@RestController
-public class KtvController {
+非 Spring 应用依赖一个格式模块，并在应用生命周期内持有一个引擎：
 
-    @Autowired
-    private KtvBillingService ktvBillingService;
+```xml
+<dependency>
+    <groupId>com.alibaba.compileflow</groupId>
+    <artifactId>compileflow-tbbpm</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+</dependency>
+```
 
-    @PostMapping("/calculate")
-    public KtvBillingService.KtvResponse calculate(@RequestBody List<String> customers) {
-        return ktvBillingService.calculatePrice(customers);
+```java
+public final class ProcessEngines {
+    private static final ProcessEngine TBBPM = ProcessEngineFactory.createTbbpm();
+
+    private ProcessEngines() {
+    }
+
+    public static ProcessEngine tbbpm() {
+        return TBBPM;
+    }
+
+    public static void close() {
+        TBBPM.close();
     }
 }
 ```
 
-### 测试
+将 `ProcessEngines.close()` 接入宿主应用的生命周期，不要为每个请求创建引擎。
 
-启动应用后，你可以向 `/calculate` 发送 POST 请求。
+## 生产边界
 
-#### 测试用例 1: 标准价格
+- 每次发布使用新的不可变版本；不得让同一版本标识对应不同内容。
+- 通过带 revision 前置条件的Alias rollout 切流；单独 publish 永远不会修改 route。
+- 部署节点只在本地安装完成后执行被选版本，不会降级到旧 artifact。
+- 路由属性与流程变量保持隔离，默认环境 alias 使用 `production`。
+- 进入生产前启用指标和引擎事件监听器。
 
-`POST http://localhost:8080/calculate`
+生产路径详见[热部署](hot-deploy.md)、[配置](configuration.md)、[监控](monitoring.md)与
+[支持面清单](../architecture/06-SUPPORTED_SURFACES.zh.md)。
 
-**Body (raw, JSON):**
-一个 3 人的团队会触发标准价格逻辑 (`3 > 3` 为 false)。
+## 后续阅读
 
-```json
-["customer1", "customer2", "customer3"]
-```
-
-**响应:**
-预期价格为 `3 * 30 = 90`。
-
-```json
-{
-    "price": 90
-}
-```
-
-#### 测试用例 2: 折扣价格
-
-`POST http://localhost:8080/calculate`
-
-**Body (raw, JSON):**
-一个 4 人的团队会触发折扣逻辑 (`4 > 3` 为 true)。
-
-```json
-["customer1", "customer2", "customer3", "customer4"]
-```
-
-**响应:**
-预期价格为 `4 * 25 = 100`。
-
-```json
-{
-    "price": 100
-}
-```
-
-## 下一步
-
-现在您已经对如何端到端地使用CompileFlow（包括决策逻辑）有了深入的了解。建议您接下来浏览：
-
-- **[API 参考](api-reference.md)**: 深入了解 `ProcessEngine`、`ProcessSource` 等的所有可用方法。
-- **[高级特性](advanced-features.md)**: 学习引擎预热、热部署和监控等生产级特性。
+- [API 参考](api-reference.md)
+- [TBBPM 规范](../specs/tbbpm-specification.zh.md)
+- [BPMN 节点支持](node-support.md)
+- [扩展指南](extension-guide.md)
+- [Workbench 部署](../../compileflow-workbench/DEPLOYMENT.md)

@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.order-management.generalOrderFulfillmentFlow" name="通用订单履约流程"
+     description="通用订单履约流程">
+    <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" inOutType="param"/>
+    <var name="paymentType" dataType="java.lang.String" inOutType="return"/>
+    <var name="pureZero" dataType="java.lang.Boolean" inOutType="return"/>
+    <var name="inventoryReduceFlag" dataType="java.lang.Boolean" inOutType="return"/>
+    <var name="securityAutoCheckFlag" dataType="java.lang.Boolean" inOutType="return"/>
+    <var name="securityManualCheckFlag" dataType="java.lang.Boolean" inOutType="return"/>
+    <var name="amendmentJudgementFlag" dataType="java.lang.Boolean" inOutType="return"/>
+    <waitTask id="32" name="人工校验回调" g="270,570,88,48">
+        <transition g=":-15,20" to="applyManualSecurityCallback"/>
+    </waitTask>
+    <autoTask id="applyManualSecurityCallback" name="应用人工校验回调" g="0,570,130,48">
+        <transition to="evaluateManualSecurity"/>
+        <action type="spring-bean" bean="securityManualCheckCallbackActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.SecurityManualCheckCallbackActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="evaluateInventoryReduction" name="获取库存扣减结果" g="185,820,130,48">
+        <transition to="25"/>
+        <action type="spring-bean" bean="workflowRouter"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.router.WorkflowRouter"
+                          method="isReduceInventorySuccess">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+                <output dataType="java.lang.Boolean" target="inventoryReduceFlag"/>
+
+        </action>
+    </autoTask>
+    <exclusive id="25" name="库存扣减结果判断" g="340,820,141,48">
+        <transition condition="Boolean.FALSE.equals(inventoryReduceFlag)" name="扣减失败" g="713,746;:-15,20"
+                    to="orderOutcomeJoin"/>
+        <transition condition="inventoryReduceFlag" name="扣减成功" g=":-15,20" to="30"/>
+    </exclusive>
+    <waitTask id="33" name="Delivered回调处理" g="25,695,97,49">
+        <transition g=":-15,20" to="applyDeliveredCallback"/>
+    </waitTask>
+    <autoTask id="applyDeliveredCallback" name="应用履约完成回调" g="25,760,130,48">
+        <transition to="2"/>
+        <action type="spring-bean" bean="deliveredCallbackActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.DeliveredCallbackActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="15" name="创建履约单" g="140,470,88,48">
+        <transition g=":-15,20" to="33"/>
+        <action type="spring-bean" bean="deliveryOrderCreateActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.DeliveryOrderCreateActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="30" name="安全校验状态更新" g="365,655,88,48">
+        <transition g=":-15,20" to="evaluateAutomaticSecurity"/>
+        <action type="spring-bean" bean="securityValidateStatusUpdateActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.SecurityValidateStatusUpdateActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+    <end id="2" name="结束" g="60,830,40,40"/>
+    <autoTask id="26" name="订单逆向" g="145,825,88,48">
+        <transition g=":-15,20" to="2"/>
+        <action type="spring-bean" bean="orderReverseActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.OrderReverseActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="evaluateZeroPayment" name="计算是否零元支付" g="710,165,130,48">
+        <transition to="19"/>
+        <action type="spring-bean" bean="workflowRouter"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.router.WorkflowRouter"
+                          method="isPureZero">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+                <output dataType="java.lang.Boolean" target="pureZero"/>
+
+        </action>
+    </autoTask>
+    <exclusive id="19" name="是否是0元支付" g="865,165,136,48">
+        <transition condition="Boolean.FALSE.equals(pureZero)" name="否" g=":-15,20" to="13"/>
+        <transition condition="pureZero" name="是" g=":-15,20" to="20"/>
+    </exclusive>
+    <autoTask id="24" name="库存扣减" g="890,820,88,48">
+        <transition g=":-15,20" to="evaluateInventoryReduction"/>
+        <action type="spring-bean" bean="inventoryReduceActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.InventoryReduceActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="resolvePaymentType" name="获取支付方式" g="545,340,120,48">
+        <transition to="14"/>
+        <action type="spring-bean" bean="workflowRouter"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.router.WorkflowRouter"
+                          method="getPaymentType">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+                <output dataType="java.lang.String" target="paymentType"/>
+
+        </action>
+    </autoTask>
+    <exclusive id="14" name="支付方式判断" g="700,340,128,48">
+        <transition condition="&quot;autoCharge&quot;.equals(paymentType)" name="自动续费支付方式" g=":-15,20" to="16"/>
+        <transition condition="&quot;offline&quot;.equals(paymentType)" name="线下支付方式" g=":-15,20" to="29"/>
+        <transition condition="&quot;online&quot;.equals(paymentType)" name="线上支付方式" g=":-15,20" to="38"/>
+    </exclusive>
+    <start id="1" name="开始" g="355,65,40,40">
+        <transition g=":-15,20" to="37"/>
+    </start>
+    <waitTask id="38" name="等待支付成功" g="595,595,88,48">
+        <transition g=":-15,20" to="applyPaymentSuccessCallback"/>
+    </waitTask>
+    <autoTask id="applyPaymentSuccessCallback" name="应用支付成功回调" g="590,650,130,48">
+        <transition to="36"/>
+        <action type="spring-bean" bean="waitPaymentSuccessActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.WaitPaymentSuccessActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="16" name="自动续费" g="480,595,88,48">
+        <transition to="38"/>
+        <action type="spring-bean" bean="autoChargeActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.AutoChargeActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="13" name="创建收单" g="725,235,88,48">
+        <transition g=":-15,20" to="resolvePaymentType"/>
+        <action type="spring-bean" bean="paymentOrderCreateActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.PaymentOrderCreateActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="evaluateAmendment" name="计算是否追加订单" g="745,55,120,48">
+        <transition to="1564467580907"/>
+        <action type="spring-bean" bean="workflowRouter"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.router.WorkflowRouter"
+                          method="isAmendmentJudgement">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+                <output dataType="java.lang.Boolean" target="amendmentJudgementFlag"/>
+
+        </action>
+    </autoTask>
+    <exclusive id="1564467580907" name="是否追加订单" g="890,55,88,48">
+        <transition condition="Boolean.FALSE.equals(amendmentJudgementFlag)" name="否" to="zeroPayEntryJoin"/>
+        <transition condition="amendmentJudgementFlag" name="是" to="1564467605436"/>
+    </exclusive>
+    <autoTask id="12" name="创建订单" g="658,58,88,48">
+        <transition to="evaluateAmendment"/>
+        <action type="spring-bean" bean="orderCreateActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.OrderCreateActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+    <bpmCall id="37" name="订单保存前校验子流程" g="475,58,103,51"
+            code="bpm.order-management.validateBeforeSavingSubFlow"
+            classpath="bpm/order-management/validateBeforeSavingSubFlow.bpm">
+        <transition g=":-15,20" to="12"/>
+        <input target="BUSINESS_CONTEXT" source="BUSINESS_CONTEXT"/>
+    </bpmCall>
+    <bpmCall id="36" name="支付成功回调处理子流程" g="590,700,98,51"
+            code="bpm.order-management.paySuccessCallbackSubFlow"
+            classpath="bpm/order-management/paySuccessCallbackSubFlow.bpm">
+        <transition g=":-15,20" to="24"/>
+        <input target="BUSINESS_CONTEXT" source="BUSINESS_CONTEXT"/>
+    </bpmCall>
+    <autoTask id="1564467605436" name="创建订单组" g="1040,165,88,48">
+        <transition to="zeroPayEntryJoin"/>
+        <action type="spring-bean" bean="orderGroupCreateActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.OrderGroupCreateActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+    <exclusive id="zeroPayEntryJoin" name="零元支付入口汇合" g="980,165,48,48">
+        <transition to="evaluateZeroPayment"/>
+    </exclusive>
+    <autoTask id="evaluateManualSecurity" name="获取人工校验结果" g="0,570,105,48">
+        <transition to="securityOutcomeJoin"/>
+        <action type="spring-bean" bean="workflowRouter"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.router.WorkflowRouter"
+                          method="isSecurityManualCheckPass">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+                <output dataType="java.lang.Boolean" target="securityManualCheckFlag"/>
+
+        </action>
+    </autoTask>
+    <exclusive id="securityOutcomeJoin" name="安全校验汇合" g="125,570,48,48">
+        <transition to="orderOutcomeJoin"/>
+    </exclusive>
+    <exclusive id="orderOutcomeJoin" name="订单结果汇合" g="250,735,48,48">
+        <transition to="35"/>
+    </exclusive>
+    <exclusive id="35" name="订单处理结果判断" g="125,570,116,48">
+        <transition condition="Boolean.TRUE.equals(inventoryReduceFlag) &amp;&amp; (Boolean.TRUE.equals(securityAutoCheckFlag) || Boolean.TRUE.equals(securityManualCheckFlag))"
+                    name="通过" g=":-15,20" to="15"/>
+        <transition name="未通过" g="149,499;:-15,20" to="26"/>
+    </exclusive>
+    <autoTask id="20" name="0元支付处理" g="890,275,88,48">
+        <transition g="1032,583;:-15,20" to="24"/>
+        <action type="spring-bean" bean="zeroPayActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.ZeroPayActivity" method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="evaluateAutomaticSecurity" name="获取安全校验结果" g="190,345,130,48">
+        <transition to="31"/>
+        <action type="spring-bean" bean="workflowRouter"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.router.WorkflowRouter"
+                          method="isSecurityAutoCheckPass">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+                <output dataType="java.lang.Boolean" target="securityAutoCheckFlag"/>
+
+        </action>
+    </autoTask>
+    <exclusive id="31" name="安全校验判断" g="345,345,127,48">
+        <transition condition="securityAutoCheckFlag" name="校验通过" g=":-15,20"
+                    to="securityOutcomeJoin"/>
+        <transition condition="Boolean.FALSE.equals(securityAutoCheckFlag)" name="校验中" g=":-15,20" to="32"/>
+    </exclusive>
+    <waitTask id="29" name="֧支付pending回调处理" g="725,595,101,53">
+        <transition g=":-15,20" to="applyPaymentPendingCallback"/>
+    </waitTask>
+    <autoTask id="applyPaymentPendingCallback" name="应用支付待处理回调" g="725,650,130,48">
+        <transition to="38"/>
+        <action type="spring-bean" bean="paymentPendingCallbackActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.PaymentPendingCallbackActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+</bpm>

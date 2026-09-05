@@ -1,0 +1,32 @@
+.descriptions {
+  margin-bottom: var(--spacing-6);
+}
+
+.canaryPanel {
+  margin-bottom: var(--spacing-6);
+}
+
+.hint {
+  margin: 0 0 var(--spacing-4);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+}
+
+.actions {
+  margin-top: var(--spacing-4);
+}
+
+.healthResult {
+  display: grid;
+  gap: var(--spacing-4);
+  margin-top: var(--spacing-5);
+  padding-top: var(--spacing-5);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.logMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}

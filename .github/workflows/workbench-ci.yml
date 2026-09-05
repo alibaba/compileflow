@@ -1,0 +1,289 @@
+name: Workbench CI
+
+# The `delivery` job verifies the cross-stack bundled artifact. Java quality and
+# server tests belong to workbench-server-ci, avoiding duplicate Maven gates when
+# one change touches both stacks.
+
+on:
+  workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        description: Optional token for coverage upload
+        required: false
+  push:
+    branches: [ master ]
+    paths:
+      - "compileflow-workbench/**"
+      - "compileflow-workbench-server/**"
+      - "compileflow-deploy/**"
+      - "compileflow-spring-boot-autoconfigure/**"
+      - "compileflow-api/**"
+      - "compileflow-core/**"
+      - "compileflow-tbbpm/**"
+      - "compileflow-bpmn/**"
+      - "docs/specs/openapi/**"
+      - ".github/workflows/workbench-ci.yml"
+      - ".mvn/**"
+      - "mvnw"
+      - "mvnw.cmd"
+      - "checkstyle.xml"
+      - "checkstyle-javadoc.xml"
+      - "scripts/check_architecture_boundaries.py"
+      - "scripts/junit_evidence.py"
+      - "scripts/run_server_targeted_tests.sh"
+      - "scripts/tests/test_verify_workbench_integration_evidence.py"
+      - "scripts/verify_workbench_integration_evidence.py"
+      - "scripts/verify_spotbugs_reports.py"
+      - "pom.xml"
+  pull_request:
+    branches: [ master ]
+    paths:
+      - "compileflow-workbench/**"
+      - "compileflow-workbench-server/**"
+      - "compileflow-deploy/**"
+      - "compileflow-spring-boot-autoconfigure/**"
+      - "compileflow-api/**"
+      - "compileflow-core/**"
+      - "compileflow-tbbpm/**"
+      - "compileflow-bpmn/**"
+      - "docs/specs/openapi/**"
+      - ".github/workflows/workbench-ci.yml"
+      - ".mvn/**"
+      - "mvnw"
+      - "mvnw.cmd"
+      - "checkstyle.xml"
+      - "checkstyle-javadoc.xml"
+      - "scripts/check_architecture_boundaries.py"
+      - "scripts/junit_evidence.py"
+      - "scripts/run_server_targeted_tests.sh"
+      - "scripts/tests/test_verify_workbench_integration_evidence.py"
+      - "scripts/verify_workbench_integration_evidence.py"
+      - "scripts/verify_spotbugs_reports.py"
+      - "pom.xml"
+  workflow_dispatch: { }
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-test:
+    name: Lint, Type Check & Test (Node 24 LTS)
+    runs-on: ubuntu-latest
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+    defaults:
+      run:
+        working-directory: compileflow-workbench
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093
+        with:
+          package_json_file: compileflow-workbench/package.json
+
+      - name: Setup Node.js 24 LTS
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: compileflow-workbench/.node-version
+          cache: "pnpm"
+          cache-dependency-path: compileflow-workbench/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit dependencies
+        run: pnpm audit --audit-level high
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Check generated server contract
+        run: pnpm check:workbench-server-contract
+
+      - name: Type check
+        run: pnpm type-check
+
+      - name: Check examples catalog sync
+        run: pnpm sync:examples-catalog:check
+
+      - name: Run web tests with coverage
+        run: pnpm --filter @compileflow/workbench-web test:coverage
+
+      - name: Run development-gateway tests
+        run: pnpm --filter @compileflow/workbench-dev-gateway test
+
+      - name: Upload coverage
+        if: env.CODECOV_TOKEN != ''
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
+        with:
+          files: compileflow-workbench/apps/web/coverage/lcov.info
+          disable_search: true
+          flags: workbench
+          fail_ci_if_error: false
+          token: ${{ env.CODECOV_TOKEN }}
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+
+    defaults:
+      run:
+        working-directory: compileflow-workbench
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093
+        with:
+          package_json_file: compileflow-workbench/package.json
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: compileflow-workbench/.node-version
+          cache: "pnpm"
+          cache-dependency-path: compileflow-workbench/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: workbench-dist
+          path: compileflow-workbench/apps/web/dist
+          retention-days: 7
+
+  e2e-smoke:
+    name: Playwright E2E Smoke
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: compileflow-workbench
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093
+        with:
+          package_json_file: compileflow-workbench/package.json
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: compileflow-workbench/.node-version
+          cache: "pnpm"
+          cache-dependency-path: compileflow-workbench/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter @compileflow/workbench-web exec playwright install --with-deps chromium
+
+      - name: Run E2E smoke tests
+        run: pnpm --filter @compileflow/workbench-web test:e2e:smoke
+        env:
+          CI: true
+
+  delivery:
+    name: Delivery Verification
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:18.6-alpine3.24@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
+        env:
+          POSTGRES_DB: compileflow_test
+          POSTGRES_USER: compileflow
+          POSTGRES_PASSWORD: compileflow_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U compileflow -d compileflow_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    defaults:
+      run:
+        working-directory: compileflow-workbench
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: "maven"
+
+      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093
+        with:
+          package_json_file: compileflow-workbench/package.json
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: compileflow-workbench/.node-version
+          cache: "pnpm"
+          cache-dependency-path: compileflow-workbench/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run delivery verification
+        run: bash scripts/verify-delivery.sh --assembly-only
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter @compileflow/workbench-web exec playwright install --with-deps chromium
+
+      - name: Run bundled Workbench integration tests
+        env:
+          CI: true
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/compileflow_test
+          SPRING_DATASOURCE_USERNAME: compileflow
+          SPRING_DATASOURCE_PASSWORD: compileflow_test_password
+          COMPILEFLOW_E2E_SERVER_API_KEY: compileflow-workbench-e2e-api-key-0001
+        run: |
+          pnpm test:e2e:integration
+          PYTHONPATH=.. python3 -m unittest scripts.tests.test_verify_workbench_integration_evidence
+          python3 ../scripts/verify_workbench_integration_evidence.py \
+            apps/web/test-results/workbench-integration-junit.xml
+
+      - name: Verify async invocation process lifecycle
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/compileflow_test
+          SPRING_DATASOURCE_USERNAME: compileflow
+          SPRING_DATASOURCE_PASSWORD: compileflow_test_password
+          COMPILEFLOW_E2E_SERVER_API_KEY: compileflow-workbench-e2e-api-key-0001
+        run: pnpm test:e2e:process-lifecycle
+
+      - name: Upload bundled Workbench integration evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: workbench-bundled-integration
+          path: |
+            compileflow-workbench/apps/web/test-results/workbench-integration-junit.xml
+            compileflow-workbench/apps/web/test-results/async-invocation-process-lifecycle.json
+          if-no-files-found: warn
+          retention-days: 7

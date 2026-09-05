@@ -1,0 +1,6 @@
+node_modules
+dist
+coverage
+playwright-report
+test-results
+apps/web/src/shared/contracts/generated

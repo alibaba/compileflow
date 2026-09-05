@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="durable.compatibility.wait" name="V1 Wait compatibility fixture">
+    <var name="approved" dataType="java.lang.Boolean" inOutType="return"/>
+    <start id="start" g="0,0,32,32">
+        <transition to="approval"/>
+    </start>
+    <waitEventTask id="approval" event="approved" g="80,0,100,40">
+        <transition to="end"/>
+    </waitEventTask>
+    <end id="end" g="220,0,32,32"/>
+</bpm>

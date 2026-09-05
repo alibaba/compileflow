@@ -1,0 +1,10 @@
+# Loopback-only gateway used by the split Docker Compose evaluation topology.
+FROM nginx:1.30.4-alpine3.24@sha256:97d490c12ba55b4946b01546d1c3ed324e8d41ab1c9fcb2a616aa470620e5b46
+RUN chown -R nginx:nginx \
+    /etc/nginx/conf.d \
+    /var/cache/nginx \
+    /var/run \
+    /var/log/nginx
+COPY docker/nginx.local-gateway.conf.template /etc/nginx/templates/default.conf.template
+USER nginx
+EXPOSE 8080

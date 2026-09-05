@@ -1,0 +1,71 @@
+.stage {
+  position: relative;
+  width: 100%;
+  max-width: 880px;
+  margin-left: auto;
+  padding: 8px 0 24px;
+  animation: stage-in 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.bloom {
+  position: absolute;
+  inset: -8% -12% 4% -4%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 55% 50% at 60% 45%, rgba(107, 87, 255, 0.5), transparent 68%),
+    radial-gradient(ellipse 40% 36% at 20% 70%, rgba(175, 29, 245, 0.32), transparent 70%),
+    radial-gradient(ellipse 30% 28% at 85% 80%, rgba(8, 124, 250, 0.28), transparent 70%);
+  filter: blur(32px);
+  animation: bloom-pulse 7s ease-in-out infinite alternate;
+}
+
+.figure {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  filter: drop-shadow(0 28px 60px rgba(0, 0, 0, 0.45));
+}
+
+.shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
+@keyframes stage-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes bloom-pulse {
+  from {
+    opacity: 0.75;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage,
+  .bloom {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 991px) {
+  .stage {
+    max-width: 100%;
+    margin: 0;
+  }
+}

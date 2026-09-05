@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -eEuo pipefail
 
-cd "$(dirname "$(readlink -f "$0")")"/.. || {
+script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
+cd "$script_dir/.." || {
     echo "Fail to change work dir!" 1>&2
     exit 1
 }
@@ -16,4 +17,13 @@ if [ $# != 1 ]; then
     exit 1
 fi
 
-mvn versions:set -DgenerateBackupPoms=false -DnewVersion="$1"
+version="$1"
+python3 scripts/check_project_versions.py --syntax-only "$version"
+
+./mvnw versions:set \
+    -DgenerateBackupPoms=false \
+    -DnewVersion="$version" \
+    -B -V --no-transfer-progress
+
+pnpm --dir compileflow-workbench --recursive pkg set "version=$version"
+python3 scripts/check_project_versions.py --expected "$version"

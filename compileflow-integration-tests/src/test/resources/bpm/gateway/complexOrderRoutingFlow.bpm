@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.gateway.complexOrderRoutingFlow" name="Complex Order Routing Flow"
+     description="订单处理流程：包含多层网关决策和分支合并，最终输出处理结果">
+    <var name="orderId" dataType="java.lang.String" inOutType="param"/>
+    <var name="customerType" dataType="java.lang.String" inOutType="param"/>
+    <var name="orderAmount" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="processedSteps" description="已处理步骤" dataType="java.lang.String" inOutType="inner"/>
+    <var name="finalStatus" dataType="java.lang.String" inOutType="return"/>
+
+
+    <start id="start" name="开始" g="100,100,40,40">
+        <transition to="routeDecision"/>
+    </start>
+
+
+    <exclusive id="routeDecision" name="路由决策" g="200,100,88,48">
+        <transition condition="customerType != null" name="VIP路径" to="processVipOrder"/>
+        <transition condition="customerType == null" name="普通路径" to="processNormalOrder"/>
+    </exclusive>
+
+
+    <autoTask id="processVipOrder" name="处理VIP订单" g="300,50,88,48">
+        <transition to="validateOrder"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="processOrder">
+                <input target="orderId" dataType="java.lang.String" source="orderId"/>
+                <output dataType="java.lang.String" target="processedSteps"/>
+
+        </action>
+    </autoTask>
+
+
+    <autoTask id="processNormalOrder" name="处理普通订单" g="300,150,88,48">
+        <transition to="finalize"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="processOrder">
+                <input target="orderId" dataType="java.lang.String" source="orderId"/>
+                <output dataType="java.lang.String" target="processedSteps"/>
+
+        </action>
+    </autoTask>
+
+
+    <exclusive id="validateOrder" name="订单验证" g="400,50,88,48">
+        <transition condition="orderAmount != null &amp;&amp; orderAmount &gt; 1000" name="大额订单"
+                    to="processLargeOrder"/>
+        <transition condition="orderAmount == null || orderAmount &lt;= 1000" name="普通订单"
+                    to="processRegularOrder"/>
+    </exclusive>
+
+
+    <autoTask id="processLargeOrder" name="处理大额订单" g="500,30,88,48">
+        <transition to="mergePoint"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="appendStep">
+                <input target="path" dataType="java.lang.String" source="processedSteps"/>
+                <input target="step" dataType="java.lang.String" defaultValue="largeOrder"/>
+                <output dataType="java.lang.String" target="processedSteps"/>
+
+        </action>
+    </autoTask>
+
+
+    <autoTask id="processRegularOrder" name="处理普通订单" g="500,70,88,48">
+        <transition to="mergePoint"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="appendStep">
+                <input target="path" dataType="java.lang.String" source="processedSteps"/>
+                <input target="step" dataType="java.lang.String" defaultValue="regularOrder"/>
+                <output dataType="java.lang.String" target="processedSteps"/>
+
+        </action>
+    </autoTask>
+
+
+    <autoTask id="mergePoint" name="合并处理点" g="600,50,88,48">
+        <transition to="finalDecision"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="appendStep">
+                <input target="path" dataType="java.lang.String" source="processedSteps"/>
+                <input target="step" dataType="java.lang.String" defaultValue="merged"/>
+                <output dataType="java.lang.String" target="processedSteps"/>
+
+        </action>
+    </autoTask>
+
+
+    <exclusive id="finalDecision" name="最终决策" g="700,50,88,48">
+        <transition condition="processedSteps != null" name="完成路径" to="finalize"/>
+        <transition condition="processedSteps == null" name="异常路径" to="handleException"/>
+    </exclusive>
+
+
+    <autoTask id="handleException" name="处理异常" g="800,30,88,48">
+        <transition to="finalize"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="appendStep">
+                <input target="path" dataType="java.lang.String" source="processedSteps"/>
+                <input target="step" dataType="java.lang.String" defaultValue="exceptionHandled"/>
+                <output dataType="java.lang.String" target="processedSteps"/>
+
+        </action>
+    </autoTask>
+
+
+    <autoTask id="finalize" name="完成处理" g="900,100,88,48">
+        <transition to="end"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="finalizeResult">
+                <input target="path" dataType="java.lang.String" source="processedSteps"/>
+                <output dataType="java.lang.String" target="finalStatus"/>
+
+        </action>
+    </autoTask>
+
+
+    <end id="end" name="结束" g="1000,100,40,40"/>
+</bpm>

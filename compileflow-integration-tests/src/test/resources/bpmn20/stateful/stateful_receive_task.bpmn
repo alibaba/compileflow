@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:cf="http://www.compileflow.org"
+             targetNamespace="http://www.compileflow.org/bpmn/test">
+  <process id="bpmn20.stateful.stateful_receive_task" name="Stateful User Task Flow" isExecutable="true">
+    <extensionElements>
+      <cf:var name="taskData" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="final_approval" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="userResult" dataType="java.lang.String" inOutType="return"/>
+      <cf:var name="approvalResult" dataType="java.lang.String" inOutType="return"/>
+    </extensionElements>
+
+    <startEvent id="start" name="Start"/>
+
+    <sequenceFlow id="flow2" sourceRef="start" targetRef="serviceTask1"/>
+
+    <serviceTask id="serviceTask1" name="Process User Input">
+      <extensionElements>
+        <cf:action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="processString">
+            <cf:input target="input" dataType="java.lang.String" source="userResult"/>
+            <cf:output dataType="java.lang.String" target="approvalResult"/>
+
+        </cf:action>
+      </extensionElements>
+    </serviceTask>
+
+    <sequenceFlow id="flow3" sourceRef="serviceTask1" targetRef="receiveTask1"/>
+
+    <receiveTask id="receiveTask1" name="Wait for Final Approval" messageRef="approvalMessage">
+      <extensionElements>
+      </extensionElements>
+    </receiveTask>
+
+    <sequenceFlow id="flow4" sourceRef="receiveTask1" targetRef="end"/>
+    <endEvent id="end" name="End"/>
+  </process>
+
+  <!-- Message definitions -->
+  <message id="approvalMessage" name="approval.received" />
+</definitions>

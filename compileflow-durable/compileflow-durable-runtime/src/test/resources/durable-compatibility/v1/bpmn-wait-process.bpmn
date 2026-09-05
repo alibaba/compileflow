@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  targetNamespace="urn:compileflow:durable-compatibility">
+  <bpmn:message id="approval_message" name="approved"/>
+  <bpmn:process id="durable.compatibility.bpmn.wait" isExecutable="true">
+    <bpmn:startEvent id="start"/>
+    <bpmn:receiveTask id="approval" messageRef="approval_message"/>
+    <bpmn:endEvent id="end"/>
+    <bpmn:sequenceFlow id="to_approval" sourceRef="start" targetRef="approval"/>
+    <bpmn:sequenceFlow id="to_end" sourceRef="approval" targetRef="end"/>
+  </bpmn:process>
+</bpmn:definitions>

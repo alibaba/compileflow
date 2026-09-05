@@ -1,0 +1,78 @@
+.tbbpm-canvas {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: var(--color-bg-layout);
+}
+
+.tbbpm-canvas[data-readonly='true'] {
+  cursor: not-allowed;
+}
+
+.x6-graph {
+  width: 100%;
+  height: 100%;
+}
+
+.x6-graph-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.available-node {
+  stroke: var(--color-primary) !important;
+  stroke-width: 2px !important;
+}
+
+.available-magnet {
+  fill: var(--color-primary) !important;
+}
+
+.adsorbed-magnet {
+  fill: var(--color-success) !important;
+}
+
+.x6-widget-selection-box {
+  border: 2px solid var(--color-primary) !important;
+  background: var(--color-primary-bg) !important;
+}
+
+.x6-widget-snapline-horizontal,
+.x6-widget-snapline-vertical {
+  stroke: var(--color-warning) !important;
+  stroke-width: 1px !important;
+  stroke-dasharray: 5 5 !important;
+}
+
+.x6-widget-minimap {
+  position: absolute !important;
+  right: var(--spacing-base) !important;
+  bottom: var(--spacing-base) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-base) !important;
+  box-shadow: var(--shadow-base) !important;
+}
+
+.x6-graph-scroller {
+  width: 100%;
+  height: 100%;
+}
+
+.x6-graph-scroller::-webkit-scrollbar {
+  width: var(--spacing-sm);
+  height: var(--spacing-sm);
+}
+
+.x6-graph-scroller::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-color);
+  border-radius: var(--radius-base);
+}
+
+.x6-graph-scroller::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover-color);
+}
+
+.x6-graph-scroller::-webkit-scrollbar-track {
+  background: var(--scrollbar-track-color);
+}

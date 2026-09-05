@@ -1,0 +1,3437 @@
+{
+  "components" : {
+    "schemas" : {
+      "AbortCanaryRequest" : {
+        "properties" : {
+          "expectedRevision" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "reason" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "expectedRevision" ],
+        "type" : "object"
+      },
+      "AsyncInvocationAttemptListResponse" : {
+        "properties" : {
+          "data" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AsyncInvocationAttemptResponse"
+            },
+            "type" : "array"
+          },
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "nextAfterSequence" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "data", "hasMore" ],
+        "type" : "object"
+      },
+      "AsyncInvocationAttemptResponse" : {
+        "properties" : {
+          "attemptId" : {
+            "type" : "string"
+          },
+          "attemptNumber" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "disposition" : {
+            "enum" : [ "succeeded", "retry_scheduled", "dead_lettered" ],
+            "type" : "string"
+          },
+          "durationMs" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "error" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "finishedAt" : {
+            "type" : "string"
+          },
+          "invocationId" : {
+            "type" : "string"
+          },
+          "nextAttemptAt" : {
+            "type" : "string"
+          },
+          "outcome" : {
+            "enum" : [ "running", "succeeded", "failed", "lease_expired" ],
+            "type" : "string"
+          },
+          "redriveCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sequence" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "startedAt" : {
+            "type" : "string"
+          },
+          "traceId" : {
+            "type" : "string"
+          },
+          "workerId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "attemptId", "attemptNumber", "invocationId", "outcome", "redriveCount", "sequence", "startedAt", "workerId" ],
+        "type" : "object"
+      },
+      "AsyncInvocationDeadLetterRequeueResponse" : {
+        "properties" : {
+          "health" : {
+            "$ref" : "#/components/schemas/AsyncInvocationHealthResponse"
+          },
+          "invocationIds" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "limit" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "processCode" : {
+            "type" : "string"
+          },
+          "requeued" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "requeuedAt" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "health", "invocationIds", "limit", "requeued", "requeuedAt" ],
+        "type" : "object"
+      },
+      "AsyncInvocationHealthResponse" : {
+        "properties" : {
+          "checkedAt" : {
+            "type" : "string"
+          },
+          "deadLetterCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "delayedQueuedCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "dispatchBatchSize" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "dispatchedCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "expiredRunningCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "leaseDurationMs" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "localRunningCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "oldestReadyAgeMs" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "queuedCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "readyQueuedCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "runningCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "succeededCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "workerId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "checkedAt", "deadLetterCount", "delayedQueuedCount", "dispatchBatchSize", "dispatchedCount", "expiredRunningCount", "leaseDurationMs", "localRunningCount", "oldestReadyAgeMs", "queuedCount", "readyQueuedCount", "runningCount", "status", "succeededCount", "workerId" ],
+        "type" : "object"
+      },
+      "AsyncInvocationListResponse" : {
+        "properties" : {
+          "data" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AsyncInvocationResponse"
+            },
+            "type" : "array"
+          },
+          "page" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "pageSize" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "total" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "data", "page", "pageSize", "total" ],
+        "type" : "object"
+      },
+      "AsyncInvocationResponse" : {
+        "properties" : {
+          "completedAt" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string"
+          },
+          "currentAttemptCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "durationMs" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "error" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "invocationId" : {
+            "type" : "string"
+          },
+          "leaseUntil" : {
+            "type" : "string"
+          },
+          "maxAttempts" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "nextAttemptAt" : {
+            "type" : "string"
+          },
+          "payloadErrors" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "processCode" : {
+            "type" : "string"
+          },
+          "redriveCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "response" : {
+            "$ref" : "#/components/schemas/ProcessExecutionResponse"
+          },
+          "retryDelayMs" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "routing" : {
+            "$ref" : "#/components/schemas/ExecutionRoutingResponse"
+          },
+          "startedAt" : {
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "queued", "running", "succeeded", "dead_letter" ],
+            "type" : "string"
+          },
+          "totalAttemptCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "traceId" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "createdAt", "currentAttemptCount", "invocationId", "maxAttempts", "processCode", "redriveCount", "retryDelayMs", "status", "totalAttemptCount", "updatedAt" ],
+        "type" : "object"
+      },
+      "AsyncInvocationSubmitRequest" : {
+        "properties" : {
+          "invocationId" : {
+            "type" : "string"
+          },
+          "maxAttempts" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "params" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          },
+          "retryDelayMs" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "routing" : {
+            "$ref" : "#/components/schemas/ExecutionRoutingRequest"
+          }
+        },
+        "required" : [ "routing" ],
+        "type" : "object"
+      },
+      "CanaryHealthEvaluationResponse" : {
+        "properties" : {
+          "baseline" : {
+            "$ref" : "#/components/schemas/CanaryVersionStatsResponse"
+          },
+          "canary" : {
+            "$ref" : "#/components/schemas/CanaryVersionStatsResponse"
+          },
+          "decision" : {
+            "type" : "string"
+          },
+          "deployment" : {
+            "$ref" : "#/components/schemas/DeploymentResponse"
+          },
+          "metricsScope" : {
+            "type" : "string"
+          },
+          "metricsSource" : {
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "thresholds" : {
+            "$ref" : "#/components/schemas/CanaryHealthThresholdsResponse"
+          }
+        },
+        "required" : [ "baseline", "canary", "decision", "deployment", "metricsScope", "metricsSource", "reason", "thresholds" ],
+        "type" : "object"
+      },
+      "CanaryHealthThresholdsResponse" : {
+        "properties" : {
+          "lookbackMs" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "maxCanaryErrorRate" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "maxCanaryP95Ms" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "minCanarySamples" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "lookbackMs", "maxCanaryErrorRate", "maxCanaryP95Ms", "minCanarySamples" ],
+        "type" : "object"
+      },
+      "CanaryVersionStatsResponse" : {
+        "properties" : {
+          "errorRate" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "failures" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "p95DurationMs" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "samples" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "errorRate", "failures", "p95DurationMs", "samples", "version" ],
+        "type" : "object"
+      },
+      "CreateDeploymentRequest" : {
+        "properties" : {
+          "alias" : {
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "canaryWeightBps" : {
+            "format" : "int32",
+            "maximum" : 9999,
+            "minimum" : 1,
+            "type" : "integer"
+          },
+          "expectedRouteRevision" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "notes" : {
+            "type" : "string"
+          },
+          "processCode" : {
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "strategy" : {
+            "type" : "string"
+          },
+          "targetingParameters" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "targetingPolicy" : {
+            "type" : "string"
+          },
+          "version" : {
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [ "alias", "expectedRouteRevision", "processCode", "version" ],
+        "type" : "object"
+      },
+      "CreateProcessRequest" : {
+        "properties" : {
+          "code" : {
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "name" : {
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "tags" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "type" : {
+            "enum" : [ "TBBPM", "BPMN" ],
+            "type" : "string"
+          },
+          "xml" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "code", "name", "type" ],
+        "type" : "object"
+      },
+      "DeadLetterRequeueRequest" : {
+        "properties" : {
+          "limit" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "processCode" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "DeployRuntimeAliasResponse" : {
+        "properties" : {
+          "alias" : {
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "desiredDeleted" : {
+            "type" : "boolean"
+          },
+          "desiredRevision" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "failureReason" : {
+            "type" : "string"
+          },
+          "localReadyDeleted" : {
+            "type" : "boolean"
+          },
+          "localReadyRevision" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "namespace" : {
+            "type" : "string"
+          },
+          "state" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "alias", "code", "desiredDeleted", "desiredRevision", "localReadyDeleted", "localReadyRevision", "namespace", "state" ],
+        "type" : "object"
+      },
+      "DeployRuntimeBackedOffVersionResponse" : {
+        "properties" : {
+          "blockedUntil" : {
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "namespace" : {
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "remainingMs" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "blockedUntil", "code", "id", "namespace", "reason", "remainingMs", "version" ],
+        "type" : "object"
+      },
+      "DeployRuntimeDeployedProcessResponse" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "namespace" : {
+            "type" : "string"
+          },
+          "versions" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "code", "namespace", "versions" ],
+        "type" : "object"
+      },
+      "DeployRuntimeDiagnosticsResponse" : {
+        "properties" : {
+          "aliases" : {
+            "items" : {
+              "$ref" : "#/components/schemas/DeployRuntimeAliasResponse"
+            },
+            "type" : "array"
+          },
+          "available" : {
+            "type" : "boolean"
+          },
+          "backedOffVersions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/DeployRuntimeBackedOffVersionResponse"
+            },
+            "type" : "array"
+          },
+          "demandedVersions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/DeployRuntimeVersionResponse"
+            },
+            "type" : "array"
+          },
+          "deployedVersions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/DeployRuntimeDeployedProcessResponse"
+            },
+            "type" : "array"
+          },
+          "desiredAliasCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "failedAliasCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "failureBackoffMs" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "inflightAvailablePermits" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "inflightCapacity" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "inflightCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "inflightVersions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/DeployRuntimeVersionResponse"
+            },
+            "type" : "array"
+          },
+          "localReadyAliasCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "pendingAliasCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "pendingReleaseVersions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/DeployRuntimeVersionResponse"
+            },
+            "type" : "array"
+          },
+          "retainedRuntimeCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "started" : {
+            "type" : "boolean"
+          },
+          "timestamp" : {
+            "type" : "string"
+          },
+          "topology" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "available", "started", "timestamp" ],
+        "type" : "object"
+      },
+      "DeployRuntimeVersionResponse" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "namespace" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "code", "id", "namespace", "version" ],
+        "type" : "object"
+      },
+      "DeploymentControlHealthResponse" : {
+        "properties" : {
+          "checkedAt" : {
+            "type" : "string"
+          },
+          "dispatcherRunning" : {
+            "type" : "boolean"
+          },
+          "expiredClaimCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "failedCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "outboxStateAvailable" : {
+            "type" : "boolean"
+          },
+          "pendingCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "processingCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "status" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "checkedAt", "dispatcherRunning", "expiredClaimCount", "failedCount", "outboxStateAvailable", "pendingCount", "processingCount", "status" ],
+        "type" : "object"
+      },
+      "DeploymentEventView" : {
+        "properties" : {
+          "actor" : {
+            "type" : "string"
+          },
+          "fromPhase" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "sequence" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "timestamp" : {
+            "type" : "string"
+          },
+          "toPhase" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "actor", "fromPhase", "id", "reason", "sequence", "timestamp", "toPhase", "type" ],
+        "type" : "object"
+      },
+      "DeploymentListResponse" : {
+        "properties" : {
+          "deployments" : {
+            "items" : {
+              "$ref" : "#/components/schemas/DeploymentResponse"
+            },
+            "type" : "array"
+          },
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "deployments", "hasMore", "nextCursor" ],
+        "type" : "object"
+      },
+      "DeploymentResponse" : {
+        "properties" : {
+          "alias" : {
+            "type" : "string"
+          },
+          "baseRouteRevision" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "baselineVersion" : {
+            "type" : "string"
+          },
+          "canaryWeightBps" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "createdAt" : {
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "deployedAt" : {
+            "type" : "string"
+          },
+          "duration" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "notes" : {
+            "type" : "string"
+          },
+          "operation" : {
+            "type" : "string"
+          },
+          "processCode" : {
+            "type" : "string"
+          },
+          "revision" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "routeRevision" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "strategy" : {
+            "type" : "string"
+          },
+          "targetingParameters" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "targetingPolicy" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "alias", "baseRouteRevision", "createdAt", "createdBy", "id", "operation", "processCode", "revision", "routeRevision", "status", "strategy", "version" ],
+        "type" : "object"
+      },
+      "DeploymentRouteResponse" : {
+        "properties" : {
+          "alias" : {
+            "type" : "string"
+          },
+          "candidateVersion" : {
+            "type" : "string"
+          },
+          "candidateWeightBps" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "processCode" : {
+            "type" : "string"
+          },
+          "revision" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "stableVersion" : {
+            "type" : "string"
+          },
+          "targetingParameters" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "targetingPolicy" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "updatedBy" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "alias", "processCode", "revision", "stableVersion", "updatedAt", "updatedBy" ],
+        "type" : "object"
+      },
+      "DuplicateProcessRequest" : {
+        "properties" : {
+          "newCode" : {
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "newName" : {
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [ "newCode", "newName" ],
+        "type" : "object"
+      },
+      "ErrorSummaryResponse" : {
+        "properties" : {
+          "count" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "effectiveVersion" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "errorMessage" : {
+            "type" : "string"
+          },
+          "lastOccurred" : {
+            "type" : "string"
+          },
+          "namespace" : {
+            "type" : "string"
+          },
+          "processCode" : {
+            "type" : "string"
+          },
+          "requestedVersion" : {
+            "type" : "string"
+          },
+          "routeAlias" : {
+            "type" : "string"
+          },
+          "routeRevision" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "routingSource" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "count", "errorCode", "errorMessage", "lastOccurred", "processCode" ],
+        "type" : "object"
+      },
+      "EvaluateCanaryRequest" : {
+        "properties" : {
+          "lookbackMs" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "maxCanaryErrorRate" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "maxCanaryP95Ms" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "minCanarySamples" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "ExampleResponse" : {
+        "properties" : {
+          "bpmFile" : {
+            "type" : "string"
+          },
+          "category" : {
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "difficulty" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "documentation" : {
+            "type" : "string"
+          },
+          "duration" : {
+            "type" : "string"
+          },
+          "explanation" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "keyConcepts" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "level" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "modelType" : {
+            "enum" : [ "TBBPM", "BPMN" ],
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "nextSteps" : {
+            "type" : "string"
+          },
+          "overview" : {
+            "type" : "string"
+          },
+          "tags" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "whatYouWillLearn" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "category", "code", "description", "difficulty", "documentation", "duration", "explanation", "id", "keyConcepts", "level", "modelType", "name", "nextSteps", "overview", "tags", "whatYouWillLearn" ],
+        "type" : "object"
+      },
+      "ExecutionLogExportRequest" : {
+        "properties" : {
+          "callDepth" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "effectiveVersion" : {
+            "type" : "string"
+          },
+          "endTime" : {
+            "type" : "string"
+          },
+          "invocationId" : {
+            "type" : "string"
+          },
+          "keyword" : {
+            "type" : "string"
+          },
+          "namespace" : {
+            "type" : "string"
+          },
+          "parentInvocationId" : {
+            "type" : "string"
+          },
+          "processCode" : {
+            "type" : "string"
+          },
+          "requestedVersion" : {
+            "type" : "string"
+          },
+          "routeAlias" : {
+            "type" : "string"
+          },
+          "routeRevision" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "routingSource" : {
+            "type" : "string"
+          },
+          "startTime" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "traceId" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ExecutionLogListResponse" : {
+        "properties" : {
+          "data" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ExecutionLogResponse"
+            },
+            "type" : "array"
+          },
+          "page" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "pageSize" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "total" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "data", "page", "pageSize", "total" ],
+        "type" : "object"
+      },
+      "ExecutionLogResponse" : {
+        "properties" : {
+          "callDepth" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "duration" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "effectiveVersion" : {
+            "type" : "string"
+          },
+          "endTime" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "errorMessage" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "invocationId" : {
+            "type" : "string"
+          },
+          "modelType" : {
+            "enum" : [ "TBBPM", "BPMN" ],
+            "type" : "string"
+          },
+          "namespace" : {
+            "type" : "string"
+          },
+          "parentInvocationId" : {
+            "type" : "string"
+          },
+          "processCode" : {
+            "type" : "string"
+          },
+          "requestedVersion" : {
+            "type" : "string"
+          },
+          "routeAlias" : {
+            "type" : "string"
+          },
+          "routeRevision" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "routingSource" : {
+            "type" : "string"
+          },
+          "sourceDigest" : {
+            "type" : "string"
+          },
+          "startTime" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "traceId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "callDepth", "duration", "endTime", "id", "invocationId", "modelType", "namespace", "processCode", "startTime", "status", "traceId" ],
+        "type" : "object"
+      },
+      "ExecutionRoutingRequest" : {
+        "properties" : {
+          "alias" : {
+            "type" : "string"
+          },
+          "attributes" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "routingKey" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ExecutionRoutingResponse" : {
+        "properties" : {
+          "alias" : {
+            "type" : "string"
+          },
+          "effectiveVersion" : {
+            "type" : "string"
+          },
+          "namespace" : {
+            "type" : "string"
+          },
+          "requestedAlias" : {
+            "type" : "string"
+          },
+          "requestedVersion" : {
+            "type" : "string"
+          },
+          "routeRevision" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "target" : {
+            "enum" : [ "STABLE", "CANDIDATE" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "namespace" ],
+        "type" : "object"
+      },
+      "ExecutionTrendResponse" : {
+        "properties" : {
+          "executions" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "failed" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "success" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "time" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "executions", "failed", "success", "time" ],
+        "type" : "object"
+      },
+      "MonitoringMetricsResponse" : {
+        "properties" : {
+          "avgExecutionTime" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "failedExecutions" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "processesWithAliases" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "scope" : {
+            "type" : "string"
+          },
+          "successExecutions" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "timeRange" : {
+            "type" : "string"
+          },
+          "timestamp" : {
+            "type" : "string"
+          },
+          "totalExecutions" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "windowEnd" : {
+            "type" : "string"
+          },
+          "windowStart" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "avgExecutionTime", "failedExecutions", "processesWithAliases", "scope", "successExecutions", "timeRange", "timestamp", "totalExecutions", "windowEnd", "windowStart" ],
+        "type" : "object"
+      },
+      "PreflightItemResponse" : {
+        "properties" : {
+          "durationMs" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "PASS", "FAIL", "TIMEOUT" ],
+            "type" : "string"
+          },
+          "type" : {
+            "enum" : [ "LINT", "COMPILE" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "durationMs", "status", "type" ],
+        "type" : "object"
+      },
+      "PreflightReportResponse" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PreflightItemResponse"
+            },
+            "type" : "array"
+          },
+          "overallStatus" : {
+            "enum" : [ "PASS", "FAIL" ],
+            "type" : "string"
+          },
+          "totalDurationMs" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "code", "items", "overallStatus", "totalDurationMs" ],
+        "type" : "object"
+      },
+      "PreviewExecutionRequest" : {
+        "properties" : {
+          "code" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "pattern" : "[A-Za-z0-9][A-Za-z0-9._-]*",
+            "type" : "string"
+          },
+          "invocationId" : {
+            "maxLength" : 128,
+            "minLength" : 0,
+            "pattern" : "[A-Za-z0-9][A-Za-z0-9._:@-]*",
+            "type" : "string"
+          },
+          "modelType" : {
+            "enum" : [ "TBBPM", "BPMN" ],
+            "type" : "string"
+          },
+          "params" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          },
+          "xml" : {
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [ "code", "modelType", "xml" ],
+        "type" : "object"
+      },
+      "ProcessDefinitionResponse" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "revision" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "tags" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "type" : {
+            "enum" : [ "TBBPM", "BPMN" ],
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "type" : "string"
+          },
+          "xml" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "code", "createdAt", "createdBy", "name", "revision", "tags", "type", "updatedAt", "xml" ],
+        "type" : "object"
+      },
+      "ProcessExecutionRequest" : {
+        "properties" : {
+          "invocationId" : {
+            "type" : "string"
+          },
+          "params" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          },
+          "routing" : {
+            "$ref" : "#/components/schemas/ExecutionRoutingRequest"
+          }
+        },
+        "type" : "object"
+      },
+      "ProcessExecutionResponse" : {
+        "properties" : {
+          "durationMs" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "error" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "invocationId" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "processCode" : {
+            "type" : "string"
+          },
+          "result" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          },
+          "routing" : {
+            "$ref" : "#/components/schemas/ExecutionRoutingResponse"
+          },
+          "success" : {
+            "type" : "boolean"
+          },
+          "traceId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "durationMs", "invocationId", "message", "processCode", "routing", "success", "traceId" ],
+        "type" : "object"
+      },
+      "ProcessListResponse" : {
+        "properties" : {
+          "data" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ProcessSummaryResponse"
+            },
+            "type" : "array"
+          },
+          "page" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "pageSize" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "total" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "data", "page", "pageSize", "total" ],
+        "type" : "object"
+      },
+      "ProcessPreflightRequest" : {
+        "properties" : {
+          "code" : {
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "modelType" : {
+            "enum" : [ "TBBPM", "BPMN" ],
+            "type" : "string"
+          },
+          "xml" : {
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [ "code", "modelType", "xml" ],
+        "type" : "object"
+      },
+      "ProcessSummaryResponse" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "revision" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "tags" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "type" : {
+            "enum" : [ "TBBPM", "BPMN" ],
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "code", "createdAt", "createdBy", "name", "revision", "tags", "type", "updatedAt" ],
+        "type" : "object"
+      },
+      "ProcessVersionListResponse" : {
+        "properties" : {
+          "data" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ProcessVersionResponse"
+            },
+            "type" : "array"
+          },
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "data", "hasMore", "nextCursor" ],
+        "type" : "object"
+      },
+      "ProcessVersionResponse" : {
+        "properties" : {
+          "changelog" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string"
+          },
+          "modelType" : {
+            "enum" : [ "TBBPM", "BPMN" ],
+            "type" : "string"
+          },
+          "processCode" : {
+            "type" : "string"
+          },
+          "publishedBy" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "createdAt", "modelType", "processCode", "publishedBy", "version" ],
+        "type" : "object"
+      },
+      "PromoteCanaryRequest" : {
+        "properties" : {
+          "expectedRevision" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "expectedRevision" ],
+        "type" : "object"
+      },
+      "PublishProcessRequest" : {
+        "properties" : {
+          "changelog" : {
+            "type" : "string"
+          },
+          "expectedRevision" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "expectedRevision" ],
+        "type" : "object"
+      },
+      "PurgeExecutionLogsRequest" : {
+        "properties" : {
+          "before" : {
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [ "before" ],
+        "type" : "object"
+      },
+      "PurgeExecutionLogsResponse" : {
+        "properties" : {
+          "deletedCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "purgedAt" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "deletedCount", "hasMore", "purgedAt" ],
+        "type" : "object"
+      },
+      "RequeueDeploymentDeadLettersResponse" : {
+        "properties" : {
+          "health" : {
+            "$ref" : "#/components/schemas/DeploymentControlHealthResponse"
+          },
+          "requeued" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "requeuedAt" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "health", "requeued", "requeuedAt" ],
+        "type" : "object"
+      },
+      "RollbackDeploymentRequest" : {
+        "properties" : {
+          "expectedRouteRevision" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "expectedRouteRevision" ],
+        "type" : "object"
+      },
+      "TopProcessStatsResponse" : {
+        "properties" : {
+          "avgDuration" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "executionCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "processCode" : {
+            "type" : "string"
+          },
+          "successRate" : {
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [ "avgDuration", "executionCount", "processCode", "successRate" ],
+        "type" : "object"
+      },
+      "UpdateCanaryRequest" : {
+        "properties" : {
+          "expectedRevision" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "weightBps" : {
+            "format" : "int32",
+            "maximum" : 9999,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        },
+        "required" : [ "expectedRevision", "weightBps" ],
+        "type" : "object"
+      },
+      "UpdateProcessRequest" : {
+        "properties" : {
+          "description" : {
+            "type" : "string"
+          },
+          "expectedRevision" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "name" : {
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "tags" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "xml" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "expectedRevision", "name", "tags", "xml" ],
+        "type" : "object"
+      },
+      "VersionDistributionResponse" : {
+        "properties" : {
+          "avgDuration" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "effectiveVersion" : {
+            "type" : "string"
+          },
+          "executions" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "failed" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "namespace" : {
+            "type" : "string"
+          },
+          "processCode" : {
+            "type" : "string"
+          },
+          "routeAlias" : {
+            "type" : "string"
+          },
+          "routingSource" : {
+            "type" : "string"
+          },
+          "success" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "successRate" : {
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [ "avgDuration", "effectiveVersion", "executions", "failed", "namespace", "processCode", "routeAlias", "routingSource", "success", "successRate" ],
+        "type" : "object"
+      },
+      "WorkbenchStatusResponse" : {
+        "properties" : {
+          "engineAvailable" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "engineAvailable", "message" ],
+        "type" : "object"
+      }
+    },
+    "securitySchemes" : {
+      "ApiKeyAuth" : {
+        "in" : "header",
+        "name" : "X-API-Key",
+        "type" : "apiKey"
+      }
+    }
+  },
+  "info" : {
+    "license" : {
+      "name" : "Apache License 2.0",
+      "url" : "https://www.apache.org/licenses/LICENSE-2.0"
+    },
+    "title" : "CompileFlow Workbench Server API",
+    "version" : "2.0.0"
+  },
+  "openapi" : "3.1.0",
+  "paths" : {
+    "/api/async-invocations" : {
+      "get" : {
+        "operationId" : "listAsyncInvocations",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "queued", "running", "succeeded", "dead_letter" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "processCode",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 1,
+            "format" : "int32",
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "pageSize",
+          "required" : false,
+          "schema" : {
+            "default" : 20,
+            "format" : "int32",
+            "maximum" : 100,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AsyncInvocationListResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "async-invocation-controller" ]
+      }
+    },
+    "/api/async-invocations/dead-letters/requeue" : {
+      "post" : {
+        "operationId" : "requeueAsyncInvocationDeadLetters",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DeadLetterRequeueRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AsyncInvocationDeadLetterRequeueResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "async-invocation-controller" ]
+      }
+    },
+    "/api/async-invocations/health" : {
+      "get" : {
+        "operationId" : "getAsyncInvocationHealth",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AsyncInvocationHealthResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "async-invocation-controller" ]
+      }
+    },
+    "/api/async-invocations/{invocationId}" : {
+      "get" : {
+        "operationId" : "getAsyncInvocation",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "invocationId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AsyncInvocationResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "async-invocation-controller" ]
+      }
+    },
+    "/api/async-invocations/{invocationId}/attempts" : {
+      "get" : {
+        "operationId" : "listAsyncInvocationAttempts",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "invocationId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "afterSequence",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "format" : "int64",
+            "minimum" : 0,
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 20,
+            "format" : "int32",
+            "maximum" : 100,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AsyncInvocationAttemptListResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "async-invocation-controller" ]
+      }
+    },
+    "/api/async-invocations/{invocationId}/requeue" : {
+      "post" : {
+        "operationId" : "requeueAsyncInvocation",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "invocationId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AsyncInvocationResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "async-invocation-controller" ]
+      }
+    },
+    "/api/deployment-control/dead-letters/requeue" : {
+      "post" : {
+        "operationId" : "requeueDeploymentDeadLetters",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RequeueDeploymentDeadLettersResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "deployment-control-controller" ]
+      }
+    },
+    "/api/deployment-control/health" : {
+      "get" : {
+        "operationId" : "getDeploymentControlHealth",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeploymentControlHealthResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "deployment-control-controller" ]
+      }
+    },
+    "/api/deployment-routes" : {
+      "get" : {
+        "operationId" : "getDeploymentRoute",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "processCode",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "alias",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeploymentRouteResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "deployment-route-controller" ]
+      }
+    },
+    "/api/deployments" : {
+      "get" : {
+        "operationId" : "listDeployments",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "processCode",
+          "required" : false,
+          "schema" : {
+            "maxLength" : 128,
+            "pattern" : "[A-Za-z0-9][A-Za-z0-9._-]*",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "keyword",
+          "required" : false,
+          "schema" : {
+            "maxLength" : 128,
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "alias",
+          "required" : false,
+          "schema" : {
+            "maxLength" : 64,
+            "pattern" : "[A-Za-z0-9][A-Za-z0-9._-]*",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "in_progress", "completed", "aborted" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "maxLength" : 1024,
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 20,
+            "format" : "int32",
+            "maximum" : 100,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeploymentListResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "deployment-controller" ]
+      },
+      "post" : {
+        "operationId" : "createDeployment",
+        "parameters" : [ {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateDeploymentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeploymentResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "tags" : [ "deployment-controller" ]
+      }
+    },
+    "/api/deployments/{id}" : {
+      "get" : {
+        "operationId" : "getDeployment",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeploymentResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "deployment-controller" ]
+      }
+    },
+    "/api/deployments/{id}/abort" : {
+      "post" : {
+        "operationId" : "abortCanary",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AbortCanaryRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeploymentResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "deployment-controller" ]
+      }
+    },
+    "/api/deployments/{id}/canary" : {
+      "put" : {
+        "operationId" : "updateCanary",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateCanaryRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeploymentResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "deployment-controller" ]
+      }
+    },
+    "/api/deployments/{id}/canary/evaluate" : {
+      "post" : {
+        "operationId" : "evaluateCanary",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EvaluateCanaryRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CanaryHealthEvaluationResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "deployment-controller" ]
+      }
+    },
+    "/api/deployments/{id}/events" : {
+      "get" : {
+        "operationId" : "getDeploymentEvents",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/DeploymentEventView"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "deployment-controller" ]
+      }
+    },
+    "/api/deployments/{id}/promote" : {
+      "post" : {
+        "operationId" : "promoteCanary",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PromoteCanaryRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeploymentResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "deployment-controller" ]
+      }
+    },
+    "/api/deployments/{id}/rollback" : {
+      "post" : {
+        "operationId" : "rollbackDeployment",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RollbackDeploymentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeploymentResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "deployment-controller" ]
+      }
+    },
+    "/api/examples" : {
+      "get" : {
+        "operationId" : "listExamples",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ExampleResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "examples-controller" ]
+      }
+    },
+    "/api/examples/filter" : {
+      "get" : {
+        "operationId" : "filterExamples",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "level",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "category",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "tag",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ExampleResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "examples-controller" ]
+      }
+    },
+    "/api/examples/{id}" : {
+      "get" : {
+        "operationId" : "getExample",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "examples-controller" ]
+      }
+    },
+    "/api/execution-logs" : {
+      "get" : {
+        "operationId" : "listExecutionLogs",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "processCode",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "success", "failed", "all" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "keyword",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "startTime",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "endTime",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "invocationId",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "parentInvocationId",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "traceId",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "callDepth",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "namespace",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "requestedVersion",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "effectiveVersion",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "routingSource",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "routeAlias",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "routeRevision",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 1,
+            "format" : "int32",
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "pageSize",
+          "required" : false,
+          "schema" : {
+            "default" : 20,
+            "format" : "int32",
+            "maximum" : 100,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExecutionLogListResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "execution-log-controller" ]
+      }
+    },
+    "/api/execution-logs/export" : {
+      "post" : {
+        "operationId" : "exportExecutionLogs",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExecutionLogExportRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "text/csv" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "execution-log-controller" ]
+      }
+    },
+    "/api/execution-logs/purge" : {
+      "post" : {
+        "operationId" : "purgeExecutionLogs",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PurgeExecutionLogsRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PurgeExecutionLogsResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "execution-log-controller" ]
+      }
+    },
+    "/api/execution-logs/{id}" : {
+      "get" : {
+        "operationId" : "getExecutionLog",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExecutionLogResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "execution-log-controller" ]
+      }
+    },
+    "/api/executions/preview" : {
+      "post" : {
+        "operationId" : "executePreview",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PreviewExecutionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProcessExecutionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "preview-execution-controller" ]
+      }
+    },
+    "/api/monitoring/deploy-runtime" : {
+      "get" : {
+        "operationId" : "getDeployRuntimeDiagnostics",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeployRuntimeDiagnosticsResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "deploy-runtime-diagnostics-controller" ]
+      }
+    },
+    "/api/monitoring/errors" : {
+      "get" : {
+        "operationId" : "getMonitoringErrors",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "timeRange",
+          "required" : false,
+          "schema" : {
+            "default" : "24h",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 20,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ErrorSummaryResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "monitoring-controller" ]
+      }
+    },
+    "/api/monitoring/metrics" : {
+      "get" : {
+        "operationId" : "getMonitoringMetrics",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "timeRange",
+          "required" : false,
+          "schema" : {
+            "default" : "24h",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MonitoringMetricsResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "monitoring-controller" ]
+      }
+    },
+    "/api/monitoring/top-processes" : {
+      "get" : {
+        "operationId" : "getTopProcesses",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "timeRange",
+          "required" : false,
+          "schema" : {
+            "default" : "24h",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 10,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/TopProcessStatsResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "monitoring-controller" ]
+      }
+    },
+    "/api/monitoring/trends" : {
+      "get" : {
+        "operationId" : "getExecutionTrends",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "timeRange",
+          "required" : false,
+          "schema" : {
+            "default" : "24h",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "interval",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ExecutionTrendResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "monitoring-controller" ]
+      }
+    },
+    "/api/monitoring/version-distribution" : {
+      "get" : {
+        "operationId" : "getVersionDistribution",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "processCode",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "timeRange",
+          "required" : false,
+          "schema" : {
+            "default" : "24h",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 20,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/VersionDistributionResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "monitoring-controller" ]
+      }
+    },
+    "/api/processes" : {
+      "get" : {
+        "operationId" : "listProcesses",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "type",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "TBBPM", "BPMN" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "keyword",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 1,
+            "format" : "int32",
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "pageSize",
+          "required" : false,
+          "schema" : {
+            "default" : 20,
+            "format" : "int32",
+            "maximum" : 100,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sortBy",
+          "required" : false,
+          "schema" : {
+            "default" : "updatedAt",
+            "enum" : [ "name", "createdAt", "updatedAt" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sortOrder",
+          "required" : false,
+          "schema" : {
+            "default" : "desc",
+            "enum" : [ "asc", "desc" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProcessListResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "process-controller" ]
+      },
+      "post" : {
+        "operationId" : "createProcess",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateProcessRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProcessDefinitionResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "tags" : [ "process-controller" ]
+      }
+    },
+    "/api/processes/import" : {
+      "post" : {
+        "operationId" : "importProcess",
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "properties" : {
+                  "file" : {
+                    "format" : "binary",
+                    "type" : "string"
+                  }
+                },
+                "required" : [ "file" ],
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProcessDefinitionResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "tags" : [ "process-controller" ]
+      }
+    },
+    "/api/processes/preflight" : {
+      "post" : {
+        "operationId" : "preflightProcessDefinition",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProcessPreflightRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PreflightReportResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "process-controller" ]
+      }
+    },
+    "/api/processes/{code}" : {
+      "delete" : {
+        "operationId" : "deleteProcess",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "expectedRevision",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "tags" : [ "process-controller" ]
+      },
+      "get" : {
+        "operationId" : "getProcess",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProcessDefinitionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "process-controller" ]
+      },
+      "put" : {
+        "operationId" : "updateProcess",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateProcessRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProcessDefinitionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "process-controller" ]
+      }
+    },
+    "/api/processes/{code}/async-invocations" : {
+      "post" : {
+        "operationId" : "submitAsyncInvocation",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AsyncInvocationSubmitRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "202" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AsyncInvocationResponse"
+                }
+              }
+            },
+            "description" : "Accepted"
+          }
+        },
+        "tags" : [ "async-invocation-controller" ]
+      }
+    },
+    "/api/processes/{code}/duplicate" : {
+      "post" : {
+        "operationId" : "duplicateProcess",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DuplicateProcessRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProcessDefinitionResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "tags" : [ "process-controller" ]
+      }
+    },
+    "/api/processes/{code}/execute" : {
+      "post" : {
+        "operationId" : "executePublishedProcess",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProcessExecutionRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProcessExecutionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "process-controller" ]
+      }
+    },
+    "/api/processes/{code}/export" : {
+      "get" : {
+        "operationId" : "exportProcess",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/xml" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "process-controller" ]
+      }
+    },
+    "/api/processes/{code}/publish" : {
+      "post" : {
+        "operationId" : "publishProcess",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PublishProcessRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProcessVersionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "process-controller" ]
+      }
+    },
+    "/api/processes/{code}/versions" : {
+      "get" : {
+        "operationId" : "getProcessVersions",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "versionPrefix",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 100,
+            "format" : "int32",
+            "maximum" : 100,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProcessVersionListResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "process-controller" ]
+      }
+    },
+    "/api/status" : {
+      "get" : {
+        "operationId" : "getWorkbenchStatus",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkbenchStatusResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workbench-status-controller" ]
+      }
+    }
+  },
+  "security" : [ {
+    "ApiKeyAuth" : [ ]
+  } ],
+  "servers" : [ {
+    "description" : "Current Workbench origin",
+    "url" : "/"
+  } ]
+}

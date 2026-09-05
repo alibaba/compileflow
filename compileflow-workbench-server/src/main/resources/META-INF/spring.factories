@@ -1,0 +1,3 @@
+org.springframework.boot.EnvironmentPostProcessor=\
+com.alibaba.compileflow.workbench.server.config.CompileFlowWorkbenchServerEnvironmentPostProcessor,\
+com.alibaba.compileflow.workbench.server.config.DevelopmentDataSourceEnvironmentPostProcessor

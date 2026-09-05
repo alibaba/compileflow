@@ -1,0 +1,11 @@
+.rating {
+  display: inline-flex;
+  gap: 2px;
+  color: var(--color-rating-star);
+  font-size: 1em;
+  line-height: 1;
+}
+
+.inactive {
+  color: color-mix(in srgb, currentColor 20%, transparent);
+}

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.subprocess.numericConversion"
+     name="BpmCall Numeric Output Conversion">
+    <var name="inputA" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="inputB" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="result" dataType="java.lang.Long" inOutType="return"/>
+    <start id="start" g="0,0,32,32">
+        <transition to="child"/>
+    </start>
+    <bpmCall id="child" code="bpm.java-code.javaCodeSum" classpath="bpm/java-code/javaCodeSum.bpm"
+            g="80,0,120,48">
+        <input target="inputA" source="inputA"/>
+        <input target="inputB" source="inputB"/>
+        <output source="result" target="result"/>
+        <transition to="end"/>
+    </bpmCall>
+    <end id="end" g="240,0,32,32"/>
+</bpm>

@@ -1,134 +1,181 @@
 # Hot Deployment
 
-CompileFlow provides powerful hot deployment capabilities for zero-downtime process updates in production environments.
+CompileFlow hot deployment publishes immutable process versions and changes Alias routes without restarting the
+application. This guide covers release and rollout tasks for application owners and operators. For distributed platform
+embedding, transport requirements, and recovery wiring, use the
+[integration guide](hot-deploy-integration.md). Version publication, route mutation, rollout history, outbox delivery,
+and node-local installation have separate ownership.
 
-This allows you to modify business logic, fix bugs, or adjust process flows in real-time without needing to restart your application.
+## Local Definition Prewarming
 
-## 1. Manual Hot Reload
-
-The simplest way to update a process is to manually trigger a redeployment using the `ProcessAdminService`. When you call `deploy()` for a process code that already exists in the cache, CompileFlow will reload the process definition, recompile it, and atomically replace the old version in the cache.
-
-```java
-// Get the admin service from the engine
-ProcessAdminService adminService = engine.admin();
-
-// Basic hot reload by process code. The engine will re-lookup the source.
-adminService.deploy(ProcessSource.fromCode("bpm.order.process"));
-
-// Hot reload from new XML content fetched from a config center
-String newXmlContent = loadUpdatedFlowFromConfigCenter();
-ProcessSource source = ProcessSource.fromContent("bpm.order.process", newXmlContent);
-adminService.deploy(source);
-
-// Batch hot reload several processes at once
-adminService.deploy(
-    ProcessSource.fromCode("bpm.order.process"),
-    ProcessSource.fromCode("bpm.payment.process")
-);
-
-// Hot reload with a custom ClassLoader
-ClassLoader customClassLoader = new URLClassLoader(new URL[]{new URL("file:///opt/lib/")});
-adminService.deploy(customClassLoader, ProcessSource.fromCode("bpm.order.process"));
-```
-
-## 2. Automatic Hot Deployment
-
-For fully automated updates, CompileFlow provides a change detection mechanism that can monitor external sources and trigger a hot deployment when a change is detected.
-
-### a. File System Monitoring
-
-This is useful for both local development (reloading on save) and production environments where process files are managed on a shared file system.
+A development tool can compile an exact updated definition into one engine's bounded runtime cache before executing that
+same definition:
 
 ```java
-import com.alibaba.compileflow.engine.deploy.FlowHotDeployer;
-import com.alibaba.compileflow.engine.deploy.detector.FileSystemChangeDetector;
+ProcessDefinition updated =
+        ProcessDefinition.inline("bpm.order.process", updatedXml);
 
-// Monitor a production directory for changes
-FileSystemChangeDetector detector = new FileSystemChangeDetector("/opt/flows");
-FlowHotDeployer hotDeployer = new FlowHotDeployer(engine.admin(), detector);
-hotDeployer.start(); // Starts the monitoring in a background thread
-
-// To stop monitoring:
-// hotDeployer.stop();
+engine.runtime().warmUp(updated);
+engine.execute(updated, variables).orElseThrow();
 ```
 
-### b. Nacos Configuration Center
+`warmUp` does not create a code or version binding. A later call through an explicit `ProcessDefinition` still resolves its
+configured definition source; callers must execute the same explicit content or load it under an exact
+`ProcessRef.Version`. Prewarming changes only that engine's cache. It is not a production release or multi-node routing
+mechanism.
 
-In a microservices architecture, it's common to manage process files in a configuration center like Nacos. `NacosChangeDetector` listens for configuration changes and triggers hot deployment.
+## Choose A Topology
+
+| Use case                                | Topology      | Control plane | Runtime worker | Delivery                                                   |
+|-----------------------------------------|---------------|---------------|----------------|------------------------------------------------------------|
+| CompileFlow Workbench Server or one JVM | `EMBEDDED`    | true          | false          | Post-commit local-ready activation; outbox-backed recovery |
+| Release API process                     | `DISTRIBUTED` | true          | false          | Outbox delivery to the sync channel                        |
+| Execution worker                        | `DISTRIBUTED` | false         | true           | Channel subscription drives runtime installation           |
+| Deliberate combined node                | `DISTRIBUTED` | true          | true           | Publishes and subscribes through the channel               |
+
+The starter defaults `compileflow.deploy.enabled` to `false`. Enabling deploy with no process role is invalid.
+
+### Embedded
+
+```yaml
+compileflow:
+  deploy:
+    enabled: true
+    topology: EMBEDDED
+    control-plane-enabled: true
+    runtime-worker-enabled: false
+    artifact:
+      mode: DATABASE
+```
+
+The database stores immutable versions, alias routes, rollout history, and outbox state. After a route transaction
+commits, the command converges the latest authoritative Alias through artifact installation and publishes it to the
+local-ready snapshot before returning. The outbox replays the same revision as a durable recovery path. Memory is a
+cache; JDBC remains authoritative after restart or eviction.
+
+### Distributed Control Plane
+
+```yaml
+compileflow:
+  deploy:
+    enabled: true
+    topology: DISTRIBUTED
+    control-plane-enabled: true
+    runtime-worker-enabled: false
+    artifact:
+      mode: DATABASE
+```
+
+The control plane requires a `DeploymentSyncChannel`, dispatches only committed outbox records, and reconciles current
+route authority to the channel. The application must provide one audited channel bean; missing mandatory infrastructure
+fails startup.
+
+### Distributed Data Plane
+
+```yaml
+compileflow:
+  deploy:
+    enabled: true
+    topology: DISTRIBUTED
+    control-plane-enabled: false
+    runtime-worker-enabled: true
+    runtime:
+      failure-backoff: 5m
+      convergence-timeout: 30s
+      concurrency: 1
+      queue-capacity: 256
+    artifact:
+      mode: DATABASE
+    routing:
+      namespaces: [default]
+      codes: [order.rule]
+      aliases: [production]
+      operation-timeout: 5s
+```
+
+At least one explicit key or derived code subscription is required. Database artifact mode requires read access to the
+version repository; channel mode resolves immutable artifacts from the configured sync transport.
+
+## Publish An Immutable Version
 
 ```java
-import com.alibaba.compileflow.engine.deploy.FlowHotDeployer;
-import com.alibaba.compileflow.engine.deploy.detector.NacosChangeDetector;
-import com.alibaba.nacos.api.NacosFactory;
-import com.alibaba.nacos.api.config.ConfigService;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
-
-// 1. Configure Nacos client
-Properties properties = new Properties();
-properties.put("serverAddr", "localhost:8848");
-ConfigService configService = NacosFactory.createConfigService(properties);
-
-// 2. Specify which dataIds to monitor
-List<String> flowDataIds = Arrays.asList("bpm.order.process", "bpm.payment.process");
-NacosChangeDetector nacosDetector = new NacosChangeDetector(
-    configService,
-    flowDataIds,
-    "DEFAULT_GROUP"
-);
-
-// 3. Start the hot deployer
-FlowHotDeployer hotDeployer = new FlowHotDeployer(engine.admin(), nacosDetector);
-hotDeployer.start();
+PublishedProcessVersion published = deploymentService.publish(
+        new PublishProcessVersionCommand(
+                ProcessRef.version("default", "order.rule", "2026-07-15-001"),
+                ProcessModelType.TBBPM,
+                ProcessDefinition.inline("order.rule", flowXml),
+                "alice",
+                metadata));
 ```
 
-## 3. Production Use Cases
+Publishing validates immutable identity, size, digest assertions, and actor, then stores the exact source. It has no
+mutable readiness status, performs no runtime compilation, and never changes a route. Data-plane installation and local
+readiness remain separate fail-closed steps.
 
-### a. Business Rule Updates
+## Move Traffic With Rollouts
 
-A common use case is to externalize business rules (e.g., pricing, discounts, risk levels) into a process file. Business analysts can update these rules through an admin panel, which saves the new BPM file. The file system detector picks up the change and hot-deploys the logic, allowing new orders to use the updated rules instantly without a service restart.
-
-### b. A/B Testing and Canary Releases
-
-Hot deployment can be a tool in a canary release strategy.
-
-1.  **Deploy New Version:** Deploy the new process logic with a distinct code (e.g., `bpm.order.process.v2`).
-2.  **Route Traffic:** Use application-level logic (e.g., a feature flag based on `userId`) to route a small percentage of traffic to the new process version.
-3.  **Monitor:** Analyze the performance and business metrics of `v2`.
-4.  **Full Rollout:** Once validated, update the original process file (`bpm.order.process.v1`) with the `v2` content and hot-deploy it. All traffic will now seamlessly use the new version.
-
-### c. Emergency Bug Fixes & Rollbacks
-
-If a bug is discovered in a live process, you can quickly deploy a fix without a full service rollout. Similarly, if a new deployment causes issues, you can instantly hot-deploy the previous stable version of the process file to roll back the change.
+Create a canary against the Alias revision just read from authority:
 
 ```java
-// Emergency rollback to a known stable version
-engine.admin().deploy(ProcessSource.fromContent("bpm.order.process", stableVersionXml));
+ProcessRollout rollout = deploymentService.createRollout(CreateRolloutCommand.canary(
+        "order-v2-release",
+        ProcessRef.alias("default", "order.rule", "production"),
+        ProcessRef.version("default", "order.rule", "2026-07-15-001"),
+        currentAliasRevision,
+        1_000,
+        "alice",
+        "ticket-4821"));
+
+rollout = deploymentService.updateCanaryWeight(new UpdateCanaryWeightCommand(
+        rollout.getId(), 5_000, rollout.getRevision(), "alice"));
+
+rollout = deploymentService.promoteRollout(new PromoteRolloutCommand(
+        rollout.getId(), rollout.getRevision(), "alice"));
 ```
 
-## 4. Health Checks & Monitoring
+An immediate release uses `RolloutStrategy.ALL_AT_ONCE` and no canary weight. Abort a running canary with
+`AbortRolloutCommand`; this restores the baseline captured at creation. Roll back a completed release by creating a new
+all-at-once rollout targeting the earlier immutable version. Completed history is never edited.
 
-After a hot deployment, it's crucial to verify that the new process is valid.
+Every rollout creation needs a stable retry key scoped by namespace, process, Alias, and operation kind, plus the
+expected Alias revision. Reusing the same scoped key with different request fields or actor is a conflict. Canary
+mutations require the current rollout revision and verify the Alias precondition. Stale requests fail instead of
+overwriting concurrent changes.
 
-- **Event Listening:** You can implement a `ProcessEventListener` to listen for `ProcessCoreEvents.CompilationCompleted` or `ProcessCoreEvents.CompilationFailed` to know when a hot reload has finished and whether it was successful. See [Monitoring & Observability](monitoring.md) for details.
-- **Active Health Check:** You can create a health check endpoint that executes a test case against the newly deployed process to ensure it runs correctly before it's considered "live."
+## Delivery Contract
 
-```java
-public boolean isProcessHealthy(String processCode) {
-    try {
-        // Prepare a mock context for a test case
-        Map<String, Object> testContext = createTestContextForProcess(processCode);
-        ProcessResult<Map<String, Object>> result = engine.execute(
-            ProcessSource.fromCode(processCode),
-            testContext
-        );
-        return result.isSuccess();
-    } catch (Exception e) {
-        logger.error("Health check for process {} failed", processCode, e);
-        return false;
-    }
-}
+- Route, rollout, audit event, and outbox row commit atomically.
+- Post-commit activation always reads the current authoritative Alias rather than reconstructing state from a possibly
+  superseded rollout.
+- In `EMBEDDED` topology, a successful rollout command means the affected Alias is local-ready in that process. If
+  installation fails after commit, the command reports convergence failure; an idempotent retry activates the latest
+  committed revision, while the outbox preserves recovery work.
+- In `DISTRIBUTED` topology, a successful command means the control-plane transaction committed. Routing activation
+  requests immediate outbox dispatch, but runtime-node readiness remains observable asynchronous convergence.
+- `RoutingOutboxDispatcher` remains the durable replay path in both topologies and the only control-plane writer to a
+  distributed sync channel.
+- The outbox coalesces identical delivery work by a database-unique key; rollout events remain the append-only audit
+  log.
+- Alias state payloads carry one positive `revision`; duplicates and older messages are ignored.
+- A malformed initial state fails startup; a malformed live update retains the last valid local-ready route.
+- Runtime installation verifies the artifact digest and fails closed when the selected version is unavailable.
+- Stop the control-plane role as a whole when delivery must stop; command admission and delivery share one lifecycle.
+
+Alias route keys:
+
+```text
+compileflow.deployment.alias.{identityDigest}
 ```
 
+Channel artifact keys:
 
+```text
+compileflow.process.version.{identityDigest}
+```
+
+`identityDigest` is lowercase SHA-256 over the ordered, length-prefixed UTF-8 identity tuple. Payloads retain the full
+identity and consumers verify it against the key. In `CHANNEL` mode, the artifact payload must fit the selected
+backend's documented per-item capacity.
+
+See [configuration](configuration.md), [distributed integration](hot-deploy-integration.md), and
+[operations](operations-playbook.md).

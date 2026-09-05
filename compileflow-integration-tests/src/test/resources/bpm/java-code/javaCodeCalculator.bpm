@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.java-code.javaCodeCalculator" name="Java Code Calculator"
+     description="Method-body Java computation with an explicit result contract">
+    <var name="inputA" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="inputB" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="op" dataType="java.lang.String" inOutType="param"/>
+    <var name="result" dataType="java.lang.Integer" inOutType="return"/>
+    <start id="start" name="Start" g="0,0,32,32"><transition to="calculate"/></start>
+    <scriptTask id="calculate" name="Calculate" g="72,0,100,40">
+        <action type="script" language="java">
+                <input target="left" dataType="java.lang.Integer" source="inputA"/>
+                <input target="right" dataType="java.lang.Integer" source="inputB"/>
+                <input target="operator" dataType="java.lang.String" source="op"/>
+                <output dataType="java.lang.Integer" target="result"/>
+                <code><![CDATA[
+                    return switch (operator) {
+                        case "+" -> left + right;
+                        case "-" -> left - right;
+                        case "*" -> left * right;
+                        case "/" -> {
+                            if (right == 0) {
+                                throw new ArithmeticException("divide by zero");
+                            }
+                            yield left / right;
+                        }
+                        default -> throw new IllegalArgumentException("Unsupported operator: " + operator);
+                    };
+                ]]></code>
+
+        </action>
+        <transition to="end"/>
+    </scriptTask>
+    <end id="end" name="End" g="220,0,32,32"/>
+</bpm>

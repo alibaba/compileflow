@@ -1,0 +1,86 @@
+name: Repository Hygiene
+
+on:
+  push:
+    branches: [ master ]
+  pull_request: { }
+  workflow_dispatch: { }
+
+permissions:
+  contents: read
+
+jobs:
+  dco:
+    name: DCO sign-off
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout pull-request history
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify every contribution commit is signed off
+        env:
+          DCO_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          DCO_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 scripts/check_dco.py --base "$DCO_BASE_SHA" --head "$DCO_HEAD_SHA"
+
+  hygiene:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Lint GitHub Actions workflows
+        env:
+          ACTIONLINT_VERSION: 1.7.12
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl --fail --location --retry 3 \
+            --output "$RUNNER_TEMP/$archive" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/$archive"
+          echo "${ACTIONLINT_SHA256}  $RUNNER_TEMP/$archive" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" actionlint
+          # actionlint v1.7.12 predates GitHub's official job.workflow_*
+          # context. Ignore only those two known schema false positives.
+          "$RUNNER_TEMP/actionlint" -color=false \
+            -ignore '^property "workflow_(repository|sha)" is not defined' \
+            .github/workflows/*.yml
+
+      - name: Run repository hygiene checks
+        run: |
+          python3 scripts/check_internal_links.py
+
+      - name: Run architecture boundary checks
+        run: |
+          python3 scripts/check_architecture_boundaries.py
+
+      - name: Run Durable kernel delivery checks
+        run: |
+          python3 scripts/check_durable_delivery.py
+
+      - name: Run bilingual parity check
+        run: |
+          python3 scripts/check_bilingual_parity.py
+
+      - name: Check protocol specification and implementation parity
+        run: |
+          python3 scripts/check_spec_impl_parity.py
+
+      - name: Test repository verification scripts
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python3 -m unittest discover \
+            -s scripts/tests \
+            -p 'test_*.py'
+
+      - name: Verify pinned release baseline consistency
+        run: python3 scripts/check_release_baselines.py

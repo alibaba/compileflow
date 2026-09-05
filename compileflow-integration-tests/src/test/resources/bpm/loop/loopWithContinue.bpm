@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.loop.loopWithContinue" name="Loop with Continue" description="Test foreach with continue node">
+    <var name="numbers" dataType="java.util.List&lt;java.lang.Integer&gt;" inOutType="param"/>
+    <var name="result" dataType="java.lang.String" inOutType="return"/>
+    <var name="resultList" description="Result list inner" dataType="java.lang.String" inOutType="inner"/>
+    <start id="1" name="Start" g="105,17,30,30">
+        <transition g=":-15,20" to="2"/>
+    </start>
+    <end id="11" name="End" g="101,549,30,30"/>
+    <scriptTask id="2" name="Initialize Result" g="72,100,88,48">
+        <transition g=":-15,20" to="3"/>
+        <action type="script" language="qlexpress">
+                <output dataType="java.lang.String" target="resultList"/>
+                <code><![CDATA['']]></code>
+
+        </action>
+    </scriptTask>
+    <foreach id="3" name="Loop with Continue" g="20,200,198,190"
+                 collection="numbers" item="num" index="i"
+                 itemType="java.lang.Integer">
+        <transition g=":-15,20" to="4"/>
+        <start id="3-start"><transition to="3-1"/></start>
+        <autoTask id="3-1" name="Check Even" g="70,220,88,48">
+            <transition g=":-15,20" to="3-continue"/>
+            <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="echo">
+                    <input target="value" dataType="java.lang.Integer" source="num"/>
+
+            </action>
+        </autoTask>
+        <continue id="3-continue" name="Continue if Odd" g="70,280,88,48" condition="num % 2 != 0">
+            <transition g=":-15,20" to="3-2"/>
+        </continue>
+        <autoTask id="3-2" name="Add to Result" g="70,340,88,48">
+            <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                              method="appendStep">
+                    <input target="path" dataType="java.lang.String" source="resultList"/>
+                    <input target="step" dataType="java.lang.String" defaultValue="even"/>
+                    <output dataType="java.lang.String" target="resultList"/>
+
+            </action>
+            <transition to="3-end"/>
+        </autoTask>
+        <end id="3-end"/>
+    </foreach>
+    <scriptTask id="4" name="Set Result" g="72,450,88,48">
+        <transition g=":-15,20" to="11"/>
+        <action type="script" language="qlexpress">
+                <input target="resultList" dataType="java.lang.String" source="resultList"/>
+                <output dataType="java.lang.String" target="result"/>
+                <code><![CDATA[resultList]]></code>
+
+        </action>
+    </scriptTask>
+</bpm>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.alibaba.compileflow</groupId>
+        <artifactId>compileflow</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>compileflow-durable</artifactId>
+    <packaging>pom</packaging>
+    <name>CompileFlow Durable</name>
+    <description>Aggregation and release boundary for the opt-in CompileFlow Durable product.</description>
+
+    <properties>
+        <compileflow.test.compilation.debug>false</compileflow.test.compilation.debug>
+        <compileflow.test.compilation.debug-output-directory>${project.build.directory}/compileflow-debug
+        </compileflow.test.compilation.debug-output-directory>
+    </properties>
+
+    <modules>
+        <module>compileflow-durable-api</module>
+        <module>compileflow-durable-spi</module>
+        <module>compileflow-durable-testkit</module>
+        <module>compileflow-durable-runtime</module>
+        <module>compileflow-durable-postgres</module>
+        <module>compileflow-durable-spring-boot-autoconfigure</module>
+        <module>compileflow-durable-spring-boot-starter</module>
+        <module>compileflow-durable-spring-boot-starter-postgres</module>
+    </modules>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <compileflow.test.compilation.debug>${compileflow.test.compilation.debug}
+                        </compileflow.test.compilation.debug>
+                        <compileflow.test.compilation.debug-output-directory>
+                            ${compileflow.test.compilation.debug-output-directory}
+                        </compileflow.test.compilation.debug-output-directory>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -1,0 +1,54 @@
+name: Java Dependency Security
+
+on:
+  workflow_call:
+    secrets:
+      NVD_API_KEY:
+        description: NVD API key used by OWASP Dependency-Check
+        required: true
+  workflow_dispatch: { }
+
+permissions:
+  contents: read
+
+jobs:
+  java-dependency-scan:
+    name: Scan Java runtime dependencies
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Require NVD API key
+        run: |
+          if [ -z "$NVD_API_KEY" ]; then
+            echo "NVD_API_KEY is required for Java dependency security evidence." >&2
+            exit 1
+          fi
+
+      - name: Scan Java runtime dependencies
+        run: |
+          ./mvnw verify -Psecurity-scan \
+            -DskipTests \
+            -Dcheckstyle.skip=true \
+            -B -V --no-transfer-progress
+
+      - name: Upload dependency reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: compileflow-java-dependency-reports
+          path: '**/target/dependency-check-report.*'
+          if-no-files-found: warn
+          retention-days: 14

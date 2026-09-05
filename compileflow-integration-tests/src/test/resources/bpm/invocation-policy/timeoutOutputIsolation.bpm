@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.invocation-policy.timeoutOutputIsolation"
+     name="InvocationPolicy timeout output isolation">
+    <var name="result" dataType="java.lang.String"
+         defaultValue="initial" inOutType="return"/>
+    <start id="start" g="0,0,32,32">
+        <transition to="task"/>
+    </start>
+    <autoTask id="task" g="60,0,120,40">
+        <action type="java"
+                    class="com.alibaba.compileflow.engine.test.support.mocks.InvocationPolicyTestService"
+                    method="returnLateValueAfterInterruption">
+                <output dataType="java.lang.String" target="result"/>
+
+
+            <invocationPolicy attemptTimeout="PT0.02S" maxAttempts="1"
+                      retryOn="never" onFailure="continue"/>
+        </action>
+        <transition to="end"/>
+    </autoTask>
+    <end id="end" g="220,0,32,32"/>
+</bpm>

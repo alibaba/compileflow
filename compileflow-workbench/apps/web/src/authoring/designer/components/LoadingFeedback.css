@@ -1,0 +1,33 @@
+.suspense-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: var(--spacing-xl);
+}
+
+.suspense-fallback .ant-spin {
+  color: var(--color-primary);
+}
+
+.suspense-fallback .ant-spin-text {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  margin-top: var(--spacing-md);
+}
+
+.ant-spin-dot-item {
+  animation: ant-spin-move 1s infinite linear;
+}
+
+@keyframes ant-spin-move {
+  to {
+    transform: rotate(360deg) translateZ(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ant-spin-dot-item {
+    animation-duration: 3s;
+  }
+}

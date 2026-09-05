@@ -1,0 +1,15 @@
+.errorBlock {
+  margin-top: var(--spacing-4);
+}
+
+.errorPre {
+  background: var(--code-bg);
+  padding: var(--spacing-4);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-code);
+  overflow-x: auto;
+  margin-top: var(--spacing-2);
+  border: 1px solid var(--border-subtle);
+}

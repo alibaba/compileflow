@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.loop.loopWithAbruptBranches"
+     name="Loop with abrupt branches"
+     description="Exercises unconditional break and continue branches">
+    <var name="numbers"
+         dataType="java.util.List&lt;java.lang.Integer&gt;" inOutType="param"/>
+    <var name="result"
+         dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="Start" g="20,20,32,32">
+        <transition to="initialize"/>
+    </start>
+    <scriptTask id="initialize" name="Initialize" g="80,20,100,48">
+        <transition to="loop"/>
+        <action type="script" language="java">
+                <output dataType="java.lang.String" target="result"/>
+                <code>return "";</code>
+
+        </action>
+    </scriptTask>
+    <foreach id="loop" name="Filter numbers" g="220,20,360,240"
+                 collection="numbers"
+                 item="num"
+                 itemType="java.lang.Integer">
+        <transition to="end"/>
+        <start id="loopStart"><transition to="continueDecision"/></start>
+        <exclusive id="continueDecision" name="Skip two" g="250,60,100,48">
+            <transition to="skip" condition="num == 2"/>
+            <transition to="breakDecision"/>
+        </exclusive>
+        <continue id="skip" name="Continue" g="380,20,88,48"/>
+        <exclusive id="breakDecision" name="Stop at four" g="380,100,100,48">
+            <transition to="stop" condition="num == 4"/>
+            <transition to="append"/>
+        </exclusive>
+        <break id="stop" name="Break" g="510,60,88,48"/>
+        <scriptTask id="append" name="Append number" g="510,150,100,48">
+            <action type="script" language="java">
+                    <input target="current" dataType="java.lang.String" source="result"/>
+                    <input target="number" dataType="java.lang.Integer" source="num"/>
+                    <output dataType="java.lang.String" target="result"/>
+                    <code>return current + number;</code>
+
+            </action>
+            <transition to="loopEnd"/>
+        </scriptTask>
+        <end id="loopEnd"/>
+    </foreach>
+    <end id="end" name="End" g="620,20,32,32"/>
+</bpm>

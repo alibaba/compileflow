@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:cf="http://www.compileflow.org"
+             targetNamespace="http://www.compileflow.org/bpmn/test">
+  <process id="bpmn20.stateful.stateful_parallel_gateway" name="Stateful Parallel Gateway Flow" isExecutable="true">
+    <extensionElements>
+      <cf:var name="processData" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="branch1_data" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="branch2_data" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="branch1Result" dataType="java.lang.String" inOutType="return"/>
+      <cf:var name="branch2Result" dataType="java.lang.String" inOutType="return"/>
+      <cf:var name="finalResult" dataType="java.lang.String" inOutType="return"/>
+    </extensionElements>
+
+    <startEvent id="start" name="Start"/>
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="fork"/>
+
+    <parallelGateway id="fork" name="Fork"/>
+
+    <sequenceFlow id="flow2" sourceRef="fork" targetRef="receiveTask1"/>
+    <sequenceFlow id="flow3" sourceRef="fork" targetRef="receiveTask2"/>
+
+    <receiveTask id="receiveTask1" name="Wait Branch 1 Event" messageRef="branch1Message">
+      <extensionElements>
+      </extensionElements>
+    </receiveTask>
+
+    <receiveTask id="receiveTask2" name="Wait Branch 2 Event" messageRef="branch2Message">
+      <extensionElements>
+      </extensionElements>
+    </receiveTask>
+
+    <sequenceFlow id="flow4" sourceRef="receiveTask1" targetRef="join"/>
+    <sequenceFlow id="flow5" sourceRef="receiveTask2" targetRef="join"/>
+
+    <parallelGateway id="join" name="Join"/>
+    <sequenceFlow id="flow6" sourceRef="join" targetRef="serviceTask1"/>
+
+    <serviceTask id="serviceTask1" name="Combine Results">
+      <extensionElements>
+        <cf:action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="combineResults">
+            <cf:input target="payment" dataType="java.lang.String" source="branch1Result"/>
+            <cf:input target="delivery" dataType="java.lang.String" source="branch2Result"/>
+            <cf:output dataType="java.lang.String" target="finalResult"/>
+
+        </cf:action>
+      </extensionElements>
+    </serviceTask>
+
+    <sequenceFlow id="flow7" sourceRef="serviceTask1" targetRef="end"/>
+    <endEvent id="end" name="End"/>
+  </process>
+
+  <!-- Message definitions -->
+  <message id="branch1Message" name="branch1Message" />
+  <message id="branch2Message" name="branch2Message" />
+</definitions>

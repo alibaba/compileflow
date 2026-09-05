@@ -1,0 +1,61 @@
+.statsRow {
+  margin-bottom: var(--spacing-8);
+}
+
+.statCard {
+  border-radius: var(--radius-xl) !important;
+  border: 1px solid var(--border-color) !important;
+  background: var(--bg-primary) !important;
+  transition: all var(--transition-base) !important;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+
+.statCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--transition-base);
+}
+
+.statCard:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.statCard:hover::before {
+  transform: scaleX(1);
+}
+
+/* ============ Dark Mode ============ */
+
+[data-theme='dark'] .statCard {
+  background: var(--color-bg-container) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-theme='dark'] .statCard:hover {
+  box-shadow: var(--shadow-lg) !important;
+}
+
+/* ============ Reduced Motion ============ */
+
+@media (prefers-reduced-motion: reduce) {
+  .statCard {
+    transition: none !important;
+  }
+
+  .statCard:hover {
+    transform: none !important;
+  }
+
+  .statCard::before {
+    transition: none !important;
+  }
+}

@@ -1,16 +1,48 @@
-# CompileFlow Quick Start - Full Example Walkthrough
+# CompileFlow Quick Start
 
-This guide provides a detailed walkthrough for building a complete Spring Boot application to execute a KTV billing process.
-It expands on the Quick Start section in the main `README.md`.
+Start with the repository's verified Spring Boot sample, then use the minimum example to embed the same TBBPM flow in
+an application. CompileFlow 2.0 is currently an unreleased snapshot.
 
-> 💡 **Goal**: This document aims to solidify your understanding of the core concepts (`ProcessEngine`, `ProcessSource`,
-`ProcessResult`) through a concrete, runnable example that includes decision logic.
+## Prerequisites
 
-## 1. Project Setup
+- JDK 17, 21, or 25. Java 17 is the build, release, and default production-image baseline.
+- The repository Maven Wrapper; no separate Maven installation is required.
 
-### a. Dependency
+Verify the toolchain from the repository root:
 
-First, ensure your `pom.xml` includes the `compileflow-spring-boot-starter`.
+```bash
+java -version
+./mvnw -version
+```
+
+## Run The Verified Sample
+
+Install the current starter and its reactor dependencies, then run the sample:
+
+```bash
+./mvnw install -pl compileflow-spring-boot-starter -am -DskipTests
+cd examples/spring-boot-basic
+../../mvnw -f pom.xml spring-boot:run
+```
+
+The application performs strict preflight, executes `flows/hello.bpm` with `value=40`, and logs:
+
+```text
+Sample process completed: result=42
+```
+
+Run the sample's context test with:
+
+```bash
+../../mvnw -f pom.xml test -Dtest=SampleApplicationTest
+```
+
+The sample is maintained at [examples/spring-boot-basic](../../examples/spring-boot-basic/README.md). Its test is the
+executable source of truth for this guide.
+
+## Add The Starter
+
+Add the starter to a Spring Boot 4.1 application:
 
 ```xml
 <dependency>
@@ -20,240 +52,141 @@ First, ensure your `pom.xml` includes the `compileflow-spring-boot-starter`.
 </dependency>
 ```
 
-### b. Spring Boot Application Class
+The starter creates one thread-safe `ProcessEngine` bean. TBBPM is the default model type; select BPMN explicitly with
+`compileflow.engine.model-type=BPMN` when needed.
 
-This is a standard entry point for a Spring Boot application.
+## Define A Flow
 
-```java
-package com.example.ktv;
-
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-
-@SpringBootApplication
-public class KtvApplication {
-    public static void main(String[] args) {
-        SpringApplication.run(KtvApplication.class, args);
-    }
-}
-```
-
-## 2. Process Definition (`ProcessSource`)
-
-We will define our process in `src/main/resources/bpm/ktv/quickstart.bpm`. The `ProcessEngine` loads process files from the
-`classpath` by default.
-
-The unique identifier for this process is its `code` attribute: `"bpm.ktv.quickstart"`. We will use this `code` to
-create our `ProcessSource`.
-
-This example includes a **decision node** to apply different pricing based on group size.
+Place this definition at `src/main/resources/flows/hello.bpm`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  code="bpm.ktv.quickstart": This is the unique ID of the process.
-  We use this to create a ProcessSource: ProcessSource.fromCode("bpm.ktv.quickstart")
--->
-<bpm code="bpm.ktv.quickstart" name="KTV Billing Process (Quickstart)" type="process">
-    <!-- Define process variables -->
-    <var name="price" dataType="java.lang.Integer" inOutType="return"/>
-    <var name="pList" dataType="java.util.List&lt;java.lang.String&gt;" inOutType="param"/>
-
-    <!-- The process starts here -->
-    <start id="start" name="Start">
-        <transition to="checkGroupSize"/>
+<bpm code="bpm.sample.hello" name="Hello Sample">
+    <var name="value" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="result" dataType="java.lang.Integer" inOutType="return"/>
+    <start id="1" name="Start" g="100,20,30,30">
+        <transition g=":-15,20" to="2"/>
     </start>
-
-    <!--
-      This is a decision node. It directs the flow based on data.
-    -->
-    <decision id="checkGroupSize" name="Large Group?">
-        <!--
-          If the expression "pList.size() > 3" is true, move to the "calculateDiscountedPrice" node.
-        -->
-        <transition to="calculateDiscountedPrice" name="Yes (&gt;3 people)" expression="pList.size() &gt; 3"/>
-        <!--
-          Otherwise (default path), move to the "calculateStandardPrice" node.
-        -->
-        <transition to="calculateStandardPrice" name="No"/>
-    </decision>
-
-    <!--
-      This script task calculates the standard price.
-    -->
-    <scriptTask id="calculateStandardPrice" name="Calculate Standard Price">
-        <transition to="end"/>
-        <action type="ql">
-            <!-- Expression: pList.size() * 30 -->
-            <actionHandle expression="pList.size() * 30">
-                <var name="price" dataType="java.lang.Integer" contextVarName="price" inOutType="return"/>
-            </actionHandle>
+    <scriptTask id="2" name="Add Two" g="70,100,88,48">
+        <action type="script" language="qlexpress">
+            <input source="value" target="value" dataType="java.lang.Integer"/>
+            <output target="result" dataType="java.lang.Integer"/>
+            <code>value + 2</code>
         </action>
+        <transition g=":-15,20" to="3"/>
     </scriptTask>
-
-    <!--
-      This script task calculates a discounted price for larger groups.
-    -->
-    <scriptTask id="calculateDiscountedPrice" name="Calculate Discounted Price">
-        <transition to="end"/>
-        <action type="ql">
-            <!-- Apply a group discount: 25 per person -->
-            <actionHandle expression="pList.size() * 25">
-                <var name="price" dataType="java.lang.Integer" contextVarName="price" inOutType="return"/>
-            </actionHandle>
-        </action>
-    </scriptTask>
-
-    <!-- The process ends here -->
-    <end id="end" name="End"/>
+    <end id="3" name="End" g="100,200,30,30"/>
 </bpm>
 ```
 
-## 3. Business Logic (`ProcessEngine` & `ProcessResult`)
+Strict preflight validates the XML schema, process graph, generated Java source, and compilation before execution.
 
-Now, let's create a service to call the process engine.
+## Execute The Flow
 
-- **`@Autowired ProcessEngine`**: The Spring Boot Starter auto-configures a global, singleton `ProcessEngine` for us to
-  inject.
-- **Type-Safe DTOs**: We define static inner classes for our input (`KtvRequest`) and output (`KtvResponse`). This makes
-  the API call cleaner and safer.
-- **`processEngine.execute(...)`**: This is the core method to execute the process.
-- **`result.orElseThrow(...)`**: `ProcessResult` provides convenient, functional-style methods for handling success or
-  failure.
+Use constructor injection and handle `ProcessResult` explicitly:
 
 ```java
-package com.example.ktv.service;
-
-import com.alibaba.compileflow.engine.ProcessEngine;
-import com.alibaba.compileflow.engine.ProcessResult;
-import com.alibaba.compileflow.engine.ProcessSource;
-import com.alibaba.compileflow.engine.tbbpm.definition.TbbpmModel;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import java.util.List;
-
 @Service
-public class KtvBillingService {
+public final class PricingService {
 
-    @Autowired
-    private ProcessEngine<TbbpmModel> processEngine;
+    private final ProcessEngine processEngine;
 
-    // Define an input DTO for type-safe interaction
-    public static class KtvRequest {
-        // The field name "pList" must match the <var name="pList"> in the process definition
-        public List<String> pList;
+    public PricingService(ProcessEngine processEngine) {
+        this.processEngine = processEngine;
     }
 
-    // Define an output DTO for type-safe interaction
-    public static class KtvResponse {
-        // The field name "price" must match the <var name="price"> in the process definition
-        public Integer price;
-    }
+    public int addTwo(int value) {
+        ProcessDefinition definition = ProcessDefinition.classpath(
+                "bpm.sample.hello",
+                "flows/hello.bpm");
+        ProcessResult<Map<String, Object>> result = processEngine.execute(
+                definition,
+                Map.of("value", value));
 
-    /**
-     * Executes the KTV billing process.
-     */
-    public KtvResponse calculatePrice(List<String> customers) {
-        KtvRequest request = new KtvRequest();
-        request.pList = customers;
-
-        // 1. Create the ProcessSource from its unique code
-        ProcessSource source = ProcessSource.fromCode("bpm.ktv.quickstart");
-
-        // 2. Execute the process, passing the request DTO and specifying the response DTO type
-        ProcessResult<KtvResponse> result = processEngine.execute(
-            source,
-            request,
-            KtvResponse.class
-        );
-
-        // 3. Check the result. If it failed, throw an exception; otherwise, return the data.
-        if (result.isSuccess()) {
-            return result.getData();
-        } else {
-            throw new RuntimeException("KTV billing process execution failed: " + result.getErrorMessage());
-        }
+        Map<String, Object> output = result.orElseThrow();
+        return (Integer) output.get("result");
     }
 }
 ```
 
-## 4. Expose an API (Optional)
+`ProcessDefinition.classpath` is explicit and stable for packaged definitions. `ProcessDefinition.inline` is useful for
+tooling and validation but should not carry mutable business logic on request paths. Direct definition sources resolve
+source bytes before exact cache matching; publish the definition and use
+`ProcessRef.Version` or `ProcessRef.Alias` for a high-throughput production request path.
 
-We can create a simple controller for easy testing.
+## Preflight And Warmup
+
+Validate and compile known flows during startup or release preparation:
 
 ```java
-package com.example.ktv.controller;
+ProcessDefinition definition = ProcessDefinition.classpath(
+        "bpm.sample.hello",
+        "flows/hello.bpm");
+ProcessPreflightReport report = processEngine.tooling()
+        .preflight(definition, ProcessPreflightOptions.strict());
+if (report.getOverallStatus() != ProcessPreflightReport.OverallStatus.PASS) {
+    throw new IllegalStateException(
+            "Flow preflight failed: "
+                    + report.getItems().stream()
+                            .filter(item -> item.getStatus()
+                                    != ProcessPreflightReport.ItemStatus.PASS)
+                            .map(item -> item.getType() + "/" + item.getStatus()
+                                    + ": " + item.getMessage())
+                            .toList());
+}
+processEngine.runtime().warmUp(definition);
+```
 
-import com.example.ktv.service.KtvBillingService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
-import java.util.List;
+`runtime().warmUp(...)` compiles exact definition content into this engine's local runtime cache without creating a code
+or version binding. It is not a distributed release operation and does not mutate an Alias route.
 
-@RestController
-public class KtvController {
+## Standalone Usage
 
-    @Autowired
-    private KtvBillingService ktvBillingService;
+For a non-Spring application, depend on one format module and own a single engine for the application lifecycle:
 
-    @PostMapping("/calculate")
-    public KtvBillingService.KtvResponse calculate(@RequestBody List<String> customers) {
-        return ktvBillingService.calculatePrice(customers);
+```xml
+<dependency>
+    <groupId>com.alibaba.compileflow</groupId>
+    <artifactId>compileflow-tbbpm</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+</dependency>
+```
+
+```java
+public final class ProcessEngines {
+    private static final ProcessEngine TBBPM = ProcessEngineFactory.createTbbpm();
+
+    private ProcessEngines() {
+    }
+
+    public static ProcessEngine tbbpm() {
+        return TBBPM;
+    }
+
+    public static void close() {
+        TBBPM.close();
     }
 }
 ```
 
-### Testing
+Register `ProcessEngines.close()` with the host application's lifecycle. Do not create an engine per request.
 
-After starting the application, you can send POST requests to `/calculate`.
+## Production Boundary
 
-#### Test Case 1: Standard Price
+- Publish each definition as a new immutable version; never reuse a version identifier for different content.
+- Change traffic through a revision-checked Alias rollout. Publishing alone never changes a route.
+- A deployment node executes only the selected version after local installation; it does not fall back to an older
+  artifact.
+- Keep routing attributes separate from process variables, and use `production` as the default environment alias.
+- Enable metrics and engine event listeners before production rollout.
 
-`POST http://localhost:8080/calculate`
-
-**Body (raw, JSON):**
-A group of 3 people should trigger the standard price logic (`3 > 3` is false).
-
-```json
-["customer1", "customer2", "customer3"]
-```
-
-**Response:**
-The expected price is `3 * 30 = 90`.
-
-```json
-{
-  "price": 90
-}
-```
-
-#### Test Case 2: Discounted Price
-
-`POST http://localhost:8080/calculate`
-
-**Body (raw, JSON):**
-A group of 4 people should trigger the discount logic (`4 > 3` is true).
-
-```json
-["customer1", "customer2", "customer3", "customer4"]
-```
-
-**Response:**
-The expected price is `4 * 25 = 100`.
-
-```json
-{
-  "price": 100
-}
-```
+See [Hot Deployment](hot-deploy.md), [Configuration](configuration.md), [Monitoring](monitoring.md), and
+[Supported Surfaces](../architecture/06-SUPPORTED_SURFACES.en.md) for the production path.
 
 ## Next Steps
 
-You now have a deep understanding of how to use CompileFlow end-to-end, including decision logic. We recommend exploring
-these topics next:
-
-- **[API Reference](api-reference.md)**: Dive deeper into all available methods for `ProcessEngine`, `ProcessSource`,
-  etc.
-- **[Advanced Features](advanced-features.md)**: Learn about production-grade features like engine warm-up, hot
-  deployment, and monitoring.
+- [API Reference](api-reference.md)
+- [TBBPM Specification](../specs/tbbpm-specification.en.md)
+- [BPMN Node Support](node-support.md)
+- [Extension Guide](extension-guide.md)
+- [Workbench Deployment](../../compileflow-workbench/DEPLOYMENT.md)

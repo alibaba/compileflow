@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.sample.hello" name="Hello Sample" description="QL-only sample flow">
+    <var name="value" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="result" dataType="java.lang.Integer" inOutType="return"/>
+    <start id="1" name="Start" g="100,20,30,30">
+        <transition g=":-15,20" to="2"/>
+    </start>
+    <scriptTask id="2" name="Add Two" g="70,100,88,48">
+        <transition g=":-15,20" to="3"/>
+        <action type="script" language="qlexpress">
+                <input target="value" dataType="java.lang.Integer" source="value"/>
+                <output dataType="java.lang.Integer" target="result"/>
+                <code>value + 2</code>
+
+        </action>
+    </scriptTask>
+    <end id="3" name="End" g="100,200,30,30"/>
+</bpm>

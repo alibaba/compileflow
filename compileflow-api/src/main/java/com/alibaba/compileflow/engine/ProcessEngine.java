@@ -1,10 +1,7 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -16,189 +13,293 @@
  */
 package com.alibaba.compileflow.engine;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.util.Map;
 
 /**
- * The primary, user-facing interface for the CompileFlow engine.
- * <p>
- * <b>RESOURCE WARNING:</b> Each ProcessEngine creates 4 thread pools.
- * <b>Always use singleton pattern or try-with-resources to avoid resource leaks.</b>
- * <p>
- * <b>Recommended Usage:</b>
- * <ul>
- *   <li><b>Best:</b> Spring Boot auto-configuration (singleton)</li>
- *   <li><b>Good:</b> Manual singleton with shutdown hook</li>
- *   <li><b>Limited:</b> Try-with-resources for batch jobs only</li>
- *   <li><b>Never:</b> Create per-request or in loops</li>
- * </ul>
- * <p>
- * Engine instances are thread-safe and should be obtained via {@link ProcessEngineFactory}.
+ * Thread-safe, format-bound CompileFlow execution engine.
  *
- * @param <T> The specific type of {@link FlowModel} this engine is configured for
+ * <p>The canonical execution model is a string-keyed variable map. Typed object methods are thin
+ * adapters over the same map pipeline through the engine's configured {@link ProcessDataMapper}.
+ * Process execution accepts a closed, partial map of variables declared by the exact Process as
+ * {@code inOutType="param"}; undeclared, {@code return}, and {@code inner} keys are rejected.
+ * An omitted parameter keeps its definition-owned default, while a present key with a null value
+ * is an explicit null.
+ * Map execution treats the supplied top-level map and every object reachable from its values as
+ * borrowed, read-only input. A runtime may pass values by reference or materialize detached
+ * values; neither grants an Action mutation rights. Process-owned state changes only through
+ * declared outputs and explicit Process constructs. Callers must not mutate or reuse input values
+ * concurrently with execution. A successful map execution returns a separate top-level map
+ * containing the process's declared output variables.
+ * <p>
+ * Each engine owns executors, runtime caches, and a class-loader scope, so applications should
+ * create one long-lived instance per required configuration and close it during shutdown.
+ *
  * @author yusu
  * @see ProcessEngineFactory
- * @see ProcessAdminService
+ * @see ProcessRuntimeManager
  * @see ProcessToolingService
  */
-public interface ProcessEngine<T extends FlowModel> extends AutoCloseable {
+public interface ProcessEngine extends AutoCloseable {
+    /**
+     * Executes an existing process reference through the canonical variable-map pipeline.
+     *
+     * @param ref       exact version or Alias reference
+     * @param variables process input variables
+     * @param options   request-scoped execution options
+     * @return process outcome with output variables and controlled attribution
+     */
+    ProcessResult<Map<String, Object>> execute(ProcessRef ref, Map<String, Object> variables,
+            ProcessExecutionOptions options);
 
     /**
-     * Executes a process using a type-safe Data Transfer Object (DTO) for process variables.
+     * Executes an explicit process definition through the canonical variable-map pipeline.
+     *
+     * <p>This runs real process actions with the host application's privileges. It is not a
+     * sandbox or a side-effect-free validation operation. Use
+     * {@link ProcessToolingService#preflight(ProcessDefinition, ProcessPreflightOptions)} when the
+     * definition must be checked without execution.
+     *
+     * @param definition explicit definition source
+     * @param variables  process input variables
+     * @param options    request-scoped execution options
+     * @return process outcome with output variables and controlled attribution
+     */
+    ProcessResult<Map<String, Object>> execute(ProcessDefinition definition, Map<String, Object> variables,
+            ProcessExecutionOptions options);
+
+    /**
+     * Executes an existing process reference with default options.
+     *
+     * @param ref       process reference
+     * @param variables process input variables
+     * @return process outcome
+     */
+    default ProcessResult<Map<String, Object>> execute(ProcessRef ref, Map<String, Object> variables) {
+        return execute(ref, variables, ProcessExecutionOptions.defaults());
+    }
+
+    /**
+     * Executes an explicit process definition with default options.
+     *
+     * <p>This has the same real-action and side-effect boundary as
+     * {@link #execute(ProcessDefinition, Map, ProcessExecutionOptions)}.
+     *
+     * @param definition explicit process definition
+     * @param variables  process input variables
+     * @return process outcome
+     */
+    default ProcessResult<Map<String, Object>> execute(ProcessDefinition definition, Map<String, Object> variables) {
+        return execute(definition, variables, ProcessExecutionOptions.defaults());
+    }
+
+    /**
+     * Maps typed input into variables, executes an existing reference, and maps the output.
+     *
+     * @param ref        process reference
+     * @param input      typed process input
+     * @param outputType requested output type
+     * @param options    request-scoped execution options
+     * @param <I>        input object type
+     * @param <O>        output object type
+     * @return typed process outcome from the canonical map pipeline
+     */
+    <I, O> ProcessResult<O> execute(ProcessRef ref, I input, Class<O> outputType, ProcessExecutionOptions options);
+
+    /**
+     * Maps typed input into variables, executes an existing reference with default options, and
+     * maps the output.
+     *
+     * @param ref        process reference
+     * @param input      typed process input
+     * @param outputType requested output type
+     * @param <I>        input object type
+     * @param <O>        output object type
+     * @return typed process outcome from the canonical map pipeline
+     */
+    default <I, O> ProcessResult<O> execute(ProcessRef ref, I input, Class<O> outputType) {
+        return execute(ref, input, outputType, ProcessExecutionOptions.defaults());
+    }
+
+    /**
+     * Maps typed input into variables, executes an explicit definition, and maps the output.
+     *
+     * <p>This has the same real-action and side-effect boundary as
+     * {@link #execute(ProcessDefinition, Map, ProcessExecutionOptions)}.
+     *
+     * @param definition explicit process definition
+     * @param input      typed process input
+     * @param outputType requested output type
+     * @param options    request-scoped execution options
+     * @param <I>        input object type
+     * @param <O>        output object type
+     * @return typed process outcome from the canonical map pipeline
+     */
+    <I, O> ProcessResult<O> execute(ProcessDefinition definition, I input, Class<O> outputType,
+            ProcessExecutionOptions options);
+
+    /**
+     * Maps typed input into variables, executes an explicit definition with default options, and
+     * maps the output.
+     *
+     * @param definition explicit process definition
+     * @param input      typed process input
+     * @param outputType requested output type
+     * @param <I>        input object type
+     * @param <O>        output object type
+     * @return typed process outcome from the canonical map pipeline
+     */
+    default <I, O> ProcessResult<O> execute(ProcessDefinition definition, I input, Class<O> outputType) {
+        return execute(definition, input, outputType, ProcessExecutionOptions.defaults());
+    }
+
+    /**
+     * Starts a new process execution from the specified trigger entry.
+     *
+     * <p>This method does not resume a persisted process instance and does not provide durable
+     * event delivery, external message correlation, or workflow state recovery. It uses the same
+     * reference resolution, routing, runtime, and result pipeline as {@link #execute(ProcessRef,
+     * Map, ProcessExecutionOptions)}. Unlike {@code execute} input, {@code variables} is a
+     * partial state seed for the new downstream invocation: it may contain any root variable
+     * declared by the exact Process, including {@code return} and {@code inner}, but no undeclared
+     * keys. Durable wait/event completion uses its own occurrence protocol and never reconstructs
+     * continuation state through this method.
+     *
+     * @param ref       process reference
+     * @param trigger   named trigger entry and optional event selector
+     * @param variables declared root-state values supplied to this downstream invocation
+     * @param options   request-scoped execution options
+     * @return trigger outcome with output variables and controlled attribution
+     */
+    ProcessResult<Map<String, Object>> trigger(ProcessRef ref, ProcessTrigger trigger, Map<String, Object> variables,
+            ProcessExecutionOptions options);
+
+    /**
+     * Starts a new execution from a trigger entry in an explicit definition source.
+     *
+     * @param definition explicit process definition
+     * @param trigger    named trigger entry and optional event selector
+     * @param variables  declared root-state values supplied to this downstream invocation
+     * @param options    request-scoped execution options
+     * @return trigger outcome with output variables and controlled attribution
+     */
+    ProcessResult<Map<String, Object>> trigger(ProcessDefinition definition, ProcessTrigger trigger,
+            Map<String, Object> variables, ProcessExecutionOptions options);
+
+    /**
+     * Starts a new process execution from a trigger entry with default options.
+     *
+     * @param ref       process reference
+     * @param trigger   named trigger entry and optional event selector
+     * @param variables declared root-state values supplied to this downstream invocation
+     * @return trigger outcome
+     */
+    default ProcessResult<Map<String, Object>> trigger(ProcessRef ref, ProcessTrigger trigger,
+            Map<String, Object> variables) {
+        return trigger(ref, trigger, variables, ProcessExecutionOptions.defaults());
+    }
+
+    /**
+     * Starts a new execution from a trigger entry in an explicit definition source with default
+     * options.
+     *
+     * @param definition explicit process definition
+     * @param trigger    named trigger entry and optional event selector
+     * @param variables  declared root-state values supplied to this downstream invocation
+     * @return trigger outcome with output variables and controlled attribution
+     */
+    default ProcessResult<Map<String, Object>> trigger(ProcessDefinition definition, ProcessTrigger trigger,
+            Map<String, Object> variables) {
+        return trigger(definition, trigger, variables, ProcessExecutionOptions.defaults());
+    }
+
+    /**
+     * Maps typed input into variables, starts a new execution at a trigger entry, and maps output.
+     *
+     * @param ref        process reference
+     * @param trigger    named trigger entry and optional event selector
+     * @param input      typed declared root-state seed for the downstream invocation
+     * @param outputType requested output type
+     * @param options    request-scoped execution options
+     * @param <I>        input object type
+     * @param <O>        output object type
+     * @return typed trigger outcome from the canonical map pipeline
+     */
+    <I, O> ProcessResult<O> trigger(ProcessRef ref, ProcessTrigger trigger, I input, Class<O> outputType,
+            ProcessExecutionOptions options);
+
+    /**
+     * Maps typed input, starts an explicit definition at a trigger entry, and maps the output.
+     *
+     * @param definition explicit process definition
+     * @param trigger    named trigger entry and optional event selector
+     * @param input      typed declared root-state seed for the downstream invocation
+     * @param outputType requested output type
+     * @param options    request-scoped execution options
+     * @param <I>        input object type
+     * @param <O>        output object type
+     * @return typed trigger outcome from the canonical map pipeline
+     */
+    <I, O> ProcessResult<O> trigger(ProcessDefinition definition, ProcessTrigger trigger, I input, Class<O> outputType,
+            ProcessExecutionOptions options);
+
+    /**
+     * Maps typed input into variables, starts a new execution at a trigger entry with default
+     * options, and maps output.
+     *
+     * @param ref        process reference
+     * @param trigger    named trigger entry and optional event selector
+     * @param input      typed declared root-state seed for the downstream invocation
+     * @param outputType requested output type
+     * @param <I>        input object type
+     * @param <O>        output object type
+     * @return typed trigger outcome from the canonical map pipeline
+     */
+    default <I, O> ProcessResult<O> trigger(ProcessRef ref, ProcessTrigger trigger, I input, Class<O> outputType) {
+        return trigger(ref, trigger, input, outputType, ProcessExecutionOptions.defaults());
+    }
+
+    /**
+     * Maps typed input, starts an explicit definition at a trigger entry with default options, and
+     * maps the output.
+     *
+     * @param definition explicit process definition
+     * @param trigger    named trigger entry and optional event selector
+     * @param input      typed declared root-state seed for the downstream invocation
+     * @param outputType requested output type
+     * @param <I>        input object type
+     * @param <O>        output object type
+     * @return typed trigger outcome from the canonical map pipeline
+     */
+    default <I, O> ProcessResult<O> trigger(ProcessDefinition definition, ProcessTrigger trigger, I input,
+            Class<O> outputType) {
+        return trigger(definition, trigger, input, outputType, ProcessExecutionOptions.defaults());
+    }
+
+    /**
+     * Returns this engine's local runtime lifecycle manager.
+     *
+     * @return engine-local runtime manager
+     */
+    ProcessRuntimeManager runtime();
+
+    /**
+     * Returns this engine's non-executing development tooling view.
+     *
+     * @return engine tooling service
+     */
+    ProcessToolingService tooling();
+
+    /**
+     * Rejects new work, drains active public operations within the configured grace period, and
+     * releases engine-owned resources.
      * <p>
-     * The engine handles the conversion between the DTO and the internal context map automatically.
+     * The application lifecycle owner must invoke this method from outside engine operations and
+     * callbacks. Calling it from generated process code, a listener, or another engine-owned task
+     * would make that task wait for its own executor to terminate and is therefore rejected.
      *
-     * <pre>{@code
-     * // 1. Define your process source
-     * ProcessSource source = ProcessSource.fromClasspath("path/to/your/flow.bpmn");
-     *
-     * // 2. Create your input DTO
-     * MyRequest request = new MyRequest();
-     * request.setParam("someValue");
-     *
-     * // 3. Execute the process
-     * ProcessResult<MyResponse> result = processEngine.execute(source, request, MyResponse.class);
-     *
-     * // 4. Handle the result
-     * result.onSuccess(response -> System.out.println("Success! " + response.getResultData()))
-     *       .onFailure(error -> System.err.println("Failed: " + error));
-     * }</pre>
-     *
-     * @param source     The source of the process definition.
-     * @param input      A Plain Old Java Object (POJO) containing the input parameters.
-     * @param outputType The {@code Class} of the expected response DTO.
-     * @param <I>        The type of the input object.
-     * @param <O>        The type of the output object.
-     * @return A {@link ProcessResult} containing the execution outcome and the typed response data.
+     * @throws IllegalStateException if called from an active operation or engine-owned callback
+     *                               or if engine-owned resources cannot terminate within the configured shutdown budget
      */
-    <I, O> ProcessResult<O> execute(@NotNull ProcessSource source, @NotNull I input, @NotNull Class<O> outputType);
-
-    /**
-     * Executes a process using a generic {@code Map} for process variables.
-     * <p>
-     * This method offers flexibility and is useful for simpler scenarios, dynamic use cases,
-     * or for testing purposes where creating a DTO is unnecessary.
-     *
-     * <pre>{@code
-     * // 1. Define your process source
-     * ProcessSource source = ProcessSource.fromCode("my.process.code");
-     *
-     * // 2. Prepare the context map
-     * Map<String, Object> context = new HashMap<>();
-     * context.put("customerLevel", "VIP");
-     * context.put("orderAmount", 500.0);
-     *
-     * // 3. Execute the process
-     * ProcessResult<Map<String, Object>> result = processEngine.execute(source, context);
-     *
-     * // 4. Handle the result
-     * if (result.isSuccess()) {
-     *     Map<String, Object> output = result.getData();
-     *     System.out.println("Discount applied: " + output.get("discount"));
-     * }
-     * }</pre>
-     *
-     * @param source  The source of the process definition.
-     * @param context A map containing the key-value pairs of the execution context.
-     * @return A {@link ProcessResult} containing the execution outcome and a map of output variables.
-     */
-    ProcessResult<Map<String, Object>> execute(@NotNull ProcessSource source, @NotNull Map<String, Object> context);
-
-    /**
-     * Triggers an event on a stateful process instance using a type-safe DTO as the event payload.
-     *
-     * <pre>{@code
-     * // Assuming a process is waiting at a node with tag "paymentWaitingNode"
-     * ProcessSource source = ProcessSource.fromCode("order.process.stateful");
-     * String waitingNodeTag = "paymentWaitingNode";
-     *
-     * // Create event payload DTO
-     * PaymentEvent eventPayload = new PaymentEvent("payment_success");
-     *
-     * // Trigger the event
-     * ProcessResult<OrderState> result = processEngine.trigger(source, waitingNodeTag,
-     *                                                           "paymentReceived", eventPayload,
-     *                                                           OrderState.class);
-     *
-     * result.onSuccess(newState -> System.out.println("Process advanced to state: " + newState));
-     * }</pre>
-     *
-     * @param source       The source of the stateful process definition.
-     * @param tag          The unique tag of the waiting node to be triggered.
-     * @param event        The specific event identifier to trigger on the node (can be {@code null}).
-     * @param eventPayload A POJO representing the event data.
-     * @param outputType   The {@code Class} of the expected response DTO.
-     * @param <E>          The type of the event payload object.
-     * @param <O>          The type of the output object.
-     * @return A {@link ProcessResult} containing the outcome and the typed response data.
-     */
-    <E, O> ProcessResult<O> trigger(@NotNull ProcessSource source, @NotNull String tag, @Nullable String event,
-                                    @NotNull E eventPayload, @NotNull Class<O> outputType);
-
-    /**
-     * Triggers an event on a stateful process instance using a generic {@code Map} for the event payload.
-     *
-     * @param source  The source of the stateful process definition.
-     * @param tag     The unique tag of the waiting node to be triggered.
-     * @param event   The specific event identifier to trigger on the node (can be {@code null}).
-     * @param context A map containing the event data to be merged into the process context.
-     * @return A {@link ProcessResult} containing the outcome and a map of output variables.
-     */
-    ProcessResult<Map<String, Object>> trigger(@NotNull ProcessSource source, @NotNull String tag, @Nullable String event,
-                                               @NotNull Map<String, Object> context);
-
-    /**
-     * A convenience overload for {@link #trigger(ProcessSource, String, String, Object, Class)} that omits the event name.
-     *
-     * @param source       The source of the stateful process definition.
-     * @param tag          The unique tag of the waiting node to be triggered.
-     * @param eventPayload A POJO representing the event data.
-     * @param outputType   The {@code Class} of the expected response DTO.
-     * @param <E>          The type of the event payload object.
-     * @param <O>          The type of the output object.
-     * @return A {@link ProcessResult} containing the outcome and the typed response data.
-     */
-    <E, O> ProcessResult<O> trigger(@NotNull ProcessSource source, @NotNull String tag,
-                                    @NotNull E eventPayload, @NotNull Class<O> outputType);
-
-    /**
-     * A convenience overload for {@link #trigger(ProcessSource, String, String, Map)} that omits the event name.
-     *
-     * @param source  The source of the stateful process definition.
-     * @param tag     The unique tag of the waiting node to be triggered.
-     * @param context A map containing the event data.
-     * @return A {@link ProcessResult} containing the outcome and a map of output variables.
-     */
-    ProcessResult<Map<String, Object>> trigger(@NotNull ProcessSource source, @NotNull String tag,
-                                               @NotNull Map<String, Object> context);
-
-    /**
-     * Returns the administrative view of this engine.
-     * <p>
-     * This service provides access to lifecycle management operations such as pre-compiling flows
-     * (cache warming) and hot-deploying process definitions. It is typically used during
-     * application startup or for operational management.
-     *
-     * @return The {@link ProcessAdminService} for this engine, never {@code null}.
-     */
-    @NotNull
-    ProcessAdminService admin();
-
-    /**
-     * Returns the tooling and introspection view of this engine.
-     * <p>
-     * This service provides access to development and debugging operations, such as retrieving the
-     * parsed flow model or generating Java source code. It is primarily intended for use in
-     * development tools, IDE plugins, or testing environments.
-     *
-     * @return The type-safe {@link ProcessToolingService} for this engine, never {@code null}.
-     */
-    @NotNull
-    ProcessToolingService<T> tooling();
-
     @Override
     void close();
-
 }

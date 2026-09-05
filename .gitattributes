@@ -1,0 +1,22 @@
+* text=auto eol=lf
+
+# Windows command scripts must keep CRLF for native command prompt execution.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Executable scripts should stay LF across platforms.
+*.sh text eol=lf
+mvnw text eol=lf
+
+# Binary assets and archives must never be line-ending normalized.
+*.gif binary
+*.ico binary
+*.jar binary
+*.jpeg binary
+*.jpg binary
+*.pdf binary
+*.png binary
+*.war binary
+*.woff binary
+*.woff2 binary
+*.zip binary

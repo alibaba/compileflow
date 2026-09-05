@@ -1,0 +1,23 @@
+{
+  "properties": [
+    {
+      "name": "compileflow.workbench.server.preview-execution.enabled",
+      "defaultValue": false
+    }
+  ],
+  "hints": [
+    {
+      "name": "compileflow.workbench.server.authentication.mode",
+      "values": [
+        {
+          "value": "API_KEY",
+          "description": "Require the configured server-side API key."
+        },
+        {
+          "value": "DISABLED",
+          "description": "Disable built-in authentication; accepted only with the explicit dev or test profile."
+        }
+      ]
+    }
+  ]
+}

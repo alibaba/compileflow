@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.invocation-policy.failFastHandler" name="InvocationPolicy Failure Handler Test - Fail Fast">
+    <var name="result" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="Start" g="50,50,32,32">
+        <transition to="failFastTask"/>
+    </start>
+
+    <autoTask id="failFastTask" name="Fail Fast Task" g="150,40,120,48">
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.InvocationPolicyTestService"
+                          method="transientFailure">
+                <output dataType="java.lang.String" target="result"/>
+
+
+            <invocationPolicy
+                attemptTimeout="PT1S"
+                maxAttempts="1" initialBackoff="PT0S"
+                retryOn="never"
+                onFailure="propagate"/>
+        </action>
+        <transition to="end"/>
+    </autoTask>
+
+    <end id="end" name="End" g="320,50,32,32"/>
+</bpm>

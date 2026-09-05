@@ -1,0 +1,179 @@
+name: Java Core CI
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'compileflow-api/**'
+      - 'compileflow-deploy/compileflow-deploy-api/**'
+      - 'compileflow-core/**'
+      - 'compileflow-tbbpm/**'
+      - 'compileflow-bpmn/**'
+      - 'examples/**'
+      - '.github/workflows/java-core-ci.yml'
+      - '.mvn/**'
+      - 'mvnw'
+      - 'mvnw.cmd'
+      - 'checkstyle.xml'
+      - 'checkstyle-javadoc.xml'
+      - 'scripts/verify_spotbugs_reports.py'
+      - 'pom.xml'
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'compileflow-api/**'
+      - 'compileflow-deploy/compileflow-deploy-api/**'
+      - 'compileflow-core/**'
+      - 'compileflow-tbbpm/**'
+      - 'compileflow-bpmn/**'
+      - 'examples/**'
+      - '.github/workflows/java-core-ci.yml'
+      - '.mvn/**'
+      - 'mvnw'
+      - 'mvnw.cmd'
+      - 'checkstyle.xml'
+      - 'checkstyle-javadoc.xml'
+      - 'scripts/verify_spotbugs_reports.py'
+      - 'pom.xml'
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    name: Core modules (JDK ${{ matrix.java }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        # All supported LTS releases compile the Java 17 artifact. The complete
+        # behavior suite runs once at the Java 17 baseline; newer LTS runtimes
+        # also execute focused concurrency and dynamic-code compatibility checks.
+        java: [ '17', '21', '25' ]
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build core module artifacts
+        run: |
+          ./mvnw install \
+            -pl compileflow-core,compileflow-tbbpm,compileflow-bpmn \
+            -am -DskipTests \
+            -B -V --no-transfer-progress
+
+      - name: Run Spotless format check
+        if: matrix.java == '17'
+        run: |
+          ./mvnw -Pexamples,benchmarks spotless:check \
+            -B -V --no-transfer-progress
+
+      - name: Run core checkstyle
+        if: matrix.java == '17'
+        run: |
+          ./mvnw checkstyle:check \
+            -pl compileflow-core,compileflow-tbbpm,compileflow-bpmn \
+            -am \
+            -B -V --no-transfer-progress
+
+      - name: Run public API Javadoc style
+        if: matrix.java == '17'
+        run: |
+          ./mvnw checkstyle:check \
+            -pl compileflow-api,compileflow-deploy/compileflow-deploy-api \
+            -Dcheckstyle.config.location=checkstyle-javadoc.xml \
+            -B -V --no-transfer-progress
+
+      - name: Run core SpotBugs
+        if: matrix.java == '17'
+        run: |
+          ./mvnw spotbugs:check \
+            -pl compileflow-core,compileflow-tbbpm,compileflow-bpmn \
+            -am \
+            -B -V --no-transfer-progress
+          python3 scripts/verify_spotbugs_reports.py \
+            compileflow-api \
+            compileflow-core \
+            compileflow-tbbpm \
+            compileflow-bpmn
+
+      - name: Generate public API Javadocs
+        if: matrix.java == '17'
+        run: |
+          ./mvnw javadoc:javadoc \
+            -pl compileflow-api,compileflow-deploy/compileflow-deploy-api \
+            -B -V --no-transfer-progress
+
+      - name: Run core tests
+        if: matrix.java == '17'
+        run: |
+          ./mvnw test \
+            -pl compileflow-core,compileflow-tbbpm,compileflow-bpmn \
+            -am \
+            -B -V --no-transfer-progress
+
+      - name: Run newer-runtime concurrency contracts
+        if: matrix.java != '17'
+        run: |
+          ./mvnw test \
+            -pl compileflow-core -am \
+            -Dtest=ProcessEngineExecutorsTest,ParallelExecutorTest,ActionExecutorTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -B -V --no-transfer-progress
+
+      - name: Run dynamic-code runtime compatibility smoke
+        if: matrix.java != '17'
+        run: |
+          ./mvnw test \
+            -pl compileflow-core -am \
+            -Dtest=JavaSourceScriptExecutorTest,CompiledProcessRuntimeFactoryClassLoaderTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -B -V --no-transfer-progress
+
+      - name: Upload test reports
+        if: always() && matrix.java == '17'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: java-core-surefire-jdk-${{ matrix.java }}
+          path: |
+            compileflow-core/target/surefire-reports/
+            compileflow-tbbpm/target/surefire-reports/
+            compileflow-bpmn/target/surefire-reports/
+          retention-days: 7
+
+  examples:
+    name: Examples (JDK 17)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Run when the core reactor or the examples tree changes. The examples
+    # profile is not active by default; see <profile><id>examples</id> in the
+    # root pom. The job always builds starter + deps first so the sample
+    # resolves the latest snapshot.
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Run executable Spring Boot examples
+        run: |
+          ./mvnw test \
+            -pl examples/spring-boot-basic,examples/spring-boot-order-fulfillment \
+            -Pexamples -am \
+            -Dtest=SampleApplicationTest,OrderFulfillmentApplicationTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -B -V --no-transfer-progress

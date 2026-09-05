@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:cf="http://www.compileflow.org"
+                  targetNamespace="urn:compileflow:durable-compatibility">
+  <bpmn:process id="durable.compatibility.bpmn.effect" isExecutable="true">
+    <bpmn:startEvent id="start"/>
+    <bpmn:serviceTask id="notify">
+      <bpmn:extensionElements>
+        <cf:action type="java" execution="effect" class="java.lang.System" method="getProperty">
+            <cf:input target="effectId" dataType="java.lang.String" source="__cf_effect_id"/>
+
+        </cf:action>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="end"/>
+    <bpmn:sequenceFlow id="to_notify" sourceRef="start" targetRef="notify"/>
+    <bpmn:sequenceFlow id="to_end" sourceRef="notify" targetRef="end"/>
+  </bpmn:process>
+</bpmn:definitions>

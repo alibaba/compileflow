@@ -1,0 +1,25 @@
+.breadcrumb {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.breadcrumb :global(.ant-breadcrumb-link),
+.breadcrumb :global(.ant-breadcrumb-link a) {
+  color: var(--text-tertiary);
+  font-weight: var(--font-weight-normal);
+  transition: color var(--duration-fast);
+}
+
+.breadcrumb :global(.ant-breadcrumb-link:hover),
+.breadcrumb :global(.ant-breadcrumb-link a:hover) {
+  color: var(--text-secondary);
+}
+
+.breadcrumb :global(li:last-child .ant-breadcrumb-link) {
+  color: var(--text-secondary);
+}
+
+.breadcrumb :global(.ant-breadcrumb-separator) {
+  color: var(--text-tertiary);
+  opacity: 0.6;
+}

@@ -12,10 +12,69 @@
     </parent>
 
     <artifactId>compileflow-integration-tests</artifactId>
-    <name>compileflow-integration-tests</name>
-    <description>Test module for CompileFlow engine</description>
+    <name>CompileFlow Integration Tests</name>
+    <description>Cross-module integration tests for engine, deployment, and Spring composition behavior.</description>
+
+    <properties>
+        <test.jvm.args>-javaagent:${org.mockito:mockito-core:jar}</test.jvm.args>
+        <compileflow.test.java-diagnostics.debug>false</compileflow.test.java-diagnostics.debug>
+        <compileflow.test.java-diagnostics.debug-output-directory>${project.build.directory}/compileflow-debug
+        </compileflow.test.java-diagnostics.debug-output-directory>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.install.skip>true</maven.install.skip>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>@{argLine} ${test.jvm.args} -Xmx4g</argLine>
+                    <systemPropertyVariables>
+                        <compileflow.test.java-diagnostics.debug>${compileflow.test.java-diagnostics.debug}
+                        </compileflow.test.java-diagnostics.debug>
+                        <compileflow.test.java-diagnostics.debug-output-directory>
+                            ${compileflow.test.java-diagnostics.debug-output-directory}
+                        </compileflow.test.java-diagnostics.debug-output-directory>
+                    </systemPropertyVariables>
+                    <includes>
+                        <include>**/*Test.java</include>
+                    </includes>
+                    <properties>
+                        <configurationParameters>
+                            <!-- Disable parallel test execution for baseline verification -->
+                            junit.jupiter.execution.parallel.enabled=false
+                        </configurationParameters>
+                    </properties>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <executions>
+                    <!-- This module has no production classes; replace its empty inherited report. -->
+                    <execution>
+                        <id>report</id>
+                        <phase>none</phase>
+                    </execution>
+                    <execution>
+                        <id>integration-coverage-report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report-aggregate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
     <dependencies>
+        <!--
+          Production modules use compile scope so JaCoCo report-aggregate can
+          resolve their classes. This test-only module is never deployed.
+        -->
         <!-- API module -->
         <dependency>
             <groupId>com.alibaba.compileflow</groupId>
@@ -27,7 +86,6 @@
             <groupId>com.alibaba.compileflow</groupId>
             <artifactId>compileflow-core</artifactId>
         </dependency>
-
         <!-- BPMN module -->
         <dependency>
             <groupId>com.alibaba.compileflow</groupId>
@@ -40,17 +98,40 @@
             <artifactId>compileflow-tbbpm</artifactId>
         </dependency>
 
-        <!-- Deploy module: hot deploy + change detectors -->
+        <!-- Deploy API and data-plane runtime -->
         <dependency>
             <groupId>com.alibaba.compileflow</groupId>
-            <artifactId>compileflow-deploy</artifactId>
+            <artifactId>compileflow-deploy-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.compileflow</groupId>
+            <artifactId>compileflow-deploy-api</artifactId>
+            <type>test-jar</type>
+            <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.compileflow</groupId>
+            <artifactId>compileflow-deploy-runtime</artifactId>
         </dependency>
 
-        <!-- Spring Boot auto-configuration (for Spring Boot tests) -->
+        <!-- Deployment control plane: versioning, rollout, and rollback orchestration -->
+        <dependency>
+            <groupId>com.alibaba.compileflow</groupId>
+            <artifactId>compileflow-deploy-control-plane</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.compileflow</groupId>
+            <artifactId>compileflow-deploy-control-plane</artifactId>
+            <type>test-jar</type>
+            <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Spring Boot auto-configuration -->
         <dependency>
             <groupId>com.alibaba.compileflow</groupId>
             <artifactId>compileflow-spring-boot-autoconfigure</artifactId>
-            <scope>test</scope>
         </dependency>
 
         <!-- Spring Boot test support (includes JUnit 5, Mockito, Spring Test) -->
@@ -59,6 +140,67 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- AssertJ for fluent assertions -->
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Test sources use these libraries directly. -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- H2-backed JDBC deploy-control integration tests -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Real PostgreSQL deployment/runtime-chain contracts. -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Used directly by deployment integrity tests. -->
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
 </project>

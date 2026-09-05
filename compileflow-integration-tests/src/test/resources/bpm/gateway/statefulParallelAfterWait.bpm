@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.gateway.statefulParallelAfterWait"
+     name="Stateful parallel after wait">
+    <var name="a" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="b" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="sum" dataType="java.lang.Integer" inOutType="return"/>
+    <var name="product" dataType="java.lang.Integer" inOutType="return"/>
+    <var name="continuationCount" dataType="java.lang.Integer" inOutType="return"/>
+    <var name="phase" dataType="java.lang.String" inOutType="param"/>
+
+    <start id="start" g="0,0,32,32">
+        <transition to="wait" g=":-15,20"/>
+    </start>
+    <waitEventTask id="wait" event="continue"
+                   g="60,0,100,48">
+        <transition to="fork" g=":-15,20"/>
+    </waitEventTask>
+    <parallel id="fork" g="200,0,48,48">
+        <transition to="sumTask" g=":-15,20"/>
+        <transition to="productTask" g=":-15,20"/>
+    </parallel>
+    <autoTask id="sumTask" g="300,0,100,48">
+        <action type="java"
+                    class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                    method="add">
+                <input target="a" dataType="java.lang.Integer" source="a"/>
+                <input target="b" dataType="java.lang.Integer" source="b"/>
+                <output dataType="java.lang.Integer" target="sum"/>
+
+        </action>
+        <transition to="join" g=":-15,20"/>
+    </autoTask>
+    <autoTask id="productTask" g="300,80,100,48">
+        <action type="java"
+                    class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                    method="multiply">
+                <input target="a" dataType="java.lang.Integer" source="a"/>
+                <input target="b" dataType="java.lang.Integer" source="b"/>
+                <output dataType="java.lang.Integer" target="product"/>
+
+        </action>
+        <transition to="join" g=":-15,20"/>
+    </autoTask>
+    <parallel id="join" g="440,0,48,48">
+        <transition to="afterJoin" g=":-15,20"/>
+    </parallel>
+    <scriptTask id="afterJoin" g="540,0,100,48">
+        <action type="script" language="java">
+                <output dataType="java.lang.Integer" target="continuationCount"/>
+                <code>return 1;</code>
+
+        </action>
+        <transition to="end" g=":-15,20"/>
+    </scriptTask>
+    <end id="end" g="680,0,32,32"/>
+</bpm>

@@ -1,0 +1,41 @@
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.compileflow.engine.bpmn.parser;
+
+import com.alibaba.compileflow.engine.bpmn.model.BpmnModelConstants;
+import com.alibaba.compileflow.engine.bpmn.model.ParallelGateway;
+import com.alibaba.compileflow.engine.core.xml.parser.ParseContext;
+import com.alibaba.compileflow.engine.core.xml.parser.XmlSource;
+
+/**
+ * XML parser for BPMN parallel gateways.
+ *
+ * @author yusu
+ */
+public class ParallelGatewayParser extends AbstractBpmnElementParser<ParallelGateway> {
+    @Override
+    protected ParallelGateway doParse(XmlSource xmlSource, ParseContext parseContext) throws Exception {
+        ParallelGateway gateway = new ParallelGateway();
+        gateway.setId(xmlSource.getString(BpmnModelConstants.BPMN_ATTRIBUTE_ID));
+        gateway.setName(xmlSource.getString(BpmnModelConstants.BPMN_ATTRIBUTE_NAME));
+        gateway.setGatewayDirection(BpmnAttributeValues.parseGatewayDirection(xmlSource.getString(
+                BpmnModelConstants.BPMN_ATTRIBUTE_GATEWAY_DIRECTION)));
+        return gateway;
+    }
+
+    @Override
+    public String getName() {
+        return "parallelGateway";
+    }
+}

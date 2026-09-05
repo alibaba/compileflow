@@ -1,0 +1,81 @@
+.navMenu {
+  flex: 1;
+  min-width: 0;
+  background: transparent !important;
+  border-bottom: none !important;
+  border-right: none !important;
+}
+
+.navLink {
+  display: block;
+  width: 100%;
+}
+
+.navLink::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.navMenu :global(.ant-menu-item) {
+  position: relative;
+  border-radius: var(--radius-md) !important;
+  margin: 0 var(--spacing-1) !important;
+  padding-inline: var(--spacing-3) !important;
+  transition: color var(--duration-fast) var(--ease-in-out) !important;
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+}
+
+.navMenu :global(.ant-menu-item-selected) {
+  font-weight: var(--font-weight-semibold) !important;
+  background: transparent !important;
+  color: var(--text-primary) !important;
+}
+
+/* Horizontal — underline active indicator */
+.navMenuHorizontal :global(.ant-menu-item::after) {
+  border-bottom-width: 2px !important;
+  border-bottom-color: transparent !important;
+  inset-inline: var(--spacing-2) !important;
+}
+
+.navMenuHorizontal :global(.ant-menu-item-selected::after) {
+  border-bottom-color: var(--primary-500) !important;
+}
+
+.navMenuHorizontal :global(.ant-menu-item:hover) {
+  color: var(--text-primary) !important;
+}
+
+/* Vertical — text-weight emphasis, subtle underline */
+.navMenuVertical :global(.ant-menu-item-selected) {
+  background: transparent !important;
+}
+
+.navMenuVertical :global(.ant-menu-item-selected::before) {
+  display: none;
+}
+
+.navMenuVertical :global(.ant-menu-item-selected) {
+  border-bottom: 2px solid var(--primary-500);
+}
+
+.navMenuHub {
+  background: transparent !important;
+}
+
+.navMenuHub :global(.ant-menu-item) {
+  font-weight: 500 !important;
+  letter-spacing: -0.015em;
+  font-size: 13.5px !important;
+}
+
+.navMenuHub :global(.ant-menu-item-selected) {
+  font-weight: 650 !important;
+}
+
+.navMenuHub :global(.ant-menu-item-selected::after) {
+  border-bottom-color: var(--primary-400) !important;
+  height: 2px !important;
+}

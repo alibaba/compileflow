@@ -1,0 +1,20 @@
+.variable-manager-actions {
+  margin-bottom: var(--spacing-3);
+}
+
+.variable-manager-tip {
+  margin-top: var(--spacing-3);
+  padding: var(--spacing-3);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  box-shadow: var(--shadow-xs);
+}
+
+/* Dark mode */
+[data-theme='dark'] .variable-manager-tip {
+  background: var(--color-bg-elevated);
+  border-color: var(--border-color);
+}

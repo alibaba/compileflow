@@ -1,0 +1,119 @@
+.default {
+  background: var(--bg-panel) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.levelBeginner {
+  background: color-mix(in srgb, var(--success-main) 12%, var(--bg-primary)) !important;
+  color: var(--success-dark) !important;
+  border: 1px solid color-mix(in srgb, var(--success-main) 25%, transparent) !important;
+}
+
+.levelIntermediate {
+  background: color-mix(in srgb, var(--primary-500) 12%, var(--bg-primary)) !important;
+  color: var(--primary-700) !important;
+  border: 1px solid color-mix(in srgb, var(--primary-500) 25%, transparent) !important;
+}
+
+.levelAdvanced {
+  background: color-mix(in srgb, var(--warning-main) 12%, var(--bg-primary)) !important;
+  color: var(--warning-dark) !important;
+  border: 1px solid color-mix(in srgb, var(--warning-main) 25%, transparent) !important;
+}
+
+.levelExpert {
+  background: color-mix(in srgb, var(--error-main) 12%, var(--bg-primary)) !important;
+  color: var(--error-dark) !important;
+  border: 1px solid color-mix(in srgb, var(--error-main) 25%, transparent) !important;
+}
+
+.processBpmn {
+  background: color-mix(in srgb, var(--info-main) 12%, var(--bg-primary)) !important;
+  color: var(--info-dark) !important;
+  border: 1px solid color-mix(in srgb, var(--info-main) 25%, transparent) !important;
+}
+
+.processTbbpm {
+  background: color-mix(in srgb, var(--color-operate) 12%, var(--bg-primary)) !important;
+  color: var(--color-operate) !important;
+  border: 1px solid color-mix(in srgb, var(--color-operate) 25%, transparent) !important;
+}
+
+.statusDraft {
+  background: var(--bg-panel) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.statusPublished,
+.statusSuccess {
+  background: color-mix(in srgb, var(--success-main) 12%, var(--bg-primary)) !important;
+  color: var(--success-dark) !important;
+  border: 1px solid color-mix(in srgb, var(--success-main) 25%, transparent) !important;
+}
+
+.statusArchived {
+  background: color-mix(in srgb, var(--gray-500) 12%, var(--bg-primary)) !important;
+  color: var(--text-tertiary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.statusError {
+  background: color-mix(in srgb, var(--error-main) 12%, var(--bg-primary)) !important;
+  color: var(--error-dark) !important;
+  border: 1px solid color-mix(in srgb, var(--error-main) 25%, transparent) !important;
+}
+
+.statusWarning {
+  background: color-mix(in srgb, var(--warning-main) 12%, var(--bg-primary)) !important;
+  color: var(--warning-dark) !important;
+  border: 1px solid color-mix(in srgb, var(--warning-main) 25%, transparent) !important;
+}
+
+.statusInfo {
+  background: color-mix(in srgb, var(--primary-500) 12%, var(--bg-primary)) !important;
+  color: var(--primary-700) !important;
+  border: 1px solid color-mix(in srgb, var(--primary-500) 25%, transparent) !important;
+}
+
+[data-theme='dark'] .levelBeginner {
+  color: var(--success-light) !important;
+}
+
+[data-theme='dark'] .levelIntermediate {
+  color: var(--primary-400) !important;
+}
+
+[data-theme='dark'] .levelAdvanced {
+  color: var(--warning-light) !important;
+}
+
+[data-theme='dark'] .levelExpert {
+  color: var(--error-light) !important;
+}
+
+[data-theme='dark'] .processBpmn {
+  color: var(--info-light) !important;
+}
+
+[data-theme='dark'] .processTbbpm {
+  color: var(--color-operate-light) !important;
+}
+
+[data-theme='dark'] .statusPublished,
+[data-theme='dark'] .statusSuccess {
+  color: var(--success-light) !important;
+}
+
+[data-theme='dark'] .statusError {
+  color: var(--error-light) !important;
+}
+
+[data-theme='dark'] .statusWarning {
+  color: var(--warning-light) !important;
+}
+
+[data-theme='dark'] .statusInfo {
+  color: var(--primary-400) !important;
+}

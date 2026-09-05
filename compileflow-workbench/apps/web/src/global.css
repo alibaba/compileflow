@@ -1,0 +1,1052 @@
+/* CompileFlow Workbench global styles and design tokens. */
+
+/* ============================================
+   1. Import Design Tokens
+   ============================================ */
+
+@import './shared/styles/variables.css';
+@import './shared/styles/surfaces.css';
+
+/* ============================================
+   1b. Font Loading — self-hosted Sora (CSP-safe)
+   ============================================ */
+
+@font-face {
+  font-family: 'Sora';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/sora-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ============================================
+   2. Application semantic tokens
+   ============================================ */
+
+:root {
+  /* Neutral colors */
+  --neutral-900: rgba(0, 0, 0, 0.88);
+  --neutral-800: rgba(0, 0, 0, 0.65);
+  --neutral-700: rgba(0, 0, 0, 0.45);
+  --neutral-600: rgba(0, 0, 0, 0.25);
+  --neutral-500: rgba(0, 0, 0, 0.15);
+  --neutral-400: rgba(0, 0, 0, 0.06);
+  --neutral-300: rgba(0, 0, 0, 0.04);
+  --neutral-200: rgba(0, 0, 0, 0.02);
+
+  /* Animation（global.css 专属动画时长变量）*/
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+  /* Light theme semantic tokens derived from variables.css */
+  --bg-primary: var(--bg-canvas);
+  --bg-secondary: var(--bg-panel);
+  --bg-tertiary: var(--bg-toolbar);
+  --text-primary: rgba(11, 18, 32, 0.92);
+  --text-secondary: rgba(11, 18, 32, 0.62);
+  --text-tertiary: rgba(11, 18, 32, 0.42);
+  --border-color: rgba(15, 23, 42, 0.1);
+  --border-subtle: rgba(15, 23, 42, 0.06);
+  --border-strong: rgba(15, 23, 42, 0.16);
+  --hover-bg: rgba(15, 23, 42, 0.04);
+
+  /* Semantic status colors */
+  --primary-color: var(--primary-500);
+  --success-color: var(--success-main);
+  --warning-color: var(--warning-main);
+  --error-color: var(--error-main);
+  --info-color: var(--info-main);
+}
+
+/* Dark Theme */
+[data-theme='dark'] {
+  /* Primary colors dark override for global usage — Iris violet */
+  --primary-500: #9b8cff;
+  --primary-600: #6b57ff;
+  --primary-700: #5540e8;
+
+  /* Neutral aliases - dark mode */
+  --neutral-900: rgba(241, 245, 249, 0.9);
+  --neutral-800: rgba(226, 232, 240, 0.65);
+  --neutral-700: rgba(203, 213, 225, 0.45);
+  --neutral-600: rgba(148, 163, 184, 0.35);
+  --neutral-500: rgba(148, 163, 184, 0.2);
+  --neutral-400: rgba(255, 255, 255, 0.08);
+  --neutral-300: rgba(255, 255, 255, 0.04);
+  --neutral-200: rgba(255, 255, 255, 0.02);
+
+  /* Border layers - dark mode */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text-primary: rgba(241, 245, 249, 0.92);
+  --text-secondary: rgba(226, 232, 240, 0.62);
+  --text-tertiary: rgba(148, 163, 184, 0.7);
+}
+
+/* ============================================
+   2. Global Resets & Base Styles
+   ============================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  transition:
+    background-color var(--duration-normal) var(--ease-in-out),
+    color var(--duration-normal) var(--ease-in-out);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-family-display);
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+/* Dark mode body styles */
+[data-theme='dark'] body {
+  color-scheme: dark;
+}
+
+/* Ant Design component overrides for dark mode */
+/* Ant Design component overrides for dark mode (replaced by ConfigProvider dark algorithm in ThemeContext) */
+/* Removed 78 lines of [data-theme='dark'] .ant-* overrides (L109-L186) that are now */
+/* handled automatically by Ant Design ConfigProvider darkAlgorithm (see ThemeContext.tsx). */
+
+/* ============================================
+   3. Focus Styles (Accessibility)
+   ============================================ */
+*:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: var(--focus-ring-offset);
+  box-shadow: var(--focus-ring);
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: var(--focus-ring-offset);
+  box-shadow: var(--focus-ring);
+}
+
+[data-theme='dark'] *:focus-visible {
+  outline-color: var(--primary-400, #4096ff);
+  box-shadow: 0 0 0 4px rgba(64, 150, 255, 0.3);
+}
+
+/* ============================================
+   4. Page Transition & Stagger Animations
+   ============================================ */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes stagger-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fade-in 200ms var(--ease-out);
+}
+
+/* Staggered entrance classes — apply to sections for choreographed page load.
+   Usage: add .stagger-1 through .stagger-4 to hero, stats, cards, lists. */
+.stagger-1 {
+  animation: stagger-up 500ms var(--ease-out) both;
+  animation-delay: 0ms;
+}
+
+.stagger-2 {
+  animation: stagger-up 500ms var(--ease-out) both;
+  animation-delay: 80ms;
+}
+
+.stagger-3 {
+  animation: stagger-up 500ms var(--ease-out) both;
+  animation-delay: 160ms;
+}
+
+.stagger-4 {
+  animation: stagger-up 500ms var(--ease-out) both;
+  animation-delay: 240ms;
+}
+
+.stagger-5 {
+  animation: stagger-up 500ms var(--ease-out) both;
+  animation-delay: 320ms;
+}
+
+/* Card within a stagger section: each card gets incremental delay via nth-child */
+.stagger-cards > :nth-child(1) {
+  animation: stagger-up 400ms var(--ease-out) both;
+  animation-delay: 0ms;
+}
+
+.stagger-cards > :nth-child(2) {
+  animation: stagger-up 400ms var(--ease-out) both;
+  animation-delay: 60ms;
+}
+
+.stagger-cards > :nth-child(3) {
+  animation: stagger-up 400ms var(--ease-out) both;
+  animation-delay: 120ms;
+}
+
+.stagger-cards > :nth-child(4) {
+  animation: stagger-up 400ms var(--ease-out) both;
+  animation-delay: 180ms;
+}
+
+/* Respect reduced motion for stagger animations */
+@media (prefers-reduced-motion: reduce) {
+  .stagger-1,
+  .stagger-2,
+  .stagger-3,
+  .stagger-4,
+  .stagger-5 {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .stagger-cards > * {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in {
+  animation: slide-in var(--duration-normal) var(--ease-out);
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.scale-in {
+  animation: scale-in var(--duration-normal) var(--ease-in-out);
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(5deg);
+  }
+}
+
+/* ============================================
+   5. Card Enhancements
+   ============================================ */
+
+.elevated-card {
+  transition:
+    border-color var(--duration-fast) var(--ease-in-out),
+    box-shadow var(--duration-fast) var(--ease-in-out);
+  box-shadow: var(--shadow-xs);
+  border: 1px solid var(--border-color);
+}
+
+.elevated-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.glass-effect {
+  background: var(--bg-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: var(--shadow-xs);
+}
+
+[data-theme='dark'] .glass-effect {
+  background: var(--bg-primary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+/* ============================================
+   6. Button Hover Enhancements
+   ============================================ */
+
+.ant-btn-primary {
+  transition:
+    transform var(--duration-fast) var(--ease-in-out),
+    box-shadow var(--duration-fast) var(--ease-in-out),
+    background var(--duration-fast) var(--ease-in-out);
+}
+
+.ant-btn-primary:hover:not(:disabled) {
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--primary-500) 22%, transparent);
+}
+
+.ant-btn-primary:active:not(:disabled) {
+  box-shadow: none;
+}
+
+.ant-btn-default {
+  transition:
+    transform var(--duration-fast) var(--ease-in-out),
+    border-color var(--duration-fast) var(--ease-in-out),
+    color var(--duration-fast) var(--ease-in-out);
+}
+
+.ant-btn-default:hover:not(:disabled) {
+  border-color: var(--primary-500);
+  color: var(--primary-500);
+}
+
+/* ============================================
+   7. Link Styles
+   ============================================ */
+
+a {
+  color: var(--primary-500);
+  text-decoration: none;
+  transition: color var(--duration-fast);
+  position: relative;
+}
+
+a:hover {
+  color: var(--primary-600);
+}
+
+a:hover::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 1px;
+  background: var(--primary-500);
+  animation: slide-in-underline var(--duration-fast) var(--ease-out);
+}
+
+@keyframes slide-in-underline {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* ============================================
+   8. Input & Form Enhancements
+   ============================================ */
+
+.ant-input:focus,
+.ant-input-focused {
+  box-shadow: var(--focus-ring);
+  border-color: var(--primary-500);
+}
+
+.ant-select-focused .ant-select-selector {
+  box-shadow: var(--focus-ring) !important;
+  border-color: var(--primary-500) !important;
+}
+
+/* ============================================
+   9. Scroll Enhancements
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--neutral-200);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--neutral-500);
+  border-radius: 4px;
+  transition: background var(--duration-fast);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neutral-600);
+}
+
+/* ============================================
+   10. Loading & Skeleton Enhancements
+   ============================================ */
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* ============================================
+   11. Responsive Design
+   ============================================ */
+
+/* Mobile (xs) - 0 to 575px */
+@media (max-width: 575px) {
+  body {
+    font-size: 14px;
+  }
+
+  h1 {
+    font-size: 32px !important;
+  }
+
+  h2 {
+    font-size: 24px !important;
+  }
+
+  h3 {
+    font-size: 20px !important;
+  }
+
+  .ant-card {
+    border-radius: var(--radius-lg) !important;
+  }
+
+  /* 触摸目标最小尺寸 44px */
+  button,
+  .ant-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Page-level mobile spacing is owned by AppShell. Applying padding to every
+     Ant Design Content also shrinks nested designer canvases and double-pads pages. */
+}
+
+/* Tablet (sm-md) - 576px to 991px */
+@media (min-width: 576px) and (max-width: 991px) {
+  h1 {
+    font-size: 40px !important;
+  }
+
+  h2 {
+    font-size: 28px !important;
+  }
+}
+
+/* Desktop (lg+) - 992px and above */
+@media (min-width: 992px) {
+  /* 桌面端特定样式 */
+}
+
+/* Large Desktop (xl+) - 1200px and above */
+@media (min-width: 1200px) {
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+}
+
+/* ============================================
+   12. Print Styles
+   ============================================ */
+
+@media print {
+  .ant-layout-header,
+  .ant-layout-sider,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+    color: black;
+  }
+
+  a {
+    text-decoration: underline;
+  }
+}
+
+/* ============================================
+   13. Utility Classes
+   ============================================ */
+
+.text-center {
+  text-align: center;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.mt-0 {
+  margin-top: 0;
+}
+
+.mt-2 {
+  margin-top: var(--spacing-2);
+}
+
+.mt-4 {
+  margin-top: var(--spacing-4);
+}
+
+.mt-6 {
+  margin-top: var(--spacing-6);
+}
+
+.mt-8 {
+  margin-top: var(--spacing-8);
+}
+
+.mb-0 {
+  margin-bottom: 0;
+}
+
+.mb-2 {
+  margin-bottom: var(--spacing-2);
+}
+
+.mb-4 {
+  margin-bottom: var(--spacing-4);
+}
+
+.mb-6 {
+  margin-bottom: var(--spacing-6);
+}
+
+.mb-8 {
+  margin-bottom: var(--spacing-8);
+}
+
+.p-2 {
+  padding: var(--spacing-2);
+}
+
+.p-4 {
+  padding: var(--spacing-4);
+}
+
+.p-6 {
+  padding: var(--spacing-6);
+}
+
+.p-8 {
+  padding: var(--spacing-8);
+}
+
+.w-full {
+  width: 100%;
+}
+
+.h-full {
+  height: 100%;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.gap-2 {
+  gap: var(--spacing-2);
+}
+
+.gap-4 {
+  gap: var(--spacing-4);
+}
+
+.gap-6 {
+  gap: var(--spacing-6);
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.cursor-not-allowed {
+  cursor: not-allowed;
+}
+
+.shadow-sm {
+  box-shadow: var(--shadow-sm);
+}
+
+.shadow-md {
+  box-shadow: var(--shadow-md);
+}
+
+.shadow-lg {
+  box-shadow: var(--shadow-lg);
+}
+
+.rounded-sm {
+  border-radius: var(--radius-sm);
+}
+
+.rounded-md {
+  border-radius: var(--radius-md);
+}
+
+.rounded-lg {
+  border-radius: var(--radius-lg);
+}
+
+.rounded-xl {
+  border-radius: var(--radius-xl);
+}
+
+.rounded-2xl {
+  border-radius: var(--radius-2xl);
+}
+
+.rounded-full {
+  border-radius: 9999px;
+}
+
+/* ============================================
+   14. Reduced Motion (Accessibility)
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  /* Stop all decorative animations */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  /* Preserve short functional transitions (color, opacity, border-color) */
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+
+  a,
+  button,
+  input,
+  [role='button'],
+  [tabindex] {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   16. High Contrast Mode (Accessibility)
+   ============================================ */
+
+.global-search-label {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .global-search-label {
+    display: inline;
+  }
+}
+
+/* GlobalSearch trigger button */
+.global-search-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: var(--spacing-4);
+  min-width: 196px;
+  height: 34px;
+  cursor: pointer;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.65), transparent 55%),
+    color-mix(in srgb, var(--bg-inset) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink-900, #0b1220) 9%, transparent);
+  border-radius: 10px;
+  padding: 0 10px 0 12px;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  font-family: inherit;
+  letter-spacing: -0.01em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  transition:
+    border-color var(--duration-fast),
+    color var(--duration-fast),
+    box-shadow var(--duration-fast),
+    background var(--duration-fast);
+  outline: none;
+}
+
+[data-theme='dark'] .global-search-trigger {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(148, 163, 184, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* Hub root header is always dark glass */
+[data-surface='hub'] .global-search-trigger {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(148, 163, 184, 0.18);
+  color: rgba(203, 213, 225, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+[data-surface='hub'] .global-search-trigger:hover {
+  border-color: rgba(96, 165, 250, 0.4);
+  color: rgba(248, 250, 252, 0.92);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-surface='hub'] .global-search-kbd {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(148, 163, 184, 0.18);
+  color: rgba(148, 163, 184, 0.85);
+  box-shadow: none;
+}
+
+.global-search-trigger:hover {
+  border-color: color-mix(in srgb, var(--primary-500) 35%, transparent);
+  color: var(--text-secondary);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.8), transparent 55%), var(--bg-elevated);
+}
+
+[data-theme='dark'] .global-search-trigger:hover {
+  border-color: rgba(96, 165, 250, 0.35);
+  color: rgba(226, 232, 240, 0.85);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.global-search-trigger:focus-visible {
+  border-color: var(--primary-500);
+  box-shadow: var(--focus-ring);
+  color: var(--text-primary);
+}
+
+.global-search-trigger-mobile {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+.global-search-trigger-mobile .global-search-label {
+  display: inline;
+}
+
+.global-search-loading-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 45%);
+}
+
+.global-search-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-lg);
+}
+
+/* GlobalSearch keyboard shortcut tag */
+.global-search-kbd {
+  margin-left: auto;
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 18px;
+  height: 18px;
+  border-radius: 5px;
+  font-family: inherit;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: color-mix(in srgb, var(--bg-canvas) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink-900, #0b1220) 8%, transparent);
+  color: var(--text-tertiary);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+[data-theme='dark'] .global-search-kbd {
+  background: rgba(0, 0, 0, 0.28);
+  border-color: rgba(148, 163, 184, 0.16);
+  box-shadow: none;
+  color: rgba(148, 163, 184, 0.8);
+}
+
+/* GlobalSearch quick navigation items */
+.global-search-quick-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  outline: none;
+}
+
+.global-search-quick-link:hover,
+.global-search-quick-link:focus-visible {
+  background: var(--hover-bg);
+}
+
+.global-search-quick-link:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: -2px;
+}
+
+/* Markdown link with CSS-only hover underline */
+.md-link {
+  color: var(--primary-500);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.md-link:hover {
+  color: var(--primary-600);
+  border-bottom-color: var(--primary-500);
+}
+
+.md-link:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.ant-menu-horizontal.ant-menu-light:not(.navMenu) {
+  background: transparent !important;
+}
+
+.ant-menu-horizontal.ant-menu-dark {
+  background: transparent !important;
+}
+
+@media (prefers-contrast: high) {
+  *,
+  *::before,
+  *::after {
+    border-color: currentColor;
+  }
+
+  button,
+  .ant-btn {
+    border: 2px solid currentColor;
+  }
+}
+
+/* ============================================
+   17. Designer Component Overrides
+   ============================================ */
+
+/* Button weight - WCAG AA optimization */
+.ant-btn {
+  font-weight: var(--font-weight-medium);
+}
+
+.ant-btn-primary {
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Link styles - WCAG AA optimized (designer context) */
+.designer a {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-link);
+  transition: var(--transition-fast);
+}
+
+.designer a:hover {
+  color: var(--color-link-hover);
+}
+
+.designer a:active {
+  color: var(--color-link-active);
+}
+
+/* Input border - WCAG AA optimized (designer context) */
+.designer .ant-input,
+.designer .ant-input-affix-wrapper,
+.designer .ant-select-selector,
+.designer .ant-picker {
+  border-color: var(--color-border) !important;
+}
+
+.designer .ant-input:hover,
+.designer .ant-input-affix-wrapper:hover,
+.designer .ant-select-selector:hover,
+.designer .ant-picker:hover {
+  border-color: var(--color-border-dark) !important;
+}
+
+/* Card border - WCAG AA optimized (designer context) */
+.designer .ant-card {
+  border-color: var(--color-border);
+}
+
+/* ============================================
+   18. Global Thin Scrollbar
+   ============================================ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb-color) var(--scrollbar-track-color);
+}
+
+*::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track-color);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-color);
+  border-radius: var(--scrollbar-radius);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover-color);
+}
+
+/* ============================================
+   19. Designer Text & Spacing Utilities
+   ============================================ */
+
+.text-primary {
+  color: var(--color-text-primary) !important;
+}
+
+.text-secondary {
+  color: var(--color-text-secondary) !important;
+}
+
+.text-tertiary {
+  color: var(--color-text-tertiary) !important;
+}
+
+.text-disabled {
+  color: var(--color-text-disabled) !important;
+}
+
+.rounded-none {
+  border-radius: var(--radius-none) !important;
+}
+
+.rounded-sm {
+  border-radius: var(--radius-sm) !important;
+}
+
+.rounded-base {
+  border-radius: 4px !important;
+}
+
+.rounded-md {
+  border-radius: var(--radius-md) !important;
+}
+
+.rounded-lg {
+  border-radius: var(--radius-lg) !important;
+}
+
+.rounded-full {
+  border-radius: var(--radius-full) !important;
+}
+
+.shadow-none {
+  box-shadow: none !important;
+}
+
+.shadow-xs {
+  box-shadow: var(--shadow-xs) !important;
+}
+
+.shadow-base {
+  box-shadow: var(--shadow-sm) !important;
+}

@@ -1,0 +1,117 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+    CompileFlow Javadoc quality configuration.
+
+    This gate enforces substantive English Javadoc for public Java surfaces.
+    Standard Javadoc tags such as @author are allowed.
+-->
+<module name="Checker">
+    <property name="charset" value="UTF-8"/>
+    <property name="severity" value="error"/>
+    <property name="fileExtensions" value="java"/>
+
+    <module name="TreeWalker">
+        <!-- Public APIs require complete summaries plus @param and @return tags. -->
+        <module name="JavadocMethod">
+            <property name="severity" value="error"/>
+            <property name="accessModifiers" value="public"/>
+            <property name="validateThrows" value="false"/>
+            <property name="allowMissingParamTags" value="false"/>
+            <property name="allowMissingReturnTag" value="false"/>
+            <property name="allowedAnnotations" value="Override, Test, Before, After, BeforeClass, AfterClass"/>
+            <property name="tokens" value="METHOD_DEF, CTOR_DEF, ANNOTATION_FIELD_DEF"/>
+        </module>
+
+        <module name="JavadocType">
+            <property name="severity" value="error"/>
+            <property name="scope" value="public"/>
+        </module>
+
+        <module name="JavadocStyle">
+            <property name="severity" value="error"/>
+            <property name="checkFirstSentence" value="true"/>
+            <property name="checkEmptyJavadoc" value="true"/>
+            <property name="checkHtml" value="true"/>
+        </module>
+
+        <module name="MissingJavadocMethod">
+            <property name="severity" value="error"/>
+            <property name="scope" value="public"/>
+            <property name="minLineCount" value="2"/>
+            <property name="allowMissingPropertyJavadoc" value="false"/>
+            <!-- Record components are documented once on the record type. -->
+            <property name="tokens"
+                      value="METHOD_DEF, CTOR_DEF, ANNOTATION_FIELD_DEF"/>
+        </module>
+
+        <module name="MissingJavadocType">
+            <property name="severity" value="error"/>
+            <property name="scope" value="public"/>
+        </module>
+
+        <module name="SuppressionCommentFilter">
+            <property name="offCommentFormat" value="CHECKSTYLE.OFF\: ChineseCharacter"/>
+            <property name="onCommentFormat" value="CHECKSTYLE.ON\: ChineseCharacter"/>
+            <property name="checkFormat" value="RegexpSinglelineJava"/>
+        </module>
+
+        <module name="RegexpSinglelineJava">
+            <property name="severity" value="error"/>
+            <property name="format" value="[\u4e00-\u9fa5]"/>
+            <property name="message" value="Chinese characters detected in comment. Please translate to English."/>
+            <property name="ignoreComments" value="false"/>
+        </module>
+
+        <module name="RegexpSinglelineJava">
+            <property name="severity" value="error"/>
+            <property name="format" value="^\s*\*.*\s+$"/>
+            <property name="message" value="Trailing whitespace in Javadoc comment"/>
+        </module>
+
+        <module name="RegexpSinglelineJava">
+            <property name="severity" value="error"/>
+            <property name="format" value="^\s*\*\s*[=\-*]{3,}\s*$"/>
+            <property name="message" value="Decorative lines not allowed in Javadoc; use paragraphs instead"/>
+        </module>
+    </module>
+
+    <module name="FileTabCharacter">
+        <property name="eachLine" value="false"/>
+    </module>
+
+    <module name="NewlineAtEndOfFile">
+        <property name="lineSeparator" value="lf"/>
+    </module>
+
+    <module name="SuppressionSingleFilter">
+        <property name="checks" value=".*"/>
+        <property name="files" value=".*[/\\]generated[/\\].*\.java$"/>
+    </module>
+
+    <!-- Tests remain in the standard Checkstyle scope, but they are not part of
+         the supported public API documentation surface. -->
+    <module name="SuppressionSingleFilter">
+        <property name="checks"
+                  value="(JavadocMethod|JavadocType|JavadocStyle|MissingJavadocMethod|MissingJavadocType)"/>
+        <property name="files" value=".*[/\\]src[/\\]test[/\\].*\.java$"/>
+    </module>
+
+    <!--
+        Durable Store type namespaces group named protocol records under the
+        Provider SPI. Each nested type still requires a substantive summary
+        via MissingJavadocType; record component accessors are not duplicated
+        as @param tags on these value-only protocol containers. Behavioral
+        Store roles and their methods are not covered by this suppression.
+    -->
+    <module name="SuppressionSingleFilter">
+        <property name="checks" value="JavadocType"/>
+        <property name="files"
+                  value=".*[/\\](?:DurableStore|Durable(?:Store|Payload|Catalog|Worker)Types)\.java$"/>
+    </module>
+
+    <module name="SuppressWarningsFilter"/>
+</module>

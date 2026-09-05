@@ -1,0 +1,131 @@
+.designer-status-bar {
+  height: 32px;
+  background: var(--bg-header);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--spacing-3);
+  gap: 2px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.designer-status-bar .ant-btn {
+  min-width: 24px;
+  height: 24px;
+  font-size: 11px;
+}
+
+.status-bar-zoom-btn {
+  min-width: 52px;
+  height: 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+
+.status-bar-zoom-btn:hover:not(:disabled) {
+  background: var(--hover-bg);
+}
+
+.status-bar-zoom-btn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.status-bar-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--border-color);
+  margin: 0 var(--spacing-2);
+  flex-shrink: 0;
+}
+
+.status-bar-divider-sm {
+  width: 1px;
+  height: 12px;
+  background: var(--border-subtle);
+  margin: 0 var(--spacing-2);
+  flex-shrink: 0;
+}
+
+.status-bar-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.status-bar-stat .anticon {
+  font-size: 11px;
+}
+
+.status-bar-save-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+}
+
+.status-bar-save-status--saving {
+  color: var(--warning-main);
+}
+
+.status-bar-save-status--modified {
+  color: var(--warning-main);
+}
+
+.status-bar-save-status--pending {
+  color: var(--warning-main);
+}
+
+.status-bar-save-status--saved {
+  color: var(--color-learn);
+}
+
+.status-bar-save-status .anticon {
+  font-size: 11px;
+}
+
+.status-bar-type-badge {
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.04em;
+}
+
+.status-bar-spacer {
+  flex: 1;
+}
+
+/* Dark mode */
+[data-theme='dark'] .designer-status-bar {
+  background: var(--bg-header);
+  border-top-color: var(--border-color);
+}
+
+[data-theme='dark'] .status-bar-zoom-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .status-bar-zoom-btn {
+    transition: none;
+  }
+}

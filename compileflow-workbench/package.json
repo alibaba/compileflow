@@ -1,0 +1,41 @@
+{
+  "name": "@compileflow/workbench",
+  "version": "2.0.0-SNAPSHOT",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.11.0",
+  "scripts": {
+    "dev": "pnpm --filter @compileflow/workbench-web dev",
+    "dev:with-gateway": "bash scripts/dev-with-gateway.sh",
+    "up:all-in-one": "bash scripts/up-all-in-one.sh",
+    "build": "pnpm --recursive build",
+    "build:web": "pnpm --filter @compileflow/workbench-web build",
+    "preview": "pnpm --filter @compileflow/workbench-web preview",
+    "type-check": "pnpm --recursive type-check",
+    "test": "pnpm --recursive test",
+    "test:web": "pnpm --filter @compileflow/workbench-web test",
+    "test:e2e:smoke": "pnpm --filter @compileflow/workbench-web test:e2e:smoke",
+    "test:e2e:integration": "pnpm --filter @compileflow/workbench-web test:e2e:integration",
+    "test:e2e:process-lifecycle": "node scripts/verify-async-invocation-process-lifecycle.mjs",
+    "test:coverage": "pnpm --filter @compileflow/workbench-web test:coverage",
+    "verify:delivery": "bash scripts/verify-delivery.sh",
+    "generate:workbench-server-contract": "openapi-typescript ../docs/specs/openapi/compileflow-workbench-server.openapi.json -o apps/web/src/shared/contracts/generated/workbenchServerOpenApi.ts --immutable --export-type --alphabetize",
+    "check:workbench-server-contract": "openapi-typescript ../docs/specs/openapi/compileflow-workbench-server.openapi.json -o apps/web/src/shared/contracts/generated/workbenchServerOpenApi.ts --immutable --export-type --alphabetize --check",
+    "sync:examples-catalog": "node --experimental-strip-types scripts/sync-examples-catalog.mjs",
+    "sync:examples-catalog:check": "node --experimental-strip-types scripts/sync-examples-catalog.mjs --check",
+    "format": "prettier --write \"*.md\" \"docs/**/*.md\" \"apps/**/*.{ts,tsx,json,css,md}\" \"scripts/**/*.{js,mjs,ts,json,md}\"",
+    "format:check": "prettier --check \"*.md\" \"docs/**/*.md\" \"apps/**/*.{ts,tsx,json,css,md}\" \"scripts/**/*.{js,mjs,ts,json,md}\"",
+    "lint": "pnpm --recursive lint",
+    "lint:web": "pnpm --filter @compileflow/workbench-web lint",
+    "clean": "pnpm --recursive run clean"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "prettier": "^3.8.1",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=24.0.0 <25.0.0",
+    "pnpm": ">=11.11.0 <12.0.0"
+  }
+}

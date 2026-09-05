@@ -1,0 +1,294 @@
+/* Header — frosted IDE chrome, thin and quiet */
+.header {
+  background: var(--bg-header);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0;
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  height: auto;
+  line-height: normal;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55) inset;
+}
+
+:global([data-theme='dark']) .header {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+.navbarRow {
+  display: flex;
+  align-items: center;
+  height: 52px;
+  gap: 0;
+}
+
+.navbarRowDesktop {
+  padding: 0 var(--spacing-6);
+}
+
+.navbarRowMobile {
+  padding: 0 var(--spacing-4);
+}
+
+.logoButton {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  user-select: none;
+  transition: opacity var(--transition-fast);
+  flex-shrink: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.logoButton:hover {
+  opacity: 0.88;
+}
+
+.logoButton:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+
+.logoButtonDesktop {
+  margin-right: var(--spacing-6);
+}
+
+.logoButtonMobile {
+  margin-right: auto;
+}
+
+.logoIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--appbar-brand-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 1px 2px rgba(11, 18, 32, 0.18),
+    0 6px 14px rgba(27, 111, 212, 0.22);
+}
+
+.headerHub .logoIcon {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 6px 16px rgba(27, 111, 212, 0.25);
+}
+
+.brandText {
+  font-size: 15px;
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-display);
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+
+.brandSuffix {
+  color: var(--text-tertiary);
+  font-weight: var(--font-weight-medium);
+  margin-left: 5px;
+  letter-spacing: -0.01em;
+}
+
+.headerHub .brandSuffix {
+  display: none;
+}
+
+/* Hub chrome — frosted glass */
+.headerHub {
+  background: rgba(238, 242, 248, 0.78);
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 10px 28px rgba(15, 23, 42, 0.05);
+  backdrop-filter: blur(18px) saturate(1.35);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+}
+
+.headerHub .brandText,
+.headerHub .mobileBrand {
+  color: #0f172a;
+}
+
+.headerHub .iconButton {
+  color: rgba(51, 65, 85, 0.78) !important;
+}
+
+.headerHub .iconButton:hover {
+  color: #0f172a !important;
+  background: rgba(15, 23, 42, 0.05) !important;
+}
+
+.headerHub .headerDivider {
+  background: rgba(15, 23, 42, 0.1);
+}
+
+.headerHub :global(.ant-menu) {
+  background: transparent !important;
+  color: rgba(51, 65, 85, 0.78) !important;
+}
+
+.headerHub :global(.ant-menu-item) {
+  color: rgba(51, 65, 85, 0.78) !important;
+}
+
+.headerHub :global(.ant-menu-item-selected) {
+  color: #0f172a !important;
+}
+
+.headerHub :global(.ant-menu-item-selected::after) {
+  border-bottom-color: var(--primary-500) !important;
+}
+
+:global([data-theme='dark']) .headerHub {
+  background: rgba(7, 11, 20, 0.72);
+  border-bottom-color: rgba(148, 163, 184, 0.12);
+  color: #f8fafc;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 12px 32px rgba(0, 0, 0, 0.28);
+}
+
+:global([data-theme='dark']) .headerHub .brandText,
+:global([data-theme='dark']) .headerHub .mobileBrand {
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .headerHub .iconButton {
+  color: rgba(226, 232, 240, 0.72) !important;
+}
+
+:global([data-theme='dark']) .headerHub .iconButton:hover {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+:global([data-theme='dark']) .headerHub .headerDivider {
+  background: rgba(148, 163, 184, 0.18);
+}
+
+:global([data-theme='dark']) .headerHub :global(.ant-menu) {
+  color: rgba(226, 232, 240, 0.72) !important;
+}
+
+:global([data-theme='dark']) .headerHub :global(.ant-menu-item) {
+  color: rgba(226, 232, 240, 0.72) !important;
+}
+
+:global([data-theme='dark']) .headerHub :global(.ant-menu-item-selected) {
+  color: #fff !important;
+}
+
+:global([data-theme='dark']) .headerHub :global(.ant-menu-item-selected::after) {
+  border-bottom-color: #9b8cff !important;
+}
+
+.mobileBrand {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-display);
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+}
+
+.moduleBadge {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  margin-right: var(--spacing-4);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.rightArea {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  flex-shrink: 0;
+}
+
+.rightAreaDesktop {
+  margin-left: 0;
+}
+
+.rightAreaMobile {
+  margin-left: 0;
+}
+
+.iconButton {
+  color: var(--text-secondary);
+  border-radius: var(--radius-md) !important;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast) !important;
+}
+
+.iconButton:hover {
+  color: var(--text-primary) !important;
+  background: var(--hover-bg) !important;
+}
+
+.headerDivider {
+  width: 1px;
+  height: 16px;
+  background: var(--border-subtle);
+  margin: 0 var(--spacing-2);
+}
+
+.breadcrumbBar {
+  padding: 0 var(--spacing-6);
+  height: 32px;
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--bg-panel) 55%, transparent);
+}
+
+.drawerTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.drawerLogoIcon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--appbar-brand-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drawerSection {
+  margin-top: var(--spacing-4);
+  border-top: 1px solid var(--border-color);
+  padding-top: var(--spacing-4);
+}
+
+.drawerSearch {
+  padding: var(--spacing-4);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.drawerGithubButton {
+  justify-content: flex-start;
+}

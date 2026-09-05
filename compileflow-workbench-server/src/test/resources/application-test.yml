@@ -1,0 +1,47 @@
+spring:
+  datasource:
+    generate-unique-name: true
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+    hikari:
+      data-source-properties:
+        MODE: PostgreSQL
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    locations:
+      - classpath:db/compileflow-deploy-h2/migration
+      - classpath:db/compileflow-workbench-server/migration
+  sql:
+    init:
+      mode: never
+
+springdoc:
+  api-docs:
+    enabled: false
+
+compileflow:
+  engine:
+    enabled: true
+    model-type: TBBPM
+  workbench:
+    server:
+      database:
+        migrate: true
+      preview-execution:
+        enabled: true
+      authentication:
+        mode: DISABLED
+        service-principal: integration-test
+  deploy:
+    enabled: true
+    topology: EMBEDDED
+    control-plane-enabled: true
+    runtime-worker-enabled: false
+    outbox:
+      retention: 0ms
+    artifact:
+      mode: DATABASE

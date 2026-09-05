@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.gateway.nestedFourLevelDecisionFlow" name="Nested Four Level Decision Flow"
+     description="订单处理流程：四层嵌套决策网关，根据多个标志位决定处理路径，最终输出处理结果">
+
+    <var name="flag1" dataType="java.lang.Boolean" inOutType="param"/>
+    <var name="flag2" dataType="java.lang.Boolean" inOutType="param"/>
+    <var name="flag3" dataType="java.lang.Boolean" inOutType="param"/>
+    <var name="flag4" dataType="java.lang.Boolean" inOutType="param"/>
+    <var name="orderId" dataType="java.lang.String" inOutType="param"/>
+    <var name="processingPath" description="处理路径" dataType="java.lang.String" inOutType="inner"/>
+    <var name="finalResult" dataType="java.lang.String" inOutType="return"/>
+
+
+    <start id="start" name="开始" g="100,300,40,40">
+        <transition to="mainDecision"/>
+    </start>
+
+
+    <exclusive id="mainDecision" name="主决策" g="200,300,88,48">
+        <transition condition="flag1" name="深度路径" to="level2Decision"/>
+        <transition condition="Boolean.FALSE.equals(flag1)" name="简单路径" to="simpleProcess"/>
+    </exclusive>
+
+
+    <autoTask id="simpleProcess" name="简单处理" g="350,400,100,48">
+        <transition to="finalize"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="processOrder">
+                <input target="orderId" dataType="java.lang.String" source="orderId"/>
+                <output dataType="java.lang.String" target="processingPath"/>
+
+        </action>
+    </autoTask>
+
+
+    <exclusive id="level2Decision" name="二级决策" g="350,200,88,48">
+        <transition condition="flag2" name="深度分支" to="level3Decision"/>
+        <transition condition="Boolean.FALSE.equals(flag2)" name="浅层分支" to="shallowProcess"/>
+    </exclusive>
+
+
+    <autoTask id="shallowProcess" name="浅层处理" g="500,250,100,48">
+        <transition to="finalize"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="processOrder">
+                <input target="orderId" dataType="java.lang.String" source="orderId"/>
+                <output dataType="java.lang.String" target="processingPath"/>
+
+        </action>
+    </autoTask>
+
+
+    <exclusive id="level3Decision" name="三级决策" g="500,100,88,48">
+        <transition condition="flag3" name="超深分支" to="level4Decision"/>
+        <transition condition="Boolean.FALSE.equals(flag3)" name="中层任务" to="midLevelProcess"/>
+    </exclusive>
+
+
+    <autoTask id="midLevelProcess" name="中层处理" g="650,150,100,48">
+        <transition to="finalize"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="processOrder">
+                <input target="orderId" dataType="java.lang.String" source="orderId"/>
+                <output dataType="java.lang.String" target="processingPath"/>
+
+        </action>
+    </autoTask>
+
+
+    <exclusive id="level4Decision" name="四级决策" g="650,50,88,48">
+        <transition condition="flag4" name="最终分支T" to="deepProcessTrue"/>
+        <transition condition="Boolean.FALSE.equals(flag4)" name="最终分支F" to="deepProcessFalse"/>
+    </exclusive>
+
+
+    <autoTask id="deepProcessTrue" name="深度处理-通过" g="800,25,120,48">
+        <transition to="finalize"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="processOrder">
+                <input target="orderId" dataType="java.lang.String" source="orderId"/>
+                <output dataType="java.lang.String" target="processingPath"/>
+
+        </action>
+    </autoTask>
+
+
+    <autoTask id="deepProcessFalse" name="深度处理-拒绝" g="800,75,120,48">
+        <transition to="finalize"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="processOrder">
+                <input target="orderId" dataType="java.lang.String" source="orderId"/>
+                <output dataType="java.lang.String" target="processingPath"/>
+
+        </action>
+    </autoTask>
+
+    <autoTask id="finalize" name="完成处理" g="950,300,100,48">
+        <transition to="end"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="finalizeResult">
+                <input target="path" dataType="java.lang.String" source="processingPath"/>
+                <output dataType="java.lang.String" target="finalResult"/>
+
+        </action>
+    </autoTask>
+
+
+    <end id="end" name="结束" g="1100,300,40,40"/>
+</bpm>

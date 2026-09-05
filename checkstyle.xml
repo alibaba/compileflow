@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+    Checkstyle configuration for CompileFlow
+    Enforces repository-wide Java style rules used by local builds and CI.
+-->
+<module name="Checker">
+    <property name="charset" value="UTF-8"/>
+    <property name="severity" value="error"/>
+    <property name="fileExtensions" value="java"/>
+
+    <!-- Exclude generated files -->
+    <module name="BeforeExecutionExclusionFileFilter">
+        <property name="fileNamePattern" value="module\-info\.java$"/>
+    </module>
+
+    <!--
+        Deliberate exception: PostgresDurableStore is the transaction and lock-order
+        authority for the seven-table Durable Kernel. Splitting it solely by operation
+        count would hide cross-table invariants behind forwarding classes. Only its
+        FileLength finding is suppressed; every syntax-level check still applies.
+    -->
+    <module name="SuppressionSingleFilter">
+        <property name="files" value="[/\\]PostgresDurableStore\.java$"/>
+        <property name="checks" value="FileLength"/>
+    </module>
+
+    <module name="TreeWalker">
+        <!-- Naming Conventions -->
+        <module name="PackageName">
+            <property name="format" value="^[a-z]+(\.[a-z][a-z0-9]*)*$"/>
+        </module>
+        <module name="TypeName"/>
+        <module name="MethodName"/>
+        <module name="ConstantName"/>
+
+        <!-- Imports -->
+        <module name="AvoidStarImport"/>
+        <module name="RedundantImport"/>
+        <module name="UnusedImports"/>
+
+        <!-- Whitespace -->
+        <module name="GenericWhitespace"/>
+        <module name="WhitespaceAfter"/>
+        <module name="WhitespaceAround">
+            <!-- Palantir Java Format renders empty bodies as "{}". -->
+            <property name="allowEmptyConstructors" value="true"/>
+            <property name="allowEmptyMethods" value="true"/>
+            <property name="allowEmptyTypes" value="true"/>
+            <property name="allowEmptyLambdas" value="true"/>
+        </module>
+
+        <!-- Modifiers -->
+        <module name="ModifierOrder"/>
+
+        <!-- Blocks -->
+        <module name="EmptyBlock"/>
+        <module name="LeftCurly"/>
+        <module name="NeedBraces"/>
+
+        <!-- Coding -->
+        <module name="EmptyStatement"/>
+        <module name="EqualsHashCode"/>
+        <module name="SimplifyBooleanExpression"/>
+        <module name="SimplifyBooleanReturn"/>
+
+        <!-- Test Assertions - Enforce AssertJ only -->
+        <module name="Regexp">
+            <property name="format"
+                      value="org\.junit\.jupiter\.api\.Assertions\.(assertTrue|assertFalse|assertEquals|assertNotNull|assertNull|assertArrayEquals)"/>
+            <property name="illegalPattern" value="true"/>
+            <property name="message" value="Use AssertJ assertions (assertThat) instead of JUnit assertions"/>
+            <property name="ignoreComments" value="true"/>
+        </module>
+    </module>
+
+    <!-- File Size -->
+    <module name="FileLength">
+        <property name="max" value="2000"/>
+    </module>
+
+    <!--
+        Apache-2.0 license header. This project is distributed under Apache-2.0
+        (see LICENSE and NOTICE), so every Java source must carry the notice.
+        Anchored to line 1 so the header cannot drift below other content.
+    -->
+    <module name="RegexpHeader">
+        <property name="headerFile" value="${checkstyle.header.file}"/>
+        <property name="fileExtensions" value="java"/>
+    </module>
+
+    <!--
+        Prince of Space targets 120 columns but deliberately keeps some expressions intact in
+        WIDE mode. Use 160 as a safety ceiling so Checkstyle does not reject formatter output.
+    -->
+    <module name="LineLength">
+        <property name="max" value="160"/>
+        <property name="ignorePattern"
+                  value="^package.*|^import.*|a href|href|http://|https://|ftp://|.*@see.*|^\s*(?:\+ )?&quot;|^\s*&lt;"/>
+    </module>
+</module>

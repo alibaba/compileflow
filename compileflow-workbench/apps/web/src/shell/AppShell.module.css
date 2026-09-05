@@ -1,0 +1,115 @@
+.shell {
+  min-height: 100vh;
+  background: var(--bg-canvas);
+}
+
+.skipLink {
+  position: fixed;
+  top: var(--spacing-2);
+  left: var(--spacing-2);
+  z-index: 2000;
+  padding: var(--spacing-2) var(--spacing-4);
+  border-radius: var(--radius-md);
+  color: #fff;
+  background: var(--primary-600);
+  box-shadow: var(--shadow-md);
+  transform: translateY(calc(-100% - var(--spacing-4)));
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.skipLink:focus {
+  color: #fff;
+  transform: translateY(0);
+}
+
+.shellHub {
+  background: #05070d;
+}
+
+.shellDesigner {
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.shellDesigner .innerLayout,
+.shellDesigner .contentDesigner {
+  flex: 1;
+  min-height: 0;
+}
+
+:global([data-theme='dark']) .shellHub {
+  background: #05070d;
+  color: #f8fafc;
+}
+
+.innerLayout {
+  margin-top: 0;
+  background: inherit;
+}
+
+.content {
+  transition: margin-left var(--duration-fast) var(--ease-in-out);
+  display: flex;
+  flex-direction: column;
+  background: inherit;
+}
+
+.contentStandard {
+  min-height: calc(100vh - var(--header-height));
+}
+
+.contentDesigner {
+  min-height: calc(100vh - var(--header-navbar-height));
+}
+
+.pageContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-6) var(--spacing-8) var(--spacing-12);
+  max-width: var(--page-max-width);
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.pageContainerHub {
+  max-width: none;
+  padding: 0 var(--spacing-8) 0;
+}
+
+.designerContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+@media (max-width: 575px) {
+  .content {
+    margin-left: 0 !important;
+  }
+
+  .pageContainer {
+    padding: var(--spacing-4);
+  }
+
+  .contentWithSidebar .pageContainer {
+    padding-top: calc(var(--spacing-4) + 36px);
+  }
+
+  .pageContainerHub {
+    padding: 0 var(--spacing-4) var(--spacing-12);
+  }
+}
+
+@media (min-width: 576px) and (max-width: 767px) {
+  .content {
+    margin-left: 0 !important;
+  }
+
+  .contentWithSidebar .pageContainer {
+    padding-top: calc(var(--spacing-6) + 36px);
+  }
+}

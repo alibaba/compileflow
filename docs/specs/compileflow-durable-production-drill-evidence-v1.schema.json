@@ -1,0 +1,328 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:compileflow:durable:production-drill-evidence:v1",
+  "title": "CompileFlow Durable production drill evidence v1",
+  "description": "One scenario in a same-commit, same-environment production drill campaign. Cross-file and artifact integrity rules are enforced by scripts/verify_durable_production_evidence.py.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "campaignId",
+    "evidenceId",
+    "commit",
+    "environment",
+    "scenario",
+    "startedAt",
+    "completedAt",
+    "thresholds",
+    "observations",
+    "artifacts",
+    "invariants",
+    "approvals"
+  ],
+  "properties": {
+    "schema": {
+      "const": "compileflow-durable-production-drill-evidence/v1"
+    },
+    "campaignId": {
+      "$ref": "#/$defs/identifier"
+    },
+    "evidenceId": {
+      "$ref": "#/$defs/identifier"
+    },
+    "commit": {
+      "$ref": "#/$defs/sha1"
+    },
+    "environment": {
+      "$ref": "#/$defs/environment"
+    },
+    "scenario": {
+      "enum": [
+        "CONNECTION_POOL_EXHAUSTION",
+        "DATABASE_NETWORK_PARTITION",
+        "DATABASE_SHORT_OUTAGE",
+        "DEADLOCK_OR_SERIALIZATION",
+        "DISK_PRESSURE",
+        "LONG_TRANSACTION_OR_WAL_LAG",
+        "OPERATOR_RESPONSE_LOSS",
+        "OUTBOX_ACK_RESPONSE_LOSS",
+        "OUTBOX_CONSUMER_OUTAGE",
+        "PITR_NEW_TIMELINE",
+        "PRIMARY_FAILOVER",
+        "RESTORE_DURABLE_INVENTORY_RECONCILIATION",
+        "START_RESPONSE_LOSS",
+        "STATEMENT_TIMEOUT",
+        "TRIGGER_RESPONSE_LOSS",
+        "WORKER_KILL_AFTER_BOUNDARY_COMMIT",
+        "WORKER_KILL_AFTER_CLAIM",
+        "WORKER_KILL_AFTER_EFFECT_REQUEST"
+      ]
+    },
+    "startedAt": {
+      "$ref": "#/$defs/utcTimestamp"
+    },
+    "completedAt": {
+      "$ref": "#/$defs/utcTimestamp"
+    },
+    "thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maximumRecoverySeconds",
+        "maximumDataLossRecords"
+      ],
+      "properties": {
+        "maximumRecoverySeconds": {
+          "$ref": "#/$defs/nonNegativeNumber"
+        },
+        "maximumDataLossRecords": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        }
+      }
+    },
+    "observations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result",
+        "recoverySeconds",
+        "dataLossRecords",
+        "databaseSystemIdentifierAfter",
+        "databaseTimelineAfter"
+      ],
+      "properties": {
+        "result": {
+          "const": "PASSED"
+        },
+        "recoverySeconds": {
+          "$ref": "#/$defs/nonNegativeNumber"
+        },
+        "dataLossRecords": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "databaseSystemIdentifierAfter": {
+          "$ref": "#/$defs/identifier"
+        },
+        "databaseTimelineAfter": {
+          "$ref": "#/$defs/identifier"
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "invariants": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/invariant"
+      }
+    },
+    "approvals": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/$defs/approval"
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "sha1": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "utcTimestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,6})?Z$"
+    },
+    "nonNegativeNumber": {
+      "type": "number",
+      "minimum": 0
+    },
+    "nonNegativeInteger": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "topology",
+        "replicationMode",
+        "javaVendor",
+        "javaVersion",
+        "postgres",
+        "databaseSystemIdentifier",
+        "databaseTimelineBefore",
+        "applicationArtifactSha256",
+        "configurationSha256",
+        "schemaHistorySha256",
+        "runbookSha256",
+        "faultInjectorSha256",
+        "workloadSha256"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "topology": {
+          "enum": [
+            "SINGLE_PRIMARY",
+            "HA_PRIMARY_STANDBY"
+          ]
+        },
+        "replicationMode": {
+          "enum": [
+            "NONE",
+            "SYNCHRONOUS",
+            "ASYNCHRONOUS"
+          ]
+        },
+        "javaVendor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "javaVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+(?:[._+-][A-Za-z0-9]+)*$",
+          "maxLength": 64
+        },
+        "postgres": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$"
+        },
+        "databaseSystemIdentifier": {
+          "$ref": "#/$defs/identifier"
+        },
+        "databaseTimelineBefore": {
+          "$ref": "#/$defs/identifier"
+        },
+        "applicationArtifactSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "configurationSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "schemaHistorySha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "runbookSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "faultInjectorSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "workloadSha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "sizeBytes",
+        "mediaType"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000000
+        },
+        "mediaType": {
+          "enum": [
+            "application/json",
+            "application/sql",
+            "application/vnd.tcpdump.pcap",
+            "text/csv",
+            "text/plain"
+          ]
+        }
+      }
+    },
+    "invariant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "status",
+        "evidenceArtifact"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "AUDIT_TRAIL_PRESERVED",
+            "COMMITTED_FACTS_IMMUTABLE",
+            "PROCESS_ARTIFACT_RECOVERABLE",
+            "IDEMPOTENT_RETRY_SAME_RESULT",
+            "OUTBOX_RECOVERY_ORDER_AND_DEDUPLICATION_PRESERVED",
+            "PENDING_OUTBOX_NOT_LOST",
+            "RESTORED_ENVIRONMENT_WRITE_ISOLATED",
+            "STALE_OWNER_CANNOT_COMMIT",
+            "UNKNOWN_EFFECT_NOT_AUTO_RESOLVED"
+          ]
+        },
+        "status": {
+          "const": "PASSED"
+        },
+        "evidenceArtifact": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "principal",
+        "approvedAt"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "APPLICATION_OWNER",
+            "DATABASE_OPERATOR",
+            "INCIDENT_COMMANDER"
+          ]
+        },
+        "principal": {
+          "$ref": "#/$defs/identifier"
+        },
+        "approvedAt": {
+          "$ref": "#/$defs/utcTimestamp"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+.page {
+  /* HubSurface provides the ambient canvas; keep class for local hooks. */
+}
+
+.deployMeta {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
+}

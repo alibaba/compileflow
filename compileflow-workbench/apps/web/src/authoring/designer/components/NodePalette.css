@@ -1,0 +1,106 @@
+.node-palette {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.node-palette .ant-card {
+  background: transparent;
+}
+
+.node-palette .ant-card-head {
+  border-bottom: 1px solid var(--color-border-light);
+  min-height: 44px;
+}
+
+.node-palette .ant-card-head-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* Search area */
+.node-palette-search {
+  padding: var(--spacing-4) var(--spacing-4) var(--spacing-3);
+}
+
+/* Collapse panel category accent bar */
+.node-palette .ant-collapse-header {
+  position: relative;
+  padding-left: 20px !important;
+  align-items: center;
+}
+
+/* Category accent bar on the left of each collapse header */
+.palette-category-accent {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 18px;
+  border-radius: 0 2px 2px 0;
+  transition: height var(--transition-base);
+}
+
+/* When panel is active, accent bar grows taller */
+.ant-collapse-item-active .palette-category-accent {
+  height: 24px;
+}
+
+/* Collapse panel transitions */
+.node-palette .ant-collapse-content {
+  transition: height var(--transition-slow) ease-out;
+}
+
+.node-palette .ant-collapse-content-box {
+  padding: var(--spacing-2) 0;
+}
+
+/* Category header text */
+.palette-category-title {
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+/* Search highlight match */
+.palette-search-highlight {
+  background: var(--bg-search-highlight);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* Scrollbar */
+.node-palette::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+}
+
+.node-palette::-webkit-scrollbar-track {
+  background: var(--scrollbar-track-color);
+  border-radius: var(--scrollbar-radius);
+}
+
+.node-palette::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-color);
+  border-radius: var(--scrollbar-radius);
+}
+
+.node-palette::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover-color);
+}
+
+/* Dark mode */
+[data-theme='dark'] .node-palette .ant-card-head {
+  border-bottom-color: var(--color-border-light);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .node-palette .ant-collapse-content {
+    transition: none;
+  }
+
+  .palette-category-accent {
+    transition: none;
+  }
+}

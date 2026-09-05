@@ -1,0 +1,148 @@
+/* Elevated panel — sidebars, toolbars, nested sections */
+.surface-panel {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xs);
+}
+
+/* Standard content card */
+.surface-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--duration-fast) var(--ease-in-out),
+    box-shadow var(--duration-fast) var(--ease-in-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.surface-card--interactive {
+  cursor: pointer;
+}
+
+.surface-card--interactive:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.surface-card--interactive:active {
+  box-shadow: var(--shadow-xs);
+}
+
+/* Top accent stripe — module-colored highlight on hover */
+.surface-accent-top {
+  position: relative;
+  overflow: hidden;
+}
+
+.surface-accent-top::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--surface-accent, var(--primary-500));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.surface-accent-top:hover::before {
+  transform: scaleX(1);
+}
+
+/* Frosted header / bar */
+.surface-frosted {
+  background: color-mix(in srgb, var(--bg-header) 82%, transparent);
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+}
+
+[data-theme='dark'] .surface-frosted {
+  background: color-mix(in srgb, var(--bg-header) 88%, transparent);
+}
+
+/* Icon container — quiet accent marks (not candy gradient blocks) */
+.surface-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  color: var(--surface-accent, var(--primary-500));
+  background: color-mix(in srgb, var(--surface-accent, var(--primary-500)) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--surface-accent, var(--primary-500)) 18%, transparent);
+  position: relative;
+  overflow: hidden;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+}
+
+.surface-icon::after {
+  display: none;
+}
+
+.surface-card--interactive:hover .surface-icon {
+  transform: none;
+  background: color-mix(in srgb, var(--surface-accent, var(--primary-500)) 14%, transparent);
+}
+
+/* Module accent presets */
+.surface-icon--learn {
+  --surface-accent: var(--color-learn);
+}
+
+.surface-icon--build {
+  --surface-accent: var(--color-build);
+}
+
+.surface-icon--operate {
+  --surface-accent: var(--color-operate);
+}
+
+.surface-icon--primary {
+  --surface-accent: var(--primary-500);
+}
+
+/* Section heading rhythm */
+.section-heading {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin: 0 0 var(--spacing-4);
+}
+
+/* Pill badge */
+.pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .surface-card,
+  .surface-card--interactive,
+  .surface-icon,
+  .surface-accent-top::before {
+    transition: none !important;
+  }
+
+  .surface-card--interactive:hover {
+    transform: none !important;
+  }
+
+  .surface-card--interactive:hover .surface-icon {
+    transform: none !important;
+  }
+}

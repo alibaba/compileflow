@@ -1,0 +1,189 @@
+name: Bug Report
+description: Report a bug to help us improve CompileFlow
+title: "[Bug]: "
+labels: [ "bug", "needs-triage" ]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the information below to help us diagnose and fix the issue.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Please confirm the following before submitting
+      options:
+        - label: I have searched [existing issues](https://github.com/alibaba/compileflow/issues) to ensure this bug has not been reported before
+          required: true
+        - label: I have checked the relevant [documentation](https://github.com/alibaba/compileflow/tree/master/docs)
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is
+      placeholder: Tell us what went wrong
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: Describe the expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: Describe the actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the bug
+      placeholder: |
+        1. Create a BPMN flow with...
+        2. Execute with parameters...
+        3. Observe error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: code
+    attributes:
+      label: Code Sample
+      description: If applicable, provide a minimal code sample that reproduces the issue
+      render: java
+      placeholder: |
+        ProcessEngine engine = ProcessEngineFactory.createBpmn();
+        ProcessResult<Map<String, Object>> result =
+            engine.execute(ProcessRef.code("example.flow"), variables);
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Logs
+      description: If applicable, paste any relevant error logs or stack traces
+      render: shell
+      placeholder: Paste error logs here
+
+  - type: input
+    id: version
+    attributes:
+      label: CompileFlow Version
+      description: Which version of CompileFlow are you using?
+      placeholder: "e.g., 2.0.0-SNAPSHOT, commit SHA, or release tag"
+    validations:
+      required: true
+
+  - type: input
+    id: last-known-good
+    attributes:
+      label: Last Known Good Version
+      description: If this is a regression, which version or commit worked?
+      placeholder: "e.g., 1.3.0, commit SHA, or not a regression"
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: Affected Module
+      description: Which area appears to be affected?
+      options:
+        - compileflow-api
+        - compileflow-core
+        - compileflow-bpmn
+        - compileflow-tbbpm
+        - compileflow-deploy
+        - compileflow-spring-boot-starter
+        - compileflow-workbench-server
+        - compileflow-workbench
+        - Documentation
+        - Build/CI
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: model-type
+    attributes:
+      label: Flow Model Type
+      description: Which flow model are you using?
+      options:
+        - BPMN 2.0
+        - TBBPM
+        - Both
+        - Not applicable
+    validations:
+      required: true
+
+  - type: input
+    id: java-version
+    attributes:
+      label: Java Version
+      description: Which Java version are you using?
+      placeholder: "e.g., Java 17, Java 21, or Java 25"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: framework
+    attributes:
+      label: Framework (if applicable)
+      description: Are you using CompileFlow with a framework?
+      options:
+        - Spring Boot
+        - Standalone
+        - Other (please specify in description)
+    validations:
+      required: false
+
+  - type: input
+    id: spring-boot-version
+    attributes:
+      label: Spring Boot Version (if applicable)
+      description: If using Spring Boot, which version?
+      placeholder: "e.g., 4.1.x or not applicable"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: Which operating system are you using?
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - Docker/Kubernetes
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here
+      placeholder: |
+        - Is this a regression? (worked in previous version)
+        - Any workarounds you've tried?
+        - Related issues or PRs?
+
+  - type: checkboxes
+    id: willing-to-help
+    attributes:
+      label: Contribution
+      description: Would you be willing to help fix this bug?
+      options:
+        - label: I am willing to submit a pull request to fix this bug
+          required: false

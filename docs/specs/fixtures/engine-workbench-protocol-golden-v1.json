@@ -1,0 +1,33 @@
+{
+  "formatVersion": 1,
+  "tbbpm": {
+    "fixture": "compileflow-durable/compileflow-durable-runtime/src/test/resources/tbbpm-durable-v1/all-constructs.bpm",
+    "designerNodeTypes": [
+      "autoTask",
+      "bpmCall",
+      "exclusive",
+      "foreach",
+      "inclusive",
+      "note",
+      "parallel",
+      "scriptTask",
+      "timerTask",
+      "waitEventTask",
+      "waitTask"
+    ],
+    "callSiteId": "child",
+    "callMappings": [
+      "input:result:input",
+      "output:output:result"
+    ]
+  },
+  "bpmn": {
+    "fixture": "compileflow-integration-tests/src/test/resources/bpmn20/compat/call_activity.bpmn",
+    "callSiteId": "callActivity1",
+    "callMappings": [
+      "input:inputValue:a",
+      "input:inputValue:b",
+      "output:serviceTask1Result:outputValue"
+    ]
+  }
+}

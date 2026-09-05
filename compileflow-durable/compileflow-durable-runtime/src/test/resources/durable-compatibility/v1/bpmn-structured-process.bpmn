@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  targetNamespace="urn:compileflow:durable-compatibility">
+  <bpmn:process id="durable.compatibility.bpmn.structured" isExecutable="true">
+    <bpmn:startEvent id="start"/>
+    <bpmn:subProcess id="scope">
+      <bpmn:startEvent id="scope_start"/>
+      <bpmn:endEvent id="scope_end"/>
+      <bpmn:sequenceFlow id="scope_flow" sourceRef="scope_start" targetRef="scope_end"/>
+    </bpmn:subProcess>
+    <bpmn:endEvent id="end"/>
+    <bpmn:sequenceFlow id="to_scope" sourceRef="start" targetRef="scope"/>
+    <bpmn:sequenceFlow id="to_end" sourceRef="scope" targetRef="end"/>
+  </bpmn:process>
+</bpmn:definitions>

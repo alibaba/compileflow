@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.loop.loopWithBreak" name="Loop with Break" description="Test foreach with break node">
+    <var name="numbers" dataType="java.util.List&lt;java.lang.Integer&gt;" inOutType="param"/>
+    <var name="result" dataType="java.lang.Integer" inOutType="return"/>
+    <var name="foundIndex" description="Found index" dataType="java.lang.Integer" inOutType="inner"/>
+    <start id="1" name="Start" g="105,17,30,30">
+        <transition g=":-15,20" to="2"/>
+    </start>
+    <end id="11" name="End" g="101,549,30,30"/>
+    <scriptTask id="2" name="Initialize" g="72,100,88,48">
+        <transition g=":-15,20" to="3"/>
+        <action type="script" language="qlexpress">
+                <output dataType="java.lang.Integer" target="foundIndex"/>
+                <code><![CDATA[-1]]></code>
+
+        </action>
+    </scriptTask>
+    <foreach id="3" name="Loop with Break" g="20,200,198,190"
+                 collection="numbers" item="num" index="i"
+                 itemType="java.lang.Integer">
+        <transition g=":-15,20" to="4"/>
+        <start id="3-start"><transition to="3-1"/></start>
+        <scriptTask id="3-1" name="Check and Set Index" g="70,220,88,48">
+            <transition g=":-15,20" to="3-break"/>
+            <action type="script" language="qlexpress">
+                    <input target="i" dataType="java.lang.Integer" source="i"/>
+                    <output dataType="java.lang.Integer" target="foundIndex"/>
+                <code><![CDATA[i]]></code>
+
+            </action>
+        </scriptTask>
+        <break id="3-break" name="Break if Found" g="70,280,88,48" condition="num == 5">
+            <transition to="3-end"/>
+        </break>
+        <end id="3-end"/>
+    </foreach>
+    <scriptTask id="4" name="Set Result" g="72,450,88,48">
+        <transition g=":-15,20" to="11"/>
+        <action type="script" language="qlexpress">
+                <input target="foundIndex" dataType="java.lang.Integer" source="foundIndex"/>
+                <output dataType="java.lang.Integer" target="result"/>
+                <code><![CDATA[foundIndex]]></code>
+
+        </action>
+    </scriptTask>
+</bpm>

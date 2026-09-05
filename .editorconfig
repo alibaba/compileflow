@@ -8,11 +8,17 @@ tab_width = 4
 indent_style = space
 trim_trailing_whitespace = true
 
+[*.java]
+indent_size = 4
+
 [*.xml]
 indent_size = 4
 
 [*.{yml,yaml}]
 indent_size = 2
+
+[*.{bat,cmd}]
+end_of_line = crlf
 
 [*.{md,mkd,markdown}]
 indent_size = 4

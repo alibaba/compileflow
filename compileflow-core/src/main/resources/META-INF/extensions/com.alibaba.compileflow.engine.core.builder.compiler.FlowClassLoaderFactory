@@ -1,2 +1,0 @@
-com.alibaba.compileflow.engine.core.builder.compiler.impl.UrlFlowClassLoaderFactory
-com.alibaba.compileflow.engine.core.builder.compiler.impl.MemoryFlowClassLoaderFactory

@@ -1,0 +1,140 @@
+{
+  "properties": [
+    {
+      "name": "compileflow.engine.components.allowed-beans",
+      "defaultValue": []
+    },
+    {
+      "name": "compileflow.engine.java-diagnostics.debug.bytecode-enabled",
+      "defaultValue": false
+    },
+    {
+      "name": "compileflow.engine.observability.mdc-propagation-enabled",
+      "defaultValue": false
+    },
+    {
+      "name": "compileflow.engine.runtime-mode",
+      "defaultValue": "COMPILED"
+    },
+    {
+      "name": "compileflow.deploy.artifact.mode",
+      "defaultValue": "DATABASE"
+    },
+    {
+      "name": "compileflow.deploy.enabled",
+      "defaultValue": false
+    },
+    {
+      "name": "compileflow.deploy.runtime-worker-enabled",
+      "defaultValue": false
+    },
+    {
+      "name": "compileflow.deploy.topology",
+      "defaultValue": "EMBEDDED"
+    },
+    {
+      "name": "compileflow.deploy.routing.aliases",
+      "defaultValue": [
+        "production"
+      ]
+    },
+    {
+      "name": "compileflow.deploy.routing.codes",
+      "defaultValue": []
+    },
+    {
+      "name": "compileflow.deploy.routing.namespaces",
+      "defaultValue": [
+        "default"
+      ]
+    }
+  ],
+  "hints": [
+    {
+      "name": "compileflow.deploy.artifact.mode",
+      "values": [
+        {
+          "value": "DATABASE",
+          "description": "Resolve immutable artifacts from the version repository."
+        },
+        {
+          "value": "CHANNEL",
+          "description": "Publish and resolve immutable artifacts through the deployment sync channel."
+        }
+      ]
+    },
+    {
+      "name": "compileflow.deploy.topology",
+      "values": [
+        {
+          "value": "EMBEDDED",
+          "description": "Project committed routing state into the local engine and recover definitions from the shared database."
+        },
+        {
+          "value": "DISTRIBUTED",
+          "description": "Exchange routing state between independently deployable control-plane and data-plane processes through a sync channel."
+        }
+      ]
+    },
+    {
+      "name": "compileflow.deploy.reconciliation.mode",
+      "values": [
+        {
+          "value": "DISABLED",
+          "description": "Do not schedule derived projection reconciliation."
+        },
+        {
+          "value": "DETECT",
+          "description": "Detect and report routing or artifact projection drift without repair."
+        },
+        {
+          "value": "REPAIR",
+          "description": "Detect and repair derived routing and artifact projections."
+        }
+      ]
+    },
+    {
+      "name": "compileflow.engine.java-diagnostics.debug.symbols",
+      "values": [
+        {
+          "value": "NONE",
+          "description": "Emit no source-level bytecode debug information."
+        },
+        {
+          "value": "LINES",
+          "description": "Emit source and line tables without local-variable tables."
+        },
+        {
+          "value": "FULL",
+          "description": "Emit source, line, and local-variable debug tables."
+        }
+      ]
+    },
+    {
+      "name": "compileflow.engine.model-type",
+      "values": [
+        {
+          "value": "TBBPM",
+          "description": "Use the TBBPM process model implementation."
+        },
+        {
+          "value": "BPMN",
+          "description": "Use the BPMN 2.0 process model implementation."
+        }
+      ]
+    },
+    {
+      "name": "compileflow.engine.runtime-mode",
+      "values": [
+        {
+          "value": "COMPILED",
+          "description": "Use generated Java as the optimized ProcessEngine runtime realization."
+        },
+        {
+          "value": "INTERPRETED",
+          "description": "Use the direct ProcessEngine runtime realization of the same Process semantics."
+        }
+      ]
+    }
+  ]
+}

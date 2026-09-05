@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  BPMN 2.0 equivalent of the TBBPM hello.bpm benchmark flow:
+  start -> scriptTask (value + 2) -> end. Uses the QL script executor
+  so the BPMN and TBBPM benchmarks exercise the same code path.
+-->
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:cf="http://www.compileflow.org"
+             targetNamespace="http://www.compileflow.org/bpmn/bench">
+  <process id="bpmn20.bench.hello" name="Hello Benchmark Flow" isExecutable="true">
+    <extensionElements>
+      <cf:var name="value" dataType="java.lang.Integer" inOutType="param"/>
+      <cf:var name="result" dataType="java.lang.Integer" inOutType="return"/>
+    </extensionElements>
+    <startEvent id="start" name="Start"/>
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="scriptTask1"/>
+    <scriptTask id="scriptTask1" name="Add Two" scriptFormat="qlexpress">
+      <extensionElements>
+        <cf:input target="value" dataType="java.lang.Integer" source="value"/>
+        <cf:output dataType="java.lang.Integer" target="result"/>
+      </extensionElements>
+      <script><![CDATA[value + 2]]></script>
+    </scriptTask>
+    <sequenceFlow id="flow2" sourceRef="scriptTask1" targetRef="end"/>
+    <endEvent id="end" name="End"/>
+  </process>
+</definitions>

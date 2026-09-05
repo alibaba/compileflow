@@ -1,0 +1,724 @@
+/* CompileFlow Workbench design tokens. */
+:root {
+  /* Primary — Iris purple (#6B57FF) */
+  --primary-50: #f3f1ff;
+  --primary-100: #e4e0ff;
+  --primary-200: #c7bfff;
+  --primary-300: #a599ff;
+  --primary-400: #8874ff;
+  --primary-500: #6b57ff; /* 主色 */
+  --primary-600: #5644e0;
+  --primary-700: #4333b8;
+  --primary-800: #32268f;
+  --primary-900: #241c6b;
+
+  /* Functional — secondary triad (shared with module accents).
+       Keep chroma close to Iris primary so light surfaces stay harmonious. */
+  --success-light: #21d789;
+  --success-main: #0f9f6e;
+  --success-dark: #0b7a55;
+
+  --warning-light: #ff9a4d;
+  --warning-main: #fc801d;
+  --warning-dark: #d96610;
+
+  --error-light: #ff5a7a;
+  --error-main: #fe2857;
+  --error-dark: #d91f48;
+
+  --info-light: #3d9bff;
+  --info-main: #087cfa;
+  --info-dark: #0666cc;
+
+  /* 灰度系统 */
+  --gray-50: #fafafa;
+  --gray-100: #f5f5f5;
+  --gray-200: #f0f0f0;
+  --gray-300: #d9d9d9;
+  --gray-400: #bfbfbf;
+  --gray-500: #8c8c8c;
+  --gray-600: #595959;
+  --gray-700: #434343;
+  --gray-800: #262626;
+  --gray-900: #1f1f1f;
+
+  /* 节点色彩 — align to brand secondary triad (start/success, end/error, task/info) */
+  --node-flow-start: var(--success-main);
+  --node-flow-end: var(--error-main);
+  --node-task-main: var(--info-main);
+  --node-task-light: var(--info-light);
+  --node-task-dark: var(--info-dark);
+  --node-gateway-main: var(--warning-main);
+  --node-gateway-light: var(--warning-light);
+  --node-gateway-dark: var(--warning-dark);
+  --node-subprocess-main: var(--primary-500);
+  --node-subprocess-light: var(--primary-400);
+  --node-subprocess-dark: var(--primary-600);
+  --node-control-break: var(--error-main);
+  --node-control-continue: var(--success-main);
+
+  /* Surface layers — cool ink / slate neutrals */
+  --bg-canvas: #fbfcfd;
+  --bg-panel: #f3f5f8;
+  --bg-header: rgba(251, 252, 253, 0.86);
+  --bg-toolbar: #eef1f5;
+  --bg-dropdown: #ffffff;
+  --bg-modal: rgba(15, 23, 42, 0.48);
+  --bg-hover: #eef1f5;
+  --bg-selected: #ece8ff;
+  --bg-elevated: #ffffff;
+  --bg-inset: #e8ecf1;
+  --bg-hero: #0b0a14;
+  /* X6 graph paper — separate from page chrome so dark mode can keep a soft slate board */
+  --graph-paper: #f4f6f9;
+  --graph-grid: #d7dde6;
+  --graph-node-fill: #ffffff;
+  --graph-node-fill-start: #f3faf4;
+  --graph-node-fill-end: #fff5f5;
+  --graph-node-fill-task: #f5f9ff;
+  --graph-node-fill-gateway: #fffbeb;
+  --graph-node-glow: 0 6px 16px rgba(15, 23, 42, 0.08);
+  --ink-900: #0b1220;
+  --ink-800: #152033;
+  --ink-700: #243247;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+
+  /* Interaction tokens */
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--primary-500) 18%, transparent);
+  --focus-ring-offset: 2px;
+  --interactive-hover: rgba(0, 0, 0, 0.04);
+  --interactive-active: rgba(0, 0, 0, 0.06);
+
+  /* Layered shadows — cool ink tint, restrained depth */
+  --shadow-none: none;
+  --shadow-xs: 0 1px 2px rgba(11, 18, 32, 0.04), 0 1px 3px rgba(11, 18, 32, 0.03);
+  --shadow-sm: 0 1px 3px rgba(11, 18, 32, 0.05), 0 4px 12px rgba(11, 18, 32, 0.04);
+  --shadow-md: 0 2px 6px rgba(11, 18, 32, 0.05), 0 10px 24px rgba(11, 18, 32, 0.07);
+  --shadow-lg: 0 4px 10px rgba(11, 18, 32, 0.05), 0 16px 40px rgba(11, 18, 32, 0.1);
+  --shadow-xl: 0 8px 20px rgba(11, 18, 32, 0.07), 0 28px 56px rgba(11, 18, 32, 0.12);
+  --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-node-default: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-node-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-node-selected: 0 8px 24px rgba(107, 87, 255, 0.28);
+
+  /* Font stack — curated for distinctive personality.
+       DM Sans for headings (geometric, modern, excellent CJK fallback via Noto Sans SC).
+       System stack reserved only for body text where CJK coverage is critical. */
+  --font-family-display:
+    'Sora', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family-base:
+    'Sora', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial,
+    sans-serif;
+  --font-family-code: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-base: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 30px;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* 间距 */
+  --spacing-0: 0px;
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-10: 40px;
+  --spacing-12: 48px;
+  --spacing-16: 64px;
+  --spacing-20: 80px;
+
+  /* 圆角 */
+  --radius-none: 0;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-full: 9999px;
+
+  /* Motion — 150–200ms micro-interactions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Markdown 内容 */
+  --code-bg: rgba(0, 0, 0, 0.06);
+  --primary-bg: rgba(107, 87, 255, 0.06);
+
+  /* Module accents — green / blue / coral */
+  --color-learn: #0f9f6e;
+  --color-learn-light: #21d789;
+  --color-build: #087cfa;
+  --color-build-light: #3d9bff;
+  --color-operate: #fe2857;
+  --color-operate-light: #ff5a7a;
+
+  /* === ExampleDetail 专属语义色 — reuse module / functional tokens === */
+  --color-rating-star: var(--warning-main);
+  --color-concept-icon: var(--color-learn);
+  --color-concept-bg: color-mix(in srgb, var(--color-learn) 8%, transparent);
+  --color-concept-border: color-mix(in srgb, var(--color-learn) 18%, transparent);
+  --color-keyconcept-icon: var(--color-build);
+  --color-keyconcept-bg: color-mix(in srgb, var(--color-build) 8%, transparent);
+  --color-keyconcept-border: color-mix(in srgb, var(--color-build) 18%, transparent);
+  --gradient-exec-success: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--success-main) 10%, transparent) 0%,
+    color-mix(in srgb, var(--success-main) 4%, transparent) 100%
+  );
+  --gradient-exec-error: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--error-main) 10%, transparent) 0%,
+    color-mix(in srgb, var(--error-main) 4%, transparent) 100%
+  );
+  --border-exec-success: color-mix(in srgb, var(--success-main) 28%, transparent);
+  --border-exec-error: color-mix(in srgb, var(--error-main) 28%, transparent);
+
+  /* === 渐变定义 — primary-led, secondary stops from brand triad === */
+  --gradient-title: linear-gradient(135deg, var(--primary-500) 0%, var(--color-build) 100%);
+  --gradient-learn-card: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-learn) 4%, transparent) 0%,
+    transparent 100%
+  );
+  --gradient-build-card: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-build) 4%, transparent) 0%,
+    transparent 100%
+  );
+  --gradient-operate-card: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-operate) 4%, transparent) 0%,
+    transparent 100%
+  );
+  --gradient-hero-banner: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-700) 100%);
+
+  /* === 语义化标签色 === */
+  --tag-rate-color: var(--warning-main);
+  --tag-learn-highlight: var(--color-learn-light);
+
+  /* Layout dimensions */
+  --site-max-width: 1180px;
+  --page-max-width: 1280px;
+  --header-height: 88px;
+  --header-navbar-height: 52px;
+  --header-breadcrumb-height: 32px;
+  --sidebar-width: 212px;
+  --sidebar-collapsed-width: 64px;
+
+  /* Z-index */
+  --z-index-base: 1;
+  --z-index-dropdown: 10;
+  --z-index-sticky: 20;
+  --z-index-fixed: 30;
+  --z-index-modal-backdrop: 40;
+  --z-index-modal: 50;
+  --z-index-popover: 60;
+  --z-index-tooltip: 70;
+
+  /* === AppBar brand accent — solid ink mark, not candy gradient === */
+  --appbar-brand-gradient: linear-gradient(160deg, var(--ink-800) 0%, var(--primary-500) 120%);
+
+  /* === Sidebar module accent colors (left rail) === */
+  --sidebar-learn-accent: var(--color-learn);
+  --sidebar-build-accent: var(--color-build);
+  --sidebar-operate-accent: var(--color-operate);
+
+  /* === Hero surfaces — ink stage + cool wash === */
+  --gradient-learn-banner: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--ink-900) 4%, var(--bg-canvas)) 0%,
+    var(--bg-canvas) 55%,
+    color-mix(in srgb, var(--color-learn) 5%, var(--bg-canvas)) 100%
+  );
+  --gradient-build-banner: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--ink-900) 4%, var(--bg-canvas)) 0%,
+    var(--bg-canvas) 55%,
+    color-mix(in srgb, var(--color-build) 5%, var(--bg-canvas)) 100%
+  );
+  --gradient-operate-banner: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--ink-900) 4%, var(--bg-canvas)) 0%,
+    var(--bg-canvas) 55%,
+    color-mix(in srgb, var(--color-operate) 5%, var(--bg-canvas)) 100%
+  );
+  --border-learn-banner: var(--border-subtle);
+  --border-build-banner: var(--border-subtle);
+  --border-operate-banner: var(--border-subtle);
+  --shadow-hero-learn: none;
+  --shadow-hero-build: none;
+  --shadow-hero-operate: none;
+  --hero-silhouette-bg: linear-gradient(160deg, #121a2b 0%, #1a2740 48%, #152033 100%);
+  --hero-silhouette-glow: radial-gradient(
+    ellipse 60% 50% at 70% 40%,
+    color-mix(in srgb, var(--primary-400) 28%, transparent),
+    transparent 70%
+  );
+  --hero-silhouette-node: #2a3d5c;
+  --hero-silhouette-node-accent: var(--primary-400);
+  --hero-silhouette-edge: color-mix(in srgb, var(--primary-300) 55%, transparent);
+  --hero-silhouette-label: rgba(226, 232, 240, 0.55);
+
+  /* === Page header / card tinted surfaces === */
+  --gradient-page-header: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-operate) 5%, transparent) 0%,
+    color-mix(in srgb, var(--tag-learn-highlight) 5%, transparent) 100%
+  );
+  --border-page-header: color-mix(in srgb, var(--color-operate) 10%, transparent);
+  --shadow-page-header: var(--shadow-sm);
+  --shadow-page-header-inset: 0 1px 0 color-mix(in srgb, #fff 60%, transparent) inset;
+
+  --bg-learn-subtle: color-mix(in srgb, var(--color-learn) 10%, transparent);
+  --bg-learn-muted: color-mix(in srgb, var(--color-learn) 8%, transparent);
+  --bg-learn-faint: color-mix(in srgb, var(--color-learn) 4%, transparent);
+  --bg-build-subtle: color-mix(in srgb, var(--color-build) 10%, transparent);
+  --bg-build-muted: color-mix(in srgb, var(--color-build) 8%, transparent);
+  --bg-build-faint: color-mix(in srgb, var(--color-build) 4%, transparent);
+  --bg-operate-subtle: color-mix(in srgb, var(--color-operate) 10%, transparent);
+  --bg-operate-muted: color-mix(in srgb, var(--color-operate) 8%, transparent);
+  --bg-operate-faint: color-mix(in srgb, var(--color-operate) 4%, transparent);
+  --bg-primary-subtle: color-mix(in srgb, var(--primary-500) 4%, transparent);
+  --bg-primary-muted: color-mix(in srgb, var(--primary-500) 7%, transparent);
+
+  --border-learn-subtle: color-mix(in srgb, var(--color-learn) 18%, transparent);
+  --border-build-subtle: color-mix(in srgb, var(--color-build) 15%, transparent);
+  --border-operate-subtle: color-mix(in srgb, var(--color-operate) 15%, transparent);
+  --border-primary-subtle: color-mix(in srgb, var(--primary-500) 12%, transparent);
+  --border-primary-muted: color-mix(in srgb, var(--primary-500) 10%, transparent);
+
+  --shadow-learn-icon: 0 8px 28px color-mix(in srgb, var(--color-learn) 25%, transparent);
+  --shadow-build-icon: 0 8px 28px color-mix(in srgb, var(--color-build) 25%, transparent);
+  --shadow-operate-icon: 0 8px 28px color-mix(in srgb, var(--color-operate) 25%, transparent);
+  --shadow-primary-icon: 0 6px 20px color-mix(in srgb, var(--primary-500) 25%, transparent);
+  --shadow-success-icon: 0 6px 20px color-mix(in srgb, var(--success-main) 25%, transparent);
+  --shadow-warning-icon: 0 6px 20px color-mix(in srgb, var(--warning-main) 25%, transparent);
+  --shadow-subprocess-icon: 0 6px 20px
+    color-mix(in srgb, var(--node-subprocess-main) 25%, transparent);
+  --shadow-muted-icon: 0 6px 20px color-mix(in srgb, var(--gray-900) 10%, transparent);
+
+  --shadow-concept-hover: 0 2px 12px color-mix(in srgb, var(--color-learn) 8%, transparent);
+  --shadow-keyconcept-hover: 0 2px 12px color-mix(in srgb, var(--color-build) 8%, transparent);
+  --shadow-filter-focus:
+    0 0 0 3px color-mix(in srgb, var(--primary-500) 6%, transparent), var(--shadow-sm);
+
+  --bg-exec-success-pre: color-mix(in srgb, var(--tag-learn-highlight) 5%, transparent);
+  --bg-exec-error-pre: color-mix(in srgb, var(--error-main) 5%, transparent);
+  --bg-error-subtle: color-mix(in srgb, var(--error-main) 8%, transparent);
+  --border-error-subtle: color-mix(in srgb, var(--error-main) 20%, transparent);
+
+  --bg-search-highlight: color-mix(in srgb, var(--warning-main) 25%, transparent);
+  --bg-hero-glow: color-mix(in srgb, var(--color-operate) 5%, transparent);
+  --bg-hero-icon-wrap: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-operate) 10%, transparent) 0%,
+    color-mix(in srgb, var(--tag-learn-highlight) 10%, transparent) 100%
+  );
+  --shadow-hero-icon-wrap: 0 8px 32px color-mix(in srgb, var(--color-operate) 12%, transparent);
+
+  --text-on-accent: #ffffff;
+  --text-on-accent-muted: rgba(255, 255, 255, 0.85);
+  --icon-drop-shadow: 0 2px 6px color-mix(in srgb, var(--gray-900) 20%, transparent);
+  --icon-overlay-gradient: linear-gradient(
+    135deg,
+    transparent 0%,
+    color-mix(in srgb, #fff 15%, transparent) 100%
+  );
+  --nav-elevation-shadow: 0 -2px 8px color-mix(in srgb, var(--gray-900) 8%, transparent);
+
+  /* === Designer header === */
+  --designer-header-height: 56px;
+
+  /* === Stat card accent (reuse primary for default) === */
+  --stat-card-accent: var(--primary-500);
+
+  /* === General semantic shorthand === */
+  --radius-3xl: 20px;
+  --spacing-7: 28px;
+  --spacing-14: 56px;
+
+  /* ============================================
+       Designer-specific semantic tokens
+       ============================================ */
+
+  /* Designer node type colors */
+  --color-node-start: var(--node-flow-start);
+  --color-node-end: var(--node-flow-end);
+  --color-node-task: var(--node-task-main);
+  --color-node-exclusive: var(--node-gateway-main);
+  --color-node-parallel: var(--node-flow-start);
+  --color-node-inclusive: var(--warning-main);
+  --color-node-subprocess: var(--node-subprocess-main);
+  --color-node-script: var(--node-subprocess-main);
+  --color-node-wait: var(--info-main);
+  --color-node-note: var(--gray-500);
+
+  /* Designer: semantic text colors (WCAG AA optimized) */
+  --color-text-primary: rgba(0, 0, 0, 0.88);
+  --color-text-secondary: rgba(0, 0, 0, 0.65);
+  --color-text-tertiary: rgba(0, 0, 0, 0.45);
+  --color-text-disabled: rgba(0, 0, 0, 0.25);
+  --color-text-inverse: #ffffff;
+
+  /* Designer: link colors (WCAG AA optimized) */
+  --color-link: var(--primary-600);
+  --color-link-hover: var(--primary-500);
+  --color-link-active: var(--primary-700);
+
+  /* Designer: primary interaction colors — Iris violet */
+  --color-primary: var(--primary-500);
+  --color-primary-hover: var(--primary-400);
+  --color-primary-active: var(--primary-600);
+  --color-primary-disabled: rgba(107, 87, 255, 0.3);
+  --color-primary-bg: var(--primary-50);
+  --color-primary-border: var(--primary-200);
+
+  /* Designer: success colors */
+  --color-success: var(--success-main);
+  --color-success-hover: var(--success-light);
+  --color-success-active: var(--success-dark);
+  --color-success-bg: color-mix(in srgb, var(--success-main) 8%, #ffffff);
+  --color-success-border: color-mix(in srgb, var(--success-main) 28%, transparent);
+
+  /* Designer: warning colors */
+  --color-warning: var(--warning-main);
+  --color-warning-hover: var(--warning-light);
+  --color-warning-active: var(--warning-dark);
+  --color-warning-bg: color-mix(in srgb, var(--warning-main) 8%, #ffffff);
+  --color-warning-border: color-mix(in srgb, var(--warning-main) 28%, transparent);
+
+  /* Designer: error colors */
+  --color-error: var(--error-main);
+  --color-error-hover: var(--error-light);
+  --color-error-active: var(--error-dark);
+  --color-error-bg: color-mix(in srgb, var(--error-main) 8%, #ffffff);
+  --color-error-border: color-mix(in srgb, var(--error-main) 28%, transparent);
+
+  /* Designer: info colors */
+  --color-info: var(--info-main);
+  --color-info-hover: var(--info-light);
+  --color-info-active: var(--info-dark);
+  --color-info-bg: color-mix(in srgb, var(--info-main) 8%, #ffffff);
+  --color-info-border: color-mix(in srgb, var(--info-main) 28%, transparent);
+
+  /* Designer: border colors (WCAG AA optimized) */
+  --color-border: #b0b0b0;
+  --color-border-light: #d9d9d9;
+  --color-border-dark: #8c8c8c;
+
+  /* Designer: background levels */
+  --color-bg-base: #ffffff;
+  --color-bg-container: #ffffff;
+  --color-bg-layout: #f5f5f5;
+  --color-bg-elevated: #ffffff;
+  --color-bg-mask: rgba(0, 0, 0, 0.45);
+
+  /* Designer: fill levels */
+  --color-fill-primary: rgba(0, 0, 0, 0.06);
+  --color-fill-secondary: rgba(0, 0, 0, 0.04);
+  --color-fill-tertiary: rgba(0, 0, 0, 0.02);
+
+  /* Designer: component heights */
+  --height-xs: 24px;
+  --height-sm: 32px;
+  --height-base: 40px;
+  --height-lg: 48px;
+  --height-xl: 64px;
+
+  /* Designer: icon sizes */
+  --icon-xs: 12px;
+  --icon-sm: 16px;
+  --icon-base: 20px;
+  --icon-md: 24px;
+  --icon-lg: 32px;
+  --icon-xl: 48px;
+
+  /* Designer: semantic shadows (aliases) */
+  --shadow-hover: var(--shadow-md);
+  --shadow-focus: 0 0 0 2px var(--color-primary-bg);
+  --shadow-active: var(--shadow-sm);
+  --shadow-elevated: var(--shadow-lg);
+
+  /* Designer: Z-index (high range for canvas overlays) */
+  --z-base: 0;
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+  --z-notification: 1080;
+
+  /* Designer: scrollbar */
+  --scrollbar-width: 6px;
+  --scrollbar-thumb-color: #d9d9d9;
+  --scrollbar-thumb-hover-color: #bfbfbf;
+  --scrollbar-track-color: #fafafa;
+  --scrollbar-radius: 3px;
+
+  /* Designer: breakpoints */
+  --breakpoint-xs: 480px;
+  --breakpoint-sm: 768px;
+  --breakpoint-md: 992px;
+  --breakpoint-lg: 1200px;
+  --breakpoint-xl: 1600px;
+  --breakpoint-xxl: 1920px;
+}
+
+/* 暗色模式变量 */
+[data-theme='dark'] {
+  /* Surface layers — cool near-black ink */
+  --bg-canvas: #0c0f14;
+  --bg-panel: #12161e;
+  --bg-header: rgba(12, 15, 20, 0.9);
+  --bg-toolbar: #171c26;
+  --bg-hover: #1c2330;
+  --bg-selected: #1a1633;
+  --bg-dropdown: #171c26;
+  --bg-modal: rgba(0, 0, 0, 0.72);
+  --bg-elevated: #1a2030;
+  --bg-inset: #080a0e;
+  --bg-hero: #080a0e;
+  --graph-paper: #141a24;
+  --graph-grid: #2a3344;
+  --graph-node-fill: #1c2433;
+  --graph-node-fill-start: #15241c;
+  --graph-node-fill-end: #2a1719;
+  --graph-node-fill-task: #162033;
+  --graph-node-fill-gateway: #2a2214;
+  --graph-node-glow: 0 8px 22px rgba(0, 0, 0, 0.35);
+  --ink-900: #f1f5f9;
+  --ink-800: #e2e8f0;
+  --ink-700: #cbd5e1;
+  --slate-200: #334155;
+  --slate-300: #475569;
+
+  --interactive-hover: rgba(255, 255, 255, 0.06);
+  --interactive-active: rgba(255, 255, 255, 0.1);
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--primary-400) 25%, transparent);
+
+  /* 灰度翻转 */
+  --gray-50: #1f1f1f;
+  --gray-100: #262626;
+  --gray-200: #434343;
+  --gray-300: #595959;
+  --gray-400: #8c8c8c;
+  --gray-500: #bfbfbf;
+  --gray-600: #d9d9d9;
+  --gray-700: #f0f0f0;
+  --gray-800: #f5f5f5;
+  --gray-900: #fafafa;
+
+  /* 文本色（暗黑模式） */
+  --text-primary: rgba(255, 255, 255, 0.88);
+  --text-secondary: rgba(255, 255, 255, 0.65);
+  --text-tertiary: rgba(255, 255, 255, 0.45);
+
+  /* 边框和悬停 */
+  --border-color: rgba(255, 255, 255, 0.12);
+  --hover-bg: rgba(255, 255, 255, 0.08);
+
+  /* 节点色彩（暗黑模式增亮，提升可读性）*/
+  --node-flow-start: var(--success-light);
+  --node-flow-end: var(--error-light);
+  --node-task-main: var(--info-light);
+  --node-task-light: #6bb4ff;
+  --node-task-dark: var(--info-main);
+  --node-gateway-main: var(--warning-light);
+  --node-gateway-light: #ffb56b;
+  --node-gateway-dark: var(--warning-main);
+  --node-subprocess-main: var(--primary-400);
+  --node-subprocess-light: var(--primary-300);
+  --node-subprocess-dark: var(--primary-500);
+  --node-control-break: var(--error-light);
+  --node-control-continue: var(--success-light);
+
+  /* 功能色（暗黑模式增亮，与 ThemeContext / 模块色同源） */
+  --success-light: #3dea62;
+  --success-main: #21d789;
+  --success-dark: #0f9f6e;
+  --warning-light: #ffb56b;
+  --warning-main: #ff9a4d;
+  --warning-dark: #fc801d;
+  --error-light: #ff7a94;
+  --error-main: #ff5a7a;
+  --error-dark: #fe2857;
+  --info-light: #6bb4ff;
+  --info-main: #3d9bff;
+  --info-dark: #087cfa;
+
+  /* Layered shadows — dark mode */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.35), 0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-xl: 0 8px 16px rgba(0, 0, 0, 0.4), 0 20px 48px rgba(0, 0, 0, 0.5);
+  --shadow-node-selected: 0 8px 24px rgba(155, 140, 255, 0.4);
+
+  /* Markdown 内容 - 暗色模式 */
+  --code-bg: rgba(255, 255, 255, 0.1);
+  --primary-bg: rgba(155, 140, 255, 0.16);
+
+  /* 模块色 dark 版本 */
+  --color-learn: #21d789;
+  --color-learn-light: #3dea62;
+  --color-build: #3d9bff;
+  --color-build-light: #6bb4ff;
+  --color-operate: #ff5a7a;
+  --color-operate-light: #ff7a94;
+
+  /* 渐变 dark 版本 */
+  --gradient-title: linear-gradient(135deg, var(--primary-400) 0%, var(--color-build-light) 100%);
+  --tag-rate-color: var(--warning-light);
+  --tag-learn-highlight: var(--color-learn-light);
+
+  /* ExampleDetail dark 版本 */
+  --color-rating-star: var(--warning-light);
+  --color-concept-icon: var(--color-learn-light);
+  --color-concept-bg: color-mix(in srgb, var(--color-learn) 14%, transparent);
+  --color-concept-border: color-mix(in srgb, var(--color-learn) 28%, transparent);
+  --color-keyconcept-icon: var(--color-build-light);
+  --color-keyconcept-bg: color-mix(in srgb, var(--color-build) 14%, transparent);
+  --color-keyconcept-border: color-mix(in srgb, var(--color-build) 28%, transparent);
+  --gradient-exec-success: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--success-main) 14%, transparent) 0%,
+    color-mix(in srgb, var(--success-main) 6%, transparent) 100%
+  );
+  --gradient-exec-error: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--error-main) 14%, transparent) 0%,
+    color-mix(in srgb, var(--error-main) 6%, transparent) 100%
+  );
+  --border-exec-success: color-mix(in srgb, var(--success-main) 32%, transparent);
+  --border-exec-error: color-mix(in srgb, var(--error-main) 32%, transparent);
+
+  /* Designer-specific tokens - dark mode overrides */
+  --color-text-primary: rgba(255, 255, 255, 0.85);
+  --color-text-secondary: rgba(255, 255, 255, 0.65);
+  --color-text-tertiary: rgba(255, 255, 255, 0.45);
+  --color-text-disabled: rgba(255, 255, 255, 0.25);
+
+  --color-border: #434343;
+  --color-border-light: #303030;
+
+  --color-bg-base: #141414;
+  --color-bg-container: #1f1f1f;
+  --color-bg-layout: #000000;
+  --color-bg-elevated: #262626;
+
+  --color-fill-primary: rgba(255, 255, 255, 0.08);
+  --color-fill-secondary: rgba(255, 255, 255, 0.06);
+  --color-fill-tertiary: rgba(255, 255, 255, 0.04);
+
+  --color-node-start: var(--node-flow-start);
+  --color-node-end: var(--node-flow-end);
+  --color-node-task: var(--node-task-main);
+  --color-node-exclusive: var(--node-gateway-main);
+  --color-node-parallel: var(--node-flow-start);
+  --color-node-inclusive: var(--warning-main);
+  --color-node-subprocess: var(--node-subprocess-main);
+  --color-node-script: var(--node-subprocess-main);
+  --color-node-wait: var(--info-main);
+  --color-node-note: var(--gray-500);
+
+  --scrollbar-thumb-color: #595959;
+  --scrollbar-thumb-hover-color: #8c8c8c;
+  --scrollbar-track-color: #1f1f1f;
+
+  /* Primary dark overrides — Iris violet */
+  --color-primary-bg: rgba(107, 87, 255, 0.18);
+  --color-primary-border: rgba(155, 140, 255, 0.4);
+
+  /* Success dark overrides */
+  --color-success-bg: color-mix(in srgb, var(--success-main) 16%, transparent);
+  --color-success-border: color-mix(in srgb, var(--success-main) 36%, transparent);
+
+  /* Warning dark overrides */
+  --color-warning-bg: color-mix(in srgb, var(--warning-main) 16%, transparent);
+  --color-warning-border: color-mix(in srgb, var(--warning-main) 36%, transparent);
+
+  /* Error dark overrides */
+  --color-error-bg: color-mix(in srgb, var(--error-main) 16%, transparent);
+  --color-error-border: color-mix(in srgb, var(--error-main) 36%, transparent);
+
+  /* Info dark overrides */
+  --color-info-bg: color-mix(in srgb, var(--info-main) 16%, transparent);
+  --color-info-border: color-mix(in srgb, var(--info-main) 36%, transparent);
+
+  /* Shadow focus */
+  --shadow-focus: 0 0 0 2px rgba(107, 87, 255, 0.28);
+
+  /* Hero banner — dark mode */
+  --gradient-learn-banner: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--color-learn) 8%, transparent) 0%,
+    transparent 50%,
+    color-mix(in srgb, var(--primary-500) 6%, transparent) 100%
+  );
+  --gradient-build-banner: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--color-build) 8%, transparent) 0%,
+    transparent 50%,
+    color-mix(in srgb, var(--primary-500) 6%, transparent) 100%
+  );
+  --gradient-operate-banner: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--color-operate) 8%, transparent) 0%,
+    transparent 50%,
+    color-mix(in srgb, var(--primary-500) 6%, transparent) 100%
+  );
+  --border-learn-banner: var(--border-subtle);
+  --border-build-banner: var(--border-subtle);
+  --border-operate-banner: var(--border-subtle);
+  --shadow-hero-learn: none;
+  --shadow-hero-build: none;
+  --shadow-hero-operate: none;
+  --hero-silhouette-bg: linear-gradient(160deg, #0a0e16 0%, #141c2c 48%, #101826 100%);
+  --hero-silhouette-glow: radial-gradient(
+    ellipse 60% 50% at 70% 40%,
+    color-mix(in srgb, var(--primary-400) 22%, transparent),
+    transparent 70%
+  );
+  --hero-silhouette-node: #243247;
+  --hero-silhouette-node-accent: var(--primary-400);
+  --hero-silhouette-edge: color-mix(in srgb, #60a5fa 40%, transparent);
+  --hero-silhouette-label: rgba(226, 232, 240, 0.45);
+
+  --gradient-page-header: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-operate-light) 7%, transparent) 0%,
+    color-mix(in srgb, var(--color-learn-light) 7%, transparent) 100%
+  );
+  --border-page-header: color-mix(in srgb, var(--color-operate-light) 10%, transparent);
+  --shadow-page-header: 0 4px 32px color-mix(in srgb, #000 30%, transparent);
+
+  --bg-primary-subtle: color-mix(in srgb, var(--primary-500) 10%, transparent);
+  --bg-primary-muted: color-mix(in srgb, var(--primary-500) 6%, transparent);
+  --border-primary-subtle: color-mix(in srgb, var(--primary-500) 15%, transparent);
+  --border-primary-muted: color-mix(in srgb, var(--primary-500) 15%, transparent);
+
+  --bg-coming-soon: color-mix(in srgb, #fff 8%, transparent);
+  --border-coming-soon: color-mix(in srgb, #fff 15%, transparent);
+  --nav-elevation-shadow: 0 -2px 8px color-mix(in srgb, #000 30%, transparent);
+}

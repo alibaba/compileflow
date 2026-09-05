@@ -1,0 +1,59 @@
+.wizardPage {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.steps {
+  margin: var(--spacing-8) 0;
+}
+
+.stepContent {
+  min-height: 280px;
+  padding: var(--spacing-6);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+}
+
+.confirmPanel {
+  margin-bottom: var(--spacing-4);
+  padding: var(--spacing-5);
+  background: color-mix(in srgb, var(--bg-panel) 92%, var(--border-subtle));
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+.confirmTitle {
+  margin: 0 0 var(--spacing-4);
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.confirmGrid {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: var(--spacing-3) var(--spacing-4);
+  margin: 0;
+  line-height: 2;
+}
+
+.confirmGrid dt {
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.confirmGrid dd {
+  margin: 0;
+}
+
+.aliasName {
+  font-weight: var(--font-weight-medium);
+}
+
+.actions {
+  margin-top: var(--spacing-8);
+  padding-top: var(--spacing-6);
+  border-top: 1px solid var(--border-subtle);
+}

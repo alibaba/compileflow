@@ -1,10 +1,7 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -16,169 +13,267 @@
  */
 package com.alibaba.compileflow.engine.config;
 
+import java.time.Duration;
+import java.util.Objects;
+
 /**
- * Configuration for process engine executors, defining thread pool sizes for compilation and execution tasks.
- * <p>
- * This class is immutable and should be created using the static factory methods {@link #defaults()},
- * {@link #of(int, int)}, or via the {@link Builder}.
+ * Immutable execution capacity, backpressure, and cancellation-safety settings
+ * owned by one process engine.
  *
  * @author yusu
  */
-public class ProcessExecutorConfig implements Validatable {
+public final class ProcessExecutorConfig {
+    private static final int DEFAULT_RUNTIME_LOAD_MAX_PENDING = 4;
+    private static final int DEFAULT_ACTION_TIMEOUT_MAX_PENDING = 32;
+    private static final Duration DEFAULT_ACTION_TIMEOUT_CANCELLATION_GRACE_PERIOD = Duration.ofSeconds(2);
+    private static final Duration DEFAULT_PARALLEL_CANCELLATION_GRACE_PERIOD = Duration.ofSeconds(2);
+    private final int runtimeLoadMaxConcurrency;
+    private final int runtimeLoadMaxPending;
+    private final int actionTimeoutMaxConcurrency;
+    private final int actionTimeoutMaxPending;
+    private final Duration actionTimeoutCancellationGracePeriod;
+    private final Duration parallelCancellationGracePeriod;
 
-    private final int compilationThreads;
-    private final int executionThreads;
-
-    private ProcessExecutorConfig(int compilationThreads, int executionThreads) {
-        this.compilationThreads = compilationThreads;
-        this.executionThreads = executionThreads;
+    private ProcessExecutorConfig(Builder builder) {
+        this.runtimeLoadMaxConcurrency = builder.runtimeLoadMaxConcurrency;
+        this.runtimeLoadMaxPending = builder.runtimeLoadMaxPending;
+        this.actionTimeoutMaxConcurrency = builder.actionTimeoutMaxConcurrency;
+        this.actionTimeoutMaxPending = builder.actionTimeoutMaxPending;
+        this.actionTimeoutCancellationGracePeriod = builder.actionTimeoutCancellationGracePeriod;
+        this.parallelCancellationGracePeriod = builder.parallelCancellationGracePeriod;
     }
 
     /**
-     * Returns a default executor configuration with a fixed number of compilation threads.
+     * Returns the CPU-aware default runtime-load concurrency limit.
+     *
+     * @return one or two concurrent runtime loads depending on available processors
      */
-    public static int defaultCompilationThreads() {
+    public static int defaultRuntimeLoadMaxConcurrency() {
         return Math.min(2, Math.max(1, Runtime.getRuntime().availableProcessors() / 8));
     }
 
     /**
-     * Returns a default executor configuration with a fixed number of execution threads.
+     * Returns the CPU-aware default concurrency limit for timeout-enforced actions.
+     *
+     * @return at least four concurrent actions
      */
-    public static int defaultExecutionThreads() {
+    public static int defaultActionTimeoutMaxConcurrency() {
         return Math.max(4, Runtime.getRuntime().availableProcessors());
     }
 
     /**
-     * Creates an executor configuration with the specified thread counts.
+     * Creates a builder initialized with production defaults.
      *
-     * @param compilationThreads The number of threads for the compilation thread pool.
-     * @param executionThreads   The number of threads for the execution thread pool.
-     * @return A new {@link ProcessExecutorConfig} instance.
-     */
-    public static ProcessExecutorConfig of(int compilationThreads, int executionThreads) {
-        return new ProcessExecutorConfig(compilationThreads, executionThreads);
-    }
-
-    /**
-     * Returns a new {@link Builder} for creating a {@link ProcessExecutorConfig} instance.
-     *
-     * @return A new builder instance.
+     * @return executor configuration builder
      */
     public static Builder builder() {
         return new Builder();
     }
 
-    public int getCompilationThreads() {
-        return compilationThreads;
-    }
-
-    public int getExecutionThreads() {
-        return executionThreads;
+    /**
+     * Creates the default executor configuration.
+     *
+     * @return validated CPU-aware defaults
+     */
+    public static ProcessExecutorConfig defaults() {
+        return builder().build();
     }
 
     /**
-     * Gets the fixed number of event threads from the central property configuration.
+     * Creates a builder initialized from this immutable snapshot.
      *
-     * @return The number of event handler threads.
+     * @return mutable builder carrying all current values
      */
-    public int getEventThreads() {
-        return ProcessPropertyProvider.Executor.getEventThreads();
+    public Builder toBuilder() {
+        return new Builder()
+            .runtimeLoadMaxConcurrency(runtimeLoadMaxConcurrency)
+            .runtimeLoadMaxPending(runtimeLoadMaxPending)
+            .actionTimeoutMaxConcurrency(actionTimeoutMaxConcurrency)
+            .actionTimeoutMaxPending(actionTimeoutMaxPending)
+            .actionTimeoutCancellationGracePeriod(actionTimeoutCancellationGracePeriod)
+            .parallelCancellationGracePeriod(parallelCancellationGracePeriod);
     }
 
     /**
-     * Gets the fixed number of scheduled threads from the central property configuration.
+     * Returns the maximum number of unique runtime loads that may run concurrently.
      *
-     * @return The number of scheduler threads.
+     * @return maximum concurrent runtime loads
      */
-    public int getScheduleThreads() {
-        return ProcessPropertyProvider.Executor.getScheduleThreads();
+    public int getRuntimeLoadMaxConcurrency() {
+        return runtimeLoadMaxConcurrency;
     }
 
-    @Override
-    public ValidationResult validate() {
-        ValidationResult result = ValidationResult.success();
-        result = result.merge(validateBasic());
-        result = result.merge(validateSemantic());
-        result = result.merge(validateRuntime());
-        return result;
+    /**
+     * Returns the maximum number of unique runtime loads that may wait when all
+     * execution slots are occupied.
+     *
+     * @return maximum pending runtime loads, or zero for fail-fast admission
+     */
+    public int getRuntimeLoadMaxPending() {
+        return runtimeLoadMaxPending;
     }
 
-    private ValidationResult validateBasic() {
-        return ProcessConfigValidator.combine(
-                ProcessConfigValidator.validatePositive(compilationThreads, "compilationThreads"),
-                ProcessConfigValidator.validatePositive(executionThreads, "executionThreads")
-        );
+    /**
+     * Returns the concurrency limit for actions that require timeout enforcement.
+     *
+     * @return concurrent action limit
+     */
+    public int getActionTimeoutMaxConcurrency() {
+        return actionTimeoutMaxConcurrency;
     }
 
-    private ValidationResult validateSemantic() {
-        ValidationResult result = ValidationResult.success();
+    /**
+     * Returns the maximum number of timeout-enforced action attempts that may
+     * wait when all execution slots are occupied.
+     *
+     * @return maximum pending action attempts, or zero for fail-fast admission
+     */
+    public int getActionTimeoutMaxPending() {
+        return actionTimeoutMaxPending;
+    }
 
-        if (compilationThreads > executionThreads) {
-            result = result.addWarning(
-                    "Compilation threads (" + compilationThreads + ") > execution threads (" + executionThreads +
-                            ") may cause resource imbalance");
+    /**
+     * Returns how long a timed-out or cancelled action waits for the worker to
+     * stop before the execution fails closed.
+     *
+     * @return non-negative cancellation drain budget
+     */
+    public Duration getActionTimeoutCancellationGracePeriod() {
+        return actionTimeoutCancellationGracePeriod;
+    }
+
+    /**
+     * Returns how long a failed parallel gateway waits for interrupted sibling
+     * branches to stop cooperatively.
+     *
+     * @return non-negative cancellation drain budget
+     */
+    public Duration getParallelCancellationGracePeriod() {
+        return parallelCancellationGracePeriod;
+    }
+
+    ValidationResult validate() {
+        ValidationResult runtimeConcurrency =
+                ProcessConfigValidator.validatePositive(runtimeLoadMaxConcurrency, "executor.runtimeLoadMaxConcurrency");
+        ValidationResult result = ProcessConfigValidator.combine(runtimeConcurrency,
+                ProcessConfigValidator.validateNonNegative(runtimeLoadMaxPending, "executor.runtimeLoadMaxPending"),
+                ProcessConfigValidator.validatePositive(actionTimeoutMaxConcurrency,
+                        "executor.actionTimeoutMaxConcurrency"),
+                ProcessConfigValidator.validateNonNegative(actionTimeoutMaxPending, "executor.actionTimeoutMaxPending"));
+        if ((long) runtimeLoadMaxConcurrency + runtimeLoadMaxPending > Integer.MAX_VALUE) {
+            result = result.addError(
+                    "executor.runtimeLoadMaxConcurrency + runtimeLoadMaxPending must not exceed " + Integer.MAX_VALUE);
         }
-
-        return result;
-    }
-
-    private ValidationResult validateRuntime() {
-        ValidationResult result = ValidationResult.success();
-        result = result.merge(ProcessConfigValidator.validateCpuRelated(compilationThreads, "compilationThreads"));
-        result = result.merge(ProcessConfigValidator.validateCpuRelated(executionThreads, "executionThreads"));
-        result = result.merge(ProcessConfigValidator.validateResourceBalance(this));
+        result = result.merge(ProcessConfigValidator.validateNonNegativeDurationMillis(actionTimeoutCancellationGracePeriod,
+                "executor.actionTimeoutCancellationGracePeriod"));
+        result = result.merge(ProcessConfigValidator.validateNonNegativeDurationMillis(parallelCancellationGracePeriod,
+                "executor.parallelCancellationGracePeriod"));
         return result;
     }
 
     @Override
     public String toString() {
-        return String.format("ExecutorConfig{compilationThreads=%d, executionThreads=%d, eventThreads=%d(fixed), scheduleThreads=%d(fixed)}",
-                compilationThreads, executionThreads, getEventThreads(), getScheduleThreads());
+        return "ProcessExecutorConfig{runtimeLoad=" + runtimeLoadMaxConcurrency + "/pending=" + runtimeLoadMaxPending
+                + ", actionTimeout=" + actionTimeoutMaxConcurrency + "/pending=" + actionTimeoutMaxPending
+                + "/cancellation=" + actionTimeoutCancellationGracePeriod + ", parallelCancellation="
+                + parallelCancellationGracePeriod + '}';
     }
 
     /**
-     * A builder for creating {@link ProcessExecutorConfig} instances.
-     * If a value is not set, it will fall back to the default calculated by {@link #defaults()}.
+     * Builder for {@link ProcessExecutorConfig}.
      */
     public static final class Builder {
-        private int compilationThreads = -1;
-        private int executionThreads = -1;
+        private int runtimeLoadMaxConcurrency = defaultRuntimeLoadMaxConcurrency();
+        private int runtimeLoadMaxPending = DEFAULT_RUNTIME_LOAD_MAX_PENDING;
+        private int actionTimeoutMaxConcurrency = defaultActionTimeoutMaxConcurrency();
+        private int actionTimeoutMaxPending = DEFAULT_ACTION_TIMEOUT_MAX_PENDING;
+        private Duration actionTimeoutCancellationGracePeriod = DEFAULT_ACTION_TIMEOUT_CANCELLATION_GRACE_PERIOD;
+        private Duration parallelCancellationGracePeriod = DEFAULT_PARALLEL_CANCELLATION_GRACE_PERIOD;
+
+        private Builder() {
+        }
 
         /**
-         * Sets the number of threads for the compilation thread pool.
+         * Sets the maximum number of unique runtime loads that may run concurrently.
          *
-         * @param threads The number of compilation threads.
-         * @return This builder instance for chaining.
+         * @param value positive runtime-load concurrency limit
+         * @return this builder
          */
-        public Builder compilationThreads(int threads) {
-            this.compilationThreads = threads;
+        public Builder runtimeLoadMaxConcurrency(int value) {
+            this.runtimeLoadMaxConcurrency = value;
             return this;
         }
 
         /**
-         * Sets the number of threads for the execution thread pool.
+         * Sets the maximum number of unique runtime loads that may wait for an
+         * execution slot.
          *
-         * @param threads The number of execution threads.
-         * @return This builder instance for chaining.
+         * @param value non-negative pending-load limit; zero rejects instead of waiting
+         * @return this builder
          */
-        public Builder executionThreads(int threads) {
-            this.executionThreads = threads;
+        public Builder runtimeLoadMaxPending(int value) {
+            this.runtimeLoadMaxPending = value;
             return this;
         }
 
         /**
-         * Builds and validates the {@link ProcessExecutorConfig}.
+         * Sets the concurrency limit for actions that require timeout enforcement.
          *
-         * @return A new, validated {@link ProcessExecutorConfig} instance.
+         * @param value positive concurrent action limit
+         * @return this builder
+         */
+        public Builder actionTimeoutMaxConcurrency(int value) {
+            this.actionTimeoutMaxConcurrency = value;
+            return this;
+        }
+
+        /**
+         * Sets the maximum number of timeout-enforced action attempts that may
+         * wait for an execution slot.
+         *
+         * @param value non-negative pending-attempt limit; zero rejects instead of waiting
+         * @return this builder
+         */
+        public Builder actionTimeoutMaxPending(int value) {
+            this.actionTimeoutMaxPending = value;
+            return this;
+        }
+
+        /**
+         * Sets the cooperative cancellation drain budget for timed-out or
+         * cancelled actions.
+         *
+         * @param value non-negative whole-millisecond duration; zero disables extra drain time
+         * @return this builder
+         */
+        public Builder actionTimeoutCancellationGracePeriod(Duration value) {
+            this.actionTimeoutCancellationGracePeriod = Objects.requireNonNull(value,
+                    "actionTimeoutCancellationGracePeriod must not be null");
+            return this;
+        }
+
+        /**
+         * Sets the cooperative cancellation drain budget for failed parallel
+         * gateways.
+         *
+         * @param value non-negative whole-millisecond duration; zero disables extra drain time
+         * @return this builder
+         */
+        public Builder parallelCancellationGracePeriod(Duration value) {
+            this.parallelCancellationGracePeriod = Objects.requireNonNull(value,
+                    "parallelCancellationGracePeriod must not be null");
+            return this;
+        }
+
+        /**
+         * Builds and validates an immutable executor configuration.
+         *
+         * @return validated executor configuration
          */
         public ProcessExecutorConfig build() {
-            ProcessExecutorConfig config = new ProcessExecutorConfig(
-                    compilationThreads > 0 ? compilationThreads : defaultCompilationThreads(),
-                    executionThreads > 0 ? executionThreads : defaultExecutionThreads());
-
-            config.validateAndThrow();
+            ProcessExecutorConfig config = new ProcessExecutorConfig(this);
+            config.validate().throwIfInvalid();
             return config;
         }
     }
-
 }

@@ -1,136 +1,105 @@
-# ProcessEngine 资源管理指南
+# ProcessEngine 资源管理
 
-> ⚠️ **严重警告**: `ProcessEngine` 实例是一个重量级对象，它管理着多个内部线程池。随意创建实例是在 CompileFlow
-> 中导致严重资源泄漏和应用不稳定的最常见原因。
+`ProcessEngine` 是线程安全、需要长期复用的运行时。它管理有界 executor、运行时与编译缓存，以及生成类使用的
+`ClassLoader`。应在应用装配入口创建 Engine，在请求之间复用，并在应用关闭时释放。
 
-## 1. 问题所在：为什么引擎创建成本高昂
+## 1. 选择正确的作用域
 
-每当您创建一个 `ProcessEngine` 实例时，您都在创建：
+每个不同的 **model type 与不可变配置边界** 使用一个 Engine。多数应用只需要一个 TBBPM Engine；同时执行 TBBPM 与 BPMN
+的应用需要每种格式各一个长生命周期 Engine。不同 Engine 不共享可变 cache、executor 或生成类 ClassLoader。
 
-- **编译池 (Compilation Pool)**: 用于将流程定义编译成 Java 字节码。
-- **执行池 (Execution Pool)**: 用于运行您流程中的业务逻辑。
-- **事件池 (Event Pool)**: 用于处理异步事件。
-- **调度池 (Schedule Pool)**: 用于内部的定时任务，如超时处理。
+不要按请求、流程、租户或版本创建 Engine。流程 identity 与版本路由是请求数据，不是新建 Engine 的理由。只有确实需要不同 model
+type、ClassLoader 作用域、扩展快照或资源上限时，才应创建独立 Engine。
 
-总而言之，一个引擎实例可以管理 **16-64 个后台线程**。为每个请求或在循环中创建一个引擎会迅速耗尽您服务器的线程和内存资源，从而导致灾难性故障。
+由 builder 或依赖注入容器提供的扩展能力归应用所有；只要它们线程安全，就可以有意共享。
+`ProcessEngine.close()` 只关闭 Engine 自有资源。
 
-```java
-// ❌ 反面模式：绝对不要这样做！
-public void handleRequest(Request request) {
-    // 每次调用都会创建 16-64 个新线程，并且它们永远不会被清理！
-    ProcessEngine<TbbpmModel> engine = ProcessEngineFactory.createTbbpm();
-    engine.execute(source, request, Response.class);
-}
-```
+## 2. Spring Boot 生命周期
 
-## 2. 黄金法则：每个应用一个引擎
-
-对于绝大多数应用程序而言，您在整个应用的生命周期中只需要**一个单例的 `ProcessEngine` 实例**。这能确保线程池只被创建一次，并在所有请求中被高效地复用。
-
-以下是实现这一点的推荐方法。
-
----
-
-### 解决方案一：Spring Boot 方式 (推荐)
-
-如果您使用 Spring Boot，这是最简单、最安全的方法。`compileflow-spring-boot-starter` 会自动为您配置一个单例的
-`ProcessEngine`。
-
-**工作原理:** 只需将引擎注入到您的服务中。Spring 会管理其生命周期，包括优雅停机。
+Starter 创建 application-scoped `ProcessEngine` bean，并随 ApplicationContext 关闭。直接注入并复用：
 
 ```java
 import com.alibaba.compileflow.engine.ProcessEngine;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.alibaba.compileflow.engine.ProcessExecutionOptions;
+import com.alibaba.compileflow.engine.ProcessRef;
+import com.alibaba.compileflow.engine.ProcessResult;
 import org.springframework.stereotype.Service;
 
 @Service
-public class OrderService {
-    
-    // ✅ 正确做法：注入由 Spring 管理的单例引擎。
-    @Autowired
-    private ProcessEngine<TbbpmModel> engine;
-    
-    public void processOrder(OrderRequest request) {
-        // 安全且高效：所有请求共享同一个引擎和线程池。
-        engine.execute(ProcessSource.fromCode("bpm.order.process"), request, OrderResponse.class);
+public final class OrderService {
+
+    private final ProcessEngine engine;
+
+    public OrderService(ProcessEngine engine) {
+        this.engine = engine;
+    }
+
+    public ProcessResult<OrderResponse> process(OrderRequest request) {
+        return engine.execute(
+                ProcessDefinition.classpath("bpm.order.process", "flows/order.process.bpm"),
+                request,
+                OrderResponse.class,
+                ProcessExecutionOptions.defaults());
     }
 }
 ```
 
----
+CompileFlow Workbench Server 因为同时承载两种 model type，内部使用 `ProcessEngineRegistry`。普通 starter 应用不需要依赖这个平台专用
+registry。
 
-### 解决方案二：手动单例方式 (适用于非 Spring 应用)
+## 3. 普通 Java 生命周期
 
-如果您不使用 Spring，则必须自己管理单例实例。最佳实践是创建一个静态持有者类，并注册一个 JVM 关闭钩子以确保引擎被正确关闭。
+将 Engine 与其他应用基础设施一起创建，并指定唯一 owner 负责关闭。命令行和批处理应用使用顶层
+`try` 块即可：
 
 ```java
 import com.alibaba.compileflow.engine.ProcessEngine;
 import com.alibaba.compileflow.engine.ProcessEngineFactory;
-import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
+import com.alibaba.compileflow.engine.ProcessRef;
 
-public final class ProcessEngineManager {
-    
-    // ✅ 正确做法：创建一个唯一的、静态的实例。
-    private static final ProcessEngine<TbbpmModel> INSTANCE = 
-        ProcessEngineFactory.create(ProcessEngineConfig.tbbpm());
-    
-    static {
-        // ✅ 关键步骤：注册一个关闭钩子，在程序退出时关闭引擎。
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            try {
-                INSTANCE.close();
-                System.out.println("ProcessEngine 已优雅关闭。");
-            } catch (Exception e) {
-                System.err.println("关闭 ProcessEngine 时出错: " + e.getMessage());
-            }
-        }));
-    }
-    
-    public static ProcessEngine<TbbpmModel> getInstance() {
-        return INSTANCE;
-    }
-    
-    private ProcessEngineManager() {}
-}
+import java.util.Map;
 
-// 用法:
-// ProcessEngine<TbbpmModel> engine = ProcessEngineManager.getInstance();
-```
+public final class Application {
 
----
-
-### 解决方案三：`try-with-resources` 方式 (适用于特殊情况)
-
-在极少数情况下，例如隔离的集成测试或生命周期短暂的批处理作业，您可能需要一个临时的引擎。在这些情况下，**务必**使用
-`try-with-resources` 代码块来保证 `engine.close()` 被调用。
-
-```java
-import com.alibaba.compileflow.engine.ProcessEngine;
-import com.alibaba.compileflow.engine.ProcessEngineFactory;
-
-public class BatchProcessor {
-    public void processBatch(List<Item> items) {
-        // ✅ 正确做法：引擎保证在代码块结束时被关闭。
-        try (ProcessEngine<TbbpmModel> engine = ProcessEngineFactory.createTbbpm()) {
-            for (Item item : items) {
-                engine.execute(ProcessSource.fromCode("batch.item.process"), item, Result.class);
-            }
-        } // engine.close() 会在这里被自动调用。
+    public static void main(String[] args) {
+        try (ProcessEngine engine = ProcessEngineFactory.createTbbpm()) {
+            engine.execute(
+                    ProcessDefinition.classpath("batch.item.process", "flows/batch/item.process.bpm"),
+                    Map.of("itemId", "item-1"))
+                    .orElseThrow();
+        }
     }
 }
 ```
 
-> **警告**：这种模式性能较差，因为它包含了创建和销毁线程池的开销。它不应该用于处理长时间运行的服务器应用中的请求。
+长时间运行的非 Spring 服务应把 Engine 保存在 composition root，并由宿主生命周期回调调用
+`close()`。不需要 JVM 全局可变 registry，也不需要按请求调用静态 factory。
 
----
+隔离测试和短生命周期工具可以创建临时 Engine。应使用 `try-with-resources`，确保异常路径也会关闭。
 
-## 3. 资源监控
+## 4. 容量与关闭
 
-即使正确使用了单例模式，监控应用的资源消耗也是明智之举。请关注：
+Executor 与 runtime 驻留量默认都有界。根据实测负载调整 `ProcessExecutorConfig`、
+`ProcessEngineConfig.maxResidentRuntimes` 和
+`ProcessEngineConfig.runtimeLoadTimeout`，不要根据流程数或租户数推导线程数。队列饱和时应显式失败，而不是无界分配任务。
 
-- **线程数**：您应用中的总线程数在负载下应保持稳定。持续增长的线程数是资源泄漏的强烈信号。请留意名为 `cf-compilation-`、
-  `cf-execution-` 等的线程。
-- **堆内存使用**：监控那些持续增长且从未被回收的内存，这也可能表示存在泄漏。
+`close()` 会立即拒绝新公共操作，并让在途操作排空。操作排空与 Engine 自有 executor 的有序关闭共享
+`shutdown.grace-period`（默认 10 秒），而不是每层重新等待一份预算；关闭路径每 50ms 扫描一次线程固定的非负分片计数，请求完成路径
+只更新自己的分片，不加锁、不发送通知，也不争用单个全局计数器。宽限期耗尽后会进入强制清理，清除 Engine 自有 cache，并在
+`shutdown.force-period` 内中断仍在运行的 executor 任务。异步
+callback 在强制清理开始后重入同一 Engine 时会立即得到 closed 错误。如果 worker 在两段预算后仍忽略中断，Engine 会继续清理其他
+资源，并让 `close()` 抛出 `IllegalStateException`，而不是假报关闭成功。Java 不能安全强杀调用方线程或忽略中断的代码；宿主仍应先
+停止接收新请求并排空在途调用，再关闭 Engine。
 
-关于如何使用 Prometheus 和 Grafana 等工具设置监控，或如何使用 Spring Boot Actuator 进行健康检查的详细说明，请参阅 *
-*[监控指南](./monitoring.md)**。
+## 5. 观察资源所有权
+
+重点监控：
+
+- 以 `compileflow-engine-<id>-` 开头的线程；
+- 编译与执行队列的饱和或拒绝；
+- runtime cache 大小与驱逐行为；
+- 关闭耗时与关闭失败；
+- 版本释放后的堆内存或 ClassLoader 持续增长。
+
+存在 `MeterRegistry` 时，Spring 集成通过 Micrometer 暴露有界 Engine gauge。受支持的指标和容量配置
+见[监控指南](monitoring.md)与[配置指南](configuration.md)。

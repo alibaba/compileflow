@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/compileflow
+    username: compileflow
+
+compileflow:
+  workbench:
+    server:
+      database:
+        migrate: true
+      preview-execution:
+        enabled: true
+      authentication:
+        mode: DISABLED
+        service-principal: local-development

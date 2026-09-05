@@ -3,49 +3,66 @@
 
 # CompileFlow
 
-**🚀 A High-Performance, Compile-Then-Execute Process Engine**
+**An embeddable compile-then-execute process engine for Java**
 
-*Transforming business processes into optimized Java code for ultimate performance*
-
-[![Github Workflow Build Status](https://img.shields.io/github/actions/workflow/status/alibaba/compileflow/ci.yaml?branch=master&logo=github&logoColor=white)](https://github.com/alibaba/compileflow/actions/workflows/ci.yaml)
-[![Maven Central](https://img.shields.io/maven-central/v/com.alibaba.compileflow/compileflow?color=2d545e&logo=apache-maven&logoColor=white)](https://search.maven.org/artifact/com.alibaba.compileflow/compileflow)
-[![Java support](https://img.shields.io/badge/Java-8+-green?logo=OpenJDK&logoColor=white)](https://openjdk.java.net/)
+[![CompileFlow Workbench Server CI](https://img.shields.io/github/actions/workflow/status/alibaba/compileflow/workbench-server-ci.yml?branch=master&label=server%20ci&logo=github&logoColor=white)](https://github.com/alibaba/compileflow/actions/workflows/workbench-server-ci.yml)
+[![Java Core CI](https://img.shields.io/github/actions/workflow/status/alibaba/compileflow/java-core-ci.yml?branch=master&label=java%20core%20ci&logo=github&logoColor=white)](https://github.com/alibaba/compileflow/actions/workflows/java-core-ci.yml)
+[![Workbench CI](https://img.shields.io/github/actions/workflow/status/alibaba/compileflow/workbench-ci.yml?branch=master&label=workbench%20ci&logo=github&logoColor=white)](https://github.com/alibaba/compileflow/actions/workflows/workbench-ci.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/alibaba/compileflow/badge)](https://scorecard.dev/viewer/?uri=github.com/alibaba/compileflow)
+[![Java](https://img.shields.io/badge/Java-17%20%7C%2021%20%7C%2025-green?logo=OpenJDK&logoColor=white)](docs/compatibility-policy.md)
 [![License](https://img.shields.io/badge/license-Apache%202-4D7A97.svg?logo=Apache&logoColor=white)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
 [![GitHub Stars](https://img.shields.io/github/stars/alibaba/compileflow?style=social)](https://github.com/alibaba/compileflow/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/alibaba/compileflow?style=social)](https://github.com/alibaba/compileflow/fork)
 
-[🇨🇳 中文文档](docs/zh/README.md)
+[中文文档](docs/zh/README.md)
 
 </div>
 
-## ✨ What is CompileFlow?
+CompileFlow is an embeddable Java process engine. It reads the documented TBBPM and BPMN subsets, validates them, and
+executes a shared process model. The default `COMPILED` mode generates and reuses Java runtimes; `INTERPRETED` executes
+the same model without generated process classes. ProcessEngine execution is in-process and without persisted continuation. The optional
+Durable product adds persisted waits, timers, effects, and crash recovery.
 
-CompileFlow is a lightweight, high-performance, integrable, and extensible process engine.
+> **Status:** the default branch targets the unreleased `2.0.0` line and uses `2.0.0-SNAPSHOT` coordinates. Durable is a
+> Developer Preview. See [Supported Surfaces](docs/architecture/06-SUPPORTED_SURFACES.en.md) for current product
+> boundaries and [Compatibility Policy](docs/compatibility-policy.md) for versioning commitments.
 
-Focused on pure in-memory, stateless execution, the CompileFlow Process Engine is one of Taobao's original TBBPM workflow engines. It achieves exceptional efficiency by converting process files into Java code, which is then compiled and executed. It currently powers several core systems at Alibaba, including the Business Mid-end Platform and Trading systems.
+## Choose a product surface
 
-CompileFlow allows developers to visually design business logic, bridging the gap between business analysts and engineers and making business expression more intuitive and efficient.
+| Need                                                               | Use                                                                      |
+|--------------------------------------------------------------------|--------------------------------------------------------------------------|
+| In-process, low-latency execution                                  | `ProcessEngine` with `compileflow-tbbpm` or `compileflow-bpmn`           |
+| Persisted waits, timers, governed side effects, and crash recovery | [CompileFlow Durable](compileflow-durable/README.md) (Developer Preview) |
+| Browser modeling, release management, and execution inspection     | [CompileFlow Workbench](compileflow-workbench/README.md)                 |
 
-### 🎯 Key Highlights
+These surfaces are independent. Adding Workbench or Durable does not make ordinary `ProcessEngine.execute(...)` calls
+persistent.
 
-- **⚡ Ultra-High Performance** - A compile-then-execute architecture delivers native Java performance.
-- **🔒 Type-Safe** - Strong typing with compile-time validation reduces runtime errors.
-- **🔧 Production-Ready** - Seamless Spring Boot integration, monitoring, and enterprise features.
-- **📊 Multi-Standard** - Supports both BPMN 2.0 and the TBBPM specification.
-- **🎨 Visual Design** - An IntelliJ IDEA plugin is available for visual process modeling.
+## Core API
 
----
+| Type                | Purpose                                                                            |
+|---------------------|------------------------------------------------------------------------------------|
+| `ProcessEngine`     | Thread-safe execution engine bound to one model format and immutable configuration |
+| `ProcessRef`        | Reference to an exact published version or a managed Alias                         |
+| `ProcessDefinition` | Explicit inline or classpath process content                                       |
+| `ProcessResult<T>`  | Typed success or failure with stable error information                             |
 
-## 🚀 Quick Start
+Keep one long-lived `ProcessEngine` for each distinct model type and configuration. Close it with the application
+lifecycle; do not create an engine per request.
 
-Get CompileFlow up and running in under 2 minutes.
+## Quick start
 
-### A) With Spring Boot (Recommended)
+CompileFlow requires JDK 17 or newer. Published bytecode targets Java 17. CI runs the complete behavioral suite on Java
+17 and focused concurrency and dynamic-code compatibility checks on Java 21 and 25.
 
-This is the easiest and most recommended way to use CompileFlow in most applications.
+Install the current snapshot from source:
 
-#### 1️⃣ Add Dependency
+```bash
+./mvnw install -pl compileflow-spring-boot-starter -am -DskipTests
+```
+
+Add the Spring Boot starter:
 
 ```xml
 <dependency>
@@ -55,124 +72,97 @@ This is the easiest and most recommended way to use CompileFlow in most applicat
 </dependency>
 ```
 
-#### 2️⃣ Inject and Execute
-
-The `ProcessEngine` is auto-configured as a singleton and can be injected directly.
+Inject the application-scoped engine and execute an explicit definition:
 
 ```java
 @Service
-public class BusinessService {
+public class OrderService {
 
-    @Autowired
-    private ProcessEngine<TbbpmModel> processEngine;
+    private final ProcessEngine processEngine;
 
-    public MyResponse executeProcess(MyRequest request) {
-        ProcessSource processSource = ProcessSource.fromCode("my.business.process");
+    public OrderService(ProcessEngine processEngine) {
+        this.processEngine = processEngine;
+    }
 
-        ProcessResult<MyResponse> result = processEngine.execute(
-            processSource,
-            request,
-            MyResponse.class
-        );
+    public OrderResult execute(OrderRequest request) {
+        ProcessDefinition definition = ProcessDefinition.classpath(
+                "order.process",
+                "flows/order-process.bpm");
 
-        return result.orElseThrow(() -> new RuntimeException(result.getErrorMessage()));
+        return processEngine.execute(
+                        definition,
+                        request,
+                        OrderResult.class,
+                        ProcessExecutionOptions.defaults())
+                .orElseThrow();
     }
 }
 ```
 
-### B) Standalone Usage (Non-Spring)
+For a complete project, run
+[`examples/spring-boot-basic`](examples/spring-boot-basic/README.md). The
+[quick-start guide](docs/en/quick-start.md) also covers standalone composition, preflight, warm-up, and shutdown.
+For a production-shaped HTTP scenario with gateways, a process call, parallel work, iteration, retries, and controlled
+errors, run [`examples/spring-boot-order-fulfillment`](examples/spring-boot-order-fulfillment/README.md).
 
-For non-Spring applications, the recommended approach is to implement a manual singleton.
+## Execution model
 
-#### 1️⃣ Add Dependencies
+```mermaid
+flowchart LR
+    definition["TBBPM or BPMN definition"]
+    engine["ProcessEngine"]
+    semantic["Process Semantic Plan"]
+    compile["COMPILED: generate Java, compile"]
+    interpret["INTERPRETED: direct runtime"]
+    runtime["Loaded Process runtime"]
+    result["ProcessResult"]
 
-```xml
-<dependency>
-    <groupId>com.alibaba.compileflow</groupId>
-    <artifactId>compileflow-core</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
-</dependency>
-<!-- Add compileflow-tbbpm or compileflow-bpmn based on your process specification -->
-<dependency>
-    <groupId>com.alibaba.compileflow</groupId>
-    <artifactId>compileflow-tbbpm</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
-</dependency>
+    definition --> engine --> semantic
+    semantic --> compile --> runtime
+    semantic --> interpret --> runtime
+    runtime --> result
+    runtime --> engine
 ```
 
-#### 2️⃣ Create a Singleton Engine and Execute
+CompileFlow uses explicit source identity, immutable deployment versions, bounded extension points, and typed errors.
+The executable node subsets and public compatibility promises are listed in
+[Supported Surfaces](docs/architecture/06-SUPPORTED_SURFACES.en.md).
 
-```java
-// ProcessEngineHolder.java
-public final class ProcessEngineHolder {
-    private static final ProcessEngine<TbbpmModel> INSTANCE = ProcessEngineFactory.createTbbpm();
+## Documentation
 
-    private ProcessEngineHolder() {}
+| Goal                              | English                                                             | 中文                                                        |
+|-----------------------------------|---------------------------------------------------------------------|-------------------------------------------------------------|
+| Start using the engine            | [Quick Start](docs/en/quick-start.md)                               | [快速开始](docs/zh/quick-start.md)                          |
+| Configure and size an application | [Configuration](docs/en/configuration.md)                           | [配置指南](docs/zh/configuration.md)                        |
+| Use persisted execution           | [Durable Process](docs/en/durable-process.md)                       | [Durable Process](docs/zh/durable-process.md)               |
+| Understand the architecture       | [Architecture](docs/architecture/README.md)                         | [架构文档](docs/architecture/README.md)                     |
+| Check supported contracts         | [Supported Surfaces](docs/architecture/06-SUPPORTED_SURFACES.en.md) | [支持面清单](docs/architecture/06-SUPPORTED_SURFACES.zh.md) |
+| Operate a deployment              | [Operations](docs/en/operations-playbook.md)                        | [运维手册](docs/zh/operations-playbook.md)                  |
+| Contribute                        | [Contributing](CONTRIBUTING.md)                                     | [Contributing](CONTRIBUTING.md)                             |
 
-    public static ProcessEngine<TbbpmModel> getInstance() {
-        return INSTANCE;
-    }
+The [documentation center](docs/README.md) is the canonical index for task guides, specifications, architecture, and
+module documentation. Use [Supported Surfaces](docs/architecture/06-SUPPORTED_SURFACES.en.md) for compatibility
+decisions.
 
-    // Call this from your application's shutdown hook
-    public static void shutdown() {
-        if (INSTANCE != null) {
-            INSTANCE.close();
-        }
-    }
-}
+## Build and test
 
-// YourApplication.java
-public class YourApplication {
-    public static void main(String[] args) {
-        // At application startup, you can warm-up processes
-        ProcessEngineHolder.getInstance().admin().deploy(ProcessSource.fromCode("..."));
+Run the embedded-engine integration suite:
 
-        // In your business logic, get the singleton instance
-        ProcessEngine<TbbpmModel> engine = ProcessEngineHolder.getInstance();
-        engine.execute(...);
-
-        // Register a shutdown hook to ensure resources are released
-        Runtime.getRuntime().addShutdownHook(new Thread(ProcessEngineHolder::shutdown));
-    }
-}
+```bash
+./mvnw -B test -pl compileflow-integration-tests -am
 ```
-> ⚠️ **Important**: For long-running applications (like web services), you must use a singleton. Creating a new engine per request will cause severe performance problems. See the [Resource Management](docs/en/resource-management.md) guide for more details.
 
----
+Repository-specific verification commands are documented in the [testing guide](docs/en/testing.md). Release
+requirements are enforced by the repository workflows and the checks listed in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## 📚 Detailed Documentation
+## Community
 
-| Document                                         | Description                               |
-|--------------------------------------------------|-------------------------------------------|
-| [🚀 Quick Start Guide](docs/en/quick-start.md)           | A complete, runnable example in 5 minutes |
-| [⚠️ Resource Management](docs/en/resource-management.md) | **Must Read!** How to use the engine singleton correctly to avoid resource leaks |
-| [⚙️ Configuration Guide](docs/en/configuration.md)       | All available YAML and programmatic configuration options |
-| [API Reference](docs/en/api-reference.md)                | Detailed reference for all public APIs    |
-| [🔥 Hot Deployment](docs/en/hot-deploy.md)               | Zero-downtime process update strategies for production |
-| [📊 Monitoring & Observability](docs/en/monitoring.md)   | Integrating with events, metrics, and Prometheus |
-| [✨ Advanced Features](docs/en/advanced-features.md)     | Engine warm-up, custom ClassLoaders, and more |
-| [🔧 Extension Guide](docs/en/extension-guide.md)         | Develop custom extensions via SPI         |
-| [📋 Node Support List](docs/en/node-support.md)          | TBBPM & BPMN 2.0 supported node details   |
-| [🛠️ Contributing Guide](CONTRIBUTING.md)        | How to contribute code and documentation to the project |
+- [Support policy](SUPPORT.md)
+- [Contributing](CONTRIBUTING.md)
+- [Maintainers](MAINTAINERS.md)
+- [Issue tracker](https://github.com/alibaba/compileflow/issues)
+- [Security policy](SECURITY.md)
 
-## 🤝 Community
+## License
 
-- 💬 **[GitHub Discussions](https://github.com/alibaba/compileflow/discussions)** - Ask questions and share ideas
-- 🐛 **[Issue Tracker](https://github.com/alibaba/compileflow/issues)** - Report bugs and request features
-- 📧 **[Security Issues](SECURITY.md)** - Report security vulnerabilities
-
----
-
-<div align="center">
-
-## 📜 License
-
-CompileFlow is licensed under the [Apache License 2.0](LICENSE)
-
-## 🎆 Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=alibaba/compileflow&type=Date)](https://star-history.com/#alibaba/compileflow&Date)
-
-**⭐ If CompileFlow helps you, please give us a star! ⭐**
-
-</div>
+CompileFlow is available under the [Apache License 2.0](LICENSE).

@@ -1,0 +1,19 @@
+.help-documentation-content {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  padding: 0 4px;
+}
+
+.help-section-title {
+  font-weight: var(--font-weight-medium);
+}
+
+/* Scrollbar */
+.help-documentation-content::-webkit-scrollbar {
+  width: var(--scrollbar-width, 4px);
+}
+
+.help-documentation-content::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-color, #c1c1c1);
+  border-radius: var(--scrollbar-radius, 2px);
+}

@@ -1,0 +1,172 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for CompileFlow
+title: "[Feature]: "
+labels: [ "enhancement", "needs-triage" ]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Please provide detailed information to help us evaluate and implement your idea.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Please confirm the following before submitting
+      options:
+        - label: I have searched [existing issues](https://github.com/alibaba/compileflow/issues) to ensure this feature has not been requested before
+          required: true
+        - label: I have read the [documentation](https://github.com/alibaba/compileflow/tree/master/docs) to confirm this feature doesn't already exist
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Describe the problem or pain point this feature would solve
+      placeholder: |
+        Is your feature request related to a problem? Please describe.
+        Example: "I'm always frustrated when..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like to see
+      placeholder: |
+        A clear and concise description of what you want to happen.
+        How should this feature work?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe alternative solutions or features you've considered
+      placeholder: |
+        - Alternative 1: ...
+        - Alternative 2: ...
+        - Why the proposed solution is better
+
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: Use Cases
+      description: Provide specific use cases or scenarios where this feature would be beneficial
+      placeholder: |
+        1. Use case 1: ...
+        2. Use case 2: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Example Code (Optional)
+      description: If applicable, provide an example of how the API should look
+      render: java
+      placeholder: |
+        // Example of how you'd like to use this feature
+        ProcessEngine engine = ProcessEngineFactory.createBpmn();
+        ProcessResult<Map<String, Object>> result =
+            engine.execute(ProcessRef.code("example.flow"), variables);
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: Which category does this feature belong to?
+      options:
+        - Core Engine
+        - BPMN Support
+        - TBBPM Support
+        - Performance Optimization
+        - Deployment & Hot Deploy
+        - Monitoring & Observability
+        - Spring Boot Integration
+        - Documentation
+        - Tooling
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: Target Module
+      description: Which repository area would likely change?
+      options:
+        - compileflow-api
+        - compileflow-core
+        - compileflow-bpmn
+        - compileflow-tbbpm
+        - compileflow-deploy
+        - compileflow-spring-boot-starter
+        - compileflow-workbench-server
+        - compileflow-workbench
+        - Documentation
+        - Build/CI
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority (Your Opinion)
+      description: How important is this feature to you?
+      options:
+        - Critical - Blocking my use case
+        - High - Significantly improves my workflow
+        - Medium - Nice to have
+        - Low - Minor enhancement
+    validations:
+      required: true
+
+  - type: dropdown
+    id: breaking
+    attributes:
+      label: Breaking Change?
+      description: Would the cleanest design require behavior, API, or migration changes?
+      options:
+        - "No"
+        - "Yes - and the migration path is acceptable"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact Analysis
+      description: Who would benefit from this feature? What's the expected impact?
+      placeholder: |
+        - Users affected: ...
+        - Expected benefits: ...
+        - Potential risks: ...
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context, mockups, or references about the feature request
+      placeholder: |
+        - Related issues or PRs
+        - Links to similar features in other projects
+        - Diagrams or mockups
+
+  - type: checkboxes
+    id: willing-to-help
+    attributes:
+      label: Contribution
+      description: Would you be willing to help implement this feature?
+      options:
+        - label: I am willing to submit a pull request to implement this feature
+          required: false
+        - label: I can help with testing this feature
+          required: false
+        - label: I can help with documentation for this feature
+          required: false

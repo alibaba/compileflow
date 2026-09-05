@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.stateful.waitTaskProcess" name="Wait Task Process"
+     description="等待任务流程：测试waitTask节点的stateful流程，等待外部任务完成后继续处理">
+    <var name="taskData" dataType="java.lang.String" inOutType="param"/>
+    <var name="waitResult" dataType="java.lang.String" inOutType="return"/>
+    <var name="processedData" description="处理后数据" dataType="java.lang.String" inOutType="inner"/>
+
+    <start id="start" name="开始" g="100,50,30,30">
+        <transition to="prepareTask" g=":-15,20"/>
+    </start>
+
+    <autoTask id="prepareTask" name="准备任务" g="80,120,88,48">
+        <transition to="waitTask1" g=":-15,20"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="processTask">
+                <input target="task" dataType="java.lang.String" source="taskData"/>
+                <output dataType="java.lang.String" target="processedData"/>
+
+        </action>
+    </autoTask>
+
+    <waitTask id="waitTask1" name="等待外部任务完成" g="70,200,120,60">
+        <transition to="processResult" g=":-15,20"/>
+    </waitTask>
+
+    <autoTask id="processResult" name="处理结果" g="80,300,88,48">
+        <transition to="end" g=":-15,20"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="finalizeResult">
+                <input target="path" dataType="java.lang.String" source="waitResult"/>
+                <output dataType="java.lang.String" target="waitResult"/>
+
+        </action>
+    </autoTask>
+
+    <end id="end" name="结束" g="100,380,30,30"/>
+</bpm>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.invocation-policy.mixedConfigurations" name="InvocationPolicy Mixed Configurations Test">
+    <var name="result1" dataType="java.lang.String" inOutType="return"/>
+    <var name="result2" dataType="java.lang.String" inOutType="return"/>
+    <var name="result3" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="Start" g="50,50,32,32">
+        <transition to="task1"/>
+    </start>
+
+
+    <autoTask id="task1" name="Minimal Policy Task" g="150,40,120,48">
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.InvocationPolicyTestService"
+                          method="simpleSuccess">
+                <output dataType="java.lang.String" target="result1"/>
+
+
+            <invocationPolicy
+                attemptTimeout="PT1S"
+                maxAttempts="1" initialBackoff="PT0S"
+                retryOn="never"
+                onFailure="propagate"/>
+        </action>
+        <transition to="task2"/>
+    </autoTask>
+
+
+    <autoTask id="task2" name="Moderate Policy Task" g="300,40,120,48">
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.InvocationPolicyTestService"
+                          method="simpleSuccess">
+                <output dataType="java.lang.String" target="result2"/>
+
+
+            <invocationPolicy
+                attemptTimeout="PT2S"
+                maxAttempts="2" initialBackoff="PT1S"
+                retryOn="transient"
+                onFailure="propagate"/>
+        </action>
+        <transition to="task3"/>
+    </autoTask>
+
+
+    <autoTask id="task3" name="Comprehensive Policy Task" g="450,40,120,48">
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.InvocationPolicyTestService"
+                          method="simpleSuccess">
+                <output dataType="java.lang.String" target="result3"/>
+
+
+            <invocationPolicy
+                attemptTimeout="PT10S"
+                maxAttempts="3" initialBackoff="PT0.2S"
+                retryOn="transient"
+                onFailure="propagate"/>
+        </action>
+        <transition to="end"/>
+    </autoTask>
+
+    <end id="end" name="End" g="600,50,32,32"/>
+</bpm>

@@ -1,0 +1,68 @@
+.workspaceContainer {
+  /* HubSurface owns ambient canvas */
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-5);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: clamp(1.2rem, 2vw, 1.4rem);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  color: inherit;
+}
+
+.sectionActions {
+  flex-shrink: 0;
+}
+
+.subtleAction {
+  color: var(--text-secondary) !important;
+  font-size: var(--font-size-sm) !important;
+}
+
+.subtleAction:hover {
+  color: var(--color-build) !important;
+}
+
+.listSection {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-6);
+}
+
+.dateText {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
+}
+
+.workspaceEmpty {
+  padding: var(--spacing-12) 0;
+}
+
+@media (max-width: 991px) {
+  .listSection {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 575px) {
+  .sectionHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-2);
+  }
+}
+.templateAction {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  color: var(--color-primary);
+  white-space: nowrap;
+}

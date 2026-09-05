@@ -1,0 +1,73 @@
+.panel {
+  padding: var(--spacing-5);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+}
+
+.panelCompleted {
+  background: color-mix(in srgb, var(--success-main) 4%, var(--bg-panel));
+  border-color: color-mix(in srgb, var(--success-main) 18%, var(--border-color));
+}
+
+.panelActive {
+  background: color-mix(in srgb, var(--primary-500) 4%, var(--bg-panel));
+  border-color: color-mix(in srgb, var(--primary-500) 15%, var(--border-color));
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-4);
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.trophy {
+  font-size: 18px;
+  color: var(--color-rating-star);
+}
+
+.progressRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-2);
+  font-size: var(--font-size-sm);
+}
+
+.progressLabel {
+  color: var(--text-tertiary);
+}
+
+.progressValue {
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.completeBtn {
+  margin-top: var(--spacing-4);
+  height: 40px;
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-weight-medium);
+}
+
+.congrats {
+  display: block;
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  margin-top: var(--spacing-3);
+}

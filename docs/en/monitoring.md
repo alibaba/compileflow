@@ -1,276 +1,152 @@
-# CompileFlow Monitoring & Observability Guide
+# Monitoring and Observability
 
-This guide explains how to tap into CompileFlow's event system to monitor engine performance, collect metrics, and gain
-deep visibility into your process executions.
+CompileFlow has three separate observability surfaces. Keeping them separate avoids turning one boolean into an
+ambiguous global switch.
 
-## 1. How It Works: SPI and Events
+| Surface                       | Owner                          | Configuration                                                                |
+|-------------------------------|--------------------------------|------------------------------------------------------------------------------|
+| Engine lifecycle events       | Each `ProcessEngine`           | `ProcessEngineConfig` capabilities and `ProcessObservabilityConfig` behavior |
+| JVM metrics export            | Spring application             | Micrometer `MeterRegistry` and standard meter filters                        |
+| Server health and diagnostics | `compileflow-workbench-server` | Spring Actuator and server endpoints                                         |
 
-CompileFlow's monitoring capabilities are built on a simple yet powerful event-driven mechanism using Java's **Service
-Provider Interface (SPI)**.
+## Engine Events
 
-1. **`ProcessEventListener` Interface**: The core of the system. You implement this interface to create a "listener"
-   that can react to events published by the engine.
-2. **Engine Events**: The `ProcessEngine` publishes events at critical lifecycle points, such as when a process starts,
-   completes, or fails.
-3. **SPI Registration**: You register your custom listener by creating a specific file in your project's
-   `META-INF/extensions` directory. The engine discovers and loads any listeners listed in this file at startup.
-
-This decoupled approach allows you to add custom monitoring, logging, and metrics collection without modifying the
-engine's core code.
-
----
-
-## 2. Enabling Observability
-
-To activate the event system, you must first enable it in your configuration.
-
-**`application.yml` (for Spring Boot)**
+Event types and `ProcessEventListener` live in `compileflow-api`. Standalone applications register listeners on the
+engine builder; Spring applications expose listener beans. See the [extension guide](extension-guide.md) for complete
+examples.
 
 ```yaml
 compileflow:
-  observability:
-    # Master switch to enable all monitoring features (metrics, events, tracing).
-    # This must be true for any listeners to be triggered.
-    enabled: true
-    # For performance-critical applications, ensure events are processed asynchronously.
-    events-async: true
+  engine:
+    observability:
+      events:
+        async: true
+      mdc-propagation-enabled: false
 ```
 
-**Programmatic Configuration**
+- `events.async` dispatches all lifecycle events on the bounded engine event executor.
+- `mdc-propagation-enabled` copies MDC only across engine-owned executor boundaries. It does not make arbitrary
+  application executors context-aware.
+- Synchronous listeners run on the execution caller path. Use them only for short, bounded operations.
+- Listener failures are logged and isolated from engine behavior and other listeners.
+- Async delivery is best-effort: different events may overlap or arrive out of order, and an event is dropped with a
+  warning when the bounded executor rejects it. Listener order within one event remains deterministic.
 
-```java
-// Not yet available via programmatic config. Use system properties as a workaround:
-// -Dcompileflow.observability.enabled=true
-// -Dcompileflow.observability.events-async=true
-```
+Lifecycle events are never a correctness, audit, billing, or reliable-integration authority. Use an application-owned
+transaction/outbox for ProcessEngine execution, or the Durable Journal/Outbox for Durable execution.
 
----
+`ProcessEvent` is a sealed set of immutable records. A ProcessEngine execution-start event contains process code and invocation
+ID; a trigger-start event also contains the requested `ProcessTrigger`. Completion and failure events carry the same
+controlled `ProcessExecution` returned by the engine plus separate operational `ExecutionAttribution`; failure events
+carry a typed `ProcessError`. Compilation events carry an immutable process-code list. Trace ID and event time are
+common fields. No event can carry routing keys, process variables, source content, arbitrary metadata, or raw exception
+objects.
 
-## 3. Implementing a Basic Event Listener
+`TraceIdProvider` is a lightweight correlation hook, not a CompileFlow tracing, span, or context-propagation
+abstraction. An OpenTelemetry integration may adapt the host application's current span context without adding an OTel
+SDK dependency to Core. It is an engine construction collaborator. Standalone applications configure it on
+`ProcessEngineConfig.Builder`; Spring applications may expose exactly one provider bean. Without an application
+provider, Spring reads MDC `traceId`. Values longer than 128 characters are treated as unavailable, never truncated.
+The engine generates a local 32-character hexadecimal ID when no valid upstream ID is
+available, and provider failure never interrupts execution.
 
-Here is a simple example of a listener that logs when a process completes successfully.
+## Micrometer
 
-**Step 1: Create the Listener Class**
+With the standard Spring starter, `CompileFlowMetricsAutoConfiguration` creates its binder only when all of the following are
+true:
 
-```java
-package com.example.listeners;
+1. Micrometer is on the classpath.
+2. A `MeterRegistry` bean exists.
 
-import com.alibaba.compileflow.engine.core.event.*;
-import com.alibaba.compileflow.engine.core.extension.ExtensionRealization;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+When Durable is enabled, its starter registers a separate binder under the same two Micrometer conditions.
 
-// @ExtensionRealization is optional but recommended for clarity.
-// The primary discovery mechanism is the SPI file.
-@ExtensionRealization
-public class SimpleProcessLogger implements ProcessEventListener<ProcessEvent> {
+Spring Boot's `management.metrics.enable.*` settings are standard meter filters. They may deny individual meters when
+the binder registers them; they do not control whether the binder bean exists.
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SimpleProcessLogger.class);
+The built-in binders export bounded counters and aggregate node gauges:
 
-    @Override
-    public void onEvent(ProcessEvent event) {
-        // Use instanceof for type-safe event handling
-        if (event instanceof ProcessCoreEvents.ExecutionCompleted) {
-            ProcessCoreEvents.ExecutionCompleted completedEvent = (ProcessCoreEvents.ExecutionCompleted) event;
-            LOGGER.info("Process [{}] completed in {}ms.",
-                completedEvent.getProcessCode(), completedEvent.getContext().getDurationMs());
-        }
-    }
-}
-```
+Metric names intentionally use Micrometer's dotted namespace. They are not Spring configuration keys: for example,
+`compileflow.engine.executor.runtime.load.max.concurrency` reports the value configured by
+`compileflow.engine.executor.runtime-load.max-concurrency`, and `action.timeout` meters correspond to the
+`action-timeout` property group. Keep the kebab-case property spelling in application configuration and the dotted spelling
+in metric filters.
 
-**Step 2: Register the Listener via SPI**
+| Micrometer name                                        | Meaning                                                                                                                                                                 |
+|--------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `compileflow.engine.executor.runtime.load.max.concurrency` | Configured runtime-load concurrency limit                                                                                                                               |
+| `compileflow.engine.executor.runtime.load.max.pending` | Maximum additional pending runtime loads                                                                                                                               |
+| `compileflow.engine.executor.action.timeout.max.concurrency` | Configured timeout-enforced action concurrency limit                                                                                                                   |
+| `compileflow.engine.executor.action.timeout.max.pending` | Maximum additional pending timeout-enforced action attempts                                                                                                             |
+| `compileflow.engine.executor.event.delivery.max.concurrency` | Configured event-delivery concurrency limit                                                                                                                            |
+| `compileflow.engine.executor.event.delivery.max.pending` | Maximum additional pending event deliveries                                                                                                                            |
+| `compileflow.engine.events.dropped`                    | JVM-process-wide cumulative count of best-effort asynchronous lifecycle events rejected across all engine instances                                                     |
+| `compileflow.deploy.runtime.install.attempts`          | Runtime installation attempts, tagged by terminal `outcome` and bounded `reason`                                                                                        |
+| `compileflow.deploy.alias.convergence`                 | Node-local alias convergence attempts, tagged by terminal `outcome` and bounded `reason`                                                                                |
+| `compileflow.deploy.alias.desired.count`               | Active desired aliases known to this node                                                                                                                               |
+| `compileflow.deploy.alias.local_ready.count`           | Active aliases currently executable on this node                                                                                                                        |
+| `compileflow.deploy.alias.pending.count`               | Desired aliases still converging on this node                                                                                                                           |
+| `compileflow.deploy.runtime.retained.count`            | Exact runtimes retained by the managed deployment data plane                                                                                                            |
+| `compileflow.deploy.errors`                            | Deployment errors, tagged by stable `error.code`                                                                                                                        |
+| `compileflow.deploy.operations`                        | Control-plane mutations; `operation` is one of `publish`, `create_rollout`, `rollback`, `update_canary`, `promote`, or `abort`, and `outcome` is `success` or `failure` |
+| `compileflow.deploy.reconciliation.runs`               | Completed control-plane projection-reconciliation cycles                                                                                                                |
+| `compileflow.deploy.reconciliation.routing.mismatches` | Authoritative Alias states that differed from routing projections                                                                                                       |
+| `compileflow.deploy.reconciliation.routing.repairs`    | Routing projection corrections enqueued through the outbox                                                                                                              |
+| `compileflow.deploy.reconciliation.artifact.checks`    | Active stable/candidate artifact projections checked in `CHANNEL` mode                                                                                                  |
+| `compileflow.deploy.reconciliation.artifact.missing`   | Missing active artifact projections observed                                                                                                                            |
+| `compileflow.deploy.reconciliation.artifact.repairs`   | Missing active artifact projections recreated by immutable CAS                                                                                                          |
+| `compileflow.deploy.reconciliation.artifact.conflicts` | Conflicting or corrupt active artifact projections that were not overwritten                                                                                            |
+| `compileflow.deploy.reconciliation.artifact.failures`  | Total active artifact projection reconciliation failures, including conflicts                                                                                           |
+| `compileflow.durable.operations`                        | Durable runtime operations, tagged by bounded `operation` and `outcome` values                                                                                          |
+| `compileflow.durable.loaded.runtimes`                   | Node-local disposable Durable process runtimes currently loaded                                                                                                         |
 
-Create the following file in your project's resources directory:
-`META-INF/extensions/com.alibaba.compileflow.engine.core.event.ProcessEventListener`
+Registry backends transform names according to their conventions; for example Prometheus uses underscore-separated
+names. Do not document backend-specific names as universal Java meter names.
 
-Add the fully qualified name of your listener class to this file:
+Default deployment meters never tag `namespace`, process code, alias, version, digest, routing key, invocation ID, or
+node ID. Use the deployment runtime diagnostics endpoint, structured logs, or traces for those dimensions.
 
-```
-com.example.listeners.SimpleProcessLogger
-```
+Execution latency, outcome, and business-level metrics require an application listener because their tags and retention
+policy are application decisions. Keep tags bounded: model type and a curated process family are reasonable; invocation
+IDs, user IDs, URLs, and raw process variables are not.
 
-Now, when the engine starts, it will automatically discover and register your `SimpleProcessLogger`.
+## Health and Diagnostics
 
----
+The starter does not publish a synthetic engine health indicator: the mere existence of an engine bean cannot prove that
+user code, capacity, or external dependencies are healthy. When deployment is enabled, it contributes a
+deployment-pipeline indicator backed by durable outbox state.
 
-## 4. Integrating with Micrometer for Metrics
+`compileflow-workbench-server` enables Kubernetes-style liveness/readiness probes and hides health components and
+details by default. Expose only the Actuator endpoints required by the deployment platform. Runtime deployment
+diagnostics are operational state, not configuration, and should be queried through the diagnostics APIs rather than
+encoded as properties.
 
-A more powerful use case is to collect metrics for monitoring systems like Prometheus and Grafana. This example shows
-how to integrate with Micrometer.
+`/api/deployment-control/health` reports shared outbox counts together with local dispatcher state. `UP` means the
+repository is readable, the dispatcher is running, and no failed or expired claim is present. `DEGRADED` identifies a
+failed delivery or expired claim; `DOWN` identifies unavailable outbox state or a stopped dispatcher. Pending depth is
+reported as a fact, not interpreted against a workload-specific threshold.
 
-**Step 1: Create the Micrometer Listener**
+`/api/async-invocations/health` separates shared persisted queue counts from `workerId`, `localRunningCount`, and
+`dispatchedCount`, which belong only to the responding Server process. `degraded` means a dead letter or expired running
+lease exists. `healthy` does not assert queue-latency or throughput objectives: alerting should evaluate ready queue
+depth and age against the application's own SLO. A failed repository query is an endpoint failure, never a synthetic
+zero-count snapshot.
 
-```java
-package com.example.listeners;
+Workbench Operate execution dashboards query the shared persisted execution log. Metrics, trends, top flows, grouped
+errors, and effective-version distribution all use one explicit `1h`, `6h`, `24h`, `7d`, or `30d` window; `24h` is the
+default. Instances sharing the same database therefore report the same retained execution facts, while log retention and
+explicit deletion bound the available history. Workbench Server uses synchronous terminal-event delivery so a saturated
+event queue cannot silently skew these samples. Persistence failures remain isolated from process outcomes; these
+operational records are not an exactly-once audit ledger.
 
-import com.alibaba.compileflow.engine.core.event.*;
-import com.alibaba.compileflow.engine.core.extension.ExtensionRealization;
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
-import java.util.concurrent.TimeUnit;
+The deploy-runtime diagnostics endpoint has a different scope: it reports desired/local-ready convergence, retained
+runtimes, retries, and capacity for the current Server node. Do not aggregate those node-local values with the
+database-backed execution dashboard or present either scope as the other.
 
-@ExtensionRealization
-public class MicrometerMetricsListener implements ProcessEventListener<ProcessEvent> {
+## Production Rules
 
-    private final MeterRegistry meterRegistry;
-
-    // In a real application, inject MeterRegistry via your DI framework.
-    // For this example, we assume it's passed in.
-    public MicrometerMetricsListener(MeterRegistry meterRegistry) {
-        this.meterRegistry = meterRegistry;
-    }
-
-    @Override
-    public void onEvent(ProcessEvent event) {
-        String processCode = event.getProcessCode();
-        ProcessEventContext context = event.getContext();
-
-        if (event instanceof ProcessCoreEvents.ExecutionCompleted) {
-            Timer.builder("compileflow.execution.duration")
-                .description("Process execution duration")
-                .tag("process.code", processCode)
-                .tag("status", "success")
-                .register(meterRegistry)
-                .record(context.getDurationMs(), TimeUnit.MILLISECONDS);
-        } else if (event instanceof ProcessCoreEvents.ExecutionFailed) {
-            Timer.builder("compileflow.execution.duration")
-                .description("Process execution duration")
-                .tag("process.code", processCode)
-                .tag("status", "failure")
-                .register(meterRegistry)
-                .record(context.getDurationMs(), TimeUnit.MILLISECONDS);
-        } else if (event instanceof ProcessCoreEvents.CompilationFailed) {
-            Counter.builder("compileflow.compilation.failures")
-                .description("Process compilation failures")
-                .tag("process.code", processCode)
-                .register(meterRegistry)
-                .increment();
-        }
-    }
-
-    // By implementing onEvent with `instanceof`, the `support` and `isAsync`
-    // methods are no longer needed, as the base interface provides safe defaults.
-}
-```
-
-**Step 2: Register the Listener via SPI**
-
-Add your new listener to the SPI file:
-`META-INF/extensions/com.alibaba.compileflow.engine.core.event.ProcessEventListener`
-
-```
-com.example.listeners.SimpleProcessLogger
-com.example.listeners.MicrometerMetricsListener
-```
-
----
-
-## 5. Spring Boot Integration
-
-In a Spring Boot application, you can register your listener as a bean. This allows you to inject other Spring-managed
-components (like `MeterRegistry`). Discovery is SPI/annotation based; registering as a bean is for DI support, not for
-discovery.
-
-**Step 1: Create the Listener as a Spring Bean**
-
-Modify the `MicrometerMetricsListener` to be a Spring component. **You no longer need the SPI file if you use this
-approach.**
-
-```java
-package com.example.config;
-
-// ... (imports)
-import org.springframework.stereotype.Component;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-
-@Component
-// This allows you to enable/disable the listener from application.yml
-@ConditionalOnProperty(name = "compileflow.custom-metrics.enabled", havingValue = "true")
-public class MicrometerMetricsListener implements ProcessEventListener<ProcessEvent> {
-
-    private final MeterRegistry meterRegistry;
-
-    // Use constructor injection for dependencies.
-    @Autowired
-    public MicrometerMetricsListener(MeterRegistry meterRegistry) {
-        this.meterRegistry = meterRegistry;
-    }
-
-    // The onEvent method remains the same as the previous example.
-    @Override
-    public void onEvent(ProcessEvent event) {
-        // ... (implementation from above)
-    }
-}
-```
-
-**Step 2: Add Configuration Property**
-
-Now you can control the listener from your `application.yml`:
-
-```yaml
-compileflow:
-  observability:
-    enabled: true # This must be true globally
-  custom-metrics:
-    enabled: true # This is your custom toggle for this specific listener
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "prometheus,health"
-```
-
-Note on support and isAsync
-
-- You may optionally override `support(ProcessEventExtensionContext context)` to conditionally enable a listener. The
-  default implementation returns `true`.
-- You may optionally override `isAsync()` to control dispatch mode. The default is `true` (async).
-
----
-
-## 6. Recommended Metrics & Dashboards
-
-Here are some essential metrics to collect and sample PromQL queries for your Grafana dashboards.
-
-### Key Metrics to Track
-
-- **Execution Duration (Timer)**: `compileflow_execution_duration_seconds`
-    - *Why*: Tracks the performance of your processes.
-    - *Tags*: `process.code`, `status` (success/failure)
-- **Execution Count (Counter from Timer)**: `compileflow_execution_duration_seconds_count`
-    - *Why*: Measures the throughput of your processes.
-- **Compilation Failures (Counter)**: `compileflow_compilation_failures_total`
-    - *Why*: Alerts you to invalid process definitions being deployed.
-
-### Sample PromQL Queries
-
-```promql
-# 95th percentile execution time for successful processes, grouped by code
-histogram_quantile(0.95, sum(rate(compileflow_execution_duration_seconds_bucket{status="success"}[5m])) by (le, process_code))
-
-# Throughput (executions per second) grouped by process code
-sum(rate(compileflow_execution_duration_seconds_count[5m])) by (process_code)
-
-# Error rate percentage over the last 30 minutes
-(sum(rate(compileflow_execution_duration_seconds_count{status="failure"}[30m])) by (process_code) / sum(rate(compileflow_execution_duration_seconds_count[30m])) by (process_code)) * 100
-
-# Rate of compilation failures over the last 30 minutes
-sum(rate(compileflow_compilation_failures_total[30m]))
-```
-
----
-
-## 7. Best Practices
-
-- **Keep Listeners Fast**: Even though events can be async, listeners should be lightweight. For heavy operations (e.g.,
-  writing to a database), hand off the work to a separate, dedicated thread pool.
-- **Avoid High Cardinality Tags**: Do not use tags with unbounded values (like `orderId` or `userId`), as this can
-  overwhelm your metrics system. Use low-cardinality tags like `process_code`.
-- **Handle Errors**: Wrap your listener logic in a `try-catch` block to prevent a faulty listener from disrupting other
-  listeners.
-- **Combine with Logging**: Use metrics to find *what* is slow, and use structured logs (with a `traceId` from the
-  `ProcessEventContext`) to find out *why*.
+- Send logs and metrics through application-owned sinks; do not perform unbounded I/O on the execution path.
+- Make alert thresholds deployment-specific. The library cannot choose an acceptable latency or failure rate for a
+  business process.
+- Correlate logs with trace/invocation IDs, but never use those high-cardinality values as metric tags.
+- Test listener ordering, failure isolation, and async behavior when observability is part of a release contract.
+- Keep health details and debug compilation artifacts disabled or access-controlled in production.

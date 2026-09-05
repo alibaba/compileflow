@@ -12,8 +12,12 @@
     </parent>
 
     <artifactId>compileflow-spring-boot-autoconfigure</artifactId>
-    <name>compileflow-spring-boot-autoconfigure</name>
-    <description>CompileFlow Spring Boot AutoConfiguration - Spring Boot auto configuration</description>
+    <name>CompileFlow Spring Boot Auto-configuration</name>
+    <description>Spring Boot auto-configuration for the engine and optional deployment components.</description>
+
+    <properties>
+        <test.jvm.args>-javaagent:${org.mockito:mockito-core:jar}</test.jvm.args>
+    </properties>
 
     <dependencies>
         <!-- Internal module dependencies -->
@@ -25,19 +29,29 @@
             <groupId>com.alibaba.compileflow</groupId>
             <artifactId>compileflow-core</artifactId>
         </dependency>
+        <!-- Deploy features: optional dependencies (users include explicitly if needed) -->
         <dependency>
             <groupId>com.alibaba.compileflow</groupId>
-            <artifactId>compileflow-bpmn</artifactId>
+            <artifactId>compileflow-deploy-api</artifactId>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>com.alibaba.compileflow</groupId>
-            <artifactId>compileflow-tbbpm</artifactId>
+            <artifactId>compileflow-deploy-api</artifactId>
+            <type>test-jar</type>
+            <classifier>tests</classifier>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.alibaba.compileflow</groupId>
-            <artifactId>compileflow-deploy</artifactId>
+            <artifactId>compileflow-deploy-control-plane</artifactId>
+            <optional>true</optional>
         </dependency>
-
+        <dependency>
+            <groupId>com.alibaba.compileflow</groupId>
+            <artifactId>compileflow-deploy-runtime</artifactId>
+            <optional>true</optional>
+        </dependency>
         <!-- Spring Boot AutoConfiguration -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -45,9 +59,43 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
+            <artifactId>spring-boot</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-health</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>context-propagation</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
         </dependency>
 
+        <!-- Exercise provider discovery without publishing either model implementation. -->
+        <dependency>
+            <groupId>com.alibaba.compileflow</groupId>
+            <artifactId>compileflow-bpmn</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.compileflow</groupId>
+            <artifactId>compileflow-tbbpm</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -55,14 +103,41 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-configuration-processor</artifactId>
-            <optional>true</optional>
+            <artifactId>spring-boot-starter-validation</artifactId>
+            <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- Spring Framework -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-beans</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
         </dependency>
 
         <!-- Base dependencies -->
@@ -70,7 +145,33 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
-
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <fork>true</fork>
+                    <parameters>true</parameters>
+                    <meminitial>128m</meminitial>
+                    <maxmem>512m</maxmem>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-autoconfigure-processor</artifactId>
+                            <version>${spring-boot.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-configuration-processor</artifactId>
+                            <version>${spring-boot.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

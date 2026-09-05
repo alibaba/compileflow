@@ -1,0 +1,37 @@
+packages:
+  - 'apps/*'
+
+engineStrict: true
+nodeVersion: 24.18.0
+autoInstallPeers: false
+strictPeerDependencies: true
+peerDependencyRules:
+  ignoreMissing:
+    # Optional adapters and runtimes that Workbench does not use.
+    - '@edge-runtime/vm'
+    - '@opentelemetry/api'
+    - '@vitest/browser'
+    - '@vitest/browser-*'
+    - '@vitest/ui'
+    - 'bare-*'
+    - bufferutil
+    - canvas
+    - date-fns
+    - happy-dom
+    - jiti
+    - less
+    - lightningcss
+    - luxon
+    - moment
+    - msw
+    - react-native-b4a
+    - sass
+    - sass-embedded
+    - stylus
+    - sugarss
+    - utf-8-validate
+    - yaml
+minimumReleaseAge: 1440
+minimumReleaseAgeIgnoreMissingTime: false
+allowBuilds:
+  esbuild: true

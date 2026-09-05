@@ -1,46 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpm code="bpm.stateful.highFrequencyTriggerProcess" name="高频触发流程" type="statefulProcess"
+<bpm code="bpm.stateful.highFrequencyTriggerProcess" name="高频触发流程"
      description="测试高频触发的stateful流程">
-    <var name="triggerId" description="触发ID" dataType="java.lang.String" inOutType="param"/>
-    <var name="triggerData" description="触发数据" dataType="java.lang.String" inOutType="param"/>
-    <var name="processedData" description="处理数据" dataType="java.lang.String" inOutType="return"/>
+    <var name="triggerId" dataType="java.lang.String" inOutType="param"/>
+    <var name="triggerData" dataType="java.lang.String" inOutType="param"/>
+    <var name="processedData" dataType="java.lang.String" inOutType="return"/>
 
-    <start id="start" name="开始" tag="start" g="100,50,30,30">
+    <start id="start" name="开始" g="100,50,30,30">
         <transition to="initializeTrigger" g=":-15,20"/>
     </start>
 
-    <autoTask id="initializeTrigger" name="初始化触发" tag="initializeTrigger" g="80,120,88,48">
+    <autoTask id="initializeTrigger" name="初始化触发" g="80,120,88,48">
         <transition to="waitHighFrequencyEvent" g=":-15,20"/>
-        <action type="java">
-            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
-                <var name="input" dataType="java.lang.String" contextVarName="triggerId" inOutType="param"/>
-                <var name="result" dataType="java.lang.String" contextVarName="triggerId" inOutType="return"/>
-            </actionHandle>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="processTask">
+                <input target="task" dataType="java.lang.String" source="triggerId"/>
+                <output dataType="java.lang.String" target="triggerId"/>
+
         </action>
     </autoTask>
 
-    <waitEventTask id="waitHighFrequencyEvent" name="等待高频事件" tag="waitHighFrequencyEvent"
+    <waitEventTask id="waitHighFrequencyEvent" name="等待高频事件"
                    event="highFrequencyEventComplete" g="70,200,120,60">
         <transition to="processTrigger" g=":-15,20"/>
-        <inAction type="java">
-            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
-                <var name="input" dataType="java.lang.String" contextVarName="triggerData" inOutType="param"/>
-                <var name="result" dataType="java.lang.String" contextVarName="triggerData" inOutType="return"/>
-            </actionHandle>
-        </inAction>
     </waitEventTask>
 
-    <autoTask id="processTrigger" name="处理触发" tag="processTrigger" g="80,300,88,48">
+    <autoTask id="processTrigger" name="处理触发" g="80,300,88,48">
         <transition to="end" g=":-15,20"/>
-        <action type="java">
-            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
-                <var name="payment" dataType="java.lang.String" contextVarName="triggerId" inOutType="param"/>
-                <var name="delivery" dataType="java.lang.String" contextVarName="triggerData" inOutType="param"/>
-                <var name="result" dataType="java.lang.String" contextVarName="processedData" inOutType="return"/>
-            </actionHandle>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="combineResults">
+                <input target="payment" dataType="java.lang.String" source="triggerId"/>
+                <input target="delivery" dataType="java.lang.String" source="triggerData"/>
+                <output dataType="java.lang.String" target="processedData"/>
+
         </action>
     </autoTask>
 
-    <end id="end" name="结束" tag="end" g="100,400,30,30"/>
+    <end id="end" name="结束" g="100,400,30,30"/>
 </bpm>
 

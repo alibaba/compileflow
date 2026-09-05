@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="fatjar.nested" name="Executable JAR workflow smoke">
+    <var name="message" dataType="java.lang.String" inOutType="return"/>
+    <start id="start" name="Start" g="50,50,32,32">
+        <transition to="nested"/>
+    </start>
+    <scriptTask id="nested" name="Build message" g="150,40,88,48">
+        <action type="script" language="qlexpress">
+                <output
+                     dataType="java.lang.String"
+                     target="message"/>
+                <code>"NESTED-OK"</code>
+
+        </action>
+        <transition to="end"/>
+    </scriptTask>
+    <end id="end" name="End" g="300,50,32,32"/>
+</bpm>

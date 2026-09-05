@@ -12,23 +12,100 @@
     </parent>
 
     <artifactId>compileflow-api</artifactId>
-    <name>compileflow-api</name>
-    <description>CompileFlow API - Unified contract layer, including all API, SPI, and extensions</description>
+    <name>CompileFlow Engine API</name>
+    <description>Supported public engine API and typed SPI contracts.</description>
+
+    <properties>
+        <!-- Activate api-compat after setting the shared released baseline version. -->
+        <compileflow.api.compat.skip>true</compileflow.api.compat.skip>
+    </properties>
 
     <dependencies>
-        <!-- Base dependencies -->
+        <!-- Test dependencies -->
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.jetbrains</groupId>
-            <artifactId>annotations</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>jacoco-check-api</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skipTests}</skip>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.50</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.github.siom79.japicmp</groupId>
+                <artifactId>japicmp-maven-plugin</artifactId>
+                <configuration>
+                    <skip>${compileflow.api.compat.skip}</skip>
+                    <oldVersion>
+                        <dependency>
+                            <groupId>com.alibaba.compileflow</groupId>
+                            <artifactId>compileflow-api</artifactId>
+                            <version>${compileflow.api.baseline.version}</version>
+                        </dependency>
+                    </oldVersion>
+                    <newVersion>
+                        <file>
+                            <path>${project.build.directory}/${project.build.finalName}.${project.packaging}</path>
+                        </file>
+                    </newVersion>
+                    <parameter>
+                        <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
+                        <breakBuildOnSourceIncompatibleModifications>true</breakBuildOnSourceIncompatibleModifications>
+                        <onlyModified>true</onlyModified>
+                    </parameter>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>api-compat-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>cmp</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>api-compat</id>
+            <properties>
+                <compileflow.api.compat.skip>false</compileflow.api.compat.skip>
+            </properties>
+        </profile>
+    </profiles>
 
 </project>

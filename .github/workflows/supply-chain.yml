@@ -1,0 +1,110 @@
+name: Supply Chain
+
+on:
+  push:
+    branches: [ master ]
+    tags:
+      - 'v*'
+    paths:
+      - 'pom.xml'
+      - 'compileflow-*/pom.xml'
+      - 'compileflow-durable/**'
+      - 'compileflow-deploy/pom.xml'
+      - 'compileflow-deploy/*/pom.xml'
+      - 'scripts/verify_maven_sbom.py'
+      - 'scripts/tests/test_verify_maven_sbom.py'
+      - '.github/workflows/java-security.yml'
+      - '.github/workflows/supply-chain.yml'
+      - '.mvn/**'
+      - 'mvnw'
+      - 'mvnw.cmd'
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'pom.xml'
+      - 'compileflow-*/pom.xml'
+      - 'compileflow-durable/**'
+      - 'compileflow-deploy/pom.xml'
+      - 'compileflow-deploy/*/pom.xml'
+      - 'scripts/verify_maven_sbom.py'
+      - 'scripts/tests/test_verify_maven_sbom.py'
+      - '.github/workflows/java-security.yml'
+      - '.github/workflows/supply-chain.yml'
+      - '.mvn/**'
+      - 'mvnw'
+      - 'mvnw.cmd'
+  schedule:
+    - cron: '23 4 * * 1'
+  workflow_dispatch: { }
+
+permissions:
+  contents: read
+
+jobs:
+  java-dependency-scan:
+    name: Scan Java runtime dependencies
+    if: github.event_name != 'pull_request'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/java-security.yml
+    secrets:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+  maven-sbom:
+    name: Maven aggregate SBOM
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      base64-subjects: ${{ steps.subjects.outputs.base64-subjects }}
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Generate Maven aggregate SBOM
+        run: |
+          ./mvnw org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom \
+            -Dcyclonedx.skipAttach=true \
+            -B -V --no-transfer-progress
+
+      - name: Verify Maven aggregate SBOM
+        run: |
+          python3 -m unittest scripts.tests.test_verify_maven_sbom
+          python3 scripts/verify_maven_sbom.py target/compileflow-bom.json
+
+      - name: Generate SBOM checksum subject
+        id: subjects
+        run: |
+          sha256sum target/compileflow-bom.json > target/compileflow-bom.sha256
+          echo "base64-subjects=$(base64 < target/compileflow-bom.sha256 | tr -d '\n')" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Maven SBOM
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: compileflow-maven-sbom
+          path: |
+            target/compileflow-bom.json
+            target/compileflow-bom.sha256
+          retention-days: 14
+
+  sbom-provenance:
+    name: SLSA provenance for Maven SBOM
+    if: github.event_name != 'pull_request'
+    needs: maven-sbom
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
+    # SLSA verifier requires trusted generator reusable workflows to use a
+    # complete vX.Y.Z tag rather than a commit digest.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    with:
+      base64-subjects: ${{ needs.maven-sbom.outputs.base64-subjects }}
+      provenance-name: compileflow-maven-sbom.intoto.jsonl

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 3,
+  "refreshedAt": "2026-08-30",
+  "postgres": {
+    "recommendedMajor": "18",
+    "images": {
+      "16": "postgres:16.15-alpine3.24@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685",
+      "17": "postgres:17.11-alpine3.24@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73",
+      "18": "postgres:18.6-alpine3.24@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2"
+    }
+  },
+  "workbenchJava": {
+    "upstreamChannel": "17-jdk-noble",
+    "image": "eclipse-temurin:17.0.20_8-jdk-noble@sha256:61a94244559f2e89e4edb02bae37eeb8762ecf5deaf237251fa630e5120a8798"
+  }
+}

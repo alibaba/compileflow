@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns:cf="http://www.compileflow.org" xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             targetNamespace="http://www.compileflow.org/bpmn/test">
+  <process id="bpmn20.compat.nested_multi_instance" name="Nested MultiInstance Test" isExecutable="true">
+    <extensionElements>
+      <cf:var name="pList" dataType="java.util.List&lt;java.lang.String&gt;" inOutType="param"/>
+      <cf:var name="subList" dataType="java.util.List&lt;java.lang.Integer&gt;" inOutType="param"/>
+      <cf:var name="processedMessage" dataType="java.lang.String" inOutType="return"/>
+    </extensionElements>
+    <startEvent id="start" name="Start"/>
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="outerLoop"/>
+    <subProcess id="outerLoop" name="Outer Loop">
+      <multiInstanceLoopCharacteristics isSequential="true" cf:collection="pList" cf:item="p"
+                                        cf:index="i" cf:itemType="java.lang.String"/>
+      <startEvent id="subStart" name="Sub Start"/>
+      <sequenceFlow id="subFlow1" sourceRef="subStart" targetRef="innerLoop"/>
+      <subProcess id="innerLoop" name="Inner Loop">
+        <multiInstanceLoopCharacteristics isSequential="true" cf:collection="subList" cf:item="q"
+                                          cf:index="j" cf:itemType="java.lang.Integer"/>
+        <startEvent id="innerSubStart" name="Inner Sub Start"/>
+        <sequenceFlow id="innerFlow1" sourceRef="innerSubStart" targetRef="echoTask"/>
+        <serviceTask id="echoTask" name="Echo Task">
+          <extensionElements>
+            <cf:action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="processString">
+                <cf:input target="input" dataType="java.lang.String" source="p"/>
+                <cf:output dataType="java.lang.String" target="processedMessage"/>
+
+            </cf:action>
+          </extensionElements>
+        </serviceTask>
+        <sequenceFlow id="innerFlow2" sourceRef="echoTask" targetRef="innerSubEnd"/>
+        <endEvent id="innerSubEnd" name="Inner Sub End"/>
+      </subProcess>
+      <sequenceFlow id="subFlow2" sourceRef="innerLoop" targetRef="subEnd"/>
+      <endEvent id="subEnd" name="Sub End"/>
+    </subProcess>
+    <sequenceFlow id="flow2" sourceRef="outerLoop" targetRef="end"/>
+    <endEvent id="end" name="End"/>
+  </process>
+</definitions>

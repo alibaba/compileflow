@@ -1,0 +1,13 @@
+compileflow:
+  engine:
+    components:
+      allowed-beans:
+        - orderOperations
+  deploy:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

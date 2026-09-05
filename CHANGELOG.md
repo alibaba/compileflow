@@ -1,69 +1,71 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project uses
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.0] - 2025-10-05
+## [2.0.0] - Unreleased
+
+CompileFlow 2.0 defines a new, incompatible contract. There is no 1.x compatibility bridge. Applications must adopt
+the 2.0 Java API, Spring configuration, and Workbench Server contracts documented in this repository.
 
 ### Added
 
-- **Core Engine & API**
-    - Introduced a type-safe `ProcessEngine<T>` interface.
-    - Added fluent builder pattern for `ProcessEngineConfig` for robust engine setup.
-    - New convenience factories like `ProcessEngineFactory.createTbbpm()` and `ProcessEngineFactory.createBpmn()`.
-    - Enhanced `ProcessSource` with multiple factory methods (`fromCode`, `fromFile`, `fromContent`).
-    - New `ProcessResult` with functional methods like `map`, `orElse`, and `onSuccess`.
-
-- **Hot Deployment**
-    - New `compileflow-deploy` module for hot deployment capabilities.
-    - Added `FlowHotDeployer` service to manage automatic process updates.
-    - Implemented `FileSystemChangeDetector` for monitoring local file changes.
-    - Implemented `NacosChangeDetector` for monitoring Nacos configuration changes.
-
-- **Spring Ecosystem**
-    - Improved Spring Boot auto-configuration in `compileflow-spring-boot-autoconfigure`.
-    - Simplified integration with a dedicated `compileflow-spring-boot-starter`.
-
-- **Documentation**
-    - Complete overhaul of all documentation with comprehensive guides.
-    - Added detailed guides for configuration, resource management, hot deployment, and monitoring.
-    - New API Reference section with clear usage examples.
+- Format-neutral `ProcessEngine`, `ProcessDefinition`, `ProcessRef`, typed result, preflight, tooling, and runtime
+  lifecycle APIs.
+- Durable process execution with recoverable Runs, Wait and Timer boundaries, governed Effects, same-Run Process Calls,
+  structured concurrent gateways, loops, and bounded parallel collection processing.
+- `compileflow-deploy` for immutable Version publication, revision-checked Alias rollout, deterministic canary routing,
+  promotion, abort, rollback, and runtime installation.
+- `compileflow-workbench-server` for draft management, publication, execution, monitoring, execution logs, and persisted
+  asynchronous invocation.
+- Workbench Learn, Build, and Operate surfaces, plus split Web/Server artifacts and an optional all-in-one executable
+  JAR.
+- Runnable [Spring Boot examples](examples/README.md), canonical
+  [Supported Surfaces](docs/architecture/06-SUPPORTED_SURFACES.en.md), release guidance, SBOMs, checksums, and provenance
+  for release assets.
 
 ### Changed
 
-- **Architecture**
-    - Re-architected the engine to use a hybrid model of Dependency Injection and an Event Bus for better modularity.
-    - Decoupled engine providers using Java's `ServiceLoader` (SPI), allowing for extensions like BPMN and TBBPM.
-- **Configuration**
-    - Migrated from a flat configuration model to a structured, builder-based `ProcessEngineConfig`.
-- **API**
-    - The core `ProcessEngine.execute` and `trigger` methods now support typed DTOs for improved type safety.
-
-### Fixed
-
-- Resolved inconsistencies between documented API examples and the actual implementation.
-- Ensured configuration properties in documentation match the codebase.
-
-### Deprecated
-
-- Older, non-type-safe `ProcessEngine` methods will be deprecated. Refer to the migration guide for details.
+- Direct definitions now use only explicit Inline or Classpath sources. Published execution uses an exact Version or a
+  mutable Alias that resolves to one exact Version at admission.
+- Every Process Call declares an explicit Classpath or exact Version target. Exact-Version and published graphs are
+  Version-only; Alias routing is limited to root admission.
+- TBBPM and BPMN now share validation and runtime semantics for gateways, loops, trigger entries, Process Calls,
+  conditions, type conversion, and generated execution.
+- Parallel and inclusive branches use isolated state and deterministic merge. Conflicting root-variable writes and
+  unsupported nested concurrent regions fail validation.
+- `ProcessEngine.execute` and Durable Start accept a closed, partial map of declared `param` variables. Trigger remains
+  the explicit state-seed API for named trigger entries.
+- Configuration is bound once into immutable `ProcessEngineConfig` snapshots. Process-call depth now uses
+  `ProcessEngineConfig.maxCallDepth` and `compileflow.engine.call.max-depth`.
+- Workbench production deployment uses a same-origin authentication gateway. The browser does not carry the Workbench
+  Server API key; the Node mock remains a loopback development tool.
+- The first-party stateful support matrix is PostgreSQL 16.15, 17.11, and 18.6. Deploy, Workbench, and Durable each run
+  their own real-database contract matrix.
+- Build and release checks now cover reproducible Maven archives, API compatibility and coverage, dependency review,
+  CodeQL, pinned images and CI actions, and scoped release-candidate matrices.
 
 ### Removed
 
-- Removed several outdated and undocumented configuration options.
+- Public `FlowModel`, process-global property resolution, classpath scanning, JVM-global mutable extension registration,
+  and the generic public invocation helper.
+- The obsolete `compileflow-benchmark` module; maintained JMH benchmarks now live in `compileflow-benchmarks`.
+- Obsolete generated reports, duplicate changelogs, unverifiable performance claims, stale planning artifacts, and demo
+  identity controls that did not represent authenticated users.
 
-### Security
+### Fixed
 
-- No security changes in this release.
+- Publish, deployment creation, and rollback now require `Idempotency-Key`; missing headers return the standard
+  `INVALID_REQUEST` Problem Detail.
+- The storage-free Spring Boot starter no longer links optional Deploy API classes during unconditional configuration
+  binding.
+- Documentation links, Workbench shortcut guidance, CI path filters, and tagged-release validation boundaries now match
+  the delivered project structure.
 
----
+## Older Releases
 
-## [1.2.0] - 2024-XX-XX
+For older versions, refer to [GitHub Releases](https://github.com/alibaba/compileflow/releases).
 
-For older versions, please refer to the [GitHub Releases](https://github.com/alibaba/compileflow/releases) page.
-
-[Unreleased]: https://github.com/alibaba/compileflow/compare/v2.0.0...HEAD
-[2.0.0]: https://github.com/alibaba/compileflow/compare/v1.2.0...v2.0.0
-
+[2.0.0]: https://github.com/alibaba/compileflow/compare/v1.2.0...HEAD

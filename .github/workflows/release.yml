@@ -1,0 +1,441 @@
+name: Release with SLSA Provenance
+
+# Builds release artifacts on a version tag push and attaches SLSA Level 3
+# build provenance to the GitHub Release. Provenance lets downstream consumers
+# verify the artifact they download was produced by this workflow.
+#
+# Trigger: push a tag matching `v*.*.*` (e.g. `v2.0.0`).
+# Maven Central publishing is intentionally NOT wired here. That path uses
+# `central-publishing-maven-plugin` via the `publish-central` profile during a
+# release build on a protected branch. This workflow focuses on the GitHub
+# Release surface and its provenance.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+
+jobs:
+  engine-candidate-evidence:
+    name: Verify same-commit Engine candidate
+    permissions:
+      contents: read
+    uses: ./.github/workflows/integration-tests.yml
+
+  durable-candidate-evidence:
+    name: Verify same-commit Durable candidate
+    permissions:
+      contents: read
+    uses: ./.github/workflows/durable-ci.yml
+
+  workbench-server-candidate-evidence:
+    name: Verify same-commit Workbench Server candidate
+    permissions:
+      contents: read
+    uses: ./.github/workflows/workbench-server-ci.yml
+
+  workbench-delivery-candidate-evidence:
+    name: Verify same-commit Workbench delivery candidate
+    permissions:
+      contents: read
+    uses: ./.github/workflows/workbench-ci.yml
+
+  java-security-candidate-evidence:
+    name: Verify same-commit Java dependency security
+    permissions:
+      contents: read
+    uses: ./.github/workflows/java-security.yml
+    secrets:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+  build:
+    name: Build release artifacts
+    needs:
+      - engine-candidate-evidence
+      - durable-candidate-evidence
+      - workbench-server-candidate-evidence
+      - workbench-delivery-candidate-evidence
+      - java-security-candidate-evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify current container and database baselines
+        run: python3 scripts/check_release_baselines.py --online
+
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093
+        with:
+          package_json_file: compileflow-workbench/package.json
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: compileflow-workbench/.node-version
+          cache: 'pnpm'
+          cache-dependency-path: compileflow-workbench/pnpm-lock.yaml
+
+      - name: Verify tag and project version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          case "$RELEASE_TAG" in
+            v*) release_version="${RELEASE_TAG#v}" ;;
+            *) echo "Release tag must start with v: $RELEASE_TAG" >&2; exit 1 ;;
+          esac
+          python3 scripts/check_project_versions.py \
+            --expected "$release_version" \
+            --release
+          release_commit="$(git rev-list -n 1 "$RELEASE_TAG")"
+          git merge-base --is-ancestor "$release_commit" origin/master \
+            || { echo "Release tag is not based on origin/master: $release_commit" >&2; exit 1; }
+
+      - name: Resolve supported API compatibility baseline
+        id: api-compat
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          release_version="${RELEASE_TAG#v}"
+          baseline="$(
+            python3 scripts/resolve_api_compatibility_baseline.py \
+              --release-version "$release_version" \
+              --format baseline
+          )"
+          echo "baseline=$baseline" >> "$GITHUB_OUTPUT"
+          if [ -n "$baseline" ]; then
+            echo "Comparing supported APIs against v$baseline"
+          else
+            echo "No prior stable release exists in this MAJOR line"
+          fi
+
+      - name: Verify supported API compatibility
+        if: steps.api-compat.outputs.baseline != ''
+        env:
+          API_COMPAT_BASELINE: ${{ steps.api-compat.outputs.baseline }}
+        run: |
+          ./mvnw verify \
+            -pl compileflow-api,compileflow-deploy/compileflow-deploy-api \
+            -am \
+            -Papi-compat \
+            -Dcompileflow.api.baseline.version="$API_COMPAT_BASELINE" \
+            -DskipTests \
+            -B -V --no-transfer-progress
+
+      - name: Build and verify release artifacts
+        run: |
+          release_modules="compileflow-api,compileflow-core,compileflow-tbbpm,compileflow-bpmn,compileflow-durable/compileflow-durable-api,compileflow-durable/compileflow-durable-spi,compileflow-durable/compileflow-durable-testkit,compileflow-durable/compileflow-durable-runtime,compileflow-durable/compileflow-durable-postgres,compileflow-durable/compileflow-durable-spring-boot-autoconfigure,compileflow-durable/compileflow-durable-spring-boot-starter,compileflow-durable/compileflow-durable-spring-boot-starter-postgres,compileflow-deploy/compileflow-deploy-api,compileflow-deploy/compileflow-deploy-control-plane,compileflow-deploy/compileflow-deploy-runtime,compileflow-spring-boot-autoconfigure,compileflow-spring-boot-starter,compileflow-workbench-server"
+          python3 scripts/check_internal_links.py
+          python3 scripts/check_architecture_boundaries.py
+          python3 scripts/check_spec_impl_parity.py
+          python3 scripts/check_bilingual_parity.py
+          python3 scripts/check_durable_delivery.py
+          ./mvnw clean verify \
+            -pl "$release_modules" -am \
+            -Prelease-artifacts \
+            -B -V --no-transfer-progress
+          python3 scripts/verify_spotbugs_reports.py \
+            compileflow-api \
+            compileflow-core \
+            compileflow-tbbpm \
+            compileflow-bpmn \
+            compileflow-durable/compileflow-durable-api \
+            compileflow-durable/compileflow-durable-spi \
+            compileflow-durable/compileflow-durable-testkit \
+            compileflow-durable/compileflow-durable-runtime \
+            compileflow-durable/compileflow-durable-postgres \
+            compileflow-durable/compileflow-durable-spring-boot-autoconfigure \
+            compileflow-deploy/compileflow-deploy-api \
+            compileflow-deploy/compileflow-deploy-control-plane \
+            compileflow-deploy/compileflow-deploy-runtime \
+            compileflow-spring-boot-autoconfigure \
+            compileflow-workbench-server
+          ./mvnw checkstyle:check \
+            -pl compileflow-api,compileflow-durable/compileflow-durable-api,compileflow-durable/compileflow-durable-spi,compileflow-durable/compileflow-durable-testkit,compileflow-deploy/compileflow-deploy-api \
+            -Dcheckstyle.config.location=checkstyle-javadoc.xml \
+            -B -V --no-transfer-progress
+          python3 scripts/verify_javadoc_artifacts.py \
+            compileflow-api \
+            compileflow-deploy/compileflow-deploy-api \
+            compileflow-durable/compileflow-durable-api \
+            compileflow-durable/compileflow-durable-spi \
+            compileflow-durable/compileflow-durable-testkit
+
+      - name: Verify executable Spring Boot examples
+        run: |
+          ./mvnw test \
+            -pl examples/spring-boot-basic,examples/spring-boot-order-fulfillment \
+            -Pexamples -am \
+            -Dtest=SampleApplicationTest,OrderFulfillmentApplicationTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -B -V --no-transfer-progress
+
+      - name: Build bundled Workbench distribution
+        run: |
+          pnpm --dir compileflow-workbench install --frozen-lockfile
+          pnpm --dir compileflow-workbench audit --audit-level high
+          pnpm --dir compileflow-workbench --filter @compileflow/workbench-web build
+          ./mvnw package \
+            -pl compileflow-workbench-server -am \
+            -Pworkbench-bundled -DskipTests \
+            -B -V --no-transfer-progress
+          bundled="compileflow-workbench-server/target/compileflow-workbench-all-in-one-${GITHUB_REF_NAME#v}.jar"
+          test -f "$bundled"
+          jar tf "$bundled" | grep -qx 'BOOT-INF/classes/static/index.html'
+          jar tf "$bundled" | grep -qx 'META-INF/LICENSE'
+          jar tf "$bundled" | grep -qx 'META-INF/NOTICE'
+          compileflow-workbench/scripts/verify-bundled-web-assets.sh "$bundled"
+          unzip -p "$bundled" META-INF/MANIFEST.MF | tr -d '\r' \
+            | grep -qx "Implementation-Version: ${GITHUB_REF_NAME#v}"
+
+      - name: Generate and verify aggregate SBOM
+        run: |
+          ./mvnw org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom \
+            -Dcyclonedx.skipAttach=true \
+            -B -V --no-transfer-progress
+          python3 scripts/verify_maven_sbom.py \
+            target/compileflow-bom.json \
+            --expected-version "${GITHUB_REF_NAME#v}"
+
+      - name: Generate and verify Workbench Web SBOM
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          pnpm --dir compileflow-workbench \
+            --filter @compileflow/workbench-web \
+            sbom --prod \
+            --sbom-format cyclonedx \
+            --sbom-spec-version 1.6 \
+            --sbom-type application \
+            --out "$GITHUB_WORKSPACE/target/compileflow-workbench-web-bom.json"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          path = Path("target/compileflow-workbench-web-bom.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          component = data.get("metadata", {}).get("component", {})
+          expected_version = os.environ["RELEASE_TAG"].removeprefix("v")
+          if data.get("bomFormat") != "CycloneDX":
+              raise SystemExit("Workbench Web SBOM is not in CycloneDX format")
+          if (component.get("group"), component.get("name")) != (
+              "@compileflow", "workbench-web"
+          ):
+              raise SystemExit("Workbench Web SBOM has the wrong root component")
+          if component.get("version") != expected_version:
+              raise SystemExit("Workbench Web SBOM has the wrong release version")
+          if not data.get("components"):
+              raise SystemExit("Workbench Web SBOM contains no production dependencies")
+          print(f"Validated {len(data['components'])} Workbench Web SBOM components")
+          PY
+
+      - name: Collect release artifacts
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          mkdir -p staging
+          release_version="${RELEASE_TAG#v}"
+          bundled_jar="compileflow-workbench-server/target/compileflow-workbench-all-in-one-${release_version}.jar"
+          test -f "$bundled_jar" \
+            || { echo "Missing bundled Workbench artifact: $bundled_jar" >&2; exit 1; }
+          cp "$bundled_jar" staging/
+          # Public API and engine artifacts only; skip tests, benchmarks, and
+          # intermediate build outputs that have no value for end users.
+          find . -type f -name "compileflow-*.jar" \
+            -path "*/target/compileflow-*.jar" \
+            ! -name "*-tests.jar" \
+            ! -name "compileflow-benchmarks*" \
+            ! -name "compileflow-example*" \
+            ! -name "compileflow-workbench-all-in-one-*.jar" \
+            -print0 | while IFS= read -r -d '' artifact; do
+              destination="staging/$(basename "$artifact")"
+              if [ -e "$destination" ]; then
+                echo "Duplicate release artifact name: $destination" >&2
+                exit 1
+              fi
+              cp "$artifact" "$destination"
+            done
+          if find staging -type f -name "*SNAPSHOT*" | grep -q .; then
+            echo "Snapshot artifact reached release staging" >&2
+            exit 1
+          fi
+          expected_artifacts=(
+            compileflow-api
+            compileflow-core
+            compileflow-tbbpm
+            compileflow-bpmn
+            compileflow-durable-api
+            compileflow-durable-spi
+            compileflow-durable-testkit
+            compileflow-durable-runtime
+            compileflow-durable-postgres
+            compileflow-durable-spring-boot-autoconfigure
+            compileflow-durable-spring-boot-starter
+            compileflow-durable-spring-boot-starter-postgres
+            compileflow-deploy-api
+            compileflow-deploy-control-plane
+            compileflow-deploy-runtime
+            compileflow-spring-boot-autoconfigure
+            compileflow-spring-boot-starter
+            compileflow-workbench-server
+          )
+          for artifact_id in "${expected_artifacts[@]}"; do
+            for classifier in "" "-sources" "-javadoc"; do
+              expected="staging/${artifact_id}-${release_version}${classifier}.jar"
+              test -f "$expected" || { echo "Missing expected release artifact: $expected" >&2; exit 1; }
+            done
+          done
+          main_artifact_count="$(
+            find staging -maxdepth 1 -type f -name "compileflow-*-${release_version}.jar" \
+              ! -name "compileflow-workbench-all-in-one-${release_version}.jar" \
+              | wc -l | tr -d ' '
+          )"
+          test "$main_artifact_count" -eq "${#expected_artifacts[@]}" \
+            || { echo "Unexpected release JAR set: found $main_artifact_count main artifacts" >&2; exit 1; }
+          for artifact in staging/compileflow-*.jar; do
+            case "$artifact" in
+              *-sources.jar|*-javadoc.jar|*compileflow-workbench-all-in-one-*.jar) continue ;;
+            esac
+            base="${artifact%.jar}"
+            test -f "${base}-sources.jar" || { echo "Missing sources for $artifact" >&2; exit 1; }
+            test -f "${base}-javadoc.jar" || { echo "Missing Javadoc for $artifact" >&2; exit 1; }
+            for licensed_artifact in "$artifact" "${base}-sources.jar"; do
+              jar tf "$licensed_artifact" | grep -qx 'META-INF/LICENSE' \
+                || { echo "Missing META-INF/LICENSE in $licensed_artifact" >&2; exit 1; }
+              jar tf "$licensed_artifact" | grep -qx 'META-INF/NOTICE' \
+                || { echo "Missing META-INF/NOTICE in $licensed_artifact" >&2; exit 1; }
+            done
+            unzip -p "$artifact" META-INF/MANIFEST.MF | tr -d '\r' \
+              | grep -qx "Implementation-Version: $release_version" \
+              || { echo "Incorrect Implementation-Version in $artifact" >&2; exit 1; }
+          done
+          cp target/compileflow-bom.json staging/
+          cp target/compileflow-workbench-web-bom.json staging/
+          release_commit="$(git rev-list -n 1 "$RELEASE_TAG")"
+          source_archive="staging/compileflow-${release_version}-source.tar.gz"
+          git archive \
+            --format=tar \
+            --prefix="compileflow-${release_version}/" \
+            "$release_commit" \
+            | gzip -n -9 > "$source_archive"
+          python3 scripts/verify_source_archive.py "$source_archive" "$release_version"
+          ls -la staging/
+
+      - name: Compute artifact hashes
+        id: hash
+        # The SLSA provenance generator needs a single base64-encoded string of
+        # `<sha256>  <filename>` lines computed over every artifact. The
+        # generator decodes this and embeds the subjects in the provenance
+        # attestation.
+        run: |
+          cd staging
+          sha256sum *.jar *-source.tar.gz *-bom.json | sort -k2 > SHA256SUMS
+          b64="$(base64 -w0 < SHA256SUMS)"
+          echo "hashes=$b64" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-artifacts
+          path: |
+            staging/*.jar
+            staging/*-source.tar.gz
+            staging/*-bom.json
+            staging/SHA256SUMS
+          retention-days: 7
+
+  provenance:
+    name: Generate SLSA provenance
+    needs: [ build ]
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+    # The SLSA generator deliberately requires a complete vX.Y.Z tag so that
+    # slsa-verifier can authenticate the trusted builder workflow identity.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    with:
+      base64-subjects: "${{ needs.build.outputs.hashes }}"
+      upload-assets: true
+      # Keep the release invisible until the final job has attached every JAR
+      # and checksum. The final action reuses and publishes this draft.
+      draft-release: true
+
+  release:
+    name: Publish GitHub Release
+    needs: [ build, provenance ]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Download artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c906dfced5ed9
+        with:
+          name: release-artifacts
+          path: staging
+
+      - name: Publish complete GitHub Release
+        uses: softprops/action-gh-release@da05d552573bd1a1dd1ff1d449b4221e5d1f5b4c
+        with:
+          generate_release_notes: true
+          files: staging/*
+          body: |
+            # CompileFlow ${{ github.ref_name }}
+
+            See `CHANGELOG.md` for the full list of changes.
+
+            ## Verification
+
+            `compileflow-workbench-all-in-one-*.jar` is the bundled Workbench
+            distribution: one Java process serving both the SPA and API. The
+            separate `compileflow-workbench-server-*.jar` remains available for
+            split deployment.
+
+            CompileFlow Durable is released as an opt-in, embeddable Developer
+            Preview kernel. Its application API is Developer Preview and its
+            application capability/integration SPI is Provider Preview. The
+            internal runtime, first-party PostgreSQL implementation, Spring Boot
+            integration, and Kernel Store contract testkit are included. Platform control planes, server distributions,
+            Kubernetes resources, and cloud-specific adapters are intentionally
+            outside this release boundary.
+
+            The JARs, deterministic source archive, Maven
+            `compileflow-bom.json`, and Workbench
+            `compileflow-workbench-web-bom.json` are covered by the attached
+            checksum manifest and SLSA build provenance. To verify, install the
+            [`slsa-verifier`](https://github.com/slsa-framework/slsa-verifier)
+            and run:
+
+            ```
+            slsa-verifier verify-artifact \
+                --provenance-path *.intoto.jsonl \
+                --source-uri github.com/alibaba/compileflow \
+                --source-tag "${{ github.ref_name }}" \
+                <artifact>.jar
+            ```
+
+            See `docs/compatibility-policy.md` for version support and
+            `docs/architecture/06-SUPPORTED_SURFACES.en.md` for product boundaries.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

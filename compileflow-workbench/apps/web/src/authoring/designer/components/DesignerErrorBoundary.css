@@ -1,0 +1,43 @@
+.error-boundary-container {
+  padding: 48px;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-fill-secondary);
+}
+
+.error-boundary-details {
+  margin-top: var(--spacing-4);
+  text-align: left;
+  background: var(--color-bg-container);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-sm);
+  max-width: 600px;
+  overflow: auto;
+}
+
+.error-boundary-summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-bold);
+}
+
+.error-boundary-stack {
+  font-size: var(--font-size-xs);
+  margin-top: var(--spacing-3);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.error-boundary-component-stack {
+  font-size: var(--font-size-xs);
+  margin-top: var(--spacing-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--color-text-tertiary);
+}
+
+/* Dark mode */
+[data-theme='dark'] .error-boundary-details {
+  background: var(--color-bg-elevated);
+}

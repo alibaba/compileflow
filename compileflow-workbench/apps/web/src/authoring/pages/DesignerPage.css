@@ -1,0 +1,431 @@
+/* ============================================
+   1. Designer Header
+   ============================================ */
+
+.designer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: color-mix(in srgb, var(--bg-header) 88%, transparent);
+  backdrop-filter: blur(10px) saturate(1.1);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
+  padding: 0 var(--spacing-4);
+  height: 56px;
+  box-shadow: var(--shadow-xs);
+  z-index: 100;
+  border-bottom: 1px solid var(--border-color);
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
+  flex-shrink: 0;
+}
+
+[data-theme='dark'] .designer-header {
+  background: color-mix(in srgb, var(--bg-header) 92%, transparent);
+  border-bottom-color: var(--border-color);
+}
+
+.designer-header-left,
+.designer-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  flex-shrink: 0;
+}
+
+/* ============================================
+   2. Back Button
+   ============================================ */
+
+.back-button {
+  font-size: var(--font-size-sm) !important;
+  font-weight: var(--font-weight-medium) !important;
+  color: var(--text-secondary) !important;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.back-button:hover {
+  color: var(--primary-500) !important;
+  background: color-mix(in srgb, var(--primary-500) 8%, transparent) !important;
+}
+
+/* ============================================
+   3. Flow Name Editor
+   ============================================ */
+
+.designer-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.flow-name-editor {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  max-width: 320px;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.flow-name-display {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: 5px var(--spacing-3);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.flow-name-editor .ant-input-search {
+  max-width: 100%;
+}
+
+.flow-name-display:hover {
+  background: var(--hover-bg);
+  border-color: var(--border-color);
+}
+
+.flow-name-display:focus-within {
+  outline: none;
+  border-color: var(--primary-400);
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+}
+
+.flow-name-text {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+  min-width: 0;
+  flex: 1;
+}
+
+[data-theme='dark'] .flow-name-text {
+  color: var(--text-primary);
+}
+
+.edit-icon {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  opacity: 0;
+  transition:
+    opacity var(--transition-fast),
+    color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.flow-name-display:hover .edit-icon {
+  opacity: 1;
+  color: var(--primary-500);
+}
+
+.modified-indicator {
+  color: var(--warning-main);
+  margin-left: var(--spacing-1);
+  animation: pulse 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* Node highlight ring animation for canvas selection */
+@keyframes nodeHighlightPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(22, 119, 255, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.25);
+  }
+}
+
+/* Panel slide-in animation */
+@keyframes panelSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ============================================
+   4. Tool Group Separators
+   ============================================ */
+
+.tool-group-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border-color);
+  margin: 0 var(--spacing-1);
+  flex-shrink: 0;
+}
+
+/* ============================================
+   5. Save Button Status
+   ============================================ */
+
+.save-btn-modified {
+  animation: savePulse 2s ease-in-out infinite;
+}
+
+@keyframes savePulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(22, 119, 255, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(22, 119, 255, 0.15);
+  }
+}
+
+/* ============================================
+   6. Content Area
+   ============================================ */
+
+.designer-content {
+  padding: 0;
+  height: calc(100vh - 56px);
+  overflow: hidden;
+  background: var(--bg-secondary);
+  transition: background var(--transition-base);
+}
+
+[data-theme='dark'] .designer-content {
+  background: var(--bg-secondary);
+}
+
+/* ============================================
+   7. Loading & Error States
+   ============================================ */
+
+.designer-loading,
+.designer-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - var(--header-height, 108px));
+  gap: var(--spacing-4);
+  background: var(--bg-secondary);
+  transition: background var(--transition-base);
+}
+
+.designer-loading-text {
+  font-size: var(--font-size-md);
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   8. Toolbar Compact Mode (icon-only strip)
+   ============================================ */
+
+.toolbar-strip {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+}
+
+.toolbar-strip .ant-btn-text {
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.toolbar-strip .ant-btn-text:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.toolbar-strip .ant-btn-text:disabled {
+  opacity: 0.35;
+}
+
+[data-theme='dark'] .toolbar-strip {
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
+}
+
+/* ============================================
+   9. Header Tags & Save Button
+   ============================================ */
+
+.header-type-tags {
+  margin-left: var(--spacing-1);
+  flex-shrink: 0;
+}
+
+.header-type-tag {
+  margin: 0 !important;
+  font-size: 11px !important;
+  line-height: 18px !important;
+  padding: 0 6px !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.header-process-code-tag {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-save-btn {
+  font-weight: var(--font-weight-semibold);
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+}
+
+.header-more-btn {
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   10. View Mode Tabs
+   ============================================ */
+
+.designer-view-tabs {
+  margin-bottom: 0;
+  padding: 0 var(--spacing-4);
+  background: var(--bg-secondary);
+}
+
+[data-theme='dark'] .designer-view-tabs {
+  background: var(--bg-secondary);
+}
+
+/* ============================================
+   11. Responsive
+   ============================================ */
+
+@media (max-width: 1024px) {
+  .designer-header {
+    padding: 0 var(--spacing-3);
+  }
+
+  .header-left {
+    gap: var(--spacing-1);
+  }
+
+  .flow-name-text {
+    max-width: 160px;
+  }
+}
+
+@media (max-width: 768px) {
+  .designer-header {
+    padding: 0 var(--spacing-2);
+    justify-content: space-between;
+    gap: var(--spacing-2);
+    overflow-x: hidden;
+    overflow-y: hidden;
+  }
+
+  .header-left {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .flow-name-text {
+    max-width: 100px;
+  }
+
+  .header-right {
+    gap: var(--spacing-1);
+  }
+
+  .header-type-tags > :not(:first-child) {
+    display: none;
+  }
+
+  .header-save-btn {
+    width: 32px;
+    padding-inline: 0;
+  }
+
+  .header-save-btn > span:not(.ant-btn-icon) {
+    display: none;
+  }
+}
+
+/* ============================================
+   10. Print
+   ============================================ */
+
+@media print {
+  .designer-header {
+    display: none !important;
+  }
+}
+
+/* ============================================
+   11. Accessibility: prefers-reduced-motion
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .modified-indicator,
+  .save-btn-modified {
+    animation: none !important;
+  }
+
+  .flow-name-display,
+  .back-button,
+  .toolbar-strip .ant-btn-text,
+  .designer-content,
+  .designer-loading,
+  .designer-error {
+    transition: none !important;
+  }
+}

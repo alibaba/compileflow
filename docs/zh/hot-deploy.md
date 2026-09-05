@@ -1,134 +1,166 @@
 # 热部署
 
-CompileFlow 为生产环境中的零停机流程更新提供了强大的热部署功能。
+CompileFlow 热部署用于发布不可变流程版本，并在不重启应用的情况下修改 Alias 路由。本指南面向应用负责人和运维人员，说明发布
+与 rollout 操作；分布式平台嵌入、传输要求和恢复接线请阅读[集成指南](hot-deploy-integration.md)。版本发布、路由变更、rollout
+历史、Outbox 投递和节点本地安装分别由独立组件负责。
 
-这使您能够实时修改业务逻辑、修复错误或调整流程，而无需重新启动应用程序。
+## 本地定义预热
 
-## 1. 手动热重载
-
-更新流程最简单的方法是使用 `ProcessAdminService` 手动触发重新部署。当您为一个已存在于缓存中的流程代码调用 `deploy()` 时，CompileFlow 将重新加载流程定义，重新编译它，并原子性地替换缓存中的旧版本。
-
-```java
-// 从引擎获取管理服务
-ProcessAdminService adminService = engine.admin();
-
-// 按流程代码基本热重载。引擎将重新查找源。
-adminService.deploy(ProcessSource.fromCode("bpm.order.process"));
-
-// 从配置中心获取的新的 XML 内容进行热重载
-String newXmlContent = loadUpdatedFlowFromConfigCenter();
-ProcessSource source = ProcessSource.fromContent("bpm.order.process", newXmlContent);
-adminService.deploy(source);
-
-// 一次性批量热重载多个流程
-adminService.deploy(
-    ProcessSource.fromCode("bpm.order.process"),
-    ProcessSource.fromCode("bpm.payment.process")
-);
-
-// 使用自定义 ClassLoader 进行热重载
-ClassLoader customClassLoader = new URLClassLoader(new URL[]{new URL("file:///opt/lib/")});
-adminService.deploy(customClassLoader, ProcessSource.fromCode("bpm.order.process"));
-```
-
-## 2. 自动热部署
-
-对于全自动更新，CompileFlow 提供了一个变更检测机制，可以监控外部源并在检测到变更时触发热部署。
-
-### a. 文件系统监控
-
-这对于本地开发（保存时重新加载）和流程文件在共享文件系统上管理的生产环境都很有用。
+开发工具可以先把更新后的精确定义编译进当前 Engine 的有界 runtime cache，再执行同一份定义：
 
 ```java
-import com.alibaba.compileflow.engine.deploy.FlowHotDeployer;
-import com.alibaba.compileflow.engine.deploy.detector.FileSystemChangeDetector;
+ProcessDefinition updated =
+        ProcessDefinition.inline("bpm.order.process", updatedXml);
 
-// 监控生产目录的变更
-FileSystemChangeDetector detector = new FileSystemChangeDetector("/opt/flows");
-FlowHotDeployer hotDeployer = new FlowHotDeployer(engine.admin(), detector);
-hotDeployer.start(); // 在后台线程中开始监控
-
-// 停止监控:
-// hotDeployer.stop();
+engine.runtime().warmUp(updated);
+engine.execute(updated, variables).orElseThrow();
 ```
 
-### b. Nacos 配置中心
+`warmUp` 不会创建 code 或 version binding。后续通过显式 `ProcessDefinition` 调用时仍会解析配置的定义来源；
+调用方必须执行同一份显式内容，或通过精确 `ProcessRef.Version` 加载该内容。预热只改变当前 Engine 的 cache，不是生产发布或多节点路由机制。
 
-在微服务架构中，通常在像 Nacos 这样的配置中心管理流程文件。`NacosChangeDetector` 会监听配置变更并触发热部署。
+## 选择拓扑
+
+| 使用场景                              | Topology      | Control plane | Runtime worker | 交付方式                                    |
+|---------------------------------------|---------------|---------------|----------------|---------------------------------------------|
+| CompileFlow Workbench Server 或单 JVM | `EMBEDDED`    | true          | false          | 提交后同步 local-ready；outbox 负责持久恢复 |
+| 发布 API 进程                         | `DISTRIBUTED` | true          | false          | outbox 交付到 sync channel                  |
+| 执行 worker                           | `DISTRIBUTED` | false         | true           | channel 订阅驱动 runtime 安装               |
+| 有意组合的节点                        | `DISTRIBUTED` | true          | true           | 通过 channel 同时发布与订阅                 |
+
+Starter 的 `compileflow.deploy.enabled` 默认为 `false`。启用 deploy 却没有任何进程职责属于非法配置。
+
+### 嵌入式
+
+```yaml
+compileflow:
+  deploy:
+    enabled: true
+    topology: EMBEDDED
+    control-plane-enabled: true
+    runtime-worker-enabled: false
+    artifact:
+      mode: DATABASE
+```
+
+数据库保存不可变版本、alias route、rollout 历史和 outbox 状态。Route 事务提交后，命令会读取最新权威 Alias，完成制品安装并发布
+local-ready snapshot 后再返回；outbox 以同一 revision 提供持久恢复。内存只是缓存，重启或 eviction 后 JDBC 仍是权威。
+
+### 分布式控制面
+
+```yaml
+compileflow:
+  deploy:
+    enabled: true
+    topology: DISTRIBUTED
+    control-plane-enabled: true
+    runtime-worker-enabled: false
+    artifact:
+      mode: DATABASE
+```
+
+控制面要求 `DeploymentSyncChannel`，只分发已提交 outbox 记录，并将当前 route 权威对账到 channel。缺少必需
+基础设施时启动失败；应用必须提供一个经过审计的 channel bean。
+
+### 分布式数据面
+
+```yaml
+compileflow:
+  deploy:
+    enabled: true
+    topology: DISTRIBUTED
+    control-plane-enabled: false
+    runtime-worker-enabled: true
+    runtime:
+      failure-backoff: 5m
+      convergence-timeout: 30s
+      concurrency: 1
+      queue-capacity: 256
+    artifact:
+      mode: DATABASE
+    routing:
+      namespaces: [default]
+      codes: [order.rule]
+      aliases: [production]
+      operation-timeout: 5s
+```
+
+必须至少配置一个显式 key 或派生 code 订阅。Database artifact 模式要求版本仓储可读；channel 模式从配置的 sync transport
+解析不可变制品。
+
+## 发布不可变版本
 
 ```java
-import com.alibaba.compileflow.engine.deploy.FlowHotDeployer;
-import com.alibaba.compileflow.engine.deploy.detector.NacosChangeDetector;
-import com.alibaba.nacos.api.NacosFactory;
-import com.alibaba.nacos.api.config.ConfigService;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
-
-// 1. 配置 Nacos 客户端
-Properties properties = new Properties();
-properties.put("serverAddr", "localhost:8848");
-ConfigService configService = NacosFactory.createConfigService(properties);
-
-// 2. 指定要监控的 dataId
-List<String> flowDataIds = Arrays.asList("bpm.order.process", "bpm.payment.process");
-NacosChangeDetector nacosDetector = new NacosChangeDetector(
-    configService,
-    flowDataIds,
-    "DEFAULT_GROUP"
-);
-
-// 3. 启动热部署器
-FlowHotDeployer hotDeployer = new FlowHotDeployer(engine.admin(), nacosDetector);
-hotDeployer.start();
+PublishedProcessVersion published = deploymentService.publish(
+        new PublishProcessVersionCommand(
+                ProcessRef.version("default", "order.rule", "2026-07-15-001"),
+                ProcessModelType.TBBPM,
+                ProcessDefinition.inline("order.rule", flowXml),
+                "alice",
+                metadata));
 ```
 
-## 3. 生产用例
+发布会校验不可变 identity、大小、digest assertion 与 actor，再保存精确源码。它没有可变 readiness 状态，不执行 runtime
+编译，也不改变 route。数据面安装与 local-ready 是后续独立的 fail-closed 步骤。
 
-### a. 业务规则更新
+## 通过 Rollout 切流
 
-一个常见的用例是将业务规则（例如，定价、折扣、风险等级）外部化到流程文件中。业务分析师可以通过管理面板更新这些规则，面板保存新的 BPM 文件。文件系统检测器会检测到变更并热部署逻辑，使得新订单能够立即使用更新后的规则，而无需服务重启。
-
-### b. A/B 测试和灰度发布
-
-热部署可以作为灰度发布策略中的一个工具。
-
-1.  **部署新版本**：使用一个不同的代码（例如 `bpm.order.process.v2`）部署新的流程逻辑。
-2.  **路由流量**：使用应用层逻辑（例如，基于 `userId` 的特性开关）将一小部分流量路由到新的流程版本。
-3.  **监控**：分析 `v2` 版本的性能和业务指标。
-4.  **全量上线**：验证通过后，用 `v2` 的内容更新原始的流程文件（`bpm.order.process.v1`）并进行热部署。所有流量将无缝切换到新版本。
-
-### c. 紧急 Bug 修复和回滚
-
-如果在生产环境的流程中发现了一个 bug，您可以快速部署一个修复，而无需进行完整的服务发布。同样，如果新的部署导致了问题，您可以立即热部署之前稳定的流程文件版本以回滚变更。
+使用刚从权威状态读到的 Alias revision 创建灰度：
 
 ```java
-// 紧急回滚到已知的稳定版本
-engine.admin().deploy(ProcessSource.fromContent("bpm.order.process", stableVersionXml));
+ProcessRollout rollout = deploymentService.createRollout(CreateRolloutCommand.canary(
+        "order-v2-release",
+        ProcessRef.alias("default", "order.rule", "production"),
+        ProcessRef.version("default", "order.rule", "2026-07-15-001"),
+        currentAliasRevision,
+        1_000,
+        "alice",
+        "ticket-4821"));
+
+rollout = deploymentService.updateCanaryWeight(new UpdateCanaryWeightCommand(
+        rollout.getId(), 5_000, rollout.getRevision(), "alice"));
+
+rollout = deploymentService.promoteRollout(new PromoteRolloutCommand(
+        rollout.getId(), rollout.getRevision(), "alice"));
 ```
 
-## 4. 健康检查与监控
+立即发布使用 `RolloutStrategy.ALL_AT_ONCE` 且不提供灰度权重。进行中灰度通过
+`AbortRolloutCommand` 中止并恢复创建时捕获的 baseline。回滚已完成发布时，创建目标为更早不可变版本的新 all-at-once
+rollout；完成历史永不编辑。
 
-热部署之后，验证新流程是否有效至关重要。
+每次创建 rollout 都需要一个在 namespace、process、Alias 和 operation kind 内稳定的 retry key，以及 expected Alias
+revision。同一 scope 下用不同请求字段或 actor 重用 key 会冲突。灰度变更需要当前 rollout revision，并校验 Alias
+前置条件。过期请求直接失败，不会覆盖并发变更。
 
-- **事件监听**：您可以实现一个 `ProcessEventListener` 来监听 `ProcessCoreEvents.CompilationCompleted` 或 `ProcessCoreEvents.CompilationFailed` 事件，以了解热重载何时完成以及是否成功。详情请参阅[监控 & 可观测性](monitoring.md)。
-- **主动健康检查**：您可以创建一个健康检查端点，对新部署的流程执行一个测试用例，以确保其在被认为是“线上可用”之前能正确运行。
+## 交付契约
 
-```java
-public boolean isProcessHealthy(String processCode) {
-    try {
-        // 为测试用例准备一个模拟上下文
-        Map<String, Object> testContext = createTestContextForProcess(processCode);
-        ProcessResult<Map<String, Object>> result = engine.execute(
-            ProcessSource.fromCode(processCode),
-            testContext
-        );
-        return result.isSuccess();
-    } catch (Exception e) {
-        logger.error("流程 {} 的健康检查失败", processCode, e);
-        return false;
-    }
-}
+- Route、rollout、审计事件和 outbox row 原子提交。
+- 提交后激活始终读取当前权威 Alias，不根据可能已被后续变更覆盖的 rollout 重建路由。
+- `EMBEDDED` 拓扑中，rollout 命令成功返回表示该 Alias 已在当前进程 local-ready。若事务提交后安装失败，
+  命令返回收敛失败；幂等重试会激活最新已提交 revision，outbox 仍保留恢复工作。
+- `DISTRIBUTED` 拓扑中，命令成功只表示控制面事务已提交。路由激活会立即请求 outbox 调度，但各 runtime node 的 readiness
+  仍是可观测的异步收敛。
+- `RoutingOutboxDispatcher` 在两种拓扑中都是持久重放路径，也是控制面写入分布式 sync channel 的唯一入口。
+- Outbox 通过数据库唯一键合并相同交付工作；rollout event 仍是 append-only 审计日志。
+- Alias state payload 只使用一个正 `revision` 排序；重复和更旧消息会被忽略。
+- 非法初始状态会使启动失败；非法实时更新保留最后一个有效的 local-ready route。
+- Runtime 安装校验 artifact digest，所选版本不可用时 fail-closed。
+- 必须停发时停止整个控制面角色，让命令入口与交付共享同一生命周期。
+
+Alias route key：
+
+```text
+compileflow.deployment.alias.{identityDigest}
 ```
 
+Channel artifact key：
 
+```text
+compileflow.process.version.{identityDigest}
+```
+
+`identityDigest` 是有序 identity 元组的 UTF-8 分段在加入长度前缀后的小写 SHA-256。Payload 保留完整 identity，消费者会根据
+key 重新校验。`CHANNEL` 模式下，artifact payload 必须满足所选后端公开的单项容量。
+
+继续阅读[配置指南](configuration.md)、[分布式集成](hot-deploy-integration.md)和
+[运维手册](operations-playbook.md)。

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="durable.compatibility.timer" name="V1 Timer compatibility fixture">
+    <start id="start" g="0,0,32,32">
+        <transition to="cooldown"/>
+    </start>
+    <timerTask id="cooldown" duration="PT5M" g="80,0,100,40">
+        <transition to="end"/>
+    </timerTask>
+    <end id="end" g="220,0,32,32"/>
+</bpm>

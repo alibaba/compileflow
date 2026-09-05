@@ -1,0 +1,24 @@
+# Default ownership for CompileFlow.
+* @kangzhiqiang
+
+# Repository operations and community health.
+/.github/ @kangzhiqiang
+/CONTRIBUTING.md @kangzhiqiang
+/MAINTAINERS.md @kangzhiqiang
+/SECURITY.md @kangzhiqiang
+/SUPPORT.md @kangzhiqiang
+
+# Java modules.
+/compileflow-api/ @kangzhiqiang
+/compileflow-core/ @kangzhiqiang
+/compileflow-tbbpm/ @kangzhiqiang
+/compileflow-bpmn/ @kangzhiqiang
+/compileflow-deploy/ @kangzhiqiang
+/compileflow-spring-boot-autoconfigure/ @kangzhiqiang
+/compileflow-spring-boot-starter/ @kangzhiqiang
+/compileflow-integration-tests/ @kangzhiqiang
+/compileflow-workbench-server/ @kangzhiqiang
+
+# Workbench and documentation.
+/compileflow-workbench/ @kangzhiqiang
+/docs/ @kangzhiqiang

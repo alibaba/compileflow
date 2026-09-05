@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:cf="http://www.compileflow.org"
+             targetNamespace="http://www.compileflow.org/bpmn/test">
+  <process id="bpmn20.stateful.complex_stateful_receive_task" name="Complex Stateful Receive Task" isExecutable="true">
+    <extensionElements>
+      <cf:var name="taskData" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="approval1_result" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="approval2_result" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="approval3_result" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="finalApprovalResult" dataType="java.lang.String" inOutType="return"/>
+    </extensionElements>
+
+    <startEvent id="startEvent" name="Start"/>
+
+    <sequenceFlow id="flow1" sourceRef="startEvent" targetRef="receiveTask1" />
+
+    <receiveTask id="receiveTask1" name="Receive Task 1" messageRef="initialApprovalMessage">
+      <extensionElements>
+      </extensionElements>
+    </receiveTask>
+
+    <sequenceFlow id="flow3" sourceRef="receiveTask1" targetRef="receiveTask2" />
+
+    <receiveTask id="receiveTask2" name="Receive Task 2" messageRef="managerApprovalMessage">
+      <extensionElements>
+      </extensionElements>
+    </receiveTask>
+
+    <sequenceFlow id="flow4" sourceRef="receiveTask2" targetRef="receiveTask3" />
+
+    <receiveTask id="receiveTask3" name="Receive Task 3" messageRef="finalApprovalMessage">
+      <extensionElements>
+      </extensionElements>
+    </receiveTask>
+
+    <sequenceFlow id="flow5" sourceRef="receiveTask3" targetRef="endEvent" />
+
+    <endEvent id="endEvent" name="End"/>
+  </process>
+
+  <message id="initialApprovalMessage" name="initialApprovalMessage" />
+  <message id="managerApprovalMessage" name="managerApprovalMessage" />
+  <message id="finalApprovalMessage" name="finalApprovalMessage" />
+</definitions>

@@ -1,0 +1,52 @@
+server:
+  port: 8080
+  shutdown: graceful
+
+spring:
+  application:
+    name: compileflow-workbench-server
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    show-sql: false
+  flyway:
+    locations:
+      - classpath:db/compileflow-deploy/migration
+      - classpath:db/compileflow-workbench-server/migration
+    clean-disabled: true
+  sql:
+    init:
+      mode: never
+
+compileflow:
+  engine:
+    observability:
+      events:
+        async: false
+  deploy:
+    enabled: true
+    topology: EMBEDDED
+    control-plane-enabled: true
+    runtime-worker-enabled: false
+    artifact:
+      mode: DATABASE
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-components: never
+      show-details: never
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+logging:
+  level:
+    com.alibaba.compileflow: INFO
+    org.springframework.web: INFO

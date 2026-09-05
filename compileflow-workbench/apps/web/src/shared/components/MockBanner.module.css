@@ -1,0 +1,44 @@
+.banner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+  background: color-mix(in srgb, var(--primary-500) 5%, var(--bg-canvas));
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+.icon {
+  color: var(--primary-500);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
+
+.text code {
+  font-size: 0.95em;
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel);
+}
+
+.dismiss {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 var(--spacing-1);
+}
+
+.dismiss:hover {
+  color: var(--text-primary);
+}

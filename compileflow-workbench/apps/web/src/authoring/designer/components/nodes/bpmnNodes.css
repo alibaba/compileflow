@@ -1,0 +1,324 @@
+/**
+ * BPMN节点样式
+ *
+ * 符合 BPMN 2.0 规范
+ * 沿用 TBBPM nodes.css 的布局
+ * 使用 Design Tokens 保持一致性
+ *
+ * @author CompileFlow Team
+ * @date 2026-02-26
+ */
+
+/* ==================== BPMN节点通用样式 ==================== */
+
+.bpmn-node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.bpmn-node svg {
+  display: block;
+}
+
+.bpmn-node-label {
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: var(--font-size-sm, 12px);
+  color: var(--text-color-secondary, #595959);
+  text-align: center;
+  pointer-events: none;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bpmn-node-name {
+  font-weight: 500;
+  color: var(--text-color, #262626);
+}
+
+.bpmn-node-hint {
+  font-size: var(--font-size-xs, 11px);
+  color: var(--text-color-tertiary, #8c8c8c);
+  margin-top: 2px;
+}
+
+/* ==================== 事件节点样式 ==================== */
+
+.bpmn-event {
+  width: 36px;
+  height: 36px;
+}
+
+.bpmn-start-event svg circle {
+  stroke: var(--color-success, #52c41a);
+}
+
+.bpmn-end-event svg circle {
+  stroke: var(--color-error, #ff4d4f);
+}
+
+/* ==================== 任务节点样式 ==================== */
+
+.bpmn-task {
+  width: 100px;
+  height: 80px;
+}
+
+.bpmn-service-task svg rect {
+  stroke: var(--color-primary, #1890ff);
+}
+
+.bpmn-service-task svg g path,
+.bpmn-service-task svg g circle {
+  stroke: var(--color-primary, #1890ff);
+}
+
+.bpmn-script-task svg rect {
+  stroke: var(--color-purple, #722ed1);
+}
+
+.bpmn-script-task svg g path {
+  stroke: var(--color-purple, #722ed1);
+}
+
+.bpmn-receive-task svg rect {
+  stroke: var(--color-cyan, #13c2c2);
+}
+
+.bpmn-receive-task svg g rect,
+.bpmn-receive-task svg g path {
+  stroke: var(--color-cyan, #13c2c2);
+}
+
+/* ==================== 网关节点样式 ==================== */
+
+.bpmn-gateway {
+  width: 50px;
+  height: 50px;
+}
+
+.bpmn-exclusive-gateway svg path {
+  stroke: var(--color-gold, #faad14);
+}
+
+.bpmn-parallel-gateway svg path {
+  stroke: var(--color-primary, #1890ff);
+}
+
+.bpmn-inclusive-gateway svg path,
+.bpmn-inclusive-gateway svg circle {
+  stroke: var(--color-success, #52c41a);
+}
+
+.bpmn-call-activity {
+  width: 140px;
+  height: 100px;
+}
+
+.bpmn-call-activity svg rect {
+  stroke: var(--color-purple, #722ed1);
+}
+
+.bpmn-sub-process {
+  width: 100%;
+  height: 100%;
+}
+
+.bpmn-sub-process-label {
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  max-width: calc(100% - 24px);
+  overflow: hidden;
+  color: var(--text-color, #262626);
+  font-size: var(--font-size-sm, 12px);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==================== 悬停效果 ==================== */
+
+.bpmn-node:hover svg rect,
+.bpmn-node:hover svg circle:first-child,
+.bpmn-node:hover svg path:first-child {
+  filter: brightness(1.1);
+  stroke-width: 3;
+}
+
+.bpmn-event:hover svg circle {
+  stroke-width: 3;
+}
+
+.bpmn-gateway:hover svg path:first-child {
+  stroke-width: 3;
+}
+
+/* ==================== 选中状态 ==================== */
+
+.bpmn-node.selected svg rect,
+.bpmn-node.selected svg circle:first-child,
+.bpmn-node.selected svg path:first-child {
+  stroke: var(--color-primary, #1890ff);
+  stroke-width: 3;
+  filter: drop-shadow(0 0 8px rgba(24, 144, 255, 0.4));
+}
+
+.bpmn-node.selected .bpmn-node-label {
+  color: var(--color-primary, #1890ff);
+  font-weight: 600;
+}
+
+/* ==================== 禁用状态 ==================== */
+
+.bpmn-node.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bpmn-node.disabled svg {
+  filter: grayscale(1);
+}
+
+/* ==================== 错误状态 ==================== */
+
+.bpmn-node.error svg rect,
+.bpmn-node.error svg circle:first-child,
+.bpmn-node.error svg path:first-child {
+  stroke: var(--color-error, #ff4d4f);
+  stroke-width: 3;
+}
+
+.bpmn-node.error .bpmn-node-label {
+  color: var(--color-error, #ff4d4f);
+}
+
+/* ==================== 警告状态 ==================== */
+
+.bpmn-node.warning svg rect,
+.bpmn-node.warning svg circle:first-child,
+.bpmn-node.warning svg path:first-child {
+  stroke: var(--color-warning, #fa8c16);
+  stroke-width: 2.5;
+}
+
+.bpmn-node.warning .bpmn-node-label {
+  color: var(--color-warning, #fa8c16);
+}
+
+/* ==================== 拖拽效果 ==================== */
+
+.bpmn-node.dragging {
+  opacity: 0.6;
+  transform: scale(0.95);
+}
+
+/* ==================== 响应式调整 ==================== */
+
+@media (max-width: 768px) {
+  .bpmn-node-label {
+    font-size: var(--font-size-xs, 11px);
+  }
+
+  .bpmn-node-hint {
+    font-size: 10px;
+  }
+}
+
+/* ==================== 材质：主题感知纸面填充 ==================== */
+
+.bpmn-start-event svg > circle {
+  fill: var(--graph-node-fill-start, #fff);
+  filter: drop-shadow(var(--graph-node-glow, 0 4px 12px rgba(15, 23, 42, 0.08)));
+}
+
+.bpmn-end-event svg > circle {
+  fill: var(--graph-node-fill-end, #fff);
+  filter: drop-shadow(var(--graph-node-glow, 0 4px 12px rgba(15, 23, 42, 0.08)));
+}
+
+.bpmn-service-task svg > rect,
+.bpmn-script-task svg > rect,
+.bpmn-receive-task svg > rect,
+.bpmn-call-activity svg > rect {
+  fill: var(--graph-node-fill-task, #fff);
+  filter: drop-shadow(var(--graph-node-glow, 0 4px 12px rgba(15, 23, 42, 0.08)));
+}
+
+.bpmn-exclusive-gateway svg > path:first-child,
+.bpmn-parallel-gateway svg > path:first-child,
+.bpmn-inclusive-gateway svg > path:first-child {
+  fill: var(--graph-node-fill-gateway, #fff);
+  filter: drop-shadow(var(--graph-node-glow, 0 4px 12px rgba(15, 23, 42, 0.08)));
+}
+
+.bpmn-sub-process svg > rect {
+  fill: color-mix(in srgb, var(--graph-node-fill-task, #fff) 88%, transparent);
+}
+
+[data-theme='dark'] .bpmn-node-label,
+[data-theme='dark'] .bpmn-node-name {
+  color: rgba(226, 232, 240, 0.92);
+}
+
+[data-theme='dark'] .bpmn-node-hint {
+  color: rgba(148, 163, 184, 0.78);
+}
+
+[data-theme='dark'] .bpmn-sub-process-label {
+  color: rgba(226, 232, 240, 0.92);
+}
+
+[data-theme='dark'] .bpmn-start-event svg > circle {
+  stroke: #4ade80;
+}
+
+[data-theme='dark'] .bpmn-end-event svg > circle {
+  stroke: #f87171;
+}
+
+[data-theme='dark'] .bpmn-service-task svg > rect,
+[data-theme='dark'] .bpmn-service-task svg g path,
+[data-theme='dark'] .bpmn-service-task svg g circle {
+  stroke: #60a5fa;
+}
+
+[data-theme='dark'] .bpmn-exclusive-gateway svg > path {
+  stroke: #fbbf24;
+}
+
+[data-theme='dark'] .bpmn-node.selected svg > rect,
+[data-theme='dark'] .bpmn-node.selected svg > circle,
+[data-theme='dark'] .bpmn-node.selected svg > path:first-child {
+  filter: drop-shadow(0 0 12px rgba(96, 165, 250, 0.45));
+}
+
+[data-theme='dark'] .bpmn-node:hover svg > rect,
+[data-theme='dark'] .bpmn-node:hover svg > circle,
+[data-theme='dark'] .bpmn-node:hover svg > path:first-child {
+  filter: brightness(1.12) drop-shadow(var(--graph-node-glow));
+}
+
+/* ==================== 打印样式 ==================== */
+
+@media print {
+  .bpmn-node {
+    page-break-inside: avoid;
+  }
+
+  .bpmn-node:hover svg rect,
+  .bpmn-node:hover svg circle,
+  .bpmn-node:hover svg path {
+    filter: none;
+    stroke-width: 2;
+  }
+}

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:cf="http://www.compileflow.org"
+             targetNamespace="http://www.compileflow.org/bpmn/test">
+  <process id="bpmn20.compat.call_activity_numeric_conversion"
+           name="Call Activity Numeric Output Conversion"
+           isExecutable="true">
+    <extensionElements>
+      <cf:var name="a" dataType="java.lang.Integer" inOutType="param"/>
+      <cf:var name="b" dataType="java.lang.Integer" inOutType="param"/>
+      <cf:var name="result" dataType="java.lang.Long" inOutType="return"/>
+    </extensionElements>
+    <startEvent id="start"/>
+    <callActivity id="child" calledElement="bpmn20.compat.simple_service"
+                  cf:classpath="bpmn20/compat/simple_service.bpmn">
+      <extensionElements>
+        <cf:input target="a" source="a"/>
+        <cf:input target="b" source="b"/>
+        <cf:output source="serviceTask1Result" target="result"/>
+      </extensionElements>
+    </callActivity>
+    <endEvent id="end"/>
+    <sequenceFlow id="to_child" sourceRef="start" targetRef="child"/>
+    <sequenceFlow id="to_end" sourceRef="child" targetRef="end"/>
+  </process>
+</definitions>

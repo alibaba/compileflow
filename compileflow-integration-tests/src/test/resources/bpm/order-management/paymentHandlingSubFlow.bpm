@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.order-management.paymentHandlingSubFlow" name="支付处理子流程" description="支付处理子流程">
+
+    <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" inOutType="param"/>
+    <var name="paymentType" dataType="java.lang.String" inOutType="return"/>
+
+
+    <start id="start_payment" name="开始" g="100,100,40,40">
+        <transition to="createPaymentOrder"/>
+    </start>
+
+
+    <autoTask id="createPaymentOrder" name="创建收单" g="200,100,88,48">
+        <transition to="resolvePaymentType"/>
+        <action type="spring-bean" bean="paymentOrderCreateActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.PaymentOrderCreateActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+
+
+    <autoTask id="resolvePaymentType" name="获取支付方式" g="300,45,110,48">
+        <transition to="paymentMethodDecision"/>
+        <action type="spring-bean" bean="workflowRouter"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.router.WorkflowRouter"
+                          method="getPaymentType">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+                <output dataType="java.lang.String" target="paymentType"/>
+
+        </action>
+    </autoTask>
+
+
+    <exclusive id="paymentMethodDecision" name="支付方式判断" g="350,100,128,48">
+        <transition condition="&quot;autoCharge&quot;.equals(paymentType)" name="自动续费" to="autoChargeTask"/>
+        <transition condition="&quot;offline&quot;.equals(paymentType)" name="线下" to="pendingCallbackTask"/>
+        <transition condition="&quot;online&quot;.equals(paymentType)" name="线上" to="printWaitPaymentTask"/>
+    </exclusive>
+
+
+    <autoTask id="autoChargeTask" name="自动续费" g="500,50,88,48">
+        <transition to="printWaitPaymentTask"/>
+        <action type="spring-bean" bean="autoChargeActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.AutoChargeActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+
+
+    <waitTask id="pendingCallbackTask" name="支付pending回调" g="500,100,101,53">
+        <transition to="printWaitPaymentTask"/>
+    </waitTask>
+
+
+    <autoTask id="printWaitPaymentTask" name="打印等待支付状态" g="650,100,88,48">
+        <transition to="waitPaymentTask"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="logWaitPaymentTask">
+
+        </action>
+    </autoTask>
+
+
+    <waitTask id="waitPaymentTask" name="等待支付成功" g="650,100,88,48">
+        <transition to="paymentSuccessCallback"/>
+    </waitTask>
+
+
+    <autoTask id="paymentSuccessCallback" name="支付成功回调处理" g="800,100,98,51">
+        <transition to="end_payment"/>
+        <action type="spring-bean" bean="paymentSuccessCallbackActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.PaymentSuccessCallbackActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+
+
+    <end id="end_payment" name="结束" g="950,100,40,40"/>
+</bpm>

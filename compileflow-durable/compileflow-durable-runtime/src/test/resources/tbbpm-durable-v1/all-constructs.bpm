@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="durable.protocol.all-constructs" name="Durable protocol golden fixture">
+    <var name="numbers" dataType="java.util.List&lt;java.lang.Integer&gt;" inOutType="param"/>
+    <var name="result" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="Start" g="0,0,32,32">
+        <transition to="prepare"/>
+    </start>
+
+    <autoTask id="prepare" name="Replayable action" g="60,0,120,48">
+        <action type="java" execution="replayable" class="java.lang.String" method="valueOf">
+        </action>
+        <transition to="script"/>
+    </autoTask>
+
+    <scriptTask id="script" name="Script-shaped action node" g="210,0,140,48">
+        <action type="script" execution="replayable" language="qlexpress">
+            <output dataType="java.lang.String" target="result"/>
+            <code>'fixture'</code>
+        </action>
+        <transition to="route"/>
+    </scriptTask>
+
+    <exclusive id="route" name="Deterministic route" g="380,0,100,48">
+        <transition to="loop" condition="numbers != null"/>
+        <transition to="fallback"/>
+    </exclusive>
+
+    <autoTask id="fallback" name="Fallback action" g="510,280,120,48">
+        <action type="java" execution="replayable" class="java.lang.String" method="valueOf">
+        </action>
+        <transition to="routeJoin"/>
+    </autoTask>
+
+    <foreach id="loop" name="Bounded loop" g="510,0,380,250"
+                 collection="numbers" item="number" itemType="java.lang.Integer">
+        <transition to="routeJoin"/>
+        <start id="loopStart"><transition to="continueDecision"/></start>
+        <exclusive id="continueDecision" name="Continue branch" g="540,40,110,48">
+            <transition to="skip" condition="number.intValue() == 2"/>
+            <transition to="breakDecision"/>
+        </exclusive>
+        <continue id="skip" name="Continue" g="680,0,88,48"/>
+        <exclusive id="breakDecision" name="Break branch" g="680,80,110,48">
+            <transition to="stop" condition="number.intValue() == 4"/>
+            <transition to="append"/>
+        </exclusive>
+        <break id="stop" name="Break" g="820,40,88,48"/>
+        <autoTask id="append" name="Loop action" g="820,140,100,48">
+            <action type="java" execution="replayable" class="java.lang.String" method="valueOf">
+            </action>
+            <transition to="loopEnd"/>
+        </autoTask>
+        <end id="loopEnd"/>
+    </foreach>
+
+    <exclusive id="routeJoin" name="Deterministic join" g="920,120,100,48">
+        <transition to="parallelSplit"/>
+    </exclusive>
+
+    <parallel id="parallelSplit" name="Parallel split" g="980,120,48,48">
+        <transition to="parallelLeft"/>
+        <transition to="parallelRight"/>
+    </parallel>
+
+    <autoTask id="parallelLeft" name="Parallel left" g="1050,80,100,48">
+        <action type="java" execution="replayable" class="java.lang.String" method="valueOf">
+        </action>
+        <transition to="parallelJoin"/>
+    </autoTask>
+
+    <autoTask id="parallelRight" name="Parallel right" g="1050,160,100,48">
+        <action type="java" execution="replayable" class="java.lang.String" method="valueOf">
+        </action>
+        <transition to="parallelJoin"/>
+    </autoTask>
+
+    <parallel id="parallelJoin" name="Parallel join" g="1180,120,48,48">
+        <transition to="inclusiveSplit"/>
+    </parallel>
+
+    <inclusive id="inclusiveSplit" name="Inclusive split" g="1260,120,48,48">
+        <transition to="inclusiveLeft" condition="numbers != null"/>
+        <transition to="inclusiveRight" condition="result != null"/>
+        <transition to="inclusiveFallback"/>
+    </inclusive>
+
+    <autoTask id="inclusiveLeft" name="Inclusive left" g="1340,40,100,48">
+        <action type="java" execution="replayable" class="java.lang.String" method="valueOf">
+        </action>
+        <transition to="inclusiveJoin"/>
+    </autoTask>
+
+    <autoTask id="inclusiveRight" name="Inclusive right" g="1340,120,100,48">
+        <action type="java" execution="replayable" class="java.lang.String" method="valueOf">
+        </action>
+        <transition to="inclusiveJoin"/>
+    </autoTask>
+
+    <autoTask id="inclusiveFallback" name="Inclusive fallback" g="1340,200,100,48">
+        <action type="java" execution="replayable" class="java.lang.String" method="valueOf">
+        </action>
+        <transition to="inclusiveJoin"/>
+    </autoTask>
+
+    <inclusive id="inclusiveJoin" name="Inclusive join" g="1470,120,48,48">
+        <transition to="timer"/>
+    </inclusive>
+
+    <timerTask id="timer" name="Timer boundary" duration="PT0.001S" g="1550,0,120,48">
+        <transition to="wait"/>
+    </timerTask>
+
+    <waitTask id="wait" name="Generic wait" g="1200,0,100,48">
+        <transition to="event"/>
+    </waitTask>
+
+    <waitEventTask id="event" name="Typed wait" event="approved" g="1330,0,100,48">
+        <transition to="child"/>
+    </waitEventTask>
+
+    <bpmCall id="child" name="Durable Child" code="durable.protocol.child" version="v1"
+            g="1410,0,120,48">
+        <input target="input" source="result"/>
+        <output source="output" target="result"/>
+        <transition to="end"/>
+    </bpmCall>
+
+    <end id="end" name="End" g="1460,0,32,32"/>
+    <note id="note" g="0,100,180,60" comment="Metadata is accepted but never executed"/>
+</bpm>

@@ -12,8 +12,8 @@
     </parent>
 
     <artifactId>compileflow-tbbpm</artifactId>
-    <name>compileflow-tbbpm</name>
-    <description>CompileFlow TBBPM - An implementation plugin for the TBBPM specification.</description>
+    <name>CompileFlow TBBPM</name>
+    <description>TBBPM format provider, parser, validator, writer, and code generator.</description>
 
     <dependencies>
         <!-- Internal Module Dependencies -->
@@ -28,10 +28,13 @@
 
         <!-- Core Dependencies -->
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+        </dependency>
         <!-- Test Dependencies -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -39,8 +42,14 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Tests execute the engine but do not assert logging; keep the published provider neutral. -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-nop</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

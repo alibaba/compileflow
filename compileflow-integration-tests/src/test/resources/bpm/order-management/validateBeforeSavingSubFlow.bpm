@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.order-management.validateBeforeSavingSubFlow" name="订单保存前校验子流程">
+    <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" inOutType="param"/>
+    <start id="1" name="开始节点" g="297,109,40,40">
+        <transition g=":-15,20" to="8"/>
+    </start>
+    <end id="2" name="结束节点" g="310,533,40,40"/>
+    <autoTask id="8" name="校验订单" g="276,202,88,48">
+        <transition g=":-15,20" to="9"/>
+        <action type="spring-bean" bean="orderValidateActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.OrderValidateActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="9" name="校验优惠" g="279,283,88,48">
+        <transition g=":-15,20" to="10"/>
+        <action type="spring-bean" bean="promotionValidateActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.PromotionValidateActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="10" name="校验价格" g="281,361,88,48">
+        <transition g=":-15,20" to="11"/>
+        <action type="spring-bean" bean="priceValidateActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.PriceValidateActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="11" name="校验物流" g="283,448,88,48">
+        <transition g=":-15,20" to="2"/>
+        <action type="spring-bean" bean="deliveryValidateActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.DeliveryValidateActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+</bpm>

@@ -1,0 +1,65 @@
+.engine-debug-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.engine-debug-banner {
+  margin-bottom: 0;
+}
+
+.engine-debug-code {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-3);
+  font-size: var(--font-size-sm);
+}
+
+.engine-debug-code-label {
+  color: var(--color-text-secondary);
+}
+
+.engine-debug-result {
+  margin-top: var(--spacing-3);
+  margin-bottom: 0;
+  padding: var(--spacing-3);
+  border-radius: var(--radius-md);
+  background: var(--color-fill-secondary);
+  font-size: 12px;
+  overflow: auto;
+  max-height: 200px;
+}
+
+.engine-debug-log {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: var(--spacing-2);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-container);
+}
+
+.engine-debug-log-line {
+  display: flex;
+  gap: var(--spacing-2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.engine-debug-log-time {
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+  font-family: var(--font-family-code, monospace);
+}
+
+.engine-debug-log-line--success {
+  color: var(--color-success);
+}
+
+.engine-debug-log-line--error {
+  color: var(--color-error);
+}

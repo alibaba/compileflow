@@ -12,8 +12,8 @@
     </parent>
 
     <artifactId>compileflow-spring-boot-starter</artifactId>
-    <name>compileflow-spring-boot-starter</name>
-    <description>CompileFlow Spring Boot Starter - Spring Boot starter</description>
+    <name>CompileFlow Spring Boot Starter</name>
+    <description>Spring Boot starter for embedding the CompileFlow engine.</description>
 
     <dependencies>
         <!-- Auto-configuration module -->
@@ -27,13 +27,48 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
-
-        <!-- Configuration metadata generator for @ConfigurationProperties -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-configuration-processor</artifactId>
-            <optional>true</optional>
+            <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+
+        <!-- Opinionated default: TBBPM model (Alibaba's enterprise workflow spec).
+             Users who need BPMN 2.0 instead should add compileflow-bpmn explicitly. -->
+        <dependency>
+            <groupId>com.alibaba.compileflow</groupId>
+            <artifactId>compileflow-tbbpm</artifactId>
+        </dependency>
+
     </dependencies>
 
-</project> 
+    <build>
+        <plugins>
+            <!-- The dependency-only starter has no public runtime type, so javadoc cannot
+                 generate a standard archive. Attach the documented Central placeholder below. -->
+            <plugin>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-starter-javadoc</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <classesDirectory>${project.basedir}/src/javadoc</classesDirectory>
+                            <classifier>javadoc</classifier>
+                            <skipIfEmpty>false</skipIfEmpty>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

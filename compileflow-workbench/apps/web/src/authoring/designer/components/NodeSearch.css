@@ -1,0 +1,120 @@
+.node-search-results-container {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-2);
+  background: var(--bg-panel);
+}
+
+.node-search-result-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.node-search-result-item {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  padding: var(--spacing-3) var(--spacing-4);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast);
+}
+
+.node-search-result-item:hover {
+  background-color: var(--color-fill-secondary);
+}
+
+.node-search-result-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.node-search-result-icon {
+  flex: 0 0 auto;
+  margin-inline-end: var(--spacing-3);
+}
+
+.node-search-result-content,
+.node-search-result-title,
+.node-search-result-description {
+  display: block;
+  min-width: 0;
+}
+
+.node-search-result-content {
+  flex: 1;
+}
+
+.node-search-result-description {
+  margin-top: var(--spacing-1);
+}
+
+.node-search-meta-text {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.node-search-meta-code {
+  padding: 2px 6px;
+  background-color: var(--color-fill-secondary);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+}
+
+.node-search-empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-base);
+}
+
+.node-search-empty-hint {
+  font-size: var(--font-size-xs);
+  margin-top: var(--spacing-2);
+}
+
+.node-search-tips {
+  margin-top: var(--spacing-4);
+  padding: var(--spacing-3);
+  background-color: var(--color-primary-bg);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.node-search-tips-title {
+  margin: 0;
+  margin-bottom: var(--spacing-1);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Scrollbar */
+.node-search-results-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.node-search-results-container::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 2px;
+}
+
+/* Dark mode */
+[data-theme='dark'] .node-search-meta-code {
+  background-color: var(--color-fill-tertiary);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .node-search-result-item {
+    transition: none;
+  }
+}

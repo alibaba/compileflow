@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  targetNamespace="urn:compileflow:durable-compatibility">
+  <bpmn:process id="durable.compatibility.bpmn.timer" isExecutable="true">
+    <bpmn:startEvent id="start"/>
+    <bpmn:intermediateCatchEvent id="cooldown">
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration>PT5M</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="end"/>
+    <bpmn:sequenceFlow id="to_cooldown" sourceRef="start" targetRef="cooldown"/>
+    <bpmn:sequenceFlow id="to_end" sourceRef="cooldown" targetRef="end"/>
+  </bpmn:process>
+</bpmn:definitions>

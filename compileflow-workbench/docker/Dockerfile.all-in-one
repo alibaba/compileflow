@@ -1,0 +1,44 @@
+FROM node:24.18.0-alpine3.24@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd AS web-build
+WORKDIR /workbench
+COPY compileflow-workbench/package.json compileflow-workbench/pnpm-lock.yaml compileflow-workbench/pnpm-workspace.yaml ./
+COPY compileflow-workbench/apps/web/package.json apps/web/
+RUN corepack enable && corepack install
+RUN pnpm install --frozen-lockfile --filter @compileflow/workbench-web
+COPY compileflow-workbench/apps/web apps/web
+ARG VITE_COMPILEFLOW_OPERATE_MODE=real
+ARG VITE_COMPILEFLOW_DEBUG=false
+ARG VITE_COMPILEFLOW_USE_BUILT_IN_EXAMPLES=false
+ENV VITE_COMPILEFLOW_OPERATE_MODE=$VITE_COMPILEFLOW_OPERATE_MODE
+ENV VITE_COMPILEFLOW_DEBUG=$VITE_COMPILEFLOW_DEBUG
+ENV VITE_COMPILEFLOW_USE_BUILT_IN_EXAMPLES=$VITE_COMPILEFLOW_USE_BUILT_IN_EXAMPLES
+RUN pnpm --filter @compileflow/workbench-web build
+
+FROM eclipse-temurin:17.0.20_8-jdk-noble@sha256:61a94244559f2e89e4edb02bae37eeb8762ecf5deaf237251fa630e5120a8798 AS server-build
+WORKDIR /src
+COPY .mvn .mvn
+COPY mvnw pom.xml ./
+COPY LICENSE NOTICE ./
+COPY compileflow-api compileflow-api
+COPY compileflow-core compileflow-core
+COPY compileflow-tbbpm compileflow-tbbpm
+COPY compileflow-bpmn compileflow-bpmn
+COPY compileflow-durable compileflow-durable
+COPY compileflow-spring-boot-autoconfigure compileflow-spring-boot-autoconfigure
+COPY compileflow-spring-boot-starter/pom.xml compileflow-spring-boot-starter/pom.xml
+COPY compileflow-deploy compileflow-deploy
+COPY compileflow-integration-tests/pom.xml compileflow-integration-tests/pom.xml
+COPY compileflow-workbench-server compileflow-workbench-server
+COPY --from=web-build /workbench/apps/web/dist compileflow-workbench/apps/web/dist
+RUN chmod +x ./mvnw && ./mvnw package -pl compileflow-workbench-server -am \
+    -Pworkbench-bundled -DskipTests -B -V --no-transfer-progress
+
+# The bundled distribution remains one Java process. PostgreSQL and the
+# production authentication gateway are external deployment dependencies.
+FROM eclipse-temurin:17.0.20_8-jdk-noble@sha256:61a94244559f2e89e4edb02bae37eeb8762ecf5deaf237251fa630e5120a8798
+WORKDIR /app
+RUN useradd --system --uid 10001 --create-home --shell /usr/sbin/nologin compileflow
+COPY --from=server-build /src/compileflow-workbench-server/target/compileflow-workbench-all-in-one-*.jar app.jar
+RUN chown compileflow:compileflow app.jar
+USER compileflow
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -1,235 +1,286 @@
 # CompileFlow Extension Guide
 
-This guide explains how to extend and customize the CompileFlow engine using its powerful, SPI-based extension system.
+CompileFlow extension contracts live under `com.alibaba.compileflow.engine.spi`. Register an individual capability when
+only one engine needs it; use `ProcessEnginePlugin` to package several related capabilities.
 
-## Choosing the Right Extension Mechanism
+Extensions reach the configuration through a classpath plugin, a direct builder call, or a Spring bean.
+`ProcessEngineConfig.Builder.build()` validates and freezes the result. There is no global mutable registry, and the
+extension set cannot change after the engine starts.
 
-CompileFlow offers three primary ways to extend its functionality. Choosing the right one is key.
+The application or dependency-injection container owns supplied extension instances.
 
-| If you want to...                                                   | Use this mechanism...                                                     |
-|---------------------------------------------------------------------|---------------------------------------------------------------------------|
-| **Observe and react** to engine events (e.g., for logging, metrics) | **[Event Listeners](#1-event-listeners-observing-the-engine)**            |
-| **Customize or replace** a specific engine behavior                 | **[Extension Points](#2-extension-points-customizing-behavior)**          |
-| **Add a major new component**, like a new process type              | **[Service Providers](#3-service-providers-plugging-in-core-components)** |
+## Package layout
 
----
+| Package                    | Contents                                                                                                 |
+|----------------------------|----------------------------------------------------------------------------------------------------------|
+| `engine`                   | Engine entry points and shared value types                                                               |
+| `engine.config`            | Immutable configuration and extension registration                                                       |
+| `engine.spi`               | `ProcessEngineProvider`, `ProcessEnginePlugin`, `ProcessEnginePluginContext`, `ProcessComponentResolver` |
+| `engine.spi.event`         | `ProcessEvent`, `ProcessEventListener`                                                                   |
+| `engine.spi.execution`     | `RetryPolicy`, `FailureHandler`, `ProcessContextPropagator`, and execution context values                |
+| `engine.spi.script`        | `ScriptExecutor`                                                                                         |
+| `engine.spi.observability` | `TraceIdProvider`                                                                                        |
+| `engine.spi.routing`       | Alias route authority, route-bound targeting configuration, and named targeting policies                       |
 
-## 1. Event Listeners: Observing the Engine
+## Extension Points
 
-**When to Use:** Use an event listener when you want to react to engine lifecycle events without modifying the core
-logic. This is ideal for:
+| Capability                 | Config surface                         | Semantics                                                                            |
+|----------------------------|----------------------------------------|--------------------------------------------------------------------------------------|
+| `ProcessEventListener`     | `builder.eventListener(...)`           | Ordered, predicate-filtered fan-out; one listener failure is logged and isolated     |
+| `TraceIdProvider`          | `builder.traceIdProvider(...)`         | Supplies execution trace IDs; falls back to MDC `traceId`, then a random ID          |
+| `ProcessComponentResolver` | `builder.componentResolver(...)`       | Resolves application components referenced by generated process code                 |
+| `ProcessContextPropagator` | `builder.contextPropagator(...)`       | Carries application ambient context across engine-owned thread boundaries            |
+| `ProcessAliasRouteSource`  | `builder.aliasRouteSource(...)`        | Supplies the engine's single serving-ready Alias authority; never plugin-contributed |
+| `ProcessAliasTargetingPolicy` | `builder.aliasTargetingPolicy(...)` | Named route-bound override; empty delegates to fixed percentage selection            |
+| `ScriptExecutor`           | `builder.scriptExecutor(...)`          | Explicit-script-action language capability; each name must be unique                 |
+| `RetryPolicy`              | `builder.retryPolicy(name, ...)`       | Name-keyed exception predicate referenced by invocation policy `retryOn`             |
+| `FailureHandler`           | `builder.failureHandler(name, ...)`    | Name-keyed terminal decision referenced by invocation policy `onFailure`             |
+| `ProcessEnginePlugin`      | `builder.plugin(...)` or ServiceLoader | Groups listeners and named script, targeting, retry, and failure capabilities         |
 
-- Collecting metrics (e.g., execution duration, failure rates).
-- Implementing custom logging or auditing.
-- Triggering asynchronous side-effects (e.g., sending notifications).
+Retry policies and failure handlers are trusted, synchronous execution collaborators. They must be thread-safe,
+deterministic, non-blocking, and return a valid result. CompileFlow resolves every collaborator that can participate in
+the configured invocation policy before invoking the action, so an unknown identifier fails before application side effects.
+A collaborator that throws, or a failure handler that returns `null`, is reported as `CF_CONFIG_003`. Failure handlers
+must not perform reliable external delivery; use `ProcessEventListener` for best-effort telemetry and Durable Outbox for
+reliable integration.
 
-### How It Works
+QLExpress 4 and trusted Java Code are the built-in script languages. QL cannot call host-object methods by default;
+Java Code runs with host-JVM privileges and is not a sandbox. Additional script engines are explicit `ScriptExecutor`
+extensions. A stateful executor needs bounded caches, the intended class loader, and cleanup managed by its application
+or container.
 
-The engine publishes events for key milestones (e.g., `EXECUTION_COMPLETED`). You create a class that implements
-`ProcessEventListener`, and the engine will automatically discover it and send it relevant events.
+`ScriptExecutor.name()` must already be a 1-256 character lowercase kebab-case key; Core never rewrites it. Only
+Script Tasks reference that key. TBBPM `scriptTask` uses
+`<action type="script" language="language-name">`; BPMN uses
+`<scriptTask scriptFormat="language-name">`. Unknown languages fail during code generation or preflight,
+before execution. TBBPM declares Durable execution on its nested Action; BPMN declares
+`cf:execution="replayable|effect"` directly on `scriptTask`. The Kernel does not own
+historical Provider compatibility. Exclusive-gateway, While, Timer, and transition expressions remain generated Java source and do not use
+`ScriptExecutor`. Script-action source and variable names are escaped as Java literals in generated runtime code.
 
-### Step 1: Implement the `ProcessEventListener` Interface
+Compiler, parser, graph-analysis, and format dispatch types are internal. The
+[Supported Surfaces](../architecture/06-SUPPORTED_SURFACES.en.md) page lists the public contract.
+
+`ProcessEngineProvider` is the bootstrap SPI used by `ProcessEngineFactory`. Missing or ambiguous providers fail engine
+creation. Because `ProcessModelType` is closed, a provider can replace an implementation of a known format but cannot
+add a format. In Spring, declare a `ProcessEngine` bean to replace the complete engine; auto-configuration then backs
+off.
+
+An engine has exactly one explicitly configured `ProcessAliasRouteSource`. It returns complete, serving-ready immutable
+routes and must not fall back to another authority. It is deliberately excluded from plugin aggregation so construction
+cannot silently select between multiple route authorities.
+
+A `ProcessAliasTargetingPolicy` is registered by stable lowercase kebab-case name and remains inert unless an
+authoritative route explicitly references that name through `AliasTargeting`. It receives the authorized stable and
+candidate versions, immutable route parameters, and only the routing key and immutable string attributes explicitly
+supplied through `ProcessExecutionOptions`; candidate weight is intentionally absent. It may force `STABLE` or
+`CANDIDATE`, or return empty to use CompileFlow's fixed deterministic percentage selector. There is no public
+percentage-selection SPI.
+
+Routing inputs never enter process variables, and a policy cannot inspect unrelated business inputs. Admission reads
+the route source once on the normal path. Only an exact-runtime handoff miss may re-read and retry admission once; after
+runtime handoff, that invocation remains pinned. A missing named policy prevents the route from becoming locally ready.
+A registered policy returning a null
+`Optional` or throwing at runtime selects stable with `TARGETING_ERROR` attribution; it does not enter percentage
+routing. Policies must be deterministic, thread-safe, bounded, and free of blocking remote I/O. Routing keys and
+attributes are potentially sensitive, admission-only inputs and must never be logged or persisted.
+
+## Explicit Configuration
 
 ```java
-package com.example.listeners;
-
-import com.alibaba.compileflow.engine.core.event.*;
-import com.alibaba.compileflow.engine.core.extension.ExtensionRealization;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-@ExtensionRealization // Marks this as a discoverable extension
-public class AuditLoggerListener implements ProcessEventListener<ProcessEvent> {
-
-    private static final Logger AUDIT_LOGGER = LoggerFactory.getLogger("audit");
-
+ProcessComponentResolver components = new ProcessComponentResolver() {
     @Override
-    public void onEvent(ProcessEvent event) {
-        if (event instanceof ProcessCoreEvents.ExecutionCompleted) {
-            ProcessCoreEvents.ExecutionCompleted completedEvent = (ProcessCoreEvents.ExecutionCompleted) event;
-            AUDIT_LOGGER.info("SUCCESS: Process [{}] finished in {}ms. TraceId: {}",
-                completedEvent.getProcessCode(),
-                completedEvent.getContext().getDurationMs(),
-                completedEvent.getContext().getTraceId());
+    public <T> T resolve(String name, Class<T> requiredType) {
+        return serviceLocator.lookup(name, requiredType);
+    }
+};
+
+ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder()
+        .eventListener(new MetricsListener(meterRegistry))
+        .traceIdProvider(TraceIdProvider.random())
+        .componentResolver(components)
+        .scriptExecutor(new AviatorScriptExecutor())
+        .retryPolicy("optimisticConflict", error -> error instanceof OptimisticLockException)
+        .failureHandler("continueOptional", context -> FailureResolution.CONTINUE_PROCESS)
+        .build();
+
+ProcessEngine engine = ProcessEngineFactory.create(config);
+```
+
+Extension instances must be thread-safe: one immutable configuration can create multiple engines, and an engine may call
+an extension concurrently. `engine.close()` does not close supplied collaborators.
+
+Custom retry-policy and failure-handler names are trimmed, case-sensitive identifiers. They must contain 1 to 256
+characters and no ISO control characters. The built-in names `never`, `transient`, `always`, `propagate`, and
+`continue` are reserved case-insensitively. A missing custom name, a thrown policy/handler exception, or a `null`
+failure resolution fails execution; CompileFlow does not silently substitute a built-in behavior.
+
+### Application components and actions
+
+`ProcessComponentResolver` is the name-and-type resolution authority. Resolve only explicitly exposed names; missing
+or incompatible components fail resolution and never cause the engine to instantiate the class declared by the flow:
+
+```java
+OrderFlowActions actions = new OrderFlowActions(orderService);
+ProcessComponentResolver resolver = new ProcessComponentResolver() {
+    @Override
+    public <T> T resolve(String name, Class<T> requiredType) {
+        if (!"orderFlowActions".equals(name)) {
+            throw new IllegalArgumentException("Unknown process component: " + name);
+        }
+        return requiredType.cast(actions);
+    }
+};
+```
+
+A Java action uses direct `new Type().method(...)` generated source and therefore requires an accessible class with a
+public no-argument constructor. It does not use dependency injection or private reflection. Use a Spring bean action for
+injected components, expose an exact name through `compileflow.engine.components.allowed-beans`, and keep the bean
+surface narrow because the allowlist controls bean reachability rather than method-level authorization.
+
+`ProcessContextPropagator` captures opaque application context on the submitting thread, opens it on engine-owned
+action-timeout, parallel, and event-delivery threads, then restores the worker's previous context. Capture and open
+failures at action or parallel boundaries fail the affected invocation; best-effort event delivery drops the event. This
+context is never persisted or restored by Durable execution. When Micrometer
+Context Propagation is present, Spring Boot supplies this adapter automatically; registered Micrometer
+`ThreadLocalAccessor` implementations determine what is carried. One custom `ProcessContextPropagator` bean replaces
+that default.
+
+## Classpath Plugins
+
+Implement `ProcessEnginePlugin` and register any combination of capabilities:
+
+```java
+public final class AviatorPlugin implements ProcessEnginePlugin {
+    @Override
+    public void apply(ProcessEnginePluginContext context) {
+        if (context.getModelType() == ProcessModelType.TBBPM) {
+            context.scriptExecutor(new AviatorScriptExecutor());
+            context.eventListener(new AviatorCompilationListener());
+            context.retryPolicy("aviatorTransient", new AviatorRetryPolicy());
         }
     }
 
     @Override
-    public boolean support(ProcessEventExtensionContext context) {
-        // Performance optimization: only receive the events you need.
-        return context.getEvent().getEventType() == ProcessEvent.EventType.EXECUTION_COMPLETED;
+    public String id() {
+        return "com.example.aviator";
     }
 
     @Override
-    public boolean isAsync() {
-        // Recommended: process events asynchronously to avoid blocking the engine.
-        return true;
+    public int priority() {
+        return 100; // lower applies first; duplicate script-language contributions always fail
     }
 }
 ```
 
-### Step 2: Register via SPI
+Declare it in the standard service file
+`META-INF/services/com.alibaba.compileflow.engine.spi.ProcessEnginePlugin`:
 
-Create the following file in your project's `resources` directory:
-`META-INF/extensions/com.alibaba.compileflow.engine.core.event.ProcessEventListener`
-
-Add the fully qualified name of your listener to this file:
-
-```
-com.example.listeners.AuditLoggerListener
+```text
+com.example.AviatorPlugin
 ```
 
-### Best Practices for Event Listeners
+Classpath is configuration: adding a dependency that contains a ServiceLoader `ProcessEnginePlugin` can change the
+built engine even when application source is unchanged. ServiceLoader plugins are trusted application code. Their constructors and `apply(...)` methods run with the host
+process permissions. CompileFlow does not sandbox them, verify signatures, or isolate their dependencies. Disable
+discovery when production policy requires an explicit allowlist.
 
-- **Keep them fast**: The `onEvent` method should be non-blocking. For any slow operations, hand off the work to a
-  separate, dedicated thread pool.
-- **Be resilient**: Wrap your code in `try-catch` blocks to prevent a faulty listener from disrupting other listeners or
-  the engine itself.
-- **Prefer `instanceof`**: Use `instanceof ProcessCoreEvents.SomeEvent` for type-safe and clear event handling instead
-  of `event.getEventType()`.
+Each configuration uses its configured class loader. Discovered plugins run first, ordered by ascending `priority()` and
+then stable `id()`. Explicit plugins run next with the same ordering; direct builder contributions run last. Listeners
+append. Duplicate script, targeting, retry, or failure names across plugins fail configuration; priority and bean order
+never select a semantic winner. Direct retry and failure registrations may explicitly replace plugin contributions.
+Plugin ID and priority are read once during configuration building.
 
----
-
-## 2. Extension Points: Customizing Behavior
-
-**When to Use:** Use an extension point when you want to override a specific, pluggable piece of engine logic. This is
-ideal for:
-
-- Providing multiple implementations of a strategy (e.g., different pricing rules).
-- Allowing downstream users of your application to provide their own logic.
-
-### How It Works
-
-This system uses a pair of annotations (`@ExtensionPoint` and `@ExtensionRealization`) and a central `ExtensionInvoker`
-to decouple an interface from its implementations.
-
-### Step 1: Define the Extension Point Interface
-
-The `@ExtensionPoint` annotation defines a unique `code` that acts as the key for this extension.
+Discovery is disabled by default and can be enabled only when the dependency graph is an approved extension boundary:
 
 ```java
-package com.example.extensions;
-
-import com.alibaba.compileflow.engine.core.extension.ExtensionPoint;
-
-public interface PricePolicy {
-    @ExtensionPoint(code = "price.policy.calculate")
-    int calculatePrice(int quantity, int basePrice);
-}
+ProcessEngineConfig.tbbpmBuilder().discoverPlugins(true).build();
 ```
 
-### Step 2: Create One or More Realizations
+A plugin that throws during `apply` fails engine configuration fast; configuration-time errors are never silently
+skipped. Runtime listener failures, by contrast, are isolated and logged.
 
-Implementations are marked with `@ExtensionRealization` and can have a `priority`.
+## Invocation Ownership
+
+Extension hosts own discovery, ordering, matching, diagnostics, failure isolation, and instance lifetime. The public SPI
+deliberately exposes typed capability contracts rather than a generic invocation utility, so each host keeps its
+domain-specific selection and failure semantics local. Plugin implementations contribute capabilities through
+`ProcessEnginePluginContext`.
+
+## Spring Boot
+
+Declare typed beans; the starter collects them into the engine configuration automatically:
 
 ```java
-package com.example.extensions.impl;
+@Configuration(proxyBeanMethods = false)
+class EngineExtensions {
 
-import com.alibaba.compileflow.engine.core.extension.ExtensionRealization;
-import com.example.extensions.PricePolicy;
-
-@ExtensionRealization(priority = 100) // Higher priority is preferred
-public class StandardPricePolicy implements PricePolicy {
-    @Override
-    public int calculatePrice(int quantity, int basePrice) {
-        return quantity * basePrice;
-    }
-}
-
-@ExtensionRealization(priority = 50)
-public class BulkDiscountPolicy implements PricePolicy {
-    @Override
-    public int calculatePrice(int quantity, int basePrice) {
-        int total = quantity * basePrice;
-        return quantity >= 10 ? (int)(total * 0.9) : total; // 10% discount for 10+ items
-    }
-}
-```
-
-### Step 3: Register Realizations via SPI
-
-Create a file named after the fully qualified interface name in the `META-INF/extensions/` directory:
-`META-INF/extensions/com.example.extensions.PricePolicy`
-
-List your implementation classes inside:
-
-```
-com.example.extensions.impl.StandardPricePolicy
-com.example.extensions.impl.BulkDiscountPolicy
-```
-
-### Step 4: Invoke the Extension
-
-Use the `ExtensionInvoker` with the `code` you defined in `@ExtensionPoint`. `invokeFirst` will automatically select the
-implementation with the highest priority.
-
-```java
-import com.alibaba.compileflow.engine.core.extension.ExtensionInvoker;
-import com.example.extensions.PricePolicy;
-
-int quantity = 15;
-int basePrice = 100;
-
-// The invoker finds all PricePolicy realizations, selects the one with the
-// highest priority (StandardPricePolicy, since 100 > 50), and executes the lambda against it.
-int finalPrice = ExtensionInvoker.getInstance().invokeFirst(
-    "price.policy.calculate",
-    (PricePolicy policy) -> policy.calculatePrice(quantity, basePrice)
-);
-
-// The ExtensionInvoker also offers other patterns like invokeAll, invokeChain, etc.
-```
-
----
-
-## 3. Service Providers: Plugging in Core Components
-
-**When to Use:** This is the most advanced mechanism and should be used only when you need to provide a fundamental new
-piece of functionality that the engine must discover at startup.
-
-- The primary example is implementing a new `ProcessEngineProvider` for a custom process type (e.g., to support a
-  different BPM standard).
-
-### How It Works
-
-This uses the standard Java `ServiceLoader` mechanism. You implement a known framework interface and register your
-implementation in a `META-INF/services/` file.
-
-### Example: A Custom `ProcessEngineProvider`
-
-```java
-package com.example.engine;
-
-import com.alibaba.compileflow.engine.ProcessEngineProvider;
-import com.alibaba.compileflow.engine.common.FlowModelType;
-import com.alibaba.compileflow.engine.core.AbstractProcessEngine;
-import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
-
-// A custom provider for the TBBPM model type
-public class CustomTbbpmEngineProvider implements ProcessEngineProvider {
-    @Override
-    public FlowModelType support() {
-        return FlowModelType.TBBPM;
+    @Bean
+    ProcessEventListener metricsListener(MeterRegistry registry) {
+        return event -> registry.counter("flow." + event.getType().name()).increment();
     }
 
-    @Override
-    public AbstractProcessEngine<?> createEngine(ProcessEngineConfig config) {
-        // Return your custom subclass of AbstractProcessEngine
-        return new MyCustomTbbpmEngine(config);
+    @Bean
+    ScriptExecutor aviatorExecutor() {
+        return new AviatorScriptExecutor();
+    }
+
+    @Bean
+    RetryPolicy optimisticConflict() {
+        return error -> error instanceof OptimisticLockException;
+    }
+
+    @Bean
+    FailureHandler continueOptional() {
+        return context -> FailureResolution.CONTINUE_PROCESS;
+    }
+
+    @Bean
+    TraceIdProvider traceIdProvider() {
+        return TraceIdProvider.random();
     }
 }
 ```
 
-### Register via SPI
+- Multiple `ProcessEventListener` beans follow Spring ordering. Exactly one `ScriptExecutor` bean may claim each
+  case-insensitive language name; ambiguous beans fail configuration instead of selecting a winner from incidental bean
+  order. Plugin precedence is portable across Spring and standalone use:
+  `ProcessEnginePlugin.priority()`, then stable `id()`.
+- `RetryPolicy` and `FailureHandler` beans are registered under their exact Spring bean names. A direct builder or
+  Spring bean contribution replaces a plugin contribution with the same name.
+- At most one `TraceIdProvider`, one custom `ProcessComponentResolver`, and one `ProcessContextPropagator` bean may exist.
+- With Micrometer Context Propagation on the classpath, the starter supplies the context propagator unless the
+  application declares one.
+- Automatic Spring component access is denied by default. Expose exact bean names with
+  `compileflow.engine.components.allowed-beans`; a non-empty allowlist cannot be combined with a custom resolver.
+- ServiceLoader plugin discovery is controlled by the property `compileflow.engine.plugins.discovery-enabled`
+  (default `false`).
 
-Create the following file in your project's `resources` directory:
-`META-INF/services/com.alibaba.compileflow.engine.ProcessEngineProvider`
+## Event Model
 
-Add your provider class to it:
+`ProcessEventListener.supports(ProcessEvent)` may reject unrelated immutable lifecycle events before
+`onEvent(ProcessEvent)` is called. Both predicate and delivery failures are isolated and logged:
 
-```
-com.example.engine.CustomTbbpmEngineProvider
-```
+| Event type                                   | Payload highlights                                                           |
+|----------------------------------------------|------------------------------------------------------------------------------|
+| `ExecutionStarted`                           | process code and invocation ID                                               |
+| `ExecutionCompleted` / `ExecutionFailed`     | controlled `ProcessExecution`, operational `ExecutionAttribution`, duration, and typed `ProcessError` on failure |
+| `TriggerStarted`                             | process code, invocation ID, and typed `ProcessTrigger`                      |
+| `TriggerCompleted` / `TriggerFailed`         | controlled `ProcessExecution`, operational `ExecutionAttribution`, trigger, duration, and typed error on failure |
 
-At startup, `ProcessEngineFactory` will use the `ServiceLoader` to find your provider when asked to create an engine for
-the `TBBPM` model type.
+When `ProcessObservabilityConfig.eventsAsync` is `true` (the default), events dispatch on the engine-owned event
+executor, which the engine closes on shutdown. The trace ID is captured on the publishing thread before any async
+handoff. Use `event.getType()` for inexpensive filtering and subtype pattern matching for payload access. Event records
+cannot carry routing keys, variables, source content, arbitrary metadata, or raw exceptions. Async delivery is
+best-effort: events can overlap or arrive out of order, and saturation drops the rejected event instead of running
+application listeners on the process caller thread. Listener order within one event remains deterministic.
+
+## Runtime Boundary
+
+Installing, upgrading, or unloading plugin JARs at runtime is not supported. Add a plugin JAR and restart the
+application. Flow-definition hot deployment is provided by `compileflow-deploy`. The supported extension boundary is
+listed in [Supported Surfaces](../architecture/06-SUPPORTED_SURFACES.en.md).
+
+Service-loaded plugins should be reusable configuration providers and should not create independently closeable
+resources. Resource-owning collaborators belong in explicit application configuration or Spring beans, where their owner
+can close them deterministically.

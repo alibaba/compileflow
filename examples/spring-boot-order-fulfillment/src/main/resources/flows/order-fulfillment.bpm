@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="example.order.fulfillment" name="Order Fulfillment"
+     description="Realistic order validation, pricing, risk, payment, inventory, shipment, and notification flow">
+    <var name="order" dataType="com.alibaba.compileflow.examples.order.api.OrderRequest" inOutType="param"/>
+    <var name="items" dataType="java.util.List&lt;com.alibaba.compileflow.examples.order.api.OrderItem&gt;" inOutType="param"/>
+    <var name="orderId" dataType="java.lang.String" inOutType="param"/>
+    <var name="customerTier" dataType="java.lang.String" inOutType="param"/>
+    <var name="destinationCountry" dataType="java.lang.String" inOutType="param"/>
+    <var name="subtotalCents" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="paymentFailUntilAttempt" dataType="java.lang.Integer" defaultValue="1" inOutType="param"/>
+    <var name="fraudSignal" dataType="java.lang.Boolean" defaultValue="false" inOutType="param"/>
+    <var name="giftOrder" dataType="java.lang.Boolean" defaultValue="false" inOutType="param"/>
+
+    <var name="status" dataType="java.lang.String" defaultValue="PENDING" inOutType="return"/>
+    <var name="riskScore" dataType="java.lang.Integer" defaultValue="0" inOutType="return"/>
+    <var name="discountCents" dataType="java.lang.Integer" defaultValue="0" inOutType="return"/>
+    <var name="payableCents" dataType="java.lang.Integer" defaultValue="0" inOutType="return"/>
+    <var name="inventoryReservation" dataType="java.lang.String" defaultValue="NOT_APPLICABLE" inOutType="return"/>
+    <var name="paymentAuthorization" dataType="java.lang.String" defaultValue="NOT_APPLICABLE" inOutType="return"/>
+    <var name="shipmentPlan" dataType="java.lang.String" defaultValue="" inOutType="return"/>
+    <var name="customerNotification" dataType="java.lang.String" defaultValue="NOT_APPLICABLE" inOutType="return"/>
+    <var name="loyaltyEvent" dataType="java.lang.String" defaultValue="NOT_APPLICABLE" inOutType="return"/>
+    <var name="customsDocument" dataType="java.lang.String" defaultValue="NOT_APPLICABLE" inOutType="return"/>
+    <var name="giftPacking" dataType="java.lang.String" defaultValue="NOT_APPLICABLE" inOutType="return"/>
+    <var name="auditTrail" dataType="java.lang.String" defaultValue="" inOutType="return"/>
+
+    <start id="start" name="Order received" g="20,100,32,32">
+        <transition to="validateOrder"/>
+    </start>
+    <autoTask id="validateOrder" name="Validate order" g="90,90,112,48">
+        <action type="spring-bean" bean="orderOperations"
+                class="com.alibaba.compileflow.examples.order.workflow.OrderOperations" method="validate">
+            <input target="order" dataType="com.alibaba.compileflow.examples.order.api.OrderRequest" source="order"/>
+        </action>
+        <transition to="priceOrder"/>
+    </autoTask>
+    <bpmCall id="priceOrder" name="Price order" code="example.order.pricing"
+             classpath="flows/order-pricing.bpm" g="240,90,112,48">
+        <input target="subtotalCents" source="subtotalCents"/>
+        <input target="customerTier" source="customerTier"/>
+        <output source="discountCents" target="discountCents"/>
+        <output source="payableCents" target="payableCents"/>
+        <transition to="scoreRisk"/>
+    </bpmCall>
+    <autoTask id="scoreRisk" name="Score risk" g="390,90,112,48">
+        <action type="spring-bean" bean="orderOperations"
+                class="com.alibaba.compileflow.examples.order.workflow.OrderOperations" method="scoreRisk">
+            <input target="order" dataType="com.alibaba.compileflow.examples.order.api.OrderRequest" source="order"/>
+            <output dataType="java.lang.Integer" target="riskScore"/>
+        </action>
+        <transition to="rejectionRoute"/>
+    </autoTask>
+    <exclusive id="rejectionRoute" name="Reject decision" g="540,90,104,48">
+        <transition name="Reject" to="markRejected" condition="riskScore &gt;= 80"/>
+        <transition name="Continue evaluation" to="reviewRoute"/>
+    </exclusive>
+    <exclusive id="reviewRoute" name="Review decision" g="690,120,104,48">
+        <transition name="Manual review" to="markReview" condition="riskScore &gt;= 50"/>
+        <transition name="Auto approve" to="fulfillmentFork"/>
+    </exclusive>
+
+    <scriptTask id="markRejected" name="Reject order" g="690,10,112,48">
+        <action type="script" language="java">
+            <output dataType="java.lang.String" target="status"/>
+            <code>return "REJECTED";</code>
+        </action>
+        <transition to="rejectionAudit"/>
+    </scriptTask>
+    <scriptTask id="markReview" name="Queue review" g="840,70,112,48">
+        <action type="script" language="java">
+            <output dataType="java.lang.String" target="status"/>
+            <code>return "REVIEW_REQUIRED";</code>
+        </action>
+        <transition to="reviewAudit"/>
+    </scriptTask>
+    <autoTask id="rejectionAudit" name="Record rejection" g="850,10,120,48">
+        <action type="spring-bean" bean="orderOperations"
+                class="com.alibaba.compileflow.examples.order.workflow.OrderOperations" method="decisionAudit">
+            <input target="orderId" dataType="java.lang.String" source="orderId"/>
+            <input target="status" dataType="java.lang.String" source="status"/>
+            <input target="riskScore" dataType="java.lang.Integer" source="riskScore"/>
+            <output dataType="java.lang.String" target="auditTrail"/>
+        </action>
+        <transition to="end"/>
+    </autoTask>
+    <autoTask id="reviewAudit" name="Record review" g="1000,70,120,48">
+        <action type="spring-bean" bean="orderOperations"
+                class="com.alibaba.compileflow.examples.order.workflow.OrderOperations" method="decisionAudit">
+            <input target="orderId" dataType="java.lang.String" source="orderId"/>
+            <input target="status" dataType="java.lang.String" source="status"/>
+            <input target="riskScore" dataType="java.lang.Integer" source="riskScore"/>
+            <output dataType="java.lang.String" target="auditTrail"/>
+        </action>
+        <transition to="end"/>
+    </autoTask>
+
+    <parallel id="fulfillmentFork" name="Reserve and charge" g="690,180,64,48">
+        <transition to="reserveInventory"/>
+        <transition to="authorizePayment"/>
+    </parallel>
+    <autoTask id="reserveInventory" name="Reserve inventory" g="800,150,128,48">
+        <action type="spring-bean" bean="orderOperations"
+                class="com.alibaba.compileflow.examples.order.workflow.OrderOperations"
+                method="reserveInventory">
+            <input target="order" dataType="com.alibaba.compileflow.examples.order.api.OrderRequest" source="order"/>
+            <output dataType="java.lang.String" target="inventoryReservation"/>
+        </action>
+        <transition to="fulfillmentJoin"/>
+    </autoTask>
+    <autoTask id="authorizePayment" name="Authorize payment" g="800,230,128,48">
+        <action type="spring-bean" bean="orderOperations"
+                class="com.alibaba.compileflow.examples.order.workflow.OrderOperations"
+                method="authorizePayment">
+            <input target="orderId" dataType="java.lang.String" source="orderId"/>
+            <input target="payableCents" dataType="java.lang.Integer" source="payableCents"/>
+            <input target="failUntilAttempt" dataType="java.lang.Integer" source="paymentFailUntilAttempt"/>
+            <output dataType="java.lang.String" target="paymentAuthorization"/>
+            <invocationPolicy attemptTimeout="PT2S" maxAttempts="3" initialBackoff="PT0.02S"
+                              backoffMultiplier="2.0" maxBackoff="PT0.1S" jitter="none"
+                              retryOn="transient" onFailure="propagate"/>
+        </action>
+        <transition to="fulfillmentJoin"/>
+    </autoTask>
+    <parallel id="fulfillmentJoin" name="Fulfillment join" g="970,190,64,48">
+        <transition to="shipmentLoop"/>
+    </parallel>
+
+    <foreach id="shipmentLoop" name="Build physical shipment" collection="items" item="item"
+             itemType="com.alibaba.compileflow.examples.order.api.OrderItem" g="1070,160,360,220">
+        <transition to="notificationFork"/>
+        <start id="shipmentStart">
+            <transition to="skipDigital"/>
+        </start>
+        <continue id="skipDigital" name="Skip digital item" condition="item.digital()">
+            <transition to="appendShipment"/>
+        </continue>
+        <autoTask id="appendShipment" name="Append shipment line" g="1160,250,136,48">
+            <action type="spring-bean" bean="orderOperations"
+                    class="com.alibaba.compileflow.examples.order.workflow.OrderOperations"
+                    method="appendShipmentLine">
+                <input target="current" dataType="java.lang.String" source="shipmentPlan"/>
+                <input target="item" dataType="com.alibaba.compileflow.examples.order.api.OrderItem" source="item"/>
+                <output dataType="java.lang.String" target="shipmentPlan"/>
+            </action>
+            <transition to="shipmentEnd"/>
+        </autoTask>
+        <end id="shipmentEnd"/>
+    </foreach>
+
+    <inclusive id="notificationFork" name="Fulfillment fan-out" g="1470,190,80,48">
+        <transition name="Customer notification" to="notifyCustomer" condition="true"/>
+        <transition name="Loyalty" to="publishLoyalty"
+                    condition="customerTier.equals(&quot;GOLD&quot;) || customerTier.equals(&quot;PLATINUM&quot;)"/>
+        <transition name="Customs" to="createCustoms" condition="!destinationCountry.equals(&quot;CN&quot;)"/>
+        <transition name="Gift packing" to="requestGiftPacking" condition="giftOrder"/>
+    </inclusive>
+    <autoTask id="notifyCustomer" name="Notify customer" g="1590,90,120,48">
+        <action type="spring-bean" bean="orderOperations"
+                class="com.alibaba.compileflow.examples.order.workflow.OrderOperations"
+                method="notifyCustomer">
+            <input target="orderId" dataType="java.lang.String" source="orderId"/>
+            <output dataType="java.lang.String" target="customerNotification"/>
+        </action>
+        <transition to="notificationJoin"/>
+    </autoTask>
+    <autoTask id="publishLoyalty" name="Publish loyalty" g="1590,160,120,48">
+        <action type="spring-bean" bean="orderOperations"
+                class="com.alibaba.compileflow.examples.order.workflow.OrderOperations"
+                method="publishLoyaltyEvent">
+            <input target="orderId" dataType="java.lang.String" source="orderId"/>
+            <input target="customerTier" dataType="java.lang.String" source="customerTier"/>
+            <output dataType="java.lang.String" target="loyaltyEvent"/>
+        </action>
+        <transition to="notificationJoin"/>
+    </autoTask>
+    <autoTask id="createCustoms" name="Create customs docs" g="1590,230,136,48">
+        <action type="spring-bean" bean="orderOperations"
+                class="com.alibaba.compileflow.examples.order.workflow.OrderOperations"
+                method="createCustomsDocument">
+            <input target="orderId" dataType="java.lang.String" source="orderId"/>
+            <input target="destinationCountry" dataType="java.lang.String" source="destinationCountry"/>
+            <output dataType="java.lang.String" target="customsDocument"/>
+        </action>
+        <transition to="notificationJoin"/>
+    </autoTask>
+    <autoTask id="requestGiftPacking" name="Request gift packing" g="1590,300,144,48">
+        <action type="spring-bean" bean="orderOperations"
+                class="com.alibaba.compileflow.examples.order.workflow.OrderOperations"
+                method="requestGiftPacking">
+            <input target="orderId" dataType="java.lang.String" source="orderId"/>
+            <output dataType="java.lang.String" target="giftPacking"/>
+        </action>
+        <transition to="notificationJoin"/>
+    </autoTask>
+    <inclusive id="notificationJoin" name="Fan-out join" g="1770,190,72,48">
+        <transition to="markFulfilled"/>
+    </inclusive>
+    <scriptTask id="markFulfilled" name="Complete order" g="1880,190,120,48">
+        <action type="script" language="java">
+            <output dataType="java.lang.String" target="status"/>
+            <code>return "FULFILLED";</code>
+        </action>
+        <transition to="fulfillmentAudit"/>
+    </scriptTask>
+    <autoTask id="fulfillmentAudit" name="Record fulfillment" g="2040,190,136,48">
+        <action type="spring-bean" bean="orderOperations"
+                class="com.alibaba.compileflow.examples.order.workflow.OrderOperations" method="fulfillmentAudit">
+            <input target="orderId" dataType="java.lang.String" source="orderId"/>
+            <input target="status" dataType="java.lang.String" source="status"/>
+            <input target="payableCents" dataType="java.lang.Integer" source="payableCents"/>
+            <input target="inventoryReservation" dataType="java.lang.String" source="inventoryReservation"/>
+            <input target="paymentAuthorization" dataType="java.lang.String" source="paymentAuthorization"/>
+            <input target="shipmentPlan" dataType="java.lang.String" source="shipmentPlan"/>
+            <output dataType="java.lang.String" target="auditTrail"/>
+        </action>
+        <transition to="end"/>
+    </autoTask>
+    <end id="end" name="Completed" g="2220,100,32,32"/>
+</bpm>

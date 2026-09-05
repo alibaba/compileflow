@@ -1,0 +1,677 @@
+name: Durable CI
+
+on:
+  workflow_call:
+  push:
+    branches: [ master ]
+    paths:
+      - 'compileflow-api/**'
+      - 'compileflow-core/**'
+      - 'compileflow-tbbpm/**'
+      - 'compileflow-bpmn/**'
+      - 'compileflow-deploy/**'
+      - 'compileflow-spring-boot-autoconfigure/**'
+      - 'compileflow-spring-boot-starter/**'
+      - 'compileflow-durable/**'
+      - 'examples/spring-boot-durable-postgres/**'
+      - 'scripts/check_architecture_boundaries.py'
+      - 'scripts/check_durable_delivery.py'
+      - 'scripts/check_internal_links.py'
+      - 'scripts/check_bilingual_parity.py'
+      - 'scripts/tests/test_check_durable_delivery.py'
+      - 'scripts/verify_javadoc_artifacts.py'
+      - 'scripts/tests/test_verify_javadoc_artifacts.py'
+      - 'scripts/verify_spotbugs_reports.py'
+      - 'scripts/verify_durable_test_evidence.py'
+      - 'scripts/verify_durable_release_evidence.py'
+      - 'scripts/record_java_environment.py'
+      - 'scripts/tests/test_verify_durable_test_evidence.py'
+      - 'scripts/tests/test_verify_durable_release_evidence.py'
+      - 'scripts/tests/test_record_java_environment.py'
+      - 'scripts/run_durable_visibility_feasibility.py'
+      - 'scripts/verify_durable_visibility_evidence.py'
+      - 'scripts/tests/test_run_durable_visibility_feasibility.py'
+      - 'scripts/tests/test_verify_durable_visibility_evidence.py'
+      - 'docs/architecture/README.md'
+      - 'docs/architecture/03-MODULE_MAP.en.md'
+      - 'docs/architecture/03-MODULE_MAP.zh.md'
+      - 'docs/architecture/06-SUPPORTED_SURFACES.en.md'
+      - 'docs/architecture/06-SUPPORTED_SURFACES.zh.md'
+      - 'docs/architecture/10-DURABLE_ARCHITECTURE.en.md'
+      - 'docs/architecture/10-DURABLE_ARCHITECTURE.zh.md'
+      - 'docs/compatibility-policy.md'
+      - 'docs/en/durable-*.md'
+      - 'docs/en/glossary.md'
+      - 'docs/zh/durable-*.md'
+      - 'docs/zh/glossary.md'
+      - '.github/ISSUE_TEMPLATE/durable_kernel_change.yml'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - '.github/workflows/durable-ci.yml'
+      - '.github/workflows/durable-visibility-feasibility.yml'
+      - '.github/workflows/release.yml'
+      - 'CONTRIBUTING.md'
+      - '.mvn/**'
+      - 'mvnw'
+      - 'mvnw.cmd'
+      - 'checkstyle.xml'
+      - 'checkstyle-javadoc.xml'
+      - 'pom.xml'
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'compileflow-api/**'
+      - 'compileflow-core/**'
+      - 'compileflow-tbbpm/**'
+      - 'compileflow-bpmn/**'
+      - 'compileflow-deploy/**'
+      - 'compileflow-spring-boot-autoconfigure/**'
+      - 'compileflow-spring-boot-starter/**'
+      - 'compileflow-durable/**'
+      - 'examples/spring-boot-durable-postgres/**'
+      - 'scripts/check_architecture_boundaries.py'
+      - 'scripts/check_durable_delivery.py'
+      - 'scripts/check_internal_links.py'
+      - 'scripts/check_bilingual_parity.py'
+      - 'scripts/tests/test_check_durable_delivery.py'
+      - 'scripts/verify_javadoc_artifacts.py'
+      - 'scripts/tests/test_verify_javadoc_artifacts.py'
+      - 'scripts/verify_spotbugs_reports.py'
+      - 'scripts/verify_durable_test_evidence.py'
+      - 'scripts/verify_durable_release_evidence.py'
+      - 'scripts/record_java_environment.py'
+      - 'scripts/tests/test_verify_durable_test_evidence.py'
+      - 'scripts/tests/test_verify_durable_release_evidence.py'
+      - 'scripts/tests/test_record_java_environment.py'
+      - 'scripts/run_durable_visibility_feasibility.py'
+      - 'scripts/verify_durable_visibility_evidence.py'
+      - 'scripts/tests/test_run_durable_visibility_feasibility.py'
+      - 'scripts/tests/test_verify_durable_visibility_evidence.py'
+      - 'docs/architecture/README.md'
+      - 'docs/architecture/03-MODULE_MAP.en.md'
+      - 'docs/architecture/03-MODULE_MAP.zh.md'
+      - 'docs/architecture/06-SUPPORTED_SURFACES.en.md'
+      - 'docs/architecture/06-SUPPORTED_SURFACES.zh.md'
+      - 'docs/architecture/10-DURABLE_ARCHITECTURE.en.md'
+      - 'docs/architecture/10-DURABLE_ARCHITECTURE.zh.md'
+      - 'docs/compatibility-policy.md'
+      - 'docs/en/durable-*.md'
+      - 'docs/en/glossary.md'
+      - 'docs/zh/durable-*.md'
+      - 'docs/zh/glossary.md'
+      - '.github/ISSUE_TEMPLATE/durable_kernel_change.yml'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - '.github/workflows/durable-ci.yml'
+      - '.github/workflows/durable-visibility-feasibility.yml'
+      - '.github/workflows/release.yml'
+      - 'CONTRIBUTING.md'
+      - '.mvn/**'
+      - 'mvnw'
+      - 'mvnw.cmd'
+      - 'checkstyle.xml'
+      - 'checkstyle-javadoc.xml'
+      - 'pom.xml'
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch: { }
+
+permissions:
+  contents: read
+
+env:
+  PYTHONDONTWRITEBYTECODE: '1'
+
+jobs:
+  durable-jvm:
+    name: Durable kernel (JDK ${{ matrix.java }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        # Java 17 owns behavior, static quality, and release packaging. Java 21
+        # and Java 25 provide focused compatibility evidence while all three
+        # still compile the same Java 17 artifact.
+        java: [ '17', '21', '25' ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Set up Java
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: temurin
+          cache: maven
+
+      - name: Verify architecture and delivery boundaries
+        if: matrix.java == '17'
+        run: |
+          python3 scripts/check_architecture_boundaries.py
+          python3 scripts/check_durable_delivery.py
+          python3 scripts/check_internal_links.py
+          python3 scripts/check_bilingual_parity.py
+          python3 scripts/check_spec_impl_parity.py
+          python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+
+      - name: Run Spotless format check
+        if: matrix.java == '17'
+        run: |
+          ./mvnw -Pexamples,benchmarks spotless:check \
+            -B -V --no-transfer-progress
+
+      - name: Run Durable kernel tests
+        if: matrix.java == '17'
+        run: |
+          ./mvnw clean test \
+            -pl compileflow-durable/compileflow-durable-spring-boot-starter-postgres,compileflow-durable/compileflow-durable-testkit \
+            -am \
+            -B -V --no-transfer-progress
+
+      - name: Build Durable kernel artifacts on non-baseline runtimes
+        if: matrix.java != '17'
+        run: |
+          ./mvnw clean install \
+            -pl compileflow-durable/compileflow-durable-spring-boot-starter-postgres,compileflow-durable/compileflow-durable-testkit \
+            -am \
+            -DskipTests \
+            -B -V --no-transfer-progress
+
+      - name: Run Java 25 Durable runtime compatibility smoke
+        if: matrix.java == '25'
+        run: |
+          ./mvnw test \
+            -pl compileflow-durable/compileflow-durable-runtime -am \
+            -Dtest=DurableCompiledInterpretedDifferentialTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -B -V --no-transfer-progress
+
+      - name: Verify tested source identity
+        env:
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+          test -z "$(git status --porcelain)"
+
+      - name: Record JDK environment identity
+        run: |
+          python3 scripts/record_java_environment.py \
+            --commit "${GITHUB_SHA}" \
+            --declared-java "${{ matrix.java }}" \
+            --output compileflow-durable/jdk-environment.txt
+
+      - name: Verify Durable kernel test evidence
+        if: matrix.java == '17'
+        run: |
+          python3 scripts/verify_durable_test_evidence.py \
+            --suite durable-kernel \
+            --report-root compileflow-durable \
+            --report-pattern '**/target/surefire-reports/TEST-*.xml' \
+            --minimum-tests 250 \
+            --minimum-passed 165 \
+            --require-testcase 'com.alibaba.compileflow.durable.api.DurableApiShapeTest#keepsSupportedTypesExplicitlyAllowlisted' \
+            --require-testcase 'com.alibaba.compileflow.durable.api.GreenfieldDurableApiTest#aliasRoutingOptionsContainOnlyAdmissionInputs' \
+            --require-testcase 'com.alibaba.compileflow.durable.api.GreenfieldDurableApiTest#applicationFacadeUsesDirectSemanticArguments' \
+            --require-testcase 'com.alibaba.compileflow.durable.api.GreenfieldDurableApiTest#runLifecycleAndControlAreIndependentAxes' \
+            --require-testcase 'com.alibaba.compileflow.durable.api.GreenfieldDurableApiTest#waitTokenStringRepresentationNeverExposesTheBearerCapability' \
+            --require-testcase 'com.alibaba.compileflow.durable.api.model.ProcessRunResultTest#succeededResultDeeplyOwnsAndRedactsOutput' \
+            --require-testcase 'com.alibaba.compileflow.durable.spi.wait.DurableWaitDescriptionProviderTest#defaultsProvideNoApplicationWaitAttributes' \
+            --require-testcase 'com.alibaba.compileflow.durable.spi.outbox.DurableOutboxSinkTest#outboundEventOwnsAnImmutableLogicalPayloadAndRedactsIt' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.codec.DurableValueSerializerTest#roundTripsDeclaredVariablesAndDefinitionTypedScopeState' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.codec.DurableValueSerializerTest#startPreservesOmittedFieldsAndExplicitNullAsDifferentInputs' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.codec.DurableValueSerializerTest#startRejectsInternalAndReturnVariablesOnEncodeAndRecovery' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.codec.DurableValueSerializerTest#rejectsAmbiguousOrHostileJson' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.codec.DurableValueSerializerTest#effectOutputRejectsIllTypedProcessStateBeforeCommitAndOnRecovery' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.codec.DurableValueSerializerTest#processCallDefaultsUseTheExactChildParameterType' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.codec.DurableValueSerializerTest#waitPayloadRoundTripsOnlyTypedDeclaredPartialState' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.codec.DurableValueSerializerTest#waitPayloadRejectsUndeclaredOrIllTypedValuesBeforeCommit' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.kernel.FrontierExecutionOperationsTest#runtimeSnapshotsBoundEntireGraphsBeforeApplyingUpdates' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.kernel.FrontierExecutionOperationsTest#effectRequestOwnsTheDurableInputSnapshot' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.kernel.ConcurrentFrontierOperationsTest#forkAndJoinUseStableIdentitySnapshotIsolationAndDisjointWriteMerge' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.kernel.ConcurrentFrontierOperationsTest#branchCannotParkAtAJoinOutsideItsDeclaredConvergence' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.kernel.ConcurrentFrontierOperationsTest#joinFailsClosedWhenTwoBranchesWriteTheSameProcessVariable' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.kernel.ConcurrentFrontierOperationsTest#nestedJoinRestoresItsParentFrontierAndPropagatesExactWritesToTheOuterJoin' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.machine.DurableEvolutionContractTest#semanticPlanAndResumeCoordinatesAreStableWithoutProgramIdentity' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.machine.DurableEvolutionContractTest#expressionAllowlistRejectsCallsAndMutation' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.DurableCompatibilityCorpusTest#decodesTheFrozenStartContinuation' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.DurableCompatibilityCorpusTest#resumesTheFrozenWaitSnapshotAndCommittedResult' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.DurableCompatibilityCorpusTest#resumesTheFrozenTimerSnapshot' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.DurableCompatibilityCorpusTest#resumesTheFrozenEffectSnapshotAndCommittedResult' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.DurableCompatibilityCorpusTest#resumesTheFrozenLoopSnapshotWithoutImplementationVersionRouting' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.DurableCompatibilityCorpusTest#decodesTheFrozenKernelFactWithoutTreatingFormatAsIdentity' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.TbbpmDurableConcurrentGatewayTest#parallelWaitsResolveIndependentlyAndMergeDisjointStateInArrivalOrder' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.TbbpmDurableConcurrentGatewayTest#inclusiveForksEveryMatchingBranchAndUsesDefaultOnlyWhenNoneMatch' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.TbbpmDurableConcurrentGatewayTest#concurrentWaitResultsWritingTheSameVariableFailClosedAtJoin' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.TbbpmDurableConcurrentGatewayTest#persistedFrontierQueuePreventsALongBranchFromStarvingItsSibling' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.TbbpmDurableConcurrentGatewayTest#nestedConcurrentJoinPropagatesWritesToItsOuterBranch' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.TbbpmDurableConcurrentGatewayTest#concurrentBranchesMayConvergeDirectlyAtTheProcessEnd' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.TbbpmProcessDurableDifferentialTest#sequenceProducesTheSameProcessOutput' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.TbbpmProcessDurableDifferentialTest#forEachUsesTheSameSnapshotBindingsAndIterationOrder' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.TbbpmProcessDurableDifferentialTest#processDefaultsApplyOnlyWhenTheCallerOmittedTheVariable' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.TbbpmProcessDurableDifferentialTest#parallelMergesTheSameDisjointBranchWrites' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.TbbpmProcessDurableDifferentialTest#inclusiveUsesTheSameSelectedSetAndDefaultLaw' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.TbbpmProcessDurableDifferentialTest#nestedParallelScopesProduceTheSameDeterministicMerge' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.TbbpmDurableEffectActionCompilerTest#businessTaskActionBecomesAnEffectBoundaryWithoutASecondTargetIdentity' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.TbbpmDurableEffectActionCompilerTest#mutableProcessValuesAreDetachedBeforeApplicationCodeRuns' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.TbbpmDurableEffectActionCompilerTest#waitDescriptionReceivesDetachedState' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.TbbpmDurableScriptTaskTest#arbitraryScriptLanguageUsesTheSameProgramPath' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.TbbpmDurableScriptTaskTest#providerIdentityIsRuntimeOnly' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.TbbpmDurableSemanticCheckpointTest#loopWaitRecoversOnlyFromProcessSemanticCoordinates' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.program.InMemoryDurableProcessRuntimeCacheTest#evictsLeastRecentlyUsedDisposableProgramAtTheBound' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableProcessRuntimeLoadWorkerTest#rebuildsAnEmptyNodeLocalCacheFromCommittedRunDemand' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableLeaseRenewerTest#heartbeatsAllThreeKindsOfApplicationWork' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableLeaseRenewerTest#slowRunRenewalCannotStarveEffectOrOutboxRenewal' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableLeaseRenewerTest#retriesAfterTransientStoreFailure' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableLeaseRenewerTest#oneFailedChunkCannotStarveLaterAuthorities' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableLeaseRenewerTest#persistentRenewalFaultsDegradeAndSuccessfulCycleRecovers' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableLeaseRenewerTest#stalledRenewalCycleBecomesDegradedBeforeLeaseExpiry' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableTurnWorkerTest#completedTurnCommitsResultAndReportsStaleCompletionAsLeaseLoss' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableTurnWorkerTest#waitCommitContainsOnlyDigestInAuthorityAndRawTokenInOutboxPayload' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableTurnWorkerTest#committedWaitFactResumesFromExactSemanticCheckpoint' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableTurnWorkerTest#processCallPushesAnExactChildFrameInTheSameRun' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableTurnWorkerTest#processCallAndChildShareOneTurnBudget' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableTurnWorkerTest#preservesAChildReturnWhenItExhaustsTheTurnBudget' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableTurnWorkerTest#cancellationCacheEvictionAndFaultUseDistinctFencedTransitions' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableEffectWorkerTest#anyPostInvocationFailureBecomesUnknown' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableEffectWorkerTest#recoveryDeadlineAndAttemptLimitFailClosedToReview' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableEffectWorkerTest#staleCompletionIsObservedAsLeaseLossInsteadOfSuccess' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableOutboxPublisherTest#deliveryFailureRetriesBeforeLimitAndAbandonsAtLimit' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableOutboxPublisherTest#acceptedDeliveryWithLostCompletionReplaysTheSameLogicalEvent' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableOutboxPublisherTest#staleCompletionIsObservedAsLeaseLossInsteadOfSuccess' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.AliasAdmissionTest#admitsCommittedAliasOnceToAnAuthorizedExactTarget' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.DefaultDurableProcessEngineTest#exactVersionStartBypassesAliasAdmission' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.DefaultDurableProcessEngineTest#aliasStartResolvesOnceAndPersistsOnlyTheSelectedVersion' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.DefaultDurableProcessEngineTest#laterAliasChangeCannotChangeAnExistingRunVersion' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.process.DurableProcessRuntimeManagerTest#recoveryUsesStoredSemanticsWithoutConsultingTheAdmissionSource' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.process.DurableProcessRuntimeManagerTest#admissionPersistsDistinctCallSitesWhilePreparingSharedMembersOnce' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.process.DurableProcessRuntimeManagerTest#admissionRejectsMappingsOutsideTheExactChildContract' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.process.DurableProcessRuntimeManagerTest#definitionSourcedCallSelectsAnExactChildVersion' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.DefaultDurableProcessEngineTest#startRejectsReturnInnerAndUndeclaredVariablesBeforeStoreMutation' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.service.DefaultDurableOperatorServiceTest#effectResolutionRejectsMismatchedTargetBeforeMutation' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.service.DefaultDurableOperatorServiceTest#timelineContinuationRejectsStoreSnapshotDrift' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.DefaultDurableProcessEngineTest#startRejectsMismatchedStoreIdentity' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.DefaultDurableProcessEngineTest#completeWaitValidatesTypedProcessStateBeforeStoreMutation' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.DefaultDurableProcessEngineTest#getRunResultDistinguishesMissingActiveAndSucceededRuns' \
+            --require-testcase 'com.alibaba.compileflow.durable.spring.boot.autoconfigure.DeployDurableAdaptersTest#aliasStateIsMappedOnlyForNewRunAdmission' \
+            --require-testcase 'com.alibaba.compileflow.durable.spring.boot.autoconfigure.DeployDurableAdaptersTest#exactTbbpmArtifactIsVerifiedBeforeCrossingTheBoundary' \
+            --require-testcase 'com.alibaba.compileflow.durable.spring.boot.autoconfigure.DeployDurableAdaptersTest#modelTypeIsPreservedAndDigestMismatchFailsClosed' \
+            --require-testcase 'com.alibaba.compileflow.durable.spring.boot.autoconfigure.DeployDurableAdaptersTest#mismatchedSourceIdentitiesFailClosed' \
+            --require-testcase 'com.alibaba.compileflow.durable.spring.boot.autoconfigure.CompileFlowDurableOptionalObservabilityAutoConfigurationTest#composesDeployThroughTheTwoNarrowAdmissionAdapters' \
+            --require-testcase 'com.alibaba.compileflow.durable.spring.boot.autoconfigure.CompileFlowDurableOptionalObservabilityAutoConfigurationTest#startsWithoutOptionalDeployLibrary' \
+            --require-testcase 'com.alibaba.compileflow.durable.spring.boot.autoconfigure.postgres.DurablePostgresSchemaInitializerTest#rejectsPendingMigrationWhenDdlIsExternallyManaged' \
+            --require-testcase 'com.alibaba.compileflow.durable.spring.boot.autoconfigure.runtime.DurableHealthIndicatorTest#persistentLeaseRenewalFaultIsDegradedWithoutLeakingFailureDetails' \
+            --require-testcase 'com.alibaba.compileflow.durable.spring.boot.autoconfigure.runtime.DurableWorkerCoordinatorTest#gracefulStopDrainsInFlightWorkWithoutInterruptingIt' \
+            --require-testcase 'com.alibaba.compileflow.durable.testkit.DurableTestCompilationTest#keepsDebugArtifactExportDisabledByDefault' \
+            --metadata commit="${GITHUB_SHA}" \
+            --metadata java="${{ matrix.java }}" \
+            --output compileflow-durable/durable-kernel-test-evidence.json
+
+      - name: Upload Durable test reports
+        if: always() && matrix.java == '17'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: durable-kernel-jdk-${{ matrix.java }}
+          path: |
+            compileflow-durable/**/target/surefire-reports/
+            compileflow-durable/durable-kernel-test-evidence.json
+            compileflow-durable/jdk-environment.txt
+          retention-days: 30
+
+  postgres-contract:
+    name: PostgreSQL ${{ matrix.postgres }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - postgres: '16.15'
+            postgres_image: postgres:16.15-alpine3.24@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+          - postgres: '17.11'
+            postgres_image: postgres:17.11-alpine3.24@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73
+          - postgres: '18.6'
+            postgres_image: postgres:18.6-alpine3.24@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
+    services:
+      postgres:
+        image: ${{ matrix.postgres_image }}
+        env:
+          POSTGRES_DB: compileflow_durable
+          POSTGRES_USER: compileflow_durable
+          POSTGRES_PASSWORD: durable-ci-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U compileflow_durable -d compileflow_durable"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 17
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+
+      - name: Run non-skippable PostgreSQL contracts
+        env:
+          COMPILEFLOW_DURABLE_POSTGRES_URL: jdbc:postgresql://127.0.0.1:5432/compileflow_durable
+          COMPILEFLOW_DURABLE_POSTGRES_USER: compileflow_durable
+          COMPILEFLOW_DURABLE_POSTGRES_PASSWORD: durable-ci-password
+        run: |
+          ./mvnw clean test \
+            -pl compileflow-durable/compileflow-durable-postgres \
+            -am \
+            -Dtest='LocalPostgresDurable*Test' \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -B -V --no-transfer-progress
+
+      - name: Verify tested source identity
+        env:
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+          test -z "$(git status --porcelain)"
+
+      - name: Record JDK environment identity
+        run: |
+          python3 scripts/record_java_environment.py \
+            --commit "${GITHUB_SHA}" \
+            --declared-java 17 \
+            --output compileflow-durable/jdk-environment.txt
+
+      - name: Reject missing or skipped PostgreSQL evidence
+        run: |
+          python3 scripts/verify_durable_test_evidence.py \
+            --suite postgres-contract \
+            --report-root compileflow-durable/compileflow-durable-postgres/target/surefire-reports \
+            --report-pattern 'TEST-*LocalPostgresDurable*Test.xml' \
+            --expected-reports 3 \
+            --minimum-tests 50 \
+            --minimum-passed 50 \
+            --reject-skips \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#storedProcessIsImmutableAndIdempotent' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#everyStartCreatesANewExactVersionRun' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#waitCompletionResumeAndTerminalOutboxFormOneFencedChain' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#runReferencesProtectEveryProcessInTheRecoverySet' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#purgingATerminalRunReleasesItsRecoveryProcessReferences' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#pauseAndCancelWaitForEveryPossibleEffectDispatch' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#cancelAndDueTimerRaceCompletesWithoutDeadlock' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#pauseAndEffectClaimRaceHasOneSafeOutcomeWithoutDeadlock' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#timelinePaginationFreezesOneCommittedFactSnapshot' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#pauseResumeAndCancellationRemainOrthogonalToRunLifecycle' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#timerAndEffectBoundariesResumeFromCommittedFacts' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#outboxRetryUsesStableEventIdentityAndTokenFencing' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#effectReviewAndOutboxResolutionUseOccurrenceRevisions' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#committedRunDemandIsDiscoverableAfterRestart' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#terminalRunRetentionWaitsForRequiredOutboxAndPurgesTheWholeRun' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#consumedOccurrenceRetentionIsBoundedAndPreservesTheActiveRun' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#unusedProcessRetentionIsBoundedAndRunReferencesPreventDeletion' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#leasesCanBeRenewedAcrossLongApplicationWork' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#batchRenewalReturnsOnlyAuthoritiesThatRemainCurrent' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#batchRenewalRequiresWholeMillisecondLeaseDuration' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#expiredClaimsRecoverAfterWorkerCrashAndFenceEveryLateOwner' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#waitCommittedOutboxCannotBeAbandoned' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#waitAuthorityFulfillmentOrRevocationSettlesItsOutboxAndFencesLatePublishers' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#pauseAndEffectClaimRaceHasOneSafeOutcomeWithoutDeadlock' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#cancelAndDueTimerRaceCompletesWithoutDeadlock' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#cancelLeaseRenewalAndOutboxCompletionShareRunFirstLockOrder' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#oneTurnIssuesAndConsumesMultipleExactOccurrences' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#oneFrontierOwnsAtMostOneOutstandingOccurrenceAndAdvancesAfterExactConsumption' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#activeWorkIsSummarizedPagedAndMayCoexistWithRunnableFrontier' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#pauseAndCancelWaitForEveryPossibleEffectDispatch' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableOutboxAckLossTest#sigkillAfterDurableAcceptanceReplaysTheSameCommittedEvent' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableBpmnCrashMatrixTest#effectResponseLossBecomesUnknownThenReconcilesToOneContinuation' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableBpmnCrashMatrixTest#messageCatchSurvivesRuntimeLossAndResumesExactlyOnce' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableBpmnCrashMatrixTest#timerCatchSurvivesRuntimeLossAndResolvesOnceWhenDue' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableBpmnCrashMatrixTest#callActivityChildAndParentContinuationRecoverAsOneChain' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableBpmnCrashMatrixTest#parallelBranchesResumeFromPartialProgressAndConvergeExactly' \
+            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableBpmnCrashMatrixTest#parallelMultiInstanceRecoversPartialIterationsWithStableOrderedMerge' \
+            --metadata commit="${GITHUB_SHA}" \
+            --metadata java=17 \
+            --metadata postgres="${{ matrix.postgres }}" \
+            --metadata declared-image="${{ matrix.postgres_image }}" \
+            --output compileflow-durable/postgres-test-evidence.json
+
+      - name: Record PostgreSQL image identity
+        if: always()
+        run: |
+          {
+            echo "commit=${GITHUB_SHA}"
+            echo "declared_postgres=${{ matrix.postgres }}"
+            echo "declared_image=${{ matrix.postgres_image }}"
+            docker image inspect \
+              --format='resolved_image={{index .RepoDigests 0}}' \
+              '${{ matrix.postgres_image }}'
+          } > compileflow-durable/postgres-environment.txt
+
+      - name: Upload PostgreSQL evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: durable-postgres-${{ matrix.postgres }}
+          path: |
+            compileflow-durable/compileflow-durable-postgres/target/surefire-reports/
+            compileflow-durable/jdk-environment.txt
+            compileflow-durable/postgres-environment.txt
+            compileflow-durable/postgres-test-evidence.json
+          retention-days: 30
+
+  durable-example:
+    name: Durable PostgreSQL example
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 17
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+
+      - name: Run executable Durable example
+        run: |
+          ./mvnw clean test \
+            -pl examples/spring-boot-durable-postgres \
+            -Pexamples -am \
+            -Dtest=DurableSampleApplicationTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -B -V --no-transfer-progress
+
+      - name: Verify tested source identity
+        env:
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+          test -z "$(git status --porcelain)"
+
+      - name: Record JDK environment identity
+        run: |
+          python3 scripts/record_java_environment.py \
+            --commit "${GITHUB_SHA}" \
+            --declared-java 17 \
+            --output examples/spring-boot-durable-postgres/target/jdk-environment.txt
+
+      - name: Verify executable example evidence
+        run: |
+          python3 scripts/verify_durable_test_evidence.py \
+            --suite durable-postgres-example \
+            --report-root examples/spring-boot-durable-postgres/target/surefire-reports \
+            --report-pattern 'TEST-*DurableSampleApplicationTest.xml' \
+            --expected-reports 1 \
+            --minimum-tests 2 \
+            --minimum-passed 2 \
+            --reject-skips \
+            --require-testcase 'com.alibaba.compileflow.examples.durable.DurableSampleApplicationTest#persistsTimerEffectWaitCompletionAndRunCompletion' \
+            --require-testcase 'com.alibaba.compileflow.examples.durable.DurableSampleApplicationTest#validatesExternallyMigratedSchemaWithoutDdl' \
+            --metadata commit="${GITHUB_SHA}" \
+            --metadata java=17 \
+            --output examples/spring-boot-durable-postgres/target/durable-example-test-evidence.json
+
+      - name: Upload example report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: durable-postgres-example
+          path: |
+            examples/spring-boot-durable-postgres/target/surefire-reports/
+            examples/spring-boot-durable-postgres/target/durable-example-test-evidence.json
+            examples/spring-boot-durable-postgres/target/jdk-environment.txt
+          retention-days: 30
+
+  durable-release-profile:
+    name: Durable release profile (JDK 17)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 17
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+
+      - name: Build and verify Durable release artifacts
+        run: |
+          ./mvnw clean verify \
+            -pl compileflow-durable/compileflow-durable-spring-boot-starter-postgres,compileflow-durable/compileflow-durable-testkit \
+            -am \
+            -Prelease-artifacts \
+            -DskipTests \
+            -B -V --no-transfer-progress
+
+      - name: Require Durable static-analysis reports
+        run: |
+          python3 scripts/verify_spotbugs_reports.py \
+            compileflow-api \
+            compileflow-core \
+            compileflow-tbbpm \
+            compileflow-bpmn \
+            compileflow-durable/compileflow-durable-api \
+            compileflow-durable/compileflow-durable-spi \
+            compileflow-durable/compileflow-durable-testkit \
+            compileflow-durable/compileflow-durable-runtime \
+            compileflow-durable/compileflow-durable-postgres \
+            compileflow-durable/compileflow-durable-spring-boot-autoconfigure \
+            compileflow-deploy/compileflow-deploy-api \
+            compileflow-deploy/compileflow-deploy-control-plane \
+            compileflow-deploy/compileflow-deploy-runtime \
+            compileflow-spring-boot-autoconfigure
+
+      - name: Verify Durable public Javadoc surface
+        run: |
+          ./mvnw checkstyle:check \
+            -pl compileflow-durable/compileflow-durable-api,compileflow-durable/compileflow-durable-spi,compileflow-durable/compileflow-durable-testkit \
+            -am \
+            -Dcheckstyle.config.location=checkstyle-javadoc.xml \
+            -B -V --no-transfer-progress
+          python3 scripts/verify_javadoc_artifacts.py \
+            compileflow-durable/compileflow-durable-api \
+            compileflow-durable/compileflow-durable-spi \
+            compileflow-durable/compileflow-durable-testkit
+
+      - name: Verify tested source identity
+        env:
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+          test -z "$(git status --porcelain)"
+
+      - name: Upload Durable release-profile evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: compileflow-durable-release-profile-${{ github.sha }}
+          path: |
+            compileflow-durable/**/target/compileflow-durable-*.jar
+            compileflow-durable/**/target/spotbugsXml.xml
+            compileflow-durable/**/target/surefire-reports/
+          if-no-files-found: error
+          retention-days: 30
+
+  durable-release-evidence:
+    name: Durable release evidence
+    if: ${{ !cancelled() }}
+    needs: [ durable-jvm, postgres-contract, durable-example, durable-release-profile ]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Download Durable evidence
+        if: ${{ always() }}
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c906dfced5ed9
+        with:
+          pattern: durable-*
+          path: ${{ runner.temp }}/durable-evidence-input
+
+      - name: Verify aggregation source identity
+        if: ${{ always() }}
+        env:
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+          test -z "$(git status --porcelain)"
+
+      - name: Require one complete same-commit matrix
+        if: ${{ always() }}
+        run: |
+          python3 scripts/verify_durable_release_evidence.py \
+            --evidence-root "${RUNNER_TEMP}/durable-evidence-input" \
+            --commit "${GITHUB_SHA}" \
+            --expected-java 17 \
+            --expected-postgres 16.15 \
+            --expected-postgres 17.11 \
+            --expected-postgres 18.6 \
+            --output "${RUNNER_TEMP}/durable-release-output/compileflow-durable-release-evidence.json"
+
+      - name: Audit all upstream job results
+        if: ${{ always() }}
+        env:
+          KERNEL_RESULT: ${{ needs.durable-jvm.result }}
+          POSTGRES_RESULT: ${{ needs.postgres-contract.result }}
+          EXAMPLE_RESULT: ${{ needs.durable-example.result }}
+          PROFILE_RESULT: ${{ needs.durable-release-profile.result }}
+        run: |
+          failed=0
+          for entry in \
+            "durable-jvm=$KERNEL_RESULT" \
+            "postgres-contract=$POSTGRES_RESULT" \
+            "durable-example=$EXAMPLE_RESULT" \
+            "durable-release-profile=$PROFILE_RESULT"; do
+            if [ "${entry#*=}" != 'success' ]; then
+              echo "Upstream Durable job did not succeed: $entry" >&2
+              failed=1
+            fi
+          done
+          exit "$failed"
+
+      - name: Upload aggregate Durable release evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: durable-release-evidence-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/durable-release-output/compileflow-durable-release-evidence.json
+            ${{ runner.temp }}/durable-evidence-input/
+          if-no-files-found: error
+          retention-days: 30

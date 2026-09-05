@@ -1,221 +1,182 @@
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.alibaba.compileflow.engine;
 
-import java.util.function.Consumer;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * Represents the outcome of a process execution, encapsulating either a successful result
- * or a failure with an error message. It provides a functional-style API for handling
- * both cases.
+ * Immutable outcome of one process execution or trigger operation.
  *
- * @param <T> The type of the successful result data.
+ * <p>A successful result contains output and no error. A failed result contains a typed
+ * {@link ProcessError} and no output. Both outcomes carry controlled execution attribution.
+ * Success is independent of the output value: a {@code null} output is still successful and does
+ * not activate fallback methods.
+ *
+ * @param <T> successful output type
  * @author yusu
  */
-public class ProcessResult<T> {
-    private final boolean success;
-    private final T data;
-    private final String errorMessage;
-    private final String traceId;
+public final class ProcessResult<T> {
+    private final T output;
+    private final ProcessError error;
+    private final ProcessExecution execution;
 
-    private ProcessResult(boolean success, T data, String errorMessage, String traceId) {
-        this.success = success;
-        this.data = data;
-        this.errorMessage = errorMessage;
-        this.traceId = traceId;
+    private ProcessResult(T output, ProcessError error, ProcessExecution execution) {
+        this.output = output;
+        this.error = error;
+        this.execution = Objects.requireNonNull(execution, "execution");
     }
 
     /**
-     * Creates a successful result with the given data.
+     * Creates a successful result.
      *
-     * @param data The result data.
-     * @param <T>  The type of the data.
-     * @return A new successful {@code ProcessResult}.
+     * @param output    successful output, which may be {@code null}
+     * @param execution controlled execution attribution
+     * @param <T>       output type
+     * @return successful process result
      */
-    public static <T> ProcessResult<T> success(T data) {
-        return new ProcessResult<>(true, data, null, null);
+    public static <T> ProcessResult<T> success(T output, ProcessExecution execution) {
+        return new ProcessResult<>(output, null, execution);
     }
 
     /**
-     * Creates a successful result with the given data and a trace ID.
+     * Creates a failed result.
      *
-     * @param data    The result data.
-     * @param traceId The trace identifier for this execution.
-     * @param <T>     The type of the data.
-     * @return A new successful {@code ProcessResult}.
+     * @param error     typed process error
+     * @param execution controlled execution attribution
+     * @param <T>       output type that would have been returned on success
+     * @return failed process result
      */
-    public static <T> ProcessResult<T> success(T data, String traceId) {
-        return new ProcessResult<>(true, data, null, traceId);
+    public static <T> ProcessResult<T> failure(ProcessError error, ProcessExecution execution) {
+        return new ProcessResult<>(null, Objects.requireNonNull(error, "error"), execution);
     }
 
     /**
-     * Creates a failed result with an error message.
+     * Returns whether execution completed successfully.
      *
-     * @param errorMessage A message describing the failure.
-     * @param <T>          The type of the data this result would have held on success.
-     * @return A new failed {@code ProcessResult}.
-     */
-    public static <T> ProcessResult<T> failure(String errorMessage) {
-        return new ProcessResult<>(false, null, errorMessage, null);
-    }
-
-    /**
-     * Creates a failed result with an error message and a trace ID.
-     *
-     * @param errorMessage A message describing the failure.
-     * @param traceId      The trace identifier for this execution.
-     * @param <T>          The type of the data this result would have held on success.
-     * @return A new failed {@code ProcessResult}.
-     */
-    public static <T> ProcessResult<T> failure(String errorMessage, String traceId) {
-        return new ProcessResult<>(false, null, errorMessage, traceId);
-    }
-
-    /**
-     * Checks if the process execution was successful.
-     *
-     * @return {@code true} if successful, {@code false} otherwise.
+     * @return {@code true} when no process error is present
      */
     public boolean isSuccess() {
-        return success;
+        return error == null;
     }
 
     /**
-     * Checks if the process execution failed.
+     * Returns whether execution failed.
      *
-     * @return {@code true} if failed, {@code false} otherwise.
+     * @return {@code true} when a process error is present
      */
     public boolean isFailure() {
-        return !success;
+        return error != null;
     }
 
     /**
-     * Returns the result data if the execution was successful, otherwise {@code null}.
+     * Returns successful output.
      *
-     * @return The result data, or {@code null} on failure.
+     * @return output on success, or {@code null} on failure
      */
-    public T getData() {
-        return data;
+    public T getOutput() {
+        return output;
     }
 
     /**
-     * Returns the error message if the execution failed, otherwise {@code null}.
+     * Returns the typed process error.
      *
-     * @return The error message, or {@code null} on success.
+     * @return process error on failure, or {@code null} on success
      */
-    public String getErrorMessage() {
-        return errorMessage;
+    public ProcessError getError() {
+        return error;
     }
 
     /**
-     * Returns the trace identifier associated with this execution, if available.
+     * Returns controlled attribution for the invocation.
      *
-     * @return The trace ID, or {@code null}.
+     * @return immutable execution attribution
      */
-    public String getTraceId() {
-        return traceId;
+    public ProcessExecution getExecution() {
+        return execution;
     }
 
     /**
-     * If the execution was successful, applies the given mapping function to the data,
-     * returning a new {@code ProcessResult} with the transformed data. If the execution failed,
-     * it returns a new failed {@code ProcessResult} with the original error message.
+     * Transforms successful output while preserving failure and execution attribution.
      *
-     * @param mapper A function to apply to the successful data.
-     * @param <U>    The type of the data in the resulting {@code ProcessResult}.
-     * @return A new {@code ProcessResult} with the mapped data or the original failure details.
+     * <p>The mapper is invoked for successful results even when output is {@code null}. Mapper
+     * failures propagate because this callback runs after process execution has completed.
+     *
+     * @param mapper transformation applied to successful output
+     * @param <U>    transformed output type
+     * @return mapped success or the same typed failure
      */
-    public <U> ProcessResult<U> map(Function<T, U> mapper) {
-        if (success && data != null) {
-            try {
-                U transformedData = mapper.apply(data);
-                return new ProcessResult<>(true, transformedData, null, traceId);
-            } catch (Exception e) {
-                return new ProcessResult<>(false, null, "Data transformation failed: " + e.getMessage(), traceId);
-            }
+    public <U> ProcessResult<U> map(Function<? super T, ? extends U> mapper) {
+        Objects.requireNonNull(mapper, "mapper");
+        if (isSuccess()) {
+            return success(mapper.apply(output), execution);
         }
-        return new ProcessResult<>(false, null, errorMessage, traceId);
+        return failure(error, execution);
     }
 
     /**
-     * If the execution was successful, performs the given action with the result data.
+     * Returns successful output or the supplied fallback value.
      *
-     * @param action The action to perform on the successful data.
-     * @return This {@code ProcessResult} instance for chaining.
-     */
-    public ProcessResult<T> onSuccess(Consumer<T> action) {
-        if (success && data != null) {
-            action.accept(data);
-        }
-        return this;
-    }
-
-    /**
-     * If the execution failed, performs the given action with the error message.
-     *
-     * @param action The action to perform with the error message.
-     * @return This {@code ProcessResult} instance for chaining.
-     */
-    public ProcessResult<T> onFailure(Consumer<String> action) {
-        if (!success) {
-            action.accept(errorMessage);
-        }
-        return this;
-    }
-
-    /**
-     * Returns the result data if successful, otherwise returns the provided default value.
-     *
-     * @param defaultValue The value to return if the execution failed.
-     * @return The result data or the default value.
+     * @param defaultValue fallback used for a failed result
+     * @return successful output or the fallback value
      */
     public T orElse(T defaultValue) {
-        return success ? data : defaultValue;
+        return isSuccess() ? output : defaultValue;
     }
 
     /**
-     * Returns the result data if successful, otherwise throws a {@link RuntimeException}.
+     * Returns successful output or lazily obtains a fallback value.
      *
-     * @return The result data.
-     * @throws RuntimeException if the process execution failed.
+     * @param supplier fallback supplier invoked only for a failed result
+     * @return successful output or the supplied fallback value
+     */
+    public T orElseGet(Supplier<? extends T> supplier) {
+        return isSuccess() ? output : Objects.requireNonNull(supplier, "supplier").get();
+    }
+
+    /**
+     * Returns successful output or throws the typed execution failure.
+     *
+     * @return successful output
+     * @throws ProcessExecutionException when this result is failed
      */
     public T orElseThrow() {
-        if (success) {
-            return data;
+        if (isSuccess()) {
+            return output;
         }
-        throw new RuntimeException("Process execution failed: " + errorMessage);
+        throw new ProcessExecutionException(error, execution);
     }
 
     /**
-     * Returns the result data if successful, otherwise supplies a default value lazily.
+     * Returns successful output or throws a caller-provided exception.
      *
-     * @param supplier default supplier when failed
-     * @return data or supplier result
-     */
-    public T orElseGet(Supplier<T> supplier) {
-        return success ? data : supplier.get();
-    }
-
-    /**
-     * Returns data or throws the exception provided by the supplier when failed.
-     *
-     * @param exceptionSupplier supplier of exception to throw on failure
+     * @param exceptionSupplier supplier invoked only for a failed result
      * @param <X>               exception type
-     * @return data when successful
-     * @throws X if failed
+     * @return successful output
+     * @throws X when this result is failed
      */
     public <X extends Throwable> T orElseThrow(Supplier<? extends X> exceptionSupplier) throws X {
-        if (success) {
-            return data;
+        if (isSuccess()) {
+            return output;
         }
-        throw exceptionSupplier.get();
+        throw Objects.requireNonNull(exceptionSupplier, "exceptionSupplier").get();
     }
 
     @Override
     public String toString() {
-        return success
-                ? "ProcessResult{success, traceId=" + traceId + ", data=" + String.valueOf(data) + "}"
-                : "ProcessResult{failure, traceId=" + traceId + ", error='" + errorMessage + "'}";
+        return "ProcessResult{success=" + isSuccess() + ", outputPresent=" + (output != null) + ", errorCode="
+                + (error == null ? null : error.getCode()) + ", execution=" + execution + '}';
     }
-
 }

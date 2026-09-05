@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.gateway.orderRoutingFlow" name="Order Routing Flow"
+     description="订单路由处理流程：根据路由规则选择处理路径，最终汇总处理结果">
+    <var name="route" dataType="java.lang.String" inOutType="param"/>
+    <var name="next" dataType="java.lang.String" inOutType="param"/>
+    <var name="orderId" dataType="java.lang.String" inOutType="param"/>
+    <var name="processedPath" description="已处理路径" dataType="java.lang.String" inOutType="inner"/>
+    <var name="finalResult" dataType="java.lang.String" inOutType="return"/>
+    <start id="start" name="Start" g="100,20,30,30">
+        <transition g=":-15,20" to="initializeRoute"/>
+    </start>
+    <autoTask id="initializeRoute" name="初始化路由" g="100,55,88,48">
+        <transition to="decisionE"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="processRoute">
+                <input target="route" dataType="java.lang.String" source="route"/>
+                <output dataType="java.lang.String" target="processedPath"/>
+
+        </action>
+    </autoTask>
+    <exclusive id="decisionE" name="路由决策" g="100,70,88,48">
+        <transition condition='"A".equals(route)' name="路径A" g=":-15,20" to="processPathA"/>
+        <transition condition='"X".equals(route)' name="路径X" g=":-15,20" to="processPathX"/>
+    </exclusive>
+    <autoTask id="processPathA" name="处理路径A" g="50,140,88,48">
+        <transition g=":-15,20" to="validateOrder"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="appendStep">
+                <input target="path" dataType="java.lang.String" source="processedPath"/>
+                <input target="step" dataType="java.lang.String" source="orderId"/>
+                <output dataType="java.lang.String" target="processedPath"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="validateOrder" name="订单验证" g="50,210,88,48">
+        <transition g=":-15,20" to="routeJoin"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="appendStep">
+                <input target="path" dataType="java.lang.String" source="processedPath"/>
+                <input target="step" dataType="java.lang.String" defaultValue="validated"/>
+                <output dataType="java.lang.String" target="processedPath"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="processPathX" name="处理路径X" g="200,140,88,48">
+        <transition g=":-15,20" to="processAlternative"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="appendStep">
+                <input target="path" dataType="java.lang.String" source="processedPath"/>
+                <input target="step" dataType="java.lang.String" source="orderId"/>
+                <output dataType="java.lang.String" target="processedPath"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="processAlternative" name="处理替代路径" g="200,210,88,48">
+        <transition g=":-15,20" to="routeJoin"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="appendStep">
+                <input target="path" dataType="java.lang.String" source="processedPath"/>
+                <input target="step" dataType="java.lang.String" defaultValue="alternative"/>
+                <output dataType="java.lang.String" target="processedPath"/>
+
+        </action>
+    </autoTask>
+    <exclusive id="routeJoin" name="路由汇合" g="125,260,48,48">
+        <transition to="recordNextRoute"/>
+    </exclusive>
+    <autoTask id="recordNextRoute" name="记录后续路由" g="125,290,88,48">
+        <transition to="routeDecision"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="appendStep">
+                <input target="path" dataType="java.lang.String" source="processedPath"/>
+                <input target="step" dataType="java.lang.String" source="next"/>
+                <output dataType="java.lang.String" target="processedPath"/>
+
+        </action>
+    </autoTask>
+    <exclusive id="routeDecision" name="路由决策" g="125,320,88,48">
+        <transition condition='"D".equals(next)' name="路径D" g=":-15,20" to="processPathD"/>
+        <transition condition='"Z".equals(next)' name="路径Z" g=":-15,20" to="processPathZ"/>
+    </exclusive>
+    <autoTask id="processPathD" name="处理路径D" g="50,350,88,48">
+        <transition g=":-15,20" to="finalize"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="appendStep">
+                <input target="path" dataType="java.lang.String" source="processedPath"/>
+                <input target="step" dataType="java.lang.String" defaultValue="pathD"/>
+                <output dataType="java.lang.String" target="processedPath"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="processPathZ" name="处理路径Z" g="200,350,88,48">
+        <transition g=":-15,20" to="finalize"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="appendStep">
+                <input target="path" dataType="java.lang.String" source="processedPath"/>
+                <input target="step" dataType="java.lang.String" defaultValue="pathZ"/>
+                <output dataType="java.lang.String" target="processedPath"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="finalize" name="完成处理" g="125,420,88,48">
+        <transition g=":-15,20" to="end"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="finalizeResult">
+                <input target="path" dataType="java.lang.String" source="processedPath"/>
+                <output dataType="java.lang.String" target="finalResult"/>
+
+        </action>
+    </autoTask>
+    <end id="end" name="End" g="125,500,30,30"/>
+</bpm>

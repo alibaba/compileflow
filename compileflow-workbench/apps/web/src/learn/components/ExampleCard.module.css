@@ -1,0 +1,112 @@
+.cardCol {
+  height: 100%;
+}
+
+.card {
+  position: relative;
+  height: 100%;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast),
+    box-shadow var(--duration-fast);
+  display: flex;
+  flex-direction: column;
+}
+
+.cardLink {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+}
+
+.cardLink:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+.card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.accentBar {
+  height: 3px;
+  background: var(--card-accent, var(--primary-500));
+}
+
+.body {
+  padding: var(--spacing-5);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+.title {
+  margin: 0 !important;
+  font-family: var(--font-family-display) !important;
+  font-size: var(--font-size-md) !important;
+  font-weight: var(--font-weight-semibold) !important;
+  letter-spacing: -0.02em;
+  line-height: var(--line-height-tight) !important;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.description {
+  margin: 0 !important;
+  font-size: var(--font-size-sm) !important;
+  color: var(--text-secondary) !important;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--spacing-3);
+  border-top: 1px solid var(--border-subtle);
+  margin-top: auto;
+}
+
+.metaLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+.footerLink {
+  color: var(--primary-500);
+  font-size: var(--font-size-sm);
+}
+
+.accentBuild {
+  --card-accent: var(--color-build);
+}
+
+.accentOperate {
+  --card-accent: var(--color-operate);
+}
+
+.rate {
+  font-size: var(--font-size-xs);
+}

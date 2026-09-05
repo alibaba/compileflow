@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="durable.compatibility.effect" name="V1 Effect compatibility fixture">
+    <start id="start" g="0,0,32,32">
+        <transition to="notify"/>
+    </start>
+    <autoTask id="notify" g="80,0,100,40">
+        <action type="spring-bean" execution="effect" bean="compatibilityNotification"
+                          class="java.lang.Runnable" method="run">
+        </action>
+        <transition to="end"/>
+    </autoTask>
+    <end id="end" g="220,0,32,32"/>
+</bpm>

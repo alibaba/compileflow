@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.java-code.javaCodeSum" name="Java Code Sum"
+     description="Inline Java 17 script with typed input and output mappings">
+    <var name="inputA" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="inputB" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="result" dataType="java.lang.Integer" inOutType="return"/>
+    <start id="start" name="Start" g="0,0,32,32"><transition to="sum"/></start>
+    <scriptTask id="sum" name="Sum" g="72,0,100,40">
+        <action type="script" language="java">
+                <input target="left" dataType="java.lang.Integer" source="inputA"/>
+                <input target="right" dataType="java.lang.Integer" source="inputB"/>
+                <output dataType="java.lang.Integer" target="result"/>
+                <code>return left + right;</code>
+        </action>
+        <transition to="end"/>
+    </scriptTask>
+    <end id="end" name="End" g="220,0,32,32"/>
+</bpm>

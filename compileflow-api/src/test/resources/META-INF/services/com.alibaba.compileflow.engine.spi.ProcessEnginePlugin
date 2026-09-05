@@ -1,0 +1,2 @@
+com.alibaba.compileflow.engine.config.ProcessEngineConfigPluginTest$DiscoveredPlugin
+com.alibaba.compileflow.engine.config.ProcessEngineConfigPluginTest$LateDiscoveredPlugin

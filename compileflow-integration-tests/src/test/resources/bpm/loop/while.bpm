@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.loop.while" name="While" description="Test while condition">
+    <var name="count" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="result" dataType="java.lang.Integer" inOutType="return"/>
+    <var name="sum" description="Sum" dataType="java.lang.Integer" inOutType="inner"/>
+    <start id="1" name="Start" g="105,17,30,30">
+        <transition g=":-15,20" to="2"/>
+    </start>
+    <end id="11" name="End" g="101,549,30,30"/>
+    <scriptTask id="2" name="Initialize" g="72,100,88,48">
+        <transition g=":-15,20" to="3"/>
+        <action type="script" language="java">
+                <output dataType="java.lang.Integer" target="sum"/>
+                <code>return 0;</code>
+
+        </action>
+    </scriptTask>
+    <while id="3" name="While Loop" g="20,200,198,190"
+               condition="counter &lt; count" maxIterations="100" index="counter">
+        <transition g=":-15,20" to="4"/>
+        <start id="3-start"><transition to="3-1"/></start>
+        <scriptTask id="3-1" name="Increment" g="70,220,88,48">
+            <action type="script" language="qlexpress">
+                    <input target="sum" dataType="java.lang.Integer" source="sum"/>
+                    <input target="counter" dataType="java.lang.Integer" source="counter"/>
+                    <output dataType="java.lang.Integer" target="sum"/>
+                <code><![CDATA[sum + counter]]></code>
+
+            </action>
+            <transition to="3-end"/>
+        </scriptTask>
+        <end id="3-end"/>
+    </while>
+    <scriptTask id="4" name="Set Result" g="72,450,88,48">
+        <transition g=":-15,20" to="11"/>
+        <action type="script" language="qlexpress">
+                <input target="sum" dataType="java.lang.Integer" source="sum"/>
+                <output dataType="java.lang.Integer" target="result"/>
+                <code><![CDATA[sum]]></code>
+
+        </action>
+    </scriptTask>
+</bpm>

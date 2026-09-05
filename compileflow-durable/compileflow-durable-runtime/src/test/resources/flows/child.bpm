@@ -1,0 +1,7 @@
+<bpm code="child">
+  <start id="start" g="0,0,32,32"><transition to="grandchild"/></start>
+  <bpmCall id="grandchild" code="grandchild" classpath="flows/grandchild.bpm" g="50,0,32,32">
+    <transition to="end"/>
+  </bpmCall>
+  <end id="end" g="100,0,32,32"/>
+</bpm>

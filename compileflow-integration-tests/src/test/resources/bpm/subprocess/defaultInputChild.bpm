@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="bpm.subprocess.defaultInputChild" name="Process call default input child">
+    <var name="value" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="wasNull" dataType="java.lang.Boolean" inOutType="return"/>
+    <start id="start" g="0,0,32,32"><transition to="check"/></start>
+    <scriptTask id="check" g="72,0,100,40">
+        <action type="script" language="java">
+            <input target="value" dataType="java.lang.Integer" source="value"/>
+            <output dataType="java.lang.Boolean" target="wasNull"/>
+            <code>return value == null;</code>
+        </action>
+        <transition to="end"/>
+    </scriptTask>
+    <end id="end" g="220,0,32,32"/>
+</bpm>

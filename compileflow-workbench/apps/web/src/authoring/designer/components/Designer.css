@@ -1,0 +1,449 @@
+/* ============================================
+   Right Panel — Tab Bar & Content
+   ============================================ */
+
+.right-panel-tabs {
+  padding: var(--spacing-2) var(--spacing-3);
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-bg-container);
+  flex-shrink: 0;
+}
+
+.right-panel-tabs .ant-segmented {
+  background: var(--color-fill-secondary);
+  border-radius: var(--radius-lg);
+  width: 100%;
+}
+
+.right-panel-tabs .ant-segmented-item {
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+.right-panel-tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.right-panel-tab-text {
+  white-space: nowrap;
+}
+
+.right-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* ============================================
+   Properties Panel — empty / type badge
+   ============================================ */
+
+.properties-panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--color-text-tertiary);
+}
+
+.properties-panel-empty-icon {
+  font-size: 48px;
+  color: var(--color-text-tertiary);
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.properties-panel-empty-text {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: 4px;
+}
+
+.properties-panel-empty-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  line-height: var(--line-height-normal);
+}
+
+.properties-panel-type-badge {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-fill-secondary);
+  border: 1px solid var(--color-border-light);
+}
+
+/* Edge info block in EdgePropertiesPanel */
+.edge-info-block {
+  padding: var(--spacing-3);
+  background: var(--color-fill-secondary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-normal);
+}
+
+.edge-info-block strong {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ============================================
+   Designer Layout
+   ============================================ */
+
+.tbbpm-designer,
+.bpmn-designer {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.tbbpm-designer .ant-layout-sider,
+.bpmn-designer .ant-layout-sider {
+  background: var(--color-bg-container, #fff);
+  overflow: hidden;
+}
+
+.tbbpm-designer-left-sider,
+.bpmn-designer-left-sider {
+  border-right: 1px solid var(--border-color);
+}
+
+.tbbpm-designer-right-sider,
+.bpmn-designer-right-sider {
+  border-left: 1px solid var(--border-color);
+}
+
+.tbbpm-designer-content,
+.bpmn-designer-content {
+  flex: auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-bg-layout, #f5f5f5);
+  position: relative;
+}
+
+.tbbpm-designer .ant-layout-sider-children,
+.bpmn-designer .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+}
+
+/* ============================================
+   Sider collapse triggers
+   ============================================ */
+
+/* In-panel trigger (bottom-right of left sider, bottom-left of right sider) */
+.sider-collapse-trigger {
+  position: absolute;
+  bottom: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-light);
+  background: var(--color-bg-container);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast);
+  z-index: 2;
+}
+
+.sider-collapse-trigger:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.sider-collapse-trigger--left {
+  right: 8px;
+}
+
+.sider-collapse-trigger--right {
+  left: 8px;
+}
+
+/* Floating trigger — visible when sider is collapsed, pinned to the content edge */
+.sider-float-trigger {
+  position: absolute;
+  top: 50%;
+  width: 24px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-light);
+  background: var(--color-bg-container);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transform: translateY(-50%);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast);
+  z-index: 5;
+  box-shadow: var(--shadow-xs);
+}
+
+.sider-float-trigger:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.sider-float-trigger--left {
+  left: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.sider-float-trigger--right {
+  right: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* Sider transition */
+.tbbpm-designer .ant-layout-sider,
+.bpmn-designer .ant-layout-sider {
+  transition:
+    width var(--transition-slow),
+    min-width var(--transition-slow),
+    max-width var(--transition-slow);
+}
+
+.tbbpm-designer-empty-panel,
+.bpmn-designer-empty-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--text-tertiary);
+  gap: 16px;
+  overflow: hidden;
+}
+
+.tbbpm-designer-empty-panel-icon,
+.bpmn-designer-empty-panel-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: var(--hover-bg);
+  border: 1.5px dashed var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tbbpm-designer-empty-panel-title,
+.bpmn-designer-empty-panel-title {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.tbbpm-designer-empty-panel-sub,
+.bpmn-designer-empty-panel-sub {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  line-height: 1.5;
+}
+
+.tbbpm-designer-empty-panel-hint,
+.bpmn-designer-empty-panel-hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-quaternary);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+@media (max-width: 1200px) {
+  .tbbpm-designer .ant-layout-sider:not(.ant-layout-sider-collapsed),
+  .bpmn-designer .ant-layout-sider:not(.ant-layout-sider-collapsed) {
+    width: 220px !important;
+    min-width: 220px !important;
+    max-width: 220px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .tbbpm-designer,
+  .bpmn-designer {
+    font-size: var(--font-size-sm);
+  }
+
+  .tbbpm-designer .ant-layout-sider,
+  .bpmn-designer .ant-layout-sider {
+    position: absolute;
+    z-index: 100;
+    height: 100%;
+  }
+
+  .tbbpm-designer .ant-layout-sider.ant-layout-sider-collapsed,
+  .bpmn-designer .ant-layout-sider.ant-layout-sider-collapsed {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+  }
+
+  .tbbpm-designer-left-sider:not(.ant-layout-sider-collapsed),
+  .bpmn-designer-left-sider:not(.ant-layout-sider-collapsed) {
+    width: min(82vw, 260px) !important;
+    min-width: min(82vw, 260px) !important;
+    max-width: min(82vw, 260px) !important;
+  }
+
+  .tbbpm-designer-right-sider:not(.ant-layout-sider-collapsed),
+  .bpmn-designer-right-sider:not(.ant-layout-sider-collapsed) {
+    width: min(92vw, 360px) !important;
+    min-width: min(92vw, 360px) !important;
+    max-width: min(92vw, 360px) !important;
+  }
+
+  .tbbpm-designer-left-sider,
+  .bpmn-designer-left-sider {
+    left: -260px;
+    transition: left 0.3s;
+  }
+
+  .tbbpm-designer-right-sider,
+  .bpmn-designer-right-sider {
+    right: -360px;
+    transition: right 0.3s;
+  }
+
+  .tbbpm-designer-left-sider.sider-visible,
+  .bpmn-designer-left-sider.sider-visible {
+    left: 0;
+  }
+
+  .tbbpm-designer-right-sider.sider-visible,
+  .bpmn-designer-right-sider.sider-visible {
+    right: 0;
+  }
+}
+
+@media print {
+  .tbbpm-designer .ant-layout-sider,
+  .bpmn-designer .ant-layout-sider {
+    display: none !important;
+  }
+
+  .tbbpm-designer .ant-layout-content,
+  .bpmn-designer .ant-layout-content {
+    margin: 0 !important;
+  }
+}
+
+/* ============================================
+   Micro-animations & Accessibility
+   ============================================ */
+
+/* Panel slide-in for right panel content */
+.right-panel-content > * {
+  animation: panelSlideIn 0.2s ease-out;
+}
+
+@keyframes panelSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Node highlight pulse for canvas-selected nodes */
+.x6-cell-selected .x6-node-body {
+  animation: nodeSelectedPulse 2s ease-in-out infinite;
+}
+
+@keyframes nodeSelectedPulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 rgba(24, 144, 255, 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 6px rgba(24, 144, 255, 0.3));
+  }
+}
+
+/* Sidebar slide-in on mobile */
+@media (max-width: 768px) {
+  .tbbpm-designer-left-sider,
+  .bpmn-designer-left-sider {
+    transition: left var(--transition-slow);
+  }
+
+  .tbbpm-designer-right-sider,
+  .bpmn-designer-right-sider {
+    transition: right var(--transition-slow);
+  }
+}
+
+/* Prefers-reduced-motion: disable all animations */
+@media (prefers-reduced-motion: reduce) {
+  .right-panel-content > * {
+    animation: none !important;
+  }
+
+  .x6-cell-selected .x6-node-body {
+    animation: none !important;
+  }
+
+  .tbbpm-designer .ant-layout-sider,
+  .bpmn-designer .ant-layout-sider {
+    transition: none !important;
+  }
+
+  .sider-collapse-trigger,
+  .sider-float-trigger {
+    transition: none !important;
+  }
+}
+
+/* ============================================
+   Dark mode — sider triggers
+   ============================================ */
+
+[data-theme='dark'] .sider-collapse-trigger,
+[data-theme='dark'] .sider-float-trigger {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-border);
+  color: var(--color-text-tertiary);
+}
+
+[data-theme='dark'] .sider-collapse-trigger:hover,
+[data-theme='dark'] .sider-float-trigger:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+}

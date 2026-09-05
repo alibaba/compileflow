@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.gateway.fourLevelApprovalGateway" name="Four Level Approval Gateway"
+     description="订单审核流程：四层嵌套决策网关，逐层审核订单，最终输出审核结果">
+
+    <var name="flag" dataType="java.lang.Boolean" inOutType="param"/>
+    <var name="orderId" dataType="java.lang.String" inOutType="param"/>
+    <var name="approvalResult" description="审核结果" dataType="java.lang.String" inOutType="inner"/>
+    <var name="finalApprovalStatus" dataType="java.lang.String" inOutType="return"/>
+
+    <start id="start" name="开始" g="100,300,40,40">
+        <transition to="level1Decision"/>
+    </start>
+
+
+    <exclusive id="level1Decision" name="第一层审核" g="200,300,88,48">
+        <transition condition="flag" name="通过" to="level1Approved"/>
+        <transition condition="Boolean.FALSE.equals(flag)" name="拒绝" to="level1Rejected"/>
+    </exclusive>
+
+    <autoTask id="level1Approved" name="第一层通过" g="350,250,100,48">
+        <transition to="level1Join"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="processOrder">
+                <input target="orderId" dataType="java.lang.String" source="orderId"/>
+                <output dataType="java.lang.String" target="approvalResult"/>
+
+        </action>
+    </autoTask>
+
+    <autoTask id="level1Rejected" name="第一层拒绝" g="350,350,100,48">
+        <transition to="level1Join"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="processOrder">
+                <input target="orderId" dataType="java.lang.String" source="orderId"/>
+                <output dataType="java.lang.String" target="approvalResult"/>
+
+        </action>
+    </autoTask>
+
+
+    <exclusive id="level1Join" name="第一层汇合" g="450,300,48,48">
+        <transition to="level2Decision"/>
+    </exclusive>
+
+    <exclusive id="level2Decision" name="第二层审核" g="500,300,88,48">
+        <transition condition="flag" name="通过" to="level2Approved"/>
+        <transition condition="Boolean.FALSE.equals(flag)" name="拒绝" to="level2Rejected"/>
+    </exclusive>
+
+    <autoTask id="level2Approved" name="第二层通过" g="650,200,100,48">
+        <transition to="level2Join"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="appendStep">
+                <input target="path" dataType="java.lang.String" source="approvalResult"/>
+                <input target="step" dataType="java.lang.String" defaultValue="level2Approved"/>
+                <output dataType="java.lang.String" target="approvalResult"/>
+
+        </action>
+    </autoTask>
+
+    <autoTask id="level2Rejected" name="第二层拒绝" g="650,400,100,48">
+        <transition to="level2Join"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="appendStep">
+                <input target="path" dataType="java.lang.String" source="approvalResult"/>
+                <input target="step" dataType="java.lang.String" defaultValue="level2Rejected"/>
+                <output dataType="java.lang.String" target="approvalResult"/>
+
+        </action>
+    </autoTask>
+
+
+    <exclusive id="level2Join" name="第二层汇合" g="750,300,48,48">
+        <transition to="level3Decision"/>
+    </exclusive>
+
+    <exclusive id="level3Decision" name="第三层审核" g="800,300,88,48">
+        <transition condition="flag" name="通过" to="level3Approved"/>
+        <transition condition="Boolean.FALSE.equals(flag)" name="拒绝" to="level3Rejected"/>
+    </exclusive>
+
+    <autoTask id="level3Approved" name="第三层通过" g="950,150,100,48">
+        <transition to="level3Join"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="appendStep">
+                <input target="path" dataType="java.lang.String" source="approvalResult"/>
+                <input target="step" dataType="java.lang.String" defaultValue="level3Approved"/>
+                <output dataType="java.lang.String" target="approvalResult"/>
+
+        </action>
+    </autoTask>
+
+    <autoTask id="level3Rejected" name="第三层拒绝" g="950,450,100,48">
+        <transition to="level3Join"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="appendStep">
+                <input target="path" dataType="java.lang.String" source="approvalResult"/>
+                <input target="step" dataType="java.lang.String" defaultValue="level3Rejected"/>
+                <output dataType="java.lang.String" target="approvalResult"/>
+
+        </action>
+    </autoTask>
+
+
+    <exclusive id="level3Join" name="第三层汇合" g="1050,300,48,48">
+        <transition to="level4Decision"/>
+    </exclusive>
+
+    <exclusive id="level4Decision" name="第四层审核" g="1100,300,88,48">
+        <transition condition="flag" name="通过" to="level4Approved"/>
+        <transition condition="Boolean.FALSE.equals(flag)" name="拒绝" to="level4Rejected"/>
+    </exclusive>
+
+    <autoTask id="level4Approved" name="第四层通过" g="1250,100,100,48">
+        <transition to="finalize"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="appendStep">
+                <input target="path" dataType="java.lang.String" source="approvalResult"/>
+                <input target="step" dataType="java.lang.String" defaultValue="level4Approved"/>
+                <output dataType="java.lang.String" target="approvalResult"/>
+
+        </action>
+    </autoTask>
+
+    <autoTask id="level4Rejected" name="第四层拒绝" g="1250,500,100,48">
+        <transition to="finalize"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="appendStep">
+                <input target="path" dataType="java.lang.String" source="approvalResult"/>
+                <input target="step" dataType="java.lang.String" defaultValue="level4Rejected"/>
+                <output dataType="java.lang.String" target="approvalResult"/>
+
+        </action>
+    </autoTask>
+
+    <autoTask id="finalize" name="完成审核" g="1400,300,100,48">
+        <transition to="end"/>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="finalizeResult">
+                <input target="path" dataType="java.lang.String" source="approvalResult"/>
+                <output dataType="java.lang.String" target="finalApprovalStatus"/>
+
+        </action>
+    </autoTask>
+
+
+    <end id="end" name="结束" g="1550,300,40,40"/>
+</bpm>

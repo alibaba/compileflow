@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="durable.compatibility.foreach-loop" name="Foreach loop fixture">
+    <var name="items" dataType="java.util.List&lt;java.lang.String&gt;" inOutType="param"/>
+    <start id="start" g="0,0,32,32">
+        <transition to="itemsLoop"/>
+    </start>
+    <foreach id="itemsLoop" g="50,0,200,100"
+             collection="items" item="item" itemType="java.lang.String">
+        <transition to="end"/>
+        <start id="itemsStart"><transition to="approval"/></start>
+        <waitEventTask id="approval" event="approved" g="80,20,100,40">
+            <transition to="itemsEnd"/>
+        </waitEventTask>
+        <end id="itemsEnd"/>
+    </foreach>
+    <end id="end" g="280,0,32,32"/>
+</bpm>

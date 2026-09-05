@@ -1,0 +1,2 @@
+com.alibaba.compileflow.durable.spring.boot.autoconfigure.CompileFlowDurablePostgresAutoConfiguration
+com.alibaba.compileflow.durable.spring.boot.autoconfigure.CompileFlowDurableAutoConfiguration

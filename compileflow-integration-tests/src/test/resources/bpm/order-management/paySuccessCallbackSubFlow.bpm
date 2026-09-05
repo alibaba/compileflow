@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<bpm code="bpm.order-management.paySuccessCallbackSubFlow" name="支付成功回调子流程">
+    <var name="BUSINESS_CONTEXT" dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" inOutType="param"/>
+    <start id="1" name="开始节点" g="297,109,40,40">
+        <transition g=":-15,20" to="8"/>
+    </start>
+    <end id="2" name="结束节点" g="309,600,40,40"/>
+    <autoTask id="8" name="价格计算" g="276,202,88,48">
+        <transition g=":-15,20" to="9"/>
+        <action type="spring-bean" bean="priceCalculateActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.PriceCalculateActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="9" name="超时取消" g="279,283,88,48">
+        <transition g=":-15,20" to="10"/>
+        <action type="spring-bean" bean="timeoutCancelActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.TimeoutCancelActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="10" name="支付资金分摊" g="281,361,88,48">
+        <transition g=":-15,20" to="12"/>
+        <action type="spring-bean" bean="paymentFundApportionActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.PaymentFundApportionActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="11" name="更新支付回调信息" g="284,522,88,48">
+        <transition g=":-15,20" to="2"/>
+        <action type="spring-bean" bean="paymentCallbackInfoUpdateActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.PaymentCallbackInfoUpdateActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="12" name="会员已付款标更新" g="281,444,88,48">
+        <transition g=":-15,20" to="paymentSuccess"/>
+        <action type="spring-bean" bean="userTagUpdateActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.UserTagUpdateActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+    <autoTask id="paymentSuccess" name="更新支付成功状态" g="281,483,110,48">
+        <transition to="11"/>
+        <action type="spring-bean" bean="paymentSuccessCallbackActivity"
+                          class="com.alibaba.compileflow.engine.test.support.fixtures.om.activity.PaymentSuccessCallbackActivity"
+                          method="execute">
+                <input target="BUSINESS_CONTEXT"
+                     dataType="com.alibaba.compileflow.engine.test.support.fixtures.om.context.BusinessContext" source="BUSINESS_CONTEXT"/>
+
+        </action>
+    </autoTask>
+</bpm>

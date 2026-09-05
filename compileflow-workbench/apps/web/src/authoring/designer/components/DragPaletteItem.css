@@ -1,0 +1,152 @@
+.drag-palette-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: 10px 12px 10px 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), transparent 48%),
+    var(--bg-elevated, var(--color-bg-container));
+  border: 1px solid var(--color-border-light);
+  border-radius: 10px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 1px 2px rgba(15, 23, 42, 0.04);
+  cursor: grab;
+  user-select: none;
+  min-height: 44px;
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  transition:
+    transform var(--transition-base),
+    box-shadow var(--transition-base),
+    border-color var(--transition-base),
+    opacity var(--transition-fast);
+}
+
+/* Left accent bar — colored via inline style override */
+.drag-palette-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--drag-accent-color, var(--color-primary));
+  transition:
+    width var(--transition-base),
+    background var(--transition-base);
+}
+
+/* Hover state */
+.drag-palette-item:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(
+    in srgb,
+    var(--drag-accent-color, var(--color-primary)) 55%,
+    var(--color-border-light)
+  );
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 8px 18px
+      color-mix(in srgb, var(--drag-accent-color, var(--color-primary)) 12%, rgba(15, 23, 42, 0.08));
+}
+
+.drag-palette-item:hover::before {
+  width: 4px;
+}
+
+.drag-palette-item:disabled {
+  opacity: 0.55;
+  cursor: wait;
+  transform: none;
+  box-shadow: none;
+}
+
+.drag-palette-item:disabled::before {
+  width: 3px;
+}
+
+/* Dragging state */
+.drag-palette-item--dragging {
+  opacity: 0.6;
+  cursor: grabbing;
+  border-style: dashed;
+  border-color: var(--drag-accent-color, var(--color-primary));
+}
+
+/* Focus-visible (keyboard a11y) */
+.drag-palette-item:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+.drag-palette-item-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  color: var(--drag-accent-color, var(--color-primary));
+}
+
+.drag-palette-item-content {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.drag-palette-item-label {
+  display: block;
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-tight);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drag-palette-item-desc {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
+  line-height: var(--line-height-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dark mode */
+[data-theme='dark'] .drag-palette-item {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 50%),
+    var(--bg-elevated, var(--color-bg-container));
+  border-color: rgba(148, 163, 184, 0.16);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 6px 14px rgba(0, 0, 0, 0.22);
+}
+
+[data-theme='dark'] .drag-palette-item:hover {
+  border-color: color-mix(in srgb, var(--drag-accent-color, var(--color-primary)) 45%, transparent);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 10px 22px rgba(0, 0, 0, 0.32);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .drag-palette-item {
+    transition: none;
+  }
+
+  .drag-palette-item:hover {
+    transform: none;
+  }
+
+  .drag-palette-item::before {
+    transition: none;
+  }
+}

@@ -1,0 +1,37 @@
+.panel {
+  padding: var(--spacing-5);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+}
+
+.sectionLabel {
+  display: block;
+  margin-bottom: var(--spacing-3);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: var(--spacing-4) 0;
+}
+
+.actionBtn {
+  border-radius: var(--radius-lg);
+  min-width: 80px;
+}
+
+.iconBtn {
+  border-radius: var(--radius-lg);
+}
+
+.favorited {
+  color: var(--error-main);
+}
+
+.statusNote {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}

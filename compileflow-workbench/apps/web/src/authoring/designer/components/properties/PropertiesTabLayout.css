@@ -1,0 +1,39 @@
+.properties-tab-layout {
+  padding: var(--spacing-4) var(--spacing-4) var(--spacing-6);
+}
+
+.properties-tab-layout .ant-alert {
+  margin-bottom: var(--spacing-4);
+}
+
+.properties-tab-layout .ant-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.properties-tab-layout .ant-form-item {
+  margin-bottom: var(--spacing-4);
+}
+
+.properties-tab-layout .ant-form-item-label > label {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+/* Example alert at bottom */
+.properties-tab-layout .properties-tab-example {
+  margin-top: var(--spacing-4);
+}
+
+/* Dark mode */
+[data-theme='dark'] .properties-tab-layout .ant-form-item-label > label {
+  color: var(--color-text-primary);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .properties-tab-layout .ant-alert {
+    transition: none;
+  }
+}

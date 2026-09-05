@@ -1,37 +1,41 @@
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.alibaba.compileflow.engine;
 
+import com.alibaba.compileflow.engine.preflight.ProcessPreflightOptions;
+import com.alibaba.compileflow.engine.preflight.ProcessPreflightReport;
+
 /**
- * Provides tooling and introspection services for development and debugging.
- * <p>
- * This interface offers methods to access the internal representations of flows
- * without executing them. It is primarily intended for use in development tools,
- * IDE plugins, or testing environments to inspect, validate, and generate code.
+ * Provides non-executing development and diagnostic tooling.
  *
- * @param <T> The specific type of {@link FlowModel} this service operates on.
  * @author yusu
  */
-public interface ProcessToolingService<T extends FlowModel> {
+public interface ProcessToolingService {
+    /**
+     * Runs non-executing validation and optional dry-run compilation.
+     *
+     * @param definition explicit process definition
+     * @param options    validation stages and timeouts
+     * @return validation and compilation report
+     */
+    ProcessPreflightReport preflight(ProcessDefinition definition, ProcessPreflightOptions options);
 
     /**
-     * Loads and validates a flow model from the given source.
-     * <p>
-     * Returns the in-memory object representation without compiling or caching
-     * it in the main engine runtime.
+     * Generates the Java source that the engine would compile for an explicit definition.
      *
-     * @param source The {@link ProcessSource} of the process definition.
-     * @return The fully loaded and validated {@link FlowModel}.
+     * @param definition explicit process definition
+     * @return generated Java source
      */
-    T loadFlowModel(ProcessSource source);
-
-    /**
-     * Generates the executable Java source code for a given process definition.
-     * <p>
-     * This allows developers to inspect the code that the engine will compile
-     * and execute.
-     *
-     * @param source The {@link ProcessSource} of the process definition.
-     * @return The generated Java code as a string.
-     */
-    String generateJavaCode(ProcessSource source);
-
+    String generateJavaCode(ProcessDefinition definition);
 }

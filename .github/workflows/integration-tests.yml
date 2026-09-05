@@ -1,0 +1,229 @@
+name: Integration Tests
+
+on:
+  workflow_call:
+  push:
+    branches: [ master ]
+    paths:
+      - 'compileflow-integration-tests/**'
+      - 'compileflow-api/**'
+      - 'compileflow-core/**'
+      - 'compileflow-tbbpm/**'
+      - 'compileflow-bpmn/**'
+      - 'compileflow-deploy/**'
+      - 'compileflow-spring-boot-starter/**'
+      - 'compileflow-spring-boot-autoconfigure/**'
+      - 'examples/spring-boot-basic/**'
+      - 'examples/spring-boot-order-fulfillment/**'
+      - '.github/workflows/integration-tests.yml'
+      - '.mvn/**'
+      - 'mvnw'
+      - 'mvnw.cmd'
+      - 'checkstyle.xml'
+      - 'checkstyle-javadoc.xml'
+      - 'pom.xml'
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'compileflow-integration-tests/**'
+      - 'compileflow-api/**'
+      - 'compileflow-core/**'
+      - 'compileflow-tbbpm/**'
+      - 'compileflow-bpmn/**'
+      - 'compileflow-deploy/**'
+      - 'compileflow-spring-boot-starter/**'
+      - 'compileflow-spring-boot-autoconfigure/**'
+      - 'examples/spring-boot-basic/**'
+      - 'examples/spring-boot-order-fulfillment/**'
+      - '.github/workflows/integration-tests.yml'
+      - '.mvn/**'
+      - 'mvnw'
+      - 'mvnw.cmd'
+      - 'checkstyle.xml'
+      - 'checkstyle-javadoc.xml'
+      - 'pom.xml'
+  schedule:
+    # Run nightly tests at 2 AM UTC (10 AM Beijing Time)
+    - cron: '0 2 * * *'
+  workflow_dispatch: { }
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-tests:
+    name: Smoke Tests (Quick Validation)
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Setup Java
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Run Smoke Tests
+        run: |
+          ./mvnw test -Dgroups=smoke \
+            -pl compileflow-integration-tests -am \
+            -B -V --no-transfer-progress
+
+      - name: Run distributed deployment topology contract
+        run: |
+          test -f compileflow-integration-tests/src/test/java/com/alibaba/compileflow/engine/test/feature/deployment/control/DeploymentRuntimeChainIntegrationTest.java
+          ./mvnw test -pl compileflow-integration-tests -am \
+            -Dtest=DeploymentRuntimeChainIntegrationTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -B -V --no-transfer-progress
+          test -s compileflow-integration-tests/target/surefire-reports/TEST-com.alibaba.compileflow.engine.test.feature.deployment.control.DeploymentRuntimeChainIntegrationTest.xml
+
+      - name: Run storage-free Spring Boot examples
+        run: |
+          ./mvnw test \
+            -pl examples/spring-boot-basic,examples/spring-boot-order-fulfillment \
+            -Pexamples -am \
+            -Dtest=SampleApplicationTest,OrderFulfillmentApplicationTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -B -V --no-transfer-progress
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: smoke-test-results
+          path: compileflow-integration-tests/target/surefire-reports/
+
+  integration-tests:
+    name: Integration Tests (JDK ${{ matrix.java }})
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: smoke-tests
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Build every supported LTS runtime. The full integration suite proves
+        # the Java 17 baseline; Java 25 runs the one cross-mode runtime smoke.
+        java: [ '17', '21', '25' ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Setup Java
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Verify integration tests
+        if: matrix.java == '17'
+        run: |
+          ./mvnw verify \
+            -DexcludedGroups=slow \
+            -pl compileflow-integration-tests -am \
+            -B -V --no-transfer-progress
+
+      - name: Build integration artifacts on non-baseline runtimes
+        if: matrix.java != '17'
+        run: |
+          ./mvnw install \
+            -pl compileflow-integration-tests -am \
+            -DskipTests \
+            -B -V --no-transfer-progress
+
+      - name: Run Java 25 runtime compatibility smoke
+        if: matrix.java == '25'
+        run: |
+          ./mvnw test \
+            -pl compileflow-integration-tests -am \
+            -Dtest=ProcessRuntimeModeDifferentialTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -B -V --no-transfer-progress
+
+      - name: Verify aggregate coverage report
+        if: matrix.java == '17'
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          path = Path("compileflow-integration-tests/target/site/jacoco-aggregate/jacoco.xml")
+          if not path.is_file() or path.stat().st_size == 0:
+              raise SystemExit(f"Aggregate JaCoCo report is missing or empty: {path}")
+          root = ET.parse(path).getroot()
+          line = next(
+              (counter for counter in root.findall("counter") if counter.get("type") == "LINE"),
+              None,
+          )
+          if line is None:
+              raise SystemExit("Aggregate JaCoCo report contains no root LINE counter")
+          missed = int(line.get("missed", "0"))
+          covered = int(line.get("covered", "0"))
+          if missed + covered == 0:
+              raise SystemExit("Aggregate JaCoCo report contains no production line coverage")
+          print(f"Validated aggregate coverage: covered={covered}, missed={missed}")
+          PY
+
+      - name: Upload Coverage to Codecov
+        if: matrix.java == '17' && env.CODECOV_TOKEN != ''
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
+        with:
+          files: ./compileflow-integration-tests/target/site/jacoco-aggregate/jacoco.xml
+          disable_search: true
+          flags: integration-tests
+          name: codecov-integration
+          token: ${{ env.CODECOV_TOKEN }}
+
+      - name: Upload Test Results
+        if: always() && matrix.java == '17'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: integration-test-results-jdk-${{ matrix.java }}
+          path: |
+            compileflow-integration-tests/target/surefire-reports/
+            compileflow-integration-tests/target/site/jacoco-aggregate/
+
+  nightly-tests:
+    name: Nightly Full Tests (including slow scenarios)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Setup Java
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Run All Tests
+        run: |
+          ./mvnw verify \
+            -pl compileflow-integration-tests -am \
+            -B -V --no-transfer-progress
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nightly-test-results
+          path: |
+            compileflow-integration-tests/target/surefire-reports/
+            compileflow-integration-tests/target/site/jacoco-aggregate/

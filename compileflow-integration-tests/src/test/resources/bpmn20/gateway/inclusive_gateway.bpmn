@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:cf="http://www.compileflow.org"
+             targetNamespace="http://www.compileflow.org/bpmn/test">
+  <process id="bpmn20.gateway.inclusive_gateway" name="Inclusive Gateway Flow" isExecutable="true">
+    <extensionElements>
+      <cf:var name="condition1" dataType="java.lang.Boolean" inOutType="param"/>
+      <cf:var name="condition2" dataType="java.lang.Boolean" inOutType="param"/>
+      <cf:var name="branch1" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="branch2" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="branch3" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="result1" dataType="java.lang.String" inOutType="return"/>
+      <cf:var name="result2" dataType="java.lang.String" inOutType="return"/>
+      <cf:var name="result3" dataType="java.lang.String" inOutType="return"/>
+    </extensionElements>
+
+    <startEvent id="start" name="Start"/>
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="inclusiveGateway1"/>
+
+    <inclusiveGateway id="inclusiveGateway1" name="Inclusive Decision" default="flow4"/>
+
+    <sequenceFlow id="flow2" sourceRef="inclusiveGateway1" targetRef="serviceTask1">
+      <conditionExpression xsi:type="tFormalExpression" language="java"><![CDATA[condition1]]></conditionExpression>
+    </sequenceFlow>
+
+    <sequenceFlow id="flow3" sourceRef="inclusiveGateway1" targetRef="serviceTask2">
+      <conditionExpression xsi:type="tFormalExpression" language="java"><![CDATA[condition2]]></conditionExpression>
+    </sequenceFlow>
+
+    <sequenceFlow id="flow4" sourceRef="inclusiveGateway1" targetRef="serviceTask3"/>
+
+    <serviceTask id="serviceTask1" name="Process Branch 1">
+      <extensionElements>
+        <cf:action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                           method="processString">
+            <cf:input target="input" dataType="java.lang.String" source="branch1"/>
+            <cf:output dataType="java.lang.String" target="result1"/>
+
+        </cf:action>
+      </extensionElements>
+    </serviceTask>
+
+    <serviceTask id="serviceTask2" name="Process Branch 2">
+      <extensionElements>
+        <cf:action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                           method="processString">
+            <cf:input target="input" dataType="java.lang.String" source="branch2"/>
+            <cf:output dataType="java.lang.String" target="result2"/>
+
+        </cf:action>
+      </extensionElements>
+    </serviceTask>
+
+    <serviceTask id="serviceTask3" name="Default Branch">
+      <extensionElements>
+        <cf:action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                           method="processString">
+            <cf:input target="input" dataType="java.lang.String" source="branch3"/>
+            <cf:output dataType="java.lang.String" target="result3"/>
+
+        </cf:action>
+      </extensionElements>
+    </serviceTask>
+
+    <sequenceFlow id="flow5" sourceRef="serviceTask1" targetRef="join"/>
+    <sequenceFlow id="flow6" sourceRef="serviceTask2" targetRef="join"/>
+    <sequenceFlow id="flow7" sourceRef="serviceTask3" targetRef="join"/>
+
+    <inclusiveGateway id="join" name="Join"/>
+    <sequenceFlow id="flow8" sourceRef="join" targetRef="end"/>
+    <endEvent id="end" name="End"/>
+  </process>
+</definitions>

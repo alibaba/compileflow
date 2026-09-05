@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:cf="http://www.compileflow.org"
+             targetNamespace="http://www.compileflow.org/bpmn/test">
+  <process id="bpmn20.compat.receive_task" name="Receive Task Flow" isExecutable="true">
+    <extensionElements>
+      <cf:var name="messageContent" dataType="java.lang.String" inOutType="param"/>
+      <cf:var name="processedMessage" dataType="java.lang.String" inOutType="return"/>
+    </extensionElements>
+
+    <startEvent id="start" name="Start"/>
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="receiveTask1"/>
+
+    <receiveTask id="receiveTask1" name="Wait for Message" messageRef="userMessage">
+      <extensionElements>
+      </extensionElements>
+    </receiveTask>
+
+    <sequenceFlow id="flow2" sourceRef="receiveTask1" targetRef="serviceTask1"/>
+
+    <serviceTask id="serviceTask1" name="Final Processing">
+      <extensionElements>
+        <cf:action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService" method="processString">
+            <cf:input target="input" dataType="java.lang.String" source="processedMessage"/>
+            <cf:output dataType="java.lang.String" target="processedMessage"/>
+
+        </cf:action>
+      </extensionElements>
+    </serviceTask>
+
+    <sequenceFlow id="flow3" sourceRef="serviceTask1" targetRef="end"/>
+    <endEvent id="end" name="End"/>
+  </process>
+
+  <message id="userMessage" name="User Message"/>
+</definitions>

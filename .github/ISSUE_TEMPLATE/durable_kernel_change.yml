@@ -1,0 +1,132 @@
+name: Durable Kernel Change
+description: Propose a new Durable primitive or a change to its public or persisted contract
+title: "[Durable Design]: "
+labels: [ "enhancement", "needs-triage" ]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form before changing Durable public API/SPI, state-machine semantics,
+        persisted schema, protocol, security boundary, or module surface. Operational
+        adapters that do not change a kernel contract should use the regular feature
+        request instead.
+
+        Every answer must be concrete. Write `Not applicable` only with a reason. An
+        accepted issue is permission to prepare a design, not approval to implement or
+        a commitment to ship. Complete every applicable section in this form before
+        implementation begins.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Admission prerequisites
+      description: Confirm the evidence and product boundary before proposing a kernel change.
+      options:
+        - label: I searched existing issues and current public contracts for this capability.
+          required: true
+        - label: I can identify a concrete user problem that cannot be solved safely by the current kernel.
+          required: true
+        - label: I considered an application-level or ecosystem adapter and explain below why it is insufficient.
+          required: true
+        - label: The proposal does not require the Durable kernel to own Kubernetes, a cloud KMS, object storage, identity infrastructure, or an external control plane.
+          required: true
+
+  - type: textarea
+    id: problem_evidence
+    attributes:
+      label: Problem, users, and evidence
+      description: Identify affected users, frequency, severity, current workaround, and concrete evidence. Separate observed facts from assumptions.
+      placeholder: |
+        Users and scenario:
+        Current behavior/workaround:
+        Evidence and scale:
+        Why now:
+    validations:
+      required: true
+
+  - type: textarea
+    id: kernel_fit
+    attributes:
+      label: Kernel fit, alternatives, and stop condition
+      description: Explain why this belongs in the Durable product boundary, alternatives considered, dependencies, non-goals, and evidence that would stop or redirect the proposal.
+      placeholder: |
+        Kernel invariant or first-party Store transition involved:
+        Alternatives/adapters considered:
+        Dependencies and non-goals:
+        Go evidence:
+        Stop/redirect evidence:
+    validations:
+      required: true
+
+  - type: textarea
+    id: semantics_identity_versioning
+    attributes:
+      label: 1, 2, 7 — Semantics, identity, and versioning
+      description: Define states/transitions/terminal behavior, Process and occurrence identities, continuation binding, and recovery behavior without adding application/runtime compatibility identity.
+      placeholder: |
+        1. Semantic model:
+        2. Stable Process/Run/occurrence authority:
+        7. Exact Version binding and recovery:
+    validations:
+      required: true
+
+  - type: textarea
+    id: transactions_concurrency_faults
+    attributes:
+      label: 3, 4, 11 — Transactions, concurrency, and fault tests
+      description: Define atomic boundaries and response-loss results, lease/revision/fencing behavior, and deterministic crash/race/recovery tests.
+      placeholder: |
+        3. Atomic transaction boundaries and response loss:
+        4. Lease, revision, fencing, and stale-owner behavior:
+        11. Commit-before/after, crash, race, and recovery matrix:
+    validations:
+      required: true
+
+  - type: textarea
+    id: effects_cancellation_recovery
+    attributes:
+      label: 5, 6 — Effects and cancellation
+      description: Distinguish executed, not-executed, and UNKNOWN Effects; define cancellation request, propagation, observation points, and non-interruptible external work.
+      placeholder: |
+        5. Effect outcome and ambiguity handling:
+        6. Cancellation semantics and propagation:
+    validations:
+      required: true
+
+  - type: textarea
+    id: security_query_retention
+    attributes:
+      label: 8, 9, 10 — Security, query, and retention
+      description: Define payload/token/PII handling, authorization and audit, bounded query/pagination/index behavior, and reference-safe deletion ordering.
+      placeholder: |
+        8. Security, authorization, approval, and audit:
+        9. Redaction, pagination, limits, indexes, and metric cardinality:
+        10. Retention, tombstone, lineage/reference, and deletion order:
+    validations:
+      required: true
+
+  - type: textarea
+    id: store_docs_evidence
+    attributes:
+      label: 12, 13, 14, 15 — Store, documentation, scope, and evidence
+      description: Define first-party Kernel Store contract coverage, bilingual docs/runbooks/examples, affected API/SPI/schema surface, and same-commit reproducible evidence.
+      placeholder: |
+        12. First-party Kernel Store contract and PostgreSQL coverage:
+        13. English/Chinese docs, runbook, and executable example:
+        14. API/SPI/schema surface and greenfield scope:
+        15. Same-commit environments, commands, reports, and known limits:
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: readiness
+    attributes:
+      label: Design readiness
+      description: Confirm the review boundary. These checks do not imply approval.
+      options:
+        - label: I will document the public contract, compatibility impact, and verification evidence before implementation begins.
+          required: true
+        - label: I will not add a module, table, state, public command, or compatibility shim before its responsibility and evidence are accepted.
+          required: true
+        - label: I understand that implementation, local tests, or a version number alone do not prove Production Ready status.
+          required: true

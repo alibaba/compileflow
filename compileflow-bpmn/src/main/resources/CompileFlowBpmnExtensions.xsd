@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            xmlns:cf="http://www.compileflow.org"
+            targetNamespace="http://www.compileflow.org"
+            elementFormDefault="qualified"
+            attributeFormDefault="unqualified">
+
+    <xsd:simpleType name="ProtocolDuration">
+        <xsd:restriction base="xsd:duration">
+            <xsd:pattern value="P([0-9]+D|([0-9]+D)?T(([0-9]+H)([0-9]+M)?([0-9]+(\.[0-9]{1,3}0{0,6})?S)?|([0-9]+M)([0-9]+(\.[0-9]{1,3}0{0,6})?S)?|[0-9]+(\.[0-9]{1,3}0{0,6})?S))"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:simpleType name="PositiveDuration">
+        <xsd:restriction base="cf:ProtocolDuration">
+            <xsd:minExclusive value="PT0S"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:simpleType name="NonNegativeDuration">
+        <xsd:restriction base="cf:ProtocolDuration">
+            <xsd:minInclusive value="PT0S"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:simpleType name="MaxAttempts">
+        <xsd:restriction base="xsd:positiveInteger">
+            <xsd:maxInclusive value="100"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:simpleType name="MaxReconcileAttempts">
+        <xsd:restriction base="xsd:positiveInteger">
+            <xsd:maxInclusive value="1000"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:simpleType name="RecoveryDelayDuration">
+        <xsd:restriction base="cf:PositiveDuration">
+            <xsd:maxInclusive value="P1D"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:simpleType name="MaxRecoveryDuration">
+        <xsd:restriction base="cf:PositiveDuration">
+            <xsd:maxInclusive value="P30D"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:simpleType name="BackoffMultiplier">
+        <xsd:restriction base="xsd:double">
+            <xsd:minInclusive value="1.0"/>
+            <xsd:maxExclusive value="INF"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:simpleType name="NonBlankString">
+        <xsd:restriction base="xsd:string">
+            <xsd:minLength value="1"/>
+            <xsd:pattern value="[^\s\p{Z}\p{Cc}\p{Cf}]([^\p{Cc}\p{Cf}]*[^\s\p{Z}\p{Cc}\p{Cf}])?"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:simpleType name="ExpressionString">
+        <xsd:restriction base="xsd:string">
+            <xsd:minLength value="1"/>
+            <xsd:pattern value=".*[^\s\p{Z}].*"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:simpleType name="SymbolicIdentifier">
+        <xsd:restriction base="xsd:string">
+            <xsd:minLength value="1"/>
+            <xsd:maxLength value="256"/>
+            <xsd:pattern value="[a-z][a-z0-9]*(-[a-z0-9]+)*"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:simpleType name="VariableDirection">
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="inner"/>
+            <xsd:enumeration value="param"/>
+            <xsd:enumeration value="return"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:simpleType name="ActionExecution">
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="replayable"/>
+            <xsd:enumeration value="effect"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:simpleType name="RetryJitter">
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="none"/>
+            <xsd:enumeration value="full"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:simpleType name="EffectRecovery">
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="manual"/>
+            <xsd:enumeration value="retry"/>
+            <xsd:enumeration value="reconcile"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:simpleType name="ActionKind">
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="java"/>
+            <xsd:enumeration value="spring-bean"/>
+            <xsd:enumeration value="script"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:element name="var" type="cf:VarType"/>
+    <xsd:complexType name="VarType">
+        <xsd:attribute name="name" type="cf:NonBlankString" use="required"/>
+        <xsd:attribute name="description" type="xsd:string"/>
+        <xsd:attribute name="dataType" type="cf:NonBlankString" use="required"/>
+        <xsd:attribute name="defaultValue" type="xsd:string"/>
+        <xsd:attribute name="inOutType" type="cf:VariableDirection" use="required"/>
+    </xsd:complexType>
+
+    <xsd:element name="input" type="cf:InputMappingType"/>
+    <xsd:complexType name="InputMappingType">
+        <xsd:attribute name="source" type="cf:ExpressionString"/>
+        <xsd:attribute name="target" type="cf:NonBlankString" use="required"/>
+        <xsd:attribute name="dataType" type="cf:NonBlankString"/>
+        <xsd:attribute name="defaultValue" type="xsd:string"/>
+    </xsd:complexType>
+
+    <xsd:element name="output" type="cf:OutputMappingType"/>
+    <xsd:complexType name="OutputMappingType">
+        <xsd:attribute name="source" type="cf:NonBlankString"/>
+        <xsd:attribute name="target" type="cf:NonBlankString" use="required"/>
+        <xsd:attribute name="dataType" type="cf:NonBlankString"/>
+    </xsd:complexType>
+
+    <xsd:element name="invocationPolicy" type="cf:InvocationPolicyType"/>
+    <xsd:complexType name="InvocationPolicyType">
+        <xsd:attribute name="timeout" type="cf:PositiveDuration"/>
+        <xsd:attribute name="attemptTimeout" type="cf:PositiveDuration"/>
+        <xsd:attribute name="maxAttempts" type="cf:MaxAttempts"/>
+        <xsd:attribute name="initialBackoff" type="cf:NonNegativeDuration"/>
+        <xsd:attribute name="backoffMultiplier" type="cf:BackoffMultiplier"/>
+        <xsd:attribute name="maxBackoff" type="cf:NonNegativeDuration"/>
+        <xsd:attribute name="jitter" type="cf:RetryJitter"/>
+        <xsd:attribute name="retryOn" type="cf:SymbolicIdentifier"/>
+        <xsd:attribute name="onFailure" type="cf:SymbolicIdentifier"/>
+    </xsd:complexType>
+
+    <xsd:element name="action" type="cf:ActionType"/>
+    <xsd:complexType name="ActionType">
+        <xsd:sequence>
+            <xsd:element ref="cf:input" minOccurs="0" maxOccurs="unbounded"/>
+            <xsd:element ref="cf:output" minOccurs="0"/>
+            <xsd:element ref="cf:code" minOccurs="0"/>
+            <xsd:element ref="cf:invocationPolicy" minOccurs="0"/>
+            <xsd:element ref="cf:effectPolicy" minOccurs="0"/>
+        </xsd:sequence>
+        <xsd:attribute name="type" type="cf:ActionKind" use="required"/>
+        <xsd:attribute name="execution" type="cf:ActionExecution"/>
+        <xsd:attribute name="bean" type="cf:NonBlankString"/>
+        <xsd:attribute name="class" type="cf:NonBlankString"/>
+        <xsd:attribute name="method" type="cf:NonBlankString"/>
+        <xsd:attribute name="language" type="cf:SymbolicIdentifier"/>
+    </xsd:complexType>
+
+    <xsd:element name="reconcileAction" type="cf:ReconcileActionType"/>
+    <xsd:complexType name="ReconcileActionType">
+        <xsd:sequence>
+            <xsd:element name="input" type="cf:ReconcileInputType" minOccurs="0" maxOccurs="unbounded"/>
+            <xsd:element ref="cf:code" minOccurs="0"/>
+        </xsd:sequence>
+        <xsd:attribute name="type" type="cf:ActionKind" use="required"/>
+        <xsd:attribute name="bean" type="cf:NonBlankString"/>
+        <xsd:attribute name="class" type="cf:NonBlankString"/>
+        <xsd:attribute name="method" type="cf:NonBlankString"/>
+        <xsd:attribute name="language" type="cf:SymbolicIdentifier"/>
+    </xsd:complexType>
+
+    <xsd:complexType name="ReconcileInputType">
+        <xsd:attribute name="source" type="cf:NonBlankString" use="required"/>
+        <xsd:attribute name="target" type="cf:NonBlankString" use="required"/>
+        <xsd:attribute name="dataType" type="cf:NonBlankString" use="required"/>
+    </xsd:complexType>
+
+    <xsd:element name="effectPolicy" type="cf:EffectPolicyType"/>
+    <xsd:complexType name="EffectPolicyType">
+        <xsd:sequence>
+            <xsd:element ref="cf:reconcileAction" minOccurs="0"/>
+        </xsd:sequence>
+        <xsd:attribute name="recovery" type="cf:EffectRecovery"/>
+        <xsd:attribute name="recoveryPlanVariable" type="cf:NonBlankString"/>
+        <xsd:attribute name="maxAttempts" type="cf:MaxAttempts"/>
+        <xsd:attribute name="maxReconcileAttempts" type="cf:MaxReconcileAttempts"/>
+        <xsd:attribute name="recoveryDelay" type="cf:RecoveryDelayDuration"/>
+        <xsd:attribute name="maxRecoveryDuration" type="cf:MaxRecoveryDuration"/>
+    </xsd:complexType>
+
+    <xsd:element name="code" type="cf:CodeType"/>
+    <xsd:complexType name="CodeType" mixed="true"/>
+
+    <xsd:attribute name="classpath" type="cf:NonBlankString"/>
+    <xsd:attribute name="version" type="cf:NonBlankString"/>
+    <xsd:attribute name="execution" type="cf:ActionExecution"/>
+    <xsd:attribute name="collection" type="cf:NonBlankString"/>
+    <xsd:attribute name="item" type="cf:NonBlankString"/>
+    <xsd:attribute name="itemType" type="cf:NonBlankString"/>
+    <xsd:attribute name="index" type="cf:NonBlankString"/>
+    <xsd:attribute name="target" type="cf:NonBlankString"/>
+    <xsd:attribute name="source" type="cf:NonBlankString"/>
+
+</xsd:schema>

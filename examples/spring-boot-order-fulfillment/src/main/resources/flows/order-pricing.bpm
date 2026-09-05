@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="example.order.pricing" name="Order Pricing" description="Tier-based pricing sub-process">
+    <var name="subtotalCents" dataType="java.lang.Integer" inOutType="param"/>
+    <var name="customerTier" dataType="java.lang.String" inOutType="param"/>
+    <var name="discountCents" dataType="java.lang.Integer" defaultValue="0" inOutType="return"/>
+    <var name="payableCents" dataType="java.lang.Integer" inOutType="return"/>
+
+    <start id="start" name="Start" g="20,80,32,32">
+        <transition to="tierRoute"/>
+    </start>
+    <exclusive id="tierRoute" name="Customer tier" g="100,70,96,48">
+        <transition to="platinumDiscount" condition="customerTier.equals(&quot;PLATINUM&quot;)"/>
+        <transition to="goldDiscount" condition="customerTier.equals(&quot;GOLD&quot;)"/>
+        <transition to="basicDiscount"/>
+    </exclusive>
+    <scriptTask id="platinumDiscount" name="20% discount" g="240,10,112,48">
+        <action type="script" language="java">
+            <input target="subtotal" dataType="java.lang.Integer" source="subtotalCents"/>
+            <output dataType="java.lang.Integer" target="discountCents"/>
+            <code>return subtotal / 5;</code>
+        </action>
+        <transition to="tierJoin"/>
+    </scriptTask>
+    <scriptTask id="goldDiscount" name="10% discount" g="240,80,112,48">
+        <action type="script" language="java">
+            <input target="subtotal" dataType="java.lang.Integer" source="subtotalCents"/>
+            <output dataType="java.lang.Integer" target="discountCents"/>
+            <code>return subtotal / 10;</code>
+        </action>
+        <transition to="tierJoin"/>
+    </scriptTask>
+    <scriptTask id="basicDiscount" name="No discount" g="240,150,112,48">
+        <action type="script" language="java">
+            <output dataType="java.lang.Integer" target="discountCents"/>
+            <code>return 0;</code>
+        </action>
+        <transition to="tierJoin"/>
+    </scriptTask>
+    <exclusive id="tierJoin" name="Tier join" g="400,70,64,48">
+        <transition to="payable"/>
+    </exclusive>
+    <scriptTask id="payable" name="Calculate payable" g="500,70,128,48">
+        <action type="script" language="java">
+            <input target="subtotal" dataType="java.lang.Integer" source="subtotalCents"/>
+            <input target="discount" dataType="java.lang.Integer" source="discountCents"/>
+            <output dataType="java.lang.Integer" target="payableCents"/>
+            <code>return subtotal - discount;</code>
+        </action>
+        <transition to="end"/>
+    </scriptTask>
+    <end id="end" name="End" g="670,80,32,32"/>
+</bpm>

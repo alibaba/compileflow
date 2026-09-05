@@ -1,0 +1,76 @@
+/* Palette panel — sidebar inset surface */
+.node-palette.surface-panel {
+  height: 100%;
+  border: none;
+  border-right: 1px solid var(--border-color);
+  border-radius: 0;
+  box-shadow: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 28%), var(--bg-panel);
+}
+
+.node-palette.surface-panel .ant-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* Shared modal surface */
+.designer-surface-modal .ant-modal-content {
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  padding: 0;
+}
+
+.designer-surface-modal .ant-modal-header {
+  margin-bottom: 0;
+  padding: var(--spacing-4) var(--spacing-6);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-panel);
+}
+
+.designer-surface-modal .ant-modal-body {
+  padding: var(--spacing-4) var(--spacing-6) var(--spacing-6);
+  background: var(--bg-canvas);
+}
+
+.designer-surface-modal .ant-modal-close {
+  top: var(--spacing-3);
+  inset-inline-end: var(--spacing-3);
+}
+
+/* Table inside modals */
+.designer-surface-modal .ant-table {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.designer-surface-modal .ant-table-thead > tr > th {
+  background: var(--bg-panel) !important;
+}
+
+/* Dark mode */
+[data-theme='dark'] .node-palette.surface-panel {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 30%), var(--bg-panel);
+  border-right-color: rgba(148, 163, 184, 0.12);
+}
+
+[data-theme='dark'] .designer-surface-modal .ant-modal-content {
+  background: var(--color-bg-container);
+  border-color: var(--border-color);
+}
+
+[data-theme='dark'] .designer-surface-modal .ant-modal-header {
+  background: var(--color-bg-elevated);
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme='dark'] .designer-surface-modal .ant-modal-body {
+  background: var(--color-bg-container);
+}
+
+[data-theme='dark'] .designer-surface-modal .ant-table-thead > tr > th {
+  background: var(--color-bg-elevated) !important;
+}

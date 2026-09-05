@@ -1,107 +1,75 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpm code="bpm.stateful.complexInclusiveGateway" name="复杂包含网关流程" type="statefulProcess"
+<bpm code="bpm.stateful.complexInclusiveGateway" name="复杂包含网关流程"
      description="测试复杂包含网关的stateful流程">
-    <var name="orderType" description="订单类型" dataType="java.lang.String" inOutType="param"/>
-    <var name="customerTier" description="客户等级" dataType="java.lang.String" inOutType="param"/>
-    <var name="hasSpecialRequests" description="是否有特殊要求" dataType="java.lang.Boolean" inOutType="param"/>
-    <var name="premium_processing_result" description="高级处理结果" dataType="java.lang.String" inOutType="param"/>
-    <var name="loyalty_rewards_result" description="忠诚度奖励结果" dataType="java.lang.String" inOutType="param"/>
-    <var name="special_handling_result" description="特殊处理结果" dataType="java.lang.String" inOutType="param"/>
-    <var name="standard_processing_result" description="标准处理结果" dataType="java.lang.String" inOutType="param"/>
-    <var name="combinedResult" description="合并结果" dataType="java.lang.String" inOutType="return"/>
+    <var name="orderType" dataType="java.lang.String" inOutType="param"/>
+    <var name="customerTier" dataType="java.lang.String" inOutType="param"/>
+    <var name="hasSpecialRequests" dataType="java.lang.Boolean" inOutType="param"/>
+    <var name="premium_processing_result" dataType="java.lang.String" inOutType="param"/>
+    <var name="loyalty_rewards_result" dataType="java.lang.String" inOutType="param"/>
+    <var name="special_handling_result" dataType="java.lang.String" inOutType="param"/>
+    <var name="standard_processing_result" dataType="java.lang.String" inOutType="param"/>
+    <var name="combinedResult" dataType="java.lang.String" inOutType="return"/>
 
-    <start id="start" name="开始" tag="start" g="100,50,30,30">
+    <start id="start" name="开始" g="100,50,30,30">
         <transition to="evaluateOrder" g=":-15,20"/>
     </start>
 
-    <autoTask id="evaluateOrder" name="评估订单" tag="evaluateOrder" g="80,120,88,48">
+    <autoTask id="evaluateOrder" name="评估订单" g="80,120,88,48">
         <transition to="inclusiveGateway" g=":-15,20"/>
-        <action type="java">
-            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
-                <var name="input" dataType="java.lang.String" contextVarName="orderType" inOutType="param"/>
-                <var name="result" dataType="java.lang.String" contextVarName="orderType" inOutType="return"/>
-            </actionHandle>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="processStep">
+                <input target="input" dataType="java.lang.String" source="orderType"/>
+                <output dataType="java.lang.String" target="orderType"/>
+
         </action>
     </autoTask>
 
-    <inclusive id="inclusiveGateway" name="包含网关" tag="inclusiveGateway" g="80,200,88,48">
+    <inclusive id="inclusiveGateway" name="包含网关" g="80,200,88,48">
         <transition to="waitPremiumProcessing" name="高级处理"
-                    expression="orderType.equals(&quot;premium&quot;)" g=":-15,20"/>
+                    condition="orderType.equals(&quot;premium&quot;)" g=":-15,20"/>
         <transition to="waitLoyaltyRewards" name="忠诚度奖励"
-                    expression="customerTier.equals(&quot;gold&quot;) || customerTier.equals(&quot;platinum&quot;)"
+                    condition="customerTier.equals(&quot;gold&quot;) || customerTier.equals(&quot;platinum&quot;)"
                     g=":-15,20"/>
         <transition to="waitSpecialHandling" name="特殊处理"
-                    expression="hasSpecialRequests == true" g=":-15,20"/>
+                    condition="hasSpecialRequests" g=":-15,20"/>
         <transition to="waitStandardProcessing" name="标准处理"
-                    expression="orderType.equals(&quot;standard&quot;)" g=":-15,20"/>
+                    condition="orderType.equals(&quot;standard&quot;)" g=":-15,20"/>
     </inclusive>
 
-    <waitEventTask id="waitPremiumProcessing" name="等待高级处理" tag="waitPremiumProcessing"
+    <waitEventTask id="waitPremiumProcessing" name="等待高级处理"
                    event="premiumProcessingComplete" g="70,300,120,60">
         <transition to="joinInclusiveGateway" g=":-15,20"/>
-        <inAction type="java">
-            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
-                <var name="input" dataType="java.lang.String" contextVarName="premium_processing_result"
-                     inOutType="param"/>
-                <var name="result" dataType="java.lang.String" contextVarName="premium_processing_result"
-                     inOutType="return"/>
-            </actionHandle>
-        </inAction>
     </waitEventTask>
 
-    <waitEventTask id="waitLoyaltyRewards" name="等待忠诚度奖励" tag="waitLoyaltyRewards" event="loyaltyRewardsComplete"
+    <waitEventTask id="waitLoyaltyRewards" name="等待忠诚度奖励" event="loyaltyRewardsComplete"
                    g="70,400,120,60">
         <transition to="joinInclusiveGateway" g=":-15,20"/>
-        <inAction type="java">
-            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
-                <var name="input" dataType="java.lang.String" contextVarName="loyalty_rewards_result"
-                     inOutType="param"/>
-                <var name="result" dataType="java.lang.String" contextVarName="loyalty_rewards_result"
-                     inOutType="return"/>
-            </actionHandle>
-        </inAction>
     </waitEventTask>
 
-    <waitEventTask id="waitSpecialHandling" name="等待特殊处理" tag="waitSpecialHandling"
+    <waitEventTask id="waitSpecialHandling" name="等待特殊处理"
                    event="specialHandlingComplete" g="70,500,120,60">
         <transition to="joinInclusiveGateway" g=":-15,20"/>
-        <inAction type="java">
-            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
-                <var name="input" dataType="java.lang.String" contextVarName="special_handling_result"
-                     inOutType="param"/>
-                <var name="result" dataType="java.lang.String" contextVarName="special_handling_result"
-                     inOutType="return"/>
-            </actionHandle>
-        </inAction>
     </waitEventTask>
 
-    <waitEventTask id="waitStandardProcessing" name="等待标准处理" tag="waitStandardProcessing"
+    <waitEventTask id="waitStandardProcessing" name="等待标准处理"
                    event="standardProcessingComplete" g="70,600,120,60">
         <transition to="joinInclusiveGateway" g=":-15,20"/>
-        <inAction type="java">
-            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="processString">
-                <var name="input" dataType="java.lang.String" contextVarName="standard_processing_result"
-                     inOutType="param"/>
-                <var name="result" dataType="java.lang.String" contextVarName="standard_processing_result"
-                     inOutType="return"/>
-            </actionHandle>
-        </inAction>
     </waitEventTask>
 
-    <inclusive id="joinInclusiveGateway" name="汇合包含网关" tag="joinInclusiveGateway" g="80,700,88,48">
+    <inclusive id="joinInclusiveGateway" name="汇合包含网关" g="80,700,88,48">
         <transition to="combineResults" g=":-15,20"/>
     </inclusive>
 
-    <autoTask id="combineResults" name="合并结果" tag="combineResults" g="80,800,88,48">
+    <autoTask id="combineResults" name="合并结果" g="80,800,88,48">
         <transition to="end" g=":-15,20"/>
-        <action type="java">
-            <actionHandle clazz="com.alibaba.compileflow.engine.test.mock.MockJavaClazz" method="combineResults">
-                <var name="payment" dataType="java.lang.String" contextVarName="orderType" inOutType="param"/>
-                <var name="delivery" dataType="java.lang.String" contextVarName="customerTier" inOutType="param"/>
-                <var name="result" dataType="java.lang.String" contextVarName="combinedResult" inOutType="return"/>
-            </actionHandle>
+        <action type="java" class="com.alibaba.compileflow.engine.test.support.mocks.MockJavaService"
+                          method="combineResults">
+                <input target="payment" dataType="java.lang.String" source="orderType"/>
+                <input target="delivery" dataType="java.lang.String" source="customerTier"/>
+                <output dataType="java.lang.String" target="combinedResult"/>
+
         </action>
     </autoTask>
 
-    <end id="end" name="结束" tag="end" g="100,900,30,30"/>
+    <end id="end" name="结束" g="100,900,30,30"/>
 </bpm>
