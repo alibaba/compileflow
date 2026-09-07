@@ -14,6 +14,7 @@
 package com.alibaba.compileflow.engine.core.source;
 
 import com.alibaba.compileflow.engine.ProcessText;
+import com.alibaba.compileflow.engine.ProcessModelType;
 import java.util.Arrays;
 import java.util.Objects;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -24,6 +25,7 @@ import org.apache.commons.codec.digest.DigestUtils;
  * @author yusu
  */
 public final class ProcessDefinitionSnapshot {
+    private final ProcessModelType modelType;
     private final String namespace;
     private final String code;
     private final String version;
@@ -32,8 +34,9 @@ public final class ProcessDefinitionSnapshot {
     private final String sourceDigest;
     private final String sourceDescription;
 
-    private ProcessDefinitionSnapshot(String namespace, String code, String version, byte[] bytes, String content,
-            String sourceDigest, String sourceDescription) {
+    private ProcessDefinitionSnapshot(ProcessModelType modelType, String namespace, String code, String version,
+            byte[] bytes, String content, String sourceDigest, String sourceDescription) {
+        this.modelType = Objects.requireNonNull(modelType, "modelType");
         this.namespace = Objects.requireNonNull(namespace, "namespace");
         this.code = code;
         this.version = version;
@@ -46,6 +49,7 @@ public final class ProcessDefinitionSnapshot {
     /**
      * Creates an immutable snapshot from bounded bytes.
      *
+     * @param modelType process definition format
      * @param namespace process namespace
      * @param code      process code
      * @param version   exact version, or {@code null}
@@ -53,12 +57,12 @@ public final class ProcessDefinitionSnapshot {
      * @param sourceDescription safe source description
      * @return immutable process-definition snapshot
      */
-    public static ProcessDefinitionSnapshot of(String namespace, String code, String version, byte[] bytes,
-            String sourceDescription) {
+    public static ProcessDefinitionSnapshot of(ProcessModelType modelType, String namespace, String code, String version,
+            byte[] bytes, String sourceDescription) {
         String processCode = Objects.requireNonNull(code, "code");
         byte[] snapshot = Arrays.copyOf(Objects.requireNonNull(bytes, "bytes"), bytes.length);
         String content = ProcessText.decodeUtf8(snapshot, "Process definition for code=" + processCode);
-        return new ProcessDefinitionSnapshot(namespace, processCode, version, snapshot, content,
+        return new ProcessDefinitionSnapshot(modelType, namespace, processCode, version, snapshot, content,
                 DigestUtils.sha256Hex(snapshot), Objects.requireNonNull(sourceDescription, "sourceDescription"));
     }
 
@@ -69,6 +73,14 @@ public final class ProcessDefinitionSnapshot {
      */
     public String getNamespace() {
         return namespace;
+    }
+
+    /**
+     * Returns the declared semantic format of the exact source.
+     * @return process definition format
+     */
+    public ProcessModelType getModelType() {
+        return modelType;
     }
 
     /**
@@ -127,7 +139,8 @@ public final class ProcessDefinitionSnapshot {
 
     @Override
     public String toString() {
-        return "ProcessDefinitionSnapshot{namespace='" + namespace + "', code='" + code + "', version='" + version
-                + "', sourceDigest='" + sourceDigest + "', sourceDescription='" + sourceDescription + "'}";
+        return "ProcessDefinitionSnapshot{modelType=" + modelType + ", namespace='" + namespace + "', code='" + code
+                + "', version='" + version + "', sourceDigest='" + sourceDigest + "', sourceDescription='"
+                + sourceDescription + "'}";
     }
 }

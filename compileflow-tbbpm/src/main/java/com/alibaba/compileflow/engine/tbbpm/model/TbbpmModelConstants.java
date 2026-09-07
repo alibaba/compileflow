@@ -18,8 +18,10 @@ package com.alibaba.compileflow.engine.tbbpm.model;
  *
  * @author yusu
  */
-public class TbbpmModelConstants {
-    public static final String COMPILE_FLOW = "cf";
+public final class TbbpmModelConstants {
+    private TbbpmModelConstants() {
+    }
+
     public static final String BPM = "bpm";
     public static final String START = "start";
     public static final String END = "end";
@@ -46,8 +48,6 @@ public class TbbpmModelConstants {
     public static final String EFFECT_POLICY = "effectPolicy";
     public static final String RECONCILE_ACTION = "reconcileAction";
     public static final String CODE = "code";
-    public static final String IMPORTS = "imports";
-    public static final String IMPORT = "import";
     public static final String INVOCATION_POLICY_ELEMENT = "invocationPolicy";
     public static final String INVOCATION_POLICY_TIMEOUT = "timeout";
     public static final String INVOCATION_POLICY_ATTEMPT_TIMEOUT = "attemptTimeout";
@@ -71,7 +71,6 @@ public class TbbpmModelConstants {
     public static final String ATTRIBUTE_DESCRIPTION = "description";
     public static final String ATTRIBUTE_G = "g";
     public static final String ATTRIBUTE_TYPE = "type";
-    public static final String ATTRIBUTE_MODE = "mode";
     public static final String ATTRIBUTE_EVENT = "event";
     public static final String ATTRIBUTE_TIMEOUT = "timeout";
     public static final String ATTRIBUTE_DURATION = "duration";
@@ -105,5 +104,4 @@ public class TbbpmModelConstants {
     public static final String ATTRIBUTE_METHOD = "method";
     public static final String ATTRIBUTE_BEAN = "bean";
     public static final String ATTRIBUTE_CLASS = "class";
-    public static final String ATTRIBUTE_CODE_LITERAL = "code";
 }

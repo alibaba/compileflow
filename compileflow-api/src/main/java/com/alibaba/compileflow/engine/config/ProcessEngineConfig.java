@@ -16,7 +16,6 @@ package com.alibaba.compileflow.engine.config;
 import com.alibaba.compileflow.engine.CompileFlowException;
 import com.alibaba.compileflow.engine.ErrorCode;
 import com.alibaba.compileflow.engine.ProcessDataMapper;
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.spi.ProcessComponentResolver;
 import com.alibaba.compileflow.engine.spi.ProcessEnginePlugin;
 import com.alibaba.compileflow.engine.spi.event.ProcessEventListener;
@@ -51,9 +50,10 @@ import java.util.ServiceLoader;
  * Plugins contribute listeners and named capabilities only. Named semantic capabilities must be
  * unique within the plugin layer and fail closed on duplicate registration. Direct retry and
  * failure registrations may explicitly replace plugin contributions.
- * Configurations are immutable and reusable. Supplied SPI instances may therefore be shared by
- * multiple engines created from the same configuration and must satisfy their thread-safety
- * contracts.
+ * Configurations are immutable and reusable. Every supplied collaborator is borrowed, remains
+ * application-owned, and may be shared by multiple engines created from the same configuration;
+ * it must therefore satisfy its thread-safety contract. An engine closes only resources created
+ * by its factory.
  *
  * @author yusu
  */
@@ -62,7 +62,6 @@ public final class ProcessEngineConfig {
     private static final int MAX_CALL_DEPTH = 256;
     private static final int DEFAULT_MAX_RESIDENT_RUNTIMES = 2048;
     private static final Duration DEFAULT_SHUTDOWN_TIMEOUT = Duration.ofSeconds(15);
-    private final ProcessModelType modelType;
     private final ProcessRuntimeMode runtimeMode;
     private final int maxCallDepth;
     private final ProcessExecutorConfig executorConfig;
@@ -88,7 +87,6 @@ public final class ProcessEngineConfig {
             TraceIdProvider traceIdProvider, ProcessComponentResolver componentResolver,
             Map<String, ProcessAliasTargetingPolicy> aliasTargetingPolicies, List<ScriptExecutor> scriptExecutors,
             Map<String, RetryPolicy> retryPolicies, Map<String, FailureHandler> failureHandlers) {
-        this.modelType = builder.modelType;
         this.runtimeMode = builder.runtimeMode;
         this.maxCallDepth = builder.maxCallDepth;
         this.executorConfig = builder.executorConfig;
@@ -112,58 +110,21 @@ public final class ProcessEngineConfig {
     }
 
     /**
-     * Creates a default configuration for TBBPM.
+     * Creates a default engine configuration.
      *
-     * @return default TBBPM engine configuration
+     * @return default engine configuration
      */
-    public static ProcessEngineConfig tbbpm() {
-        return new Builder(ProcessModelType.TBBPM).build();
+    public static ProcessEngineConfig defaults() {
+        return builder().build();
     }
 
     /**
-     * Creates a default configuration for BPMN.
+     * Returns a new builder for engine resources and execution capabilities.
      *
-     * @return default BPMN engine configuration
+     * @return builder initialized with production defaults
      */
-    public static ProcessEngineConfig bpmn() {
-        return new Builder(ProcessModelType.BPMN).build();
-    }
-
-    /**
-     * Returns a new builder for creating a TBBPM configuration.
-     *
-     * @return builder initialized for the TBBPM model type
-     */
-    public static Builder tbbpmBuilder() {
-        return new Builder(ProcessModelType.TBBPM);
-    }
-
-    /**
-     * Returns a new builder for creating a BPMN configuration.
-     *
-     * @return builder initialized for the BPMN model type
-     */
-    public static Builder bpmnBuilder() {
-        return new Builder(ProcessModelType.BPMN);
-    }
-
-    /**
-     * Returns a new builder for the specified model type.
-     *
-     * @param modelType process model type handled by the created engine
-     * @return builder initialized for the specified model type
-     */
-    public static Builder builder(ProcessModelType modelType) {
-        return new Builder(modelType);
-    }
-
-    /**
-     * Returns process model type owned by this engine.
-     *
-     * @return process model type owned by this engine
-     */
-    public ProcessModelType getModelType() {
-        return modelType;
+    public static Builder builder() {
+        return new Builder();
     }
 
     /**
@@ -358,45 +319,41 @@ public final class ProcessEngineConfig {
         return contextPropagator;
     }
 
-    ValidationResult validate() {
+    private ValidationResult validate() {
         ValidationResult result = ValidationResult.success();
         result = result.merge(ProcessConfigValidator.validatePositive(maxCallDepth, "maxCallDepth"));
         if (maxCallDepth > MAX_CALL_DEPTH) {
             result = result.addError("maxCallDepth must not exceed " + MAX_CALL_DEPTH);
         }
-        result = result.merge(executorConfig.validate());
-        result = result.merge(javaDiagnostics.validate());
         result = result.merge(ProcessConfigValidator.validatePositiveDurationMillis(runtimeLoadTimeout,
                 "runtimeLoadTimeout"));
-        result = result.merge(definitionConfig.validate());
         result = result.merge(ProcessConfigValidator.validatePositive(maxResidentRuntimes, "maxResidentRuntimes"));
         result = result.merge(ProcessConfigValidator.validatePositiveDurationMillis(shutdownTimeout, "shutdownTimeout"));
-        result = result.merge(observabilityConfig.validate());
         return result;
     }
 
     @Override
     public String toString() {
         return String.format(Locale.ROOT,
-                "ProcessEngineConfig{type=%s, runtimeMode=%s, maxCallDepth=%d, executors=%s, "
+                "ProcessEngineConfig{runtimeMode=%s, maxCallDepth=%d, executors=%s, "
                 + "maxResidentRuntimes=%d, shutdownTimeout=%s, runtimeLoadTimeout=%s, javaDiagnostics=%s, "
                 + "definition=%s, observability=%s, eventListeners=%d, aliasTargetingPolicies=%d, "
-                + "scriptExecutors=%d, retryPolicies=%d, failureHandlers=%d}", modelType, runtimeMode, maxCallDepth,
-                executorConfig, maxResidentRuntimes, shutdownTimeout, runtimeLoadTimeout, javaDiagnostics,
-                definitionConfig, observabilityConfig, eventListeners.size(), aliasTargetingPolicies.size(),
-                scriptExecutors.size(), retryPolicies.size(), failureHandlers.size());
+                + "scriptExecutors=%d, retryPolicies=%d, failureHandlers=%d}", runtimeMode, maxCallDepth, executorConfig,
+                maxResidentRuntimes, shutdownTimeout, runtimeLoadTimeout, javaDiagnostics, definitionConfig,
+                observabilityConfig, eventListeners.size(), aliasTargetingPolicies.size(), scriptExecutors.size(),
+                retryPolicies.size(), failureHandlers.size());
     }
 
     /**
      * Builds an immutable configuration snapshot reusable by one or more process engines.
      * <p>
      * Typed extension contributions are merged in three layers at {@link #build()} time:
-     * discovered {@link ProcessEnginePlugin}s form the first layer, explicitly registered
-     * Plugins are ordered by priority and stable ID within their source layer. Priority determines
-     * listener order only; duplicate named capabilities fail closed.
+     * discovered {@link ProcessEnginePlugin}s form the first layer, explicitly registered plugins
+     * form the second, and direct contributions form the third. Plugins are ordered by priority and
+     * stable ID within their source layer. Priority determines listener order only; duplicate named
+     * capabilities fail closed.
      */
     public static final class Builder {
-        private final ProcessModelType modelType;
         private final List<ProcessEventListener> eventListeners = new ArrayList<>();
         private final Map<String, ProcessAliasTargetingPolicy> aliasTargetingPolicies = new LinkedHashMap<>();
         private final Map<String, ScriptExecutor> scriptExecutors = new LinkedHashMap<>();
@@ -420,8 +377,7 @@ public final class ProcessEngineConfig {
         private ProcessContextPropagator contextPropagator = ProcessContextPropagator.none();
         private boolean discoverPlugins;
 
-        private Builder(ProcessModelType modelType) {
-            this.modelType = Objects.requireNonNull(modelType, "modelType");
+        private Builder() {
         }
 
         /**
@@ -729,7 +685,7 @@ public final class ProcessEngineConfig {
          */
         public ProcessEngineConfig build() {
             ProcessEnginePluginResolver.Contributions pluginLayer =
-                    ProcessEnginePluginResolver.resolve(modelType, classLoader, discoverPlugins, plugins);
+                    ProcessEnginePluginResolver.resolve(classLoader, discoverPlugins, plugins);
 
             List<ProcessEventListener> mergedListeners = new ArrayList<>(pluginLayer.eventListeners());
             mergedListeners.addAll(eventListeners);

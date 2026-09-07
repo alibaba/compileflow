@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import type { UnifiedProcessDefinition } from '../../types/flowDefinition'
 import type { TbbpmNode, TbbpmNodeType } from '../../types/tbbpm'
@@ -18,7 +18,237 @@ function node(
   }
 }
 
+function linearFlow(
+  nodes = [node('start', 'start'), node('end', 'end')]
+): UnifiedProcessDefinition {
+  return {
+    id: 'review-simulation',
+    code: 'review.simulation',
+    name: 'Review Simulation',
+    type: 'TBBPM',
+    nodes,
+    connections: nodes.slice(1).map((target, index) => ({
+      id: `edge-${index}`,
+      sourceId: nodes[index].id,
+      targetId: target.id,
+    })),
+  }
+}
+
 describe('ProcessSimulationEngine', () => {
+  it.each(['stepNext', 'continue'] as const)(
+    'does not complete while a breakpoint listener awaits %s',
+    async (method) => {
+      const engine = createSimulationEngine(linearFlow())
+      engine.addBreakpoint('start')
+      let resolve!: () => void
+      const pending = new Promise<void>((res) => {
+        resolve = res
+      })
+      const internals = engine as unknown as { executeNodeLogic: () => Promise<void> }
+      vi.spyOn(internals, 'executeNodeLogic').mockImplementationOnce(() => pending)
+      let resumed: Promise<void> | undefined
+      engine.on((event) => {
+        if (event.type === 'breakpoint-hit') resumed = engine[method]()
+      })
+
+      const result = await engine.start()
+      const stateWhileAwaiting = engine.getState()
+      const contextWhileAwaiting = engine.getContext()
+      resolve()
+      await resumed
+
+      expect(result.state).toBe(ExecutionState.RUNNING)
+      expect(stateWhileAwaiting).toBe(ExecutionState.RUNNING)
+      expect(contextWhileAwaiting.endTime).toBeUndefined()
+      expect(contextWhileAwaiting.path).toEqual(['start'])
+      expect(engine.getState()).toBe(
+        method === 'stepNext' ? ExecutionState.PAUSED : ExecutionState.COMPLETED
+      )
+    }
+  )
+
+  it.each(['stepNext', 'continue'] as const)(
+    'isolates reset from an old awaited %s',
+    async (method) => {
+      const engine = createSimulationEngine(linearFlow())
+      engine.addBreakpoint('start')
+      await engine.start({ run: 'old' })
+      let resolve!: () => void
+      const pending = new Promise<void>((res) => {
+        resolve = res
+      })
+      const internals = engine as unknown as { executeNodeLogic: () => Promise<void> }
+      vi.spyOn(internals, 'executeNodeLogic').mockImplementationOnce(() => pending)
+      const oldResume = engine[method]()
+      const rejected = expect(oldResume).rejects.toThrow('SIM_ERROR_RUN_SUPERSEDED')
+      engine.reset()
+      const current = await engine.start({ run: 'new' })
+      resolve()
+      await rejected
+      expect(engine.getState()).toBe(ExecutionState.PAUSED)
+      expect(engine.getContext()).toEqual(current.context)
+      expect(engine.getEvents()).toEqual(current.events)
+    }
+  )
+
+  it.each([
+    { language: 'python' },
+    { mappings: [{ direction: 'input' as const, target: 'amount', source: 'other' }] },
+    { mappings: [{ direction: 'output' as const, target: 'mapped' }] },
+    { execution: 'effect' as const },
+    { invocationPolicy: { maxAttempts: 2 } },
+  ])(
+    'rejects script semantics absent from the local assignment preview: %j',
+    async (unsupported) => {
+      const flow = linearFlow([
+        node('start', 'start'),
+        node('script', 'scriptTask', {
+          action: {
+            actionType: 'script',
+            language: 'java',
+            source: 'result = amount',
+            ...unsupported,
+          },
+        }),
+        node('end', 'end'),
+      ])
+      const result = await createSimulationEngine(flow).start({ amount: 1, other: 2 })
+      expect(result.state).toBe(ExecutionState.ERROR)
+      expect(result.error).toBe('SIM_ERROR_EXPRESSION_EVALUATION_FAILED:script')
+      expect(result.finalVariables.result).toBeUndefined()
+    }
+  )
+
+  it.each(['java', 'qlexpress'])(
+    'accepts one complete %s assignment with an optional terminator',
+    async (language) => {
+      const flow = linearFlow([
+        node('start', 'start'),
+        node('script', 'scriptTask', {
+          action: { actionType: 'script', language, source: 'result = amount * 2;' },
+        }),
+        node('end', 'end'),
+      ])
+      const result = await createSimulationEngine(flow).start({ amount: 3 })
+      expect(result.state).toBe(ExecutionState.COMPLETED)
+      expect(result.finalVariables.result).toBe(6)
+    }
+  )
+
+  it.each(['resolve', 'reject'] as const)(
+    'isolates reset and restart from an old awaited node: %s',
+    async (outcome) => {
+      const engine = createSimulationEngine(linearFlow())
+      let resolve!: () => void
+      let reject!: (error: Error) => void
+      const pending = new Promise<void>((res, rej) => {
+        resolve = res
+        reject = rej
+      })
+      const internals = engine as unknown as { executeNodeLogic: () => Promise<void> }
+      vi.spyOn(internals, 'executeNodeLogic').mockImplementationOnce(() => pending)
+      const oldRun = engine.start({ generation: 'old' })
+      await vi.waitFor(() => expect(internals.executeNodeLogic).toHaveBeenCalledOnce())
+      engine.reset()
+      engine.addBreakpoint('end')
+      const newRun = await engine.start({ generation: 'new' })
+      const newEvents = engine.getEvents()
+      if (outcome === 'resolve') resolve()
+      else reject(new Error('old node failed'))
+      const oldResult = await oldRun
+      expect(engine.getState()).toBe(ExecutionState.PAUSED)
+      expect(engine.getContext()).toEqual(newRun.context)
+      expect(engine.getEvents()).toEqual(newEvents)
+      expect(oldResult.state).toBe(ExecutionState.ERROR)
+      expect(oldResult.error).toBe('SIM_ERROR_RUN_SUPERSEDED')
+      expect(oldResult.finalVariables.generation).toBe('old')
+    }
+  )
+
+  it('stops immediately when an event listener resets traversal', async () => {
+    const engine = createSimulationEngine(linearFlow())
+    engine.on((event) => {
+      if (event.type === 'node-enter') engine.reset()
+    })
+    const result = await engine.start()
+    expect(engine.getState()).toBe(ExecutionState.READY)
+    expect(engine.getContext().path).toEqual([])
+    expect(engine.getEvents()).toEqual([])
+    expect(result.error).toBe('SIM_ERROR_RUN_SUPERSEDED')
+  })
+
+  it('reports cycles as errors rather than completed simulations', async () => {
+    const flow = linearFlow([node('start', 'start'), node('task', 'autoTask')])
+    flow.connections.push({ id: 'cycle', sourceId: 'task', targetId: 'start' })
+    const result = await createSimulationEngine(flow).start()
+    expect(result.state).toBe(ExecutionState.ERROR)
+    expect(result.error).toBe('SIM_ERROR_CYCLE:start')
+  })
+
+  it('reports the traversal bound without pretending to reach the end', async () => {
+    const flow = linearFlow([
+      node('start', 'start'),
+      ...Array.from({ length: 999 }, (_, index) => node(`task-${index}`, 'autoTask')),
+      node('end', 'end'),
+    ])
+    const result = await createSimulationEngine(flow).start()
+    expect(result.state).toBe(ExecutionState.ERROR)
+    expect(result.error).toBe('SIM_ERROR_STEP_LIMIT:end')
+    expect(result.context.path).not.toContain('end')
+  })
+
+  it('detaches input, context, result and event snapshots from live state', async () => {
+    const engine = createSimulationEngine(linearFlow())
+    engine.addBreakpoint('end')
+    const input = { nested: { count: 1 } }
+    const result = await engine.start(input)
+    const context = engine.getContext()
+    context.path.push('forged')
+    context.variables.set('forged', true)
+    ;(context.variables.get('nested') as { count: number }).count = 2
+    input.nested.count = 3
+    result.context.path.push('also-forged')
+    result.context.variables.clear()
+    ;(result.finalVariables.nested as { count: number }).count = 4
+    engine.getEvents()[0].nodeId = 'forged'
+    result.events[0].nodeId = 'also-forged'
+    engine.getBreakpoints()[0].enabled = false
+    expect(engine.getContext().variables.get('nested')).toEqual({ count: 1 })
+    expect(engine.getContext().variables.has('forged')).toBe(false)
+    expect(engine.getContext().path).toEqual(['start', 'end'])
+    expect(engine.getEvents()[0].nodeId).toBe('start')
+    expect(engine.getBreakpoints()[0].enabled).toBe(true)
+  })
+
+  it.each([
+    'if (false) result = 1',
+    'object.result = 1',
+    'int result = 1',
+    '',
+    'result = 1; other = 2',
+  ])('rejects script preview outside one complete assignment: %s', async (source) => {
+    const flow = linearFlow([
+      node('start', 'start'),
+      node('script', 'scriptTask', {
+        action: { actionType: 'script', language: 'java', source },
+      }),
+      node('end', 'end'),
+    ])
+    const result = await createSimulationEngine(flow).start()
+    expect(result.state).toBe(ExecutionState.ERROR)
+    expect(result.error).toBe('SIM_ERROR_EXPRESSION_EVALUATION_FAILED:script')
+    expect(result.context.path).not.toContain('end')
+  })
+
+  it('does not ignore invalid breakpoint conditions', async () => {
+    const engine = createSimulationEngine(linearFlow())
+    engine.addBreakpoint('end', '1 && true')
+    const result = await engine.start()
+    expect(result.state).toBe(ExecutionState.ERROR)
+    expect(result.error).toBe('SIM_ERROR_EXPRESSION_EVALUATION_FAILED:end')
+  })
+
   it('uses the safe evaluator for script assignments and exclusive routing', async () => {
     const flow: UnifiedProcessDefinition = {
       id: 'safe-simulation',

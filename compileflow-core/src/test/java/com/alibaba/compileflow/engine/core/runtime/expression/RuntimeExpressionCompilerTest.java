@@ -14,6 +14,7 @@
 package com.alibaba.compileflow.engine.core.runtime.expression;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.alibaba.compileflow.engine.config.JavaDiagnosticsConfig;
 import com.alibaba.compileflow.engine.core.java.compiler.JdkJavaCompiler;
 import java.nio.file.Files;
@@ -53,10 +54,52 @@ class RuntimeExpressionCompilerTest {
             .contains("@Generated(value = \"compileflow.runtime-expressions/v2\")")
             .contains("        Integer amount = (Integer) arguments[0];")
             .contains("        return amount + 1;")
-            .contains("        return ConditionSemantics.isTrue(amount > 0);")
+            .contains("case 1 -> ConditionSemantics.isTrue(expression1(arguments));")
+            .contains("private static Boolean expression1(Object[] arguments)")
+            .contains("        return amount > 0;")
             .doesNotContain("return (", "java.lang.Integer")
             .doesNotEndWith("\n\n}\n");
         assertThat(source.lines().mapToInt(String::length).max().orElseThrow()).isLessThanOrEqualTo(120);
+    }
+
+    @Test
+    void bindingNamesCannotCollideWithGeneratedParameters() {
+        RuntimeExpression expression = new RuntimeExpression("arguments + _arguments", RuntimeExpression.Kind.VALUE,
+                List.of(new RuntimeExpression.Binding("arguments", "int"),
+                        new RuntimeExpression.Binding("_arguments", "int")));
+        RuntimeExpressionCompiler compiler =
+                new RuntimeExpressionCompiler(new JdkJavaCompiler(), JavaDiagnosticsConfig.defaults());
+
+        CompiledExpressionEvaluator evaluator =
+                compiler.compile("binding.names", List.of(expression), getClass().getClassLoader());
+
+        assertThat(evaluator.evaluate(expression, Map.of("arguments", 20, "_arguments", 22), Map.of())).isEqualTo(42);
+    }
+
+    @Test
+    void conditionBindingCannotShadowTheGeneratedTruthConversion() {
+        RuntimeExpression expression = new RuntimeExpression("ConditionSemantics", RuntimeExpression.Kind.CONDITION,
+                List.of(new RuntimeExpression.Binding("ConditionSemantics", "java.lang.Boolean")));
+        RuntimeExpressionCompiler compiler =
+                new RuntimeExpressionCompiler(new JdkJavaCompiler(), JavaDiagnosticsConfig.defaults());
+
+        CompiledExpressionEvaluator evaluator =
+                compiler.compile("condition.names", List.of(expression), getClass().getClassLoader());
+
+        assertThat(evaluator.evaluateCondition(expression, Map.of("ConditionSemantics", true), Map.of())).isTrue();
+        assertThat(evaluator.evaluateCondition(expression,
+                java.util.Collections.singletonMap("ConditionSemantics", null), Map.of()))
+            .isFalse();
+    }
+
+    @Test
+    void rejectsNonBooleanConditionDuringCompilation() {
+        RuntimeExpression expression = new RuntimeExpression("42", RuntimeExpression.Kind.CONDITION, List.of());
+        RuntimeExpressionCompiler compiler =
+                new RuntimeExpressionCompiler(new JdkJavaCompiler(), JavaDiagnosticsConfig.defaults());
+
+        assertThatThrownBy(() -> compiler.compile("condition.type", List.of(expression), getClass().getClassLoader()))
+            .isInstanceOf(com.alibaba.compileflow.engine.CompileFlowException.class);
     }
 
     @Test

@@ -1,12 +1,6 @@
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import { expect, test } from '@playwright/test'
 
 import { assertNoPageErrors, shot, TIMEOUT, trackErrors } from './journey-helpers'
-
-const ROOT = path.dirname(fileURLToPath(import.meta.url))
-const SHOT_DIR = path.join(ROOT, '../test-results/journey-review')
 
 test.describe('Async dead-letter single requeue', () => {
   test('filter dead letters → inspect → confirm requeue', async ({ page }) => {
@@ -33,7 +27,7 @@ test.describe('Async dead-letter single requeue', () => {
 
     await expect(page.getByText('order-async-42')).toBeVisible({ timeout: TIMEOUT })
     await page.screenshot({
-      path: path.join(SHOT_DIR, '100-async-dead-letter-row.png'),
+      path: test.info().outputPath('100-async-dead-letter-row.png'),
       fullPage: true,
     })
 

@@ -1,7 +1,7 @@
 const zhLearn = {
   'examples.title': '示例库',
 
-  'examples.subtitle': '可运行示例带你掌握 CompileFlow——从入门到高阶模式。',
+  'examples.subtitle': '通过可运行的示例学习 CompileFlow，从基础用法逐步进阶。',
 
   'examples.difficulty': '难度',
 
@@ -13,7 +13,7 @@ const zhLearn = {
 
   'examples.notFound': '没有匹配的示例',
 
-  'examples.startLearning': '开始学习 →',
+  'examples.startLearning': '打开示例 →',
 
   'examples.viewDetail': '查看详情',
 
@@ -23,9 +23,9 @@ const zhLearn = {
 
   'level.beginner': '入门',
 
-  'level.basic': '基础',
+  'level.basic': '初级',
 
-  'level.intermediate': '进阶',
+  'level.intermediate': '中级',
 
   'level.advanced': '高级',
 
@@ -47,7 +47,7 @@ const zhLearn = {
 
   'detail.difficulty': '难度：{{stars}}',
 
-  'detail.difficultyValue': '难度 {{value}} 星（满分 5 星）',
+  'detail.difficultyValue': '难度：{{value}}/5 星',
 
   'detail.format': '格式：{{desc}}',
 
@@ -65,13 +65,13 @@ const zhLearn = {
   'detail.explanation': '原理说明',
   'detail.nextSteps': '下一步',
 
-  'detail.noCode': '暂无代码',
+  'detail.noCode': '该示例暂无代码',
 
   // 执行
 
-  'category.beginner': '基础入门',
+  'category.beginner': '入门示例',
 
-  'category.advanced': '高级特性',
+  'category.advanced': '进阶示例',
 
   // 排序
 
@@ -81,7 +81,7 @@ const zhLearn = {
 
   // 详情
 
-  'detail.noDocs': '暂无说明文档',
+  'detail.noDocs': '该示例暂无说明文档',
 
   // 日志扩展
 
@@ -99,9 +99,9 @@ const zhLearn = {
 
   'learning.completed': '已完成',
 
-  'learning.markComplete': '标为已完成',
+  'learning.markComplete': '标记为已完成',
 
-  'learning.congrats': '完成了！继续挑战下一个示例吧。',
+  'learning.congrats': '已完成该示例，可以继续学习下一个。',
 
   // 目录
 
@@ -127,88 +127,87 @@ const zhLearn = {
 
   'exampleNav.next': '下一个',
 
-  'exampleNav.progress': '示例 {{current}} / {{total}}',
+  'exampleNav.progress': '第 {{current}} 个，共 {{total}} 个示例',
 
   'exampleNav.navigationLabel': '示例导航',
 
   'exampleContent.learn.tbbpm.greeting.name': 'TBBPM 问候流程',
 
-  'exampleContent.learn.tbbpm.greeting.description': '使用自包含 QL 脚本动作生成返回值。',
+  'exampleContent.learn.tbbpm.greeting.description': '使用独立的 QLExpress 脚本动作生成问候语。',
 
   'exampleContent.learn.tbbpm.greeting.overview':
-    '这是最小可用的 TBBPM 定义：一个开始节点、一个可执行任务和一个结束节点。它不依赖应用侧类，因此可以直接对内置 QL 脚本执行预检和运行。',
+    '这个最小 TBBPM 流程由开始节点、脚本任务和结束节点组成。脚本不依赖应用中的类，可以直接校验并运行。',
 
   'exampleContent.learn.tbbpm.greeting.whatYouWillLearn.0': '声明流程输入变量和返回变量',
   'exampleContent.learn.tbbpm.greeting.whatYouWillLearn.1': '连接开始、任务与结束节点',
-  'exampleContent.learn.tbbpm.greeting.whatYouWillLearn.2': '将动作结果映射到流程上下文',
-  'exampleContent.learn.tbbpm.greeting.keyConcepts.0': 'TBBPM 文档',
+  'exampleContent.learn.tbbpm.greeting.whatYouWillLearn.2': '将脚本结果映射到流程返回变量',
+  'exampleContent.learn.tbbpm.greeting.keyConcepts.0': 'TBBPM 流程定义',
   'exampleContent.learn.tbbpm.greeting.keyConcepts.1': '脚本动作',
   'exampleContent.learn.tbbpm.greeting.keyConcepts.2': '返回变量',
   'exampleContent.learn.tbbpm.greeting.explanation':
-    '未传入 `name` 时会使用声明的默认值 `World`。QL 脚本计算出字符串，再由动作内部的变量映射把结果写入根流程的 `message` 输出。',
+    '未传入 `name` 时，流程使用默认值 `World`。QLExpress 脚本生成问候语，并通过输出映射将结果写入流程返回变量 `message`。',
   'exampleContent.learn.tbbpm.greeting.nextSteps':
-    '添加一个带默认值的字符串输入变量，将它映射到动作中，并生成个性化问候语。',
+    '传入自定义 `name` 运行流程，再修改默认值，对比两次返回的问候语。',
   'exampleContent.learn.tbbpm.greeting.documentation':
-    '参阅 [TBBPM 规范](https://github.com/alibaba/compileflow/blob/master/docs/specs/tbbpm-specification.en.md) 和 [节点支持矩阵](https://github.com/alibaba/compileflow/blob/master/docs/en/node-support.md)。',
+    '参阅 [TBBPM 规范](https://github.com/alibaba/compileflow/blob/master/docs/zh/specifications/tbbpm.md) 和 [节点支持矩阵](https://github.com/alibaba/compileflow/blob/master/docs/zh/node-support.md)。',
 
   'exampleContent.learn.bpmn.routing.name': 'BPMN 金额路由',
 
-  'exampleContent.learn.bpmn.routing.description': '通过排他网关按金额选择路径并返回路由结果。',
+  'exampleContent.learn.bpmn.routing.description': '通过排他网关，根据金额选择流程路径。',
 
   'exampleContent.learn.bpmn.routing.overview':
-    '本示例只使用 CompileFlow 支持的 BPMN 子集。它描述的是同步决策，而不是持久化人工任务；人工任务的状态与生命周期应由外部任务系统负责。',
+    '本示例使用 CompileFlow 支持的 BPMN 元素完成一次同步路由决策。`manual-review` 分支只返回路由名称，不会创建或持久化人工任务。',
   'exampleContent.learn.bpmn.routing.whatYouWillLearn.0': '在 BPMN 扩展元素中声明 CompileFlow 变量',
-  'exampleContent.learn.bpmn.routing.whatYouWillLearn.1': '使用互斥的顺序流条件',
-  'exampleContent.learn.bpmn.routing.whatYouWillLearn.2': '为 BPMN 服务任务附加可执行动作',
+  'exampleContent.learn.bpmn.routing.whatYouWillLearn.1': '为顺序流设置互斥条件',
+  'exampleContent.learn.bpmn.routing.whatYouWillLearn.2': '使用脚本任务设置各路径的返回结果',
   'exampleContent.learn.bpmn.routing.keyConcepts.0': 'BPMN 支持子集',
   'exampleContent.learn.bpmn.routing.keyConcepts.1': '排他网关',
-  'exampleContent.learn.bpmn.routing.keyConcepts.2': 'cf:action 动作',
+  'exampleContent.learn.bpmn.routing.keyConcepts.2': '脚本任务',
   'exampleContent.learn.bpmn.routing.explanation':
-    '默认金额为 150，因此空输入会选择 `manual-review`。金额低于 100 时选择 `automatic`，两个分支最终汇聚到同一个结束事件。',
+    '金额默认为 150，未传入参数时会选择 `manual-review`。金额低于 100 时选择 `automatic`，两条路径最终都到达同一个结束事件。',
   'exampleContent.learn.bpmn.routing.nextSteps':
-    '使用 `{"amount": 50}` 运行流程并比较返回的 `route`，再通过显式默认顺序流添加第三条策略。',
+    '使用 `{"amount": 50}` 运行流程，对比返回的 `route`。然后添加一条明确的默认顺序流，实现第三条路由。',
   'exampleContent.learn.bpmn.routing.documentation':
-    '参阅 [流程模型](https://github.com/alibaba/compileflow/blob/master/docs/architecture/07-PROCESS_MODEL.en.md)，了解 BPMN 扩展位置和节点支持规则。',
+    '参阅 [流程模型](https://github.com/alibaba/compileflow/blob/master/docs/zh/architecture/process-model.md)，了解 BPMN 扩展元素的位置和节点支持规则。',
 
   'exampleContent.learn.tbbpm.parallel.name': 'TBBPM 并行计算',
 
-  'exampleContent.learn.tbbpm.parallel.description':
-    '以明确的并发能力运行两个独立计算，并在汇聚后返回结果。',
+  'exampleContent.learn.tbbpm.parallel.description': '并行执行两个独立计算，并返回两个结果。',
 
   'exampleContent.learn.tbbpm.parallel.overview':
-    '只有当工作和输出彼此独立时才适合使用并行分支。本示例分别写入两个返回变量，并在完成前进行汇聚。',
-  'exampleContent.learn.tbbpm.parallel.whatYouWillLearn.0': '建模并行分叉和结构化汇聚',
-  'exampleContent.learn.tbbpm.parallel.whatYouWillLearn.1': '将分支输出保存在不同流程变量中',
-  'exampleContent.learn.tbbpm.parallel.whatYouWillLearn.2': '使用不依赖应用类的自包含动作',
+    '两个分支独立运行，并将结果写入不同的返回变量。汇聚节点等待两个分支完成后再结束流程。',
+  'exampleContent.learn.tbbpm.parallel.whatYouWillLearn.0': '创建并行分支并进行汇聚',
+  'exampleContent.learn.tbbpm.parallel.whatYouWillLearn.1': '将各分支输出保存到不同的流程变量',
+  'exampleContent.learn.tbbpm.parallel.whatYouWillLearn.2': '使用不依赖应用类的脚本动作',
   'exampleContent.learn.tbbpm.parallel.keyConcepts.0': '并行分叉',
   'exampleContent.learn.tbbpm.parallel.keyConcepts.1': '并行汇聚',
   'exampleContent.learn.tbbpm.parallel.keyConcepts.2': '分支输出',
   'exampleContent.learn.tbbpm.parallel.explanation':
-    '分叉通过引擎执行器同时启动两个计算。汇聚节点等待两条路径完成，最终结果映射包含 `leftResult=20` 和 `rightResult=22`。',
+    '并行分叉启动两个计算，汇聚节点等待两个分支都执行完成。最终结果中包含 `leftResult=20` 和 `rightResult=22`。',
   'exampleContent.learn.tbbpm.parallel.nextSteps':
-    '将其中一个常量替换为映射输入，并与两个任务顺序执行时的行为进行比较。',
+    '将其中一个常量替换为输入变量，再将两个任务改为顺序执行，对比运行结果。',
   'exampleContent.learn.tbbpm.parallel.documentation':
     '并发行为参阅[高级特性](https://github.com/alibaba/compileflow/blob/master/docs/zh/advanced-features.md)。',
 
   'exampleContent.learn.bpmn.script-task.name': 'BPMN 脚本任务',
 
   'exampleContent.learn.bpmn.script-task.description':
-    '在标准 BPMN 脚本任务中编写流程定义自有的内联代码。',
+    '在标准 BPMN 脚本任务中直接编写 QLExpress 脚本。',
 
   'exampleContent.learn.bpmn.script-task.overview':
-    'BPMN 脚本任务直接拥有内联源码，CompileFlow 扩展描述变量映射与可选执行策略；该示例不依赖任何外部 Bean 或应用类。',
-  'exampleContent.learn.bpmn.script-task.whatYouWillLearn.0': '使用标准元素保持 BPMN 控制流',
+    '脚本源代码直接保存在 BPMN 脚本任务中，CompileFlow 扩展负责将输出映射到流程变量。本示例不依赖外部 Bean 或应用类。',
+  'exampleContent.learn.bpmn.script-task.whatYouWillLearn.0': '使用标准 BPMN 元素组织流程',
   'exampleContent.learn.bpmn.script-task.whatYouWillLearn.1': '直接在脚本任务中编写 QLExpress',
   'exampleContent.learn.bpmn.script-task.whatYouWillLearn.2': '把脚本输出映射到流程变量',
   'exampleContent.learn.bpmn.script-task.keyConcepts.0': '脚本任务',
-  'exampleContent.learn.bpmn.script-task.keyConcepts.1': '脚本格式',
+  'exampleContent.learn.bpmn.script-task.keyConcepts.1': '`scriptFormat` 属性',
   'exampleContent.learn.bpmn.script-task.keyConcepts.2': '输出映射',
   'exampleContent.learn.bpmn.script-task.explanation':
-    '脚本任务执行 QLExpress，并把 `completed` 写入流程级返回变量 `status`。',
+    '脚本任务运行 QLExpress 脚本，并将结果 `completed` 映射到流程返回变量 `status`。',
   'exampleContent.learn.bpmn.script-task.nextSteps':
-    '添加输入变量并映射到脚本，然后把语言切换为 Java 17 并改写源码。',
+    '添加一个输入变量并在脚本中使用。然后将脚本语言切换为 Java 17，重写该表达式。',
   'exampleContent.learn.bpmn.script-task.documentation':
-    '参阅 [扩展指南](https://github.com/alibaba/compileflow/blob/master/docs/en/extension-guide.md)，了解支持的动作类型和自定义 Provider。',
+    '参阅 [扩展指南](https://github.com/alibaba/compileflow/blob/master/docs/zh/extension-guide.md)，了解支持的动作类型和自定义提供者。',
 
   // 全局搜索
 } as const

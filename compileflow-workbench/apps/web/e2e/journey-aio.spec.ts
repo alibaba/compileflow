@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 import { markerProcessXml } from './integration/support/markerProcess'
 import { assertNoPageErrors, shot, TIMEOUT, trackErrors } from './journey-helpers'
 
-const SERVER = 'http://127.0.0.1:8083'
+const SERVER = process.env.COMPILEFLOW_E2E_SERVER_URL ?? 'http://127.0.0.1:8083'
 
 /**
  * All-in-one JAR smoke: bundled UI + API in one process (auth DISABLED via dev profile).

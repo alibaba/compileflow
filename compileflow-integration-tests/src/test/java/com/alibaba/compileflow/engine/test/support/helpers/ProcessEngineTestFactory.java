@@ -37,28 +37,16 @@ public final class ProcessEngineTestFactory {
     private ProcessEngineTestFactory() {
     }
 
-    public static ProcessEngine createTbbpm() {
-        return ProcessEngineFactory.create(tbbpmBuilder().build());
+    public static ProcessEngine create() {
+        return ProcessEngineFactory.create(builder().build());
     }
 
-    public static ProcessEngine createBpmn() {
-        return ProcessEngineFactory.create(bpmnBuilder().build());
+    public static ProcessEngineConfig config() {
+        return builder().build();
     }
 
-    public static ProcessEngineConfig tbbpmConfig() {
-        return tbbpmBuilder().build();
-    }
-
-    public static ProcessEngineConfig bpmnConfig() {
-        return bpmnBuilder().build();
-    }
-
-    public static ProcessEngineConfig.Builder tbbpmBuilder() {
-        return withTestConfiguration(ProcessEngineConfig.tbbpmBuilder());
-    }
-
-    public static ProcessEngineConfig.Builder bpmnBuilder() {
-        return withTestConfiguration(ProcessEngineConfig.bpmnBuilder());
+    public static ProcessEngineConfig.Builder builder() {
+        return withTestConfiguration(ProcessEngineConfig.builder());
     }
 
     public static JavaDiagnosticsConfig javaDiagnosticsConfig() {

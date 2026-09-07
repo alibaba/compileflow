@@ -40,25 +40,6 @@ public final class JavaIdentifiers {
     }
 
     /**
-     * Returns whether an identifier belongs to an Engine-owned source/metadata namespace.
-     */
-    public static boolean isCompileFlowReserved(String value) {
-        return ProcessNames.isReserved(value);
-    }
-
-    /**
-     * Tests whether a value is a valid Java binary class name.
-     *
-     * <p>Nested-class separators ({@code $}) are accepted because they are valid Java identifier characters.</p>
-     *
-     * @param className candidate simple or package-qualified binary name
-     * @return {@code true} when every dot-separated segment is a valid Java identifier
-     */
-    public static boolean isJavaClassName(String className) {
-        return JavaNames.isClassName(className);
-    }
-
-    /**
      * Validates and returns a Java binary class name.
      *
      * @param className candidate simple or package-qualified binary name

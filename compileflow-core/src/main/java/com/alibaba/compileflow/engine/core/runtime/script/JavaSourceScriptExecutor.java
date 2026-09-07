@@ -37,6 +37,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.lang.model.SourceVersion;
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
@@ -93,6 +94,10 @@ public final class JavaSourceScriptExecutor implements ScriptExecutor {
             return (Object) program.execute().invokeExact(context);
         } catch (ScriptException classified) {
             throw classified;
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new ScriptException(ScriptException.Kind.CANCELLED, "Java code evaluation was interrupted",
+                    interrupted);
         } catch (Error failure) {
             throw failure;
         } catch (Throwable failure) {
@@ -182,6 +187,15 @@ public final class JavaSourceScriptExecutor implements ScriptExecutor {
     }
 
     private static String renderSource(String simpleName, ScriptProgramSpec spec) {
+        Set<String> inputNames = spec
+            .inputs()
+            .stream()
+            .map(ScriptProgramSpec.Input::name)
+            .collect(Collectors.toSet());
+        String contextParameter = "input";
+        while (inputNames.contains(contextParameter)) {
+            contextParameter = '_' + contextParameter;
+        }
         StringBuilder source = new StringBuilder();
         source.append("package ").append(PACKAGE).append(";\n\n");
         source.append("import java.math.*;\n");
@@ -191,9 +205,11 @@ public final class JavaSourceScriptExecutor implements ScriptExecutor {
         source
             .append("    public static ")
             .append(spec.expectedOutputType() == null ? "Object" : spec.expectedOutputType())
-            .append(" execute(Map<String, Object> input) throws Exception {\n");
+            .append(" execute(Map<String, Object> ")
+            .append(contextParameter)
+            .append(") throws Exception {\n");
         for (ScriptProgramSpec.Input input : spec.inputs()) {
-            source.append("        ").append(inputDeclaration(input)).append("\n");
+            source.append("        ").append(inputDeclaration(input, contextParameter)).append("\n");
         }
         appendIndentedSource(source, spec.source());
         source.append("    }\n\n");
@@ -212,8 +228,8 @@ public final class JavaSourceScriptExecutor implements ScriptExecutor {
         return 9L + spec.inputs().size();
     }
 
-    private static String inputDeclaration(ScriptProgramSpec.Input input) {
-        String value = "requireInput(input, " + stringLiteral(input.name()) + ")";
+    private static String inputDeclaration(ScriptProgramSpec.Input input, String contextParameter) {
+        String value = "requireInput(" + contextParameter + ", " + stringLiteral(input.name()) + ")";
         String type = input.declaredType();
         return switch (type) {
             case "byte" -> "byte " + input.name() + " = ((Number) " + value + ").byteValue();";
@@ -346,7 +362,7 @@ public final class JavaSourceScriptExecutor implements ScriptExecutor {
 
         private ByteArrayClassLoader(ClassLoader parent, Map<String, byte[]> classes) {
             super(parent);
-            this.classes = classes;
+            this.classes = new java.util.HashMap<>(classes);
         }
 
         @Override
@@ -355,7 +371,9 @@ public final class JavaSourceScriptExecutor implements ScriptExecutor {
             if (bytes == null) {
                 throw new ClassNotFoundException(name);
             }
-            return defineClass(name, bytes, 0, bytes.length);
+            Class<?> defined = defineClass(name, bytes, 0, bytes.length);
+            classes.remove(name);
+            return defined;
         }
     }
 }

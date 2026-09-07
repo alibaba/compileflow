@@ -18,9 +18,25 @@ import static com.alibaba.compileflow.engine.core.runtime.RuntimeTestFixtures.ru
 import static com.alibaba.compileflow.engine.core.runtime.RuntimeTestFixtures.versioned;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessRef;
+import com.alibaba.compileflow.engine.ProcessModelType;
+import com.alibaba.compileflow.engine.core.source.ProcessDefinitionSnapshot;
 import org.junit.jupiter.api.Test;
 
 class ProcessRuntimeIdentityIsolationSemanticsTest {
+    @Test
+    void identicalBytesAndCodeStillHaveDistinctFrontendIdentities() {
+        byte[] bytes = new byte[] {1, 2, 3};
+        var tbbpm = ProcessDefinitionSnapshot.of(ProcessModelType.TBBPM, "default", "same", null, bytes, "test");
+        var bpmn = ProcessDefinitionSnapshot.of(ProcessModelType.BPMN, "default", "same", null, bytes, "test");
+        var pipeline = ProcessRuntimeIdentity.newPipelineIdentity();
+        ClassLoader loader = getClass().getClassLoader();
+        assertThat(tbbpm.getSourceDigest()).isEqualTo(bpmn.getSourceDigest());
+        var first = ProcessRuntimeIdentity.of(tbbpm, pipeline, loader);
+        var second = ProcessRuntimeIdentity.of(bpmn, pipeline, loader);
+        assertThat(second).isNotEqualTo(first);
+        assertThat(second.getDigest()).isNotEqualTo(first.getDigest());
+    }
+
     @Test
     void compilationIdentityIsSharedAcrossNamespacesWhenInputsAreIdentical() {
         ProcessRuntimeRequest alpha = versioned("team-alpha", "order.checkout", "1", "<process/>");

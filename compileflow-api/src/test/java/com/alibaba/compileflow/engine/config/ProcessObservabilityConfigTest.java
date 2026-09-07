@@ -45,20 +45,6 @@ class ProcessObservabilityConfigTest {
     }
 
     @Test
-    void toBuilderPreservesScalarSettings() {
-        ProcessObservabilityConfig config = ProcessObservabilityConfig
-            .builder()
-            .eventsAsync(false)
-            .mdcPropagationEnabled(true)
-            .build()
-            .toBuilder()
-            .build();
-
-        assertThat(config.isEventsAsync()).isFalse();
-        assertThat(config.isMdcPropagationEnabled()).isTrue();
-    }
-
-    @Test
     void supportsFailFastEventDeliveryButRejectsNegativePendingLimits() {
         assertThat(ProcessObservabilityConfig
             .builder()

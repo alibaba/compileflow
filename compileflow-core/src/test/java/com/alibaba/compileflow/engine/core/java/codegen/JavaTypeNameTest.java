@@ -24,7 +24,6 @@ class JavaTypeNameTest {
         JavaTypeName type = JavaTypeName.of("java.util.List<java.util.Map<java.lang.String, java.lang.Integer>>[]");
 
         assertThat(type.getShortName()).isEqualTo("List<Map<String, Integer>>[]");
-        assertThat(type.getShortRawName()).isEqualTo("List[]");
         assertThat(type.getSimpleName()).isEqualTo("List");
         assertThat(type.getPackageName()).isEqualTo("java.util");
         assertThat(type.getImportName()).isEqualTo("java.util.List");
@@ -38,7 +37,6 @@ class JavaTypeNameTest {
         JavaTypeName type = JavaTypeName.of("java.util.Map.Entry<java.lang.String, ? extends java.lang.Number[]>[]");
 
         assertThat(type.getShortName()).isEqualTo("Entry<String, ? extends Number[]>[]");
-        assertThat(type.getShortRawName()).isEqualTo("Entry[]");
         assertThat(type.getReferencedTypes())
             .extracting(JavaTypeName::getImportName)
             .containsExactly("java.util.Map.Entry", "java.lang.String", "java.lang.Number");
@@ -50,7 +48,6 @@ class JavaTypeNameTest {
 
         assertThat(type.getName()).isEqualTo("java.lang.String[][]");
         assertThat(type.getShortName()).isEqualTo("String[][]");
-        assertThat(type.getShortRawName()).isEqualTo("String[][]");
         assertThat(type.getImportName()).isEqualTo("java.lang.String");
     }
 

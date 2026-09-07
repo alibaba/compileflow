@@ -75,4 +75,9 @@ public final class InMemoryDurableProcessRuntimeCache implements DurableProcessR
     public synchronized int size() {
         return programs.size();
     }
+
+    @Override
+    public synchronized void clear() {
+        programs.clear();
+    }
 }

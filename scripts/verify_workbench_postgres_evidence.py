@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify Workbench, Deploy, and runtime-chain PostgreSQL JUnit evidence."""
+"""Verify Workbench, Deploy, and embedded execution PostgreSQL JUnit evidence."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ REQUIRED_METHODS: dict[str, frozenset[str]] = {
             "retentionDeletionIsBoundedAndPreservesRowsAtTheCutoff",
         }
     ),
-    "AsyncInvocationRepositoryStateMachineTest": frozenset(
+    "AsyncInvocationStoreContractTest": frozenset(
         {
             "readyQueueUsesStableDurableAvailabilityOrder",
             "queuedInvocationCannotBeClaimedBeforeItsDurableAvailabilityTime",
@@ -48,6 +48,12 @@ REQUIRED_METHODS: dict[str, frozenset[str]] = {
     "WorkbenchExternalSchemaAdmissionTest": frozenset(
         {"startsAfterExternalMigrationWithoutApplicationDdl"}
     ),
+    "EmbeddedDeploymentExecutionIntegrationTest": frozenset(
+        {
+            "composesOneEngineWithSharedRuntimeAndTooling",
+            "routesCanaryAndExecutesThePromotedLocalReadyVersion",
+        }
+    ),
     "PostgreSqlDeployRepositoryContractTest": frozenset(
         {
             "concurrentImmutableVersionWritesPreserveOneExactIdentity",
@@ -58,13 +64,6 @@ REQUIRED_METHODS: dict[str, frozenset[str]] = {
             "successfulDeliveryBeforeCrashIsReplayedIdempotentlyAfterLeaseExpiry",
             "deliveredOutboxRetentionIsBoundedAndUsesOrderedIndex",
             "concurrentReconciliationEnsuresCoalesceToOneDelivery",
-        }
-    ),
-    "DeploymentRuntimeChainIntegrationTest": frozenset(
-        {
-            "transactionalOutboxConvergesTwoNodesAcrossCanaryPromotionAndRollback",
-            "reconcilerRepublishesTheAuthoritativeAliasForLateNodes",
-            "processCallRemainsBoundToThePublishedChildVersionOnBothNodes",
         }
     ),
 }

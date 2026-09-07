@@ -14,6 +14,7 @@
 package com.alibaba.compileflow.durable.runtime.worker;
 
 import com.alibaba.compileflow.durable.api.validation.DurableIdentifiers;
+import com.alibaba.compileflow.durable.api.validation.DurableNumbers;
 import com.alibaba.compileflow.durable.runtime.kernel.MultiInstanceState;
 import com.alibaba.compileflow.durable.runtime.kernel.TurnBudget;
 import java.time.Duration;
@@ -27,8 +28,8 @@ public record DurableTurnWorkerOptions(String workerId, Duration turnFaultBackof
         int maxActiveIterations) {
     public DurableTurnWorkerOptions {
         workerId = DurableIdentifiers.requireIdentity(workerId, "workerId", 128);
-        turnFaultBackoff = WorkerDurationConstraints.requirePositive(turnFaultBackoff, "turnFaultBackoff",
-                Duration.ofHours(1));
+        turnFaultBackoff = DurableNumbers.requirePositiveDurationMillis(turnFaultBackoff, Duration.ofHours(1),
+                "turnFaultBackoff");
         if (turnMaxSteps <= 0 || turnMaxSteps > TurnBudget.ABSOLUTE_MAX_STEPS) {
             throw new IllegalArgumentException("turnMaxSteps must be in [1, " + TurnBudget.ABSOLUTE_MAX_STEPS + ']');
         }
@@ -36,11 +37,5 @@ public record DurableTurnWorkerOptions(String workerId, Duration turnFaultBackof
             throw new IllegalArgumentException(
                     "maxActiveIterations must be in [1, " + MultiInstanceState.ABSOLUTE_MAX_ACTIVE + ']');
         }
-    }
-
-    public static DurableTurnWorkerOptions defaults(String workerId) {
-        TurnBudget budget = TurnBudget.defaults();
-        return new DurableTurnWorkerOptions(workerId, Duration.ofSeconds(1), budget.maxSteps(),
-                budget.maxActiveIterations());
     }
 }

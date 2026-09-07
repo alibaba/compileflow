@@ -1,11 +1,11 @@
 # CompileFlow Benchmarks
 
-JMH benchmarks for the CompileFlow engine. This module provides a reproducible harness for the performance discussion in
-the project documentation. The repository does not publish context-free performance ratios.
+JMH benchmarks for measuring CompileFlow performance under documented, reproducible conditions. Results are meaningful
+only with the benchmark scenario, configuration, environment, and raw output.
 
 The suite covers steady-state throughput, first-definition execution, BPMN parity, concurrent execution, Durable
-cold-cache preparation, warm Store-free Machine advancement, and real-PostgreSQL Durable boundary latency. It compares
-CompileFlow with hand-written Java or another CompileFlow path; this module has no third-party process-engine dependency.
+cold-cache preparation, warm Store-free Machine advancement, and real-PostgreSQL Durable boundary latency. It measures
+CompileFlow runtime paths against a handwritten Java baseline or another CompileFlow path.
 
 ## Quick start
 
@@ -22,26 +22,24 @@ java -jar compileflow-benchmarks/target/compileflow-benchmarks.jar \
 
 ## Benchmark suite
 
-| Benchmark class                         | Mode           | What it measures                                                                                 | Baseline                                                      |
-|-----------------------------------------|----------------|--------------------------------------------------------------------------------------------------|---------------------------------------------------------------|
-| `BaselineJavaBenchmark`                 | Throughput     | Hand-written Java equivalent of `value + 2`                                                      | absolute floor                                                |
-| `CompileFlowExecuteBenchmark`           | Throughput     | TBBPM exact-version execution after `admin.load`                                                 | `BaselineJavaBenchmark`                                       |
-| `BpmnExecuteBenchmark`                  | Throughput     | BPMN exact-version execution after `admin.load`                                                  | `CompileFlowExecuteBenchmark` (same engine, different format) |
-| `CompileFlowFirstExecutionBenchmark`    | SingleShotTime | First definition execution in a fresh fork; excludes JVM startup and engine construction         | independent fork samples                                      |
-| `CompileFlowConcurrentExecuteBenchmark` | Throughput     | Concurrent exact-version execution under 4 threads                                               | `CompileFlowExecuteBenchmark` (single-thread)                 |
-| `CompileFlowAliasExecuteBenchmark`      | Throughput     | Concurrent stable Alias and weighted-canary Alias execution under 4 threads                      | `CompileFlowConcurrentExecuteBenchmark`                       |
-| `ProcessCallExecuteBenchmark`           | Throughput     | Exact-version execution through minimal Process call chains at depths 0, 1, and 4                 | depth 0 under the same benchmark configuration                |
-| `OperationGateBenchmark`                | Throughput     | Steady-state lifecycle admission using exact cache-line-striped counters, non-atomic `LongAdder`, shared atomics, or a fair read lock | `AtomicBoolean` state read                              |
-| `StructuredGatewayCodeGenerationBenchmark` | Average time | Parse, graph analysis, and Java-source generation for wide and deeply nested structured gateways | compare matching shape and size across commits                |
-| `DurableProcessRuntimeLoadBenchmark`    | SingleShotTime | Parse, validate, lower, generate, javac, load, and construct one uncached Durable process runtime from an exact definition at 50/200/1000/5000 nodes | compare matching size across commits                          |
-| `DurableMachineAdvanceBenchmark`        | Average time   | Advance one already compiled Store-free Machine from a fresh continuation through completion for sequence-64, loop-64, Parallel-8, and Inclusive-8 | compare the same named scenario across commits                |
-| `DurablePostgresBoundaryBenchmark`      | Sample time    | Current seven-table Durable admission, Run claim/completion, Wait, Timer, Complete, Effect dispatch/completion/UNKNOWN/reconcile, and Outbox transactions on real PostgreSQL | independent boundary distributions                            |
+| Benchmark class                            | Mode           | What it measures                                                                                                                                                     | Baseline                                                      |
+| ------------------------------------------ | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `BaselineJavaBenchmark`                    | Throughput     | Hand-written Java equivalent of `value + 2`                                                                                                                          | absolute floor                                                |
+| `CompileFlowExecuteBenchmark`              | Throughput     | TBBPM exact-version execution after `runtime().load`                                                                                                                 | `BaselineJavaBenchmark`                                       |
+| `BpmnExecuteBenchmark`                     | Throughput     | BPMN exact-version execution after `runtime().load`                                                                                                                  | `CompileFlowExecuteBenchmark` (same engine, different format) |
+| `CompileFlowFirstExecutionBenchmark`       | SingleShotTime | First definition execution in a fresh fork; excludes JVM startup and engine construction                                                                             | independent fork samples                                      |
+| `CompileFlowConcurrentExecuteBenchmark`    | Throughput     | Concurrent exact-version execution under 4 threads                                                                                                                   | `CompileFlowExecuteBenchmark` (single-thread)                 |
+| `CompileFlowAliasExecuteBenchmark`         | Throughput     | Concurrent stable Alias and weighted-canary Alias execution under 4 threads                                                                                          | `CompileFlowConcurrentExecuteBenchmark`                       |
+| `ProcessCallExecuteBenchmark`              | Throughput     | Exact-version execution through minimal Process call chains at depths 0, 1, and 4                                                                                    | depth 0 under the same benchmark configuration                |
+| `OperationGateBenchmark`                   | Throughput     | Steady-state lifecycle admission using exact cache-line-striped counters, non-atomic `LongAdder`, shared atomics, or a fair read lock                                | `AtomicBoolean` state read                                    |
+| `StructuredGatewayCodeGenerationBenchmark` | Average time   | Parse, graph analysis, and Java-source generation for wide and deeply nested structured gateways                                                                     | compare matching shape and size across commits                |
+| `DurableProcessRuntimeLoadBenchmark`       | SingleShotTime | Parse, validate, lower, generate, javac, load, and construct one uncached Durable process runtime from an exact definition at 50/200/1000/5000 nodes                 | compare matching size across commits                          |
+| `DurableMachineAdvanceBenchmark`           | Average time   | Advance one already compiled Store-free Machine from a fresh continuation through completion for sequence-64, loop-64, Parallel-8, and Inclusive-8                   | compare the same named scenario across commits                |
+| `DurablePostgresBoundaryBenchmark`         | Sample time    | Seven-table Durable admission, Run claim/completion, Wait, Timer, Complete, Effect dispatch/completion/UNKNOWN/reconcile, and Outbox transactions on real PostgreSQL | independent boundary distributions                            |
 
-Default JMH configuration for throughput benchmarks: 5 warmup iterations × 2s, 5 measurement iterations × 5s, 1 fork.
-The first-execution benchmark performs one un-warmed measurement in each of 10 independent forks. Override with
-`-wi`, `-i`, `-f`, `-r`, and `-t` flags on the command line. The scheduled CI measurement uses 3 forks for each
-single-thread steady-state throughput benchmark, keeps the scenario-specific defaults for first execution, and runs a
-shorter 1/4/16/32/64-thread sweep for exact-version and Alias contention.
+The engine steady-state benchmarks default to 5 warmup iterations × 2s, 5 measurement iterations × 5s, and 1 fork.
+`OperationGateBenchmark` and the workflow sweeps use their own shorter settings. The first-execution benchmark performs
+one un-warmed measurement in each of 10 independent forks. Override settings with `-wi`, `-i`, `-f`, `-r`, and `-t`.
 
 ### Durable PostgreSQL boundaries
 
@@ -64,10 +62,11 @@ java -jar compileflow-benchmarks/target/compileflow-benchmarks.jar \
 
 Use a dedicated database identity and database. Never point this benchmark at a shared or production database. The
 measured operations use real PostgreSQL, Flyway V1→latest, database-time fencing, transactional Run/Effect/Outbox
-authority, and the current Durable envelope representation. Durable Kernel does not provide payload encryption or a
+authority, and synthetic Store envelope bytes, not runtime snapshot serialization/deserialization. Durable Kernel does not provide payload encryption or a
 KEK; deployments that require encryption must place that responsibility in their configured storage/security boundary.
 Start and Wait-completion identities remain unique; claim/Wait/Effect setup and post-claim settlement are outside the
-corresponding measured boundary. `snapshotBytes` defaults to a 16 KiB, 64 KiB, 256 KiB, and 1 MiB matrix. Pin one value
+corresponding measured boundary. Reused runnable claims consume their resolved occurrences in the next Turn commit.
+`snapshotBytes` defaults to a 16 KiB, 64 KiB, 256 KiB, and 1 MiB matrix. Pin one value
 when comparing transaction types, then use the matrix to inspect payload-size sensitivity. The scheduled workflow also
 runs Start, Run claim, and Effect reconciliation at 1/4/16/32 threads; this is a contention trend, not a capacity claim.
 
@@ -82,16 +81,17 @@ runs Start, Run claim, and Effect reconciliation at 1/4/16/32 threads; this is a
 - The Process call benchmark loads the leaf before its exact-version parents and compares a no-call control with one-
   and four-call chains. Every Process is otherwise a minimal start-to-end flow, so the result isolates call-graph
   resolution and nested invocation costs rather than action work.
-- Setup verifies that each benchmark flow succeeds and returns `42`; a broken flow fails the benchmark instead of
-  producing a deceptively fast error path.
+- Arithmetic benchmarks verify `42` during setup (during the measured call for first execution). Call-chain benchmarks
+  require successful execution, Machine benchmarks require successful completion, and PostgreSQL benchmarks reject
+  lost fences in measured operations and settlement. A failed operation must not become a performance sample.
 - The first-execution benchmark creates the engine before timing and executes one definition without a warmup
   invocation. The measured operation includes resource loading, parse, validation, code generation, Java compilation,
   generated class loading, and execution.
 - The Durable preparation benchmark constructs the compiler and exact immutable definition before timing. Each fork
-  measures one cold-cache parse-to-program pipeline and deliberately excludes Store I/O, Run admission, and database
+  measures one cold-cache parse-to-program pipeline and excludes Store I/O, Run admission, and database
   boundaries. Publish the `nodes` parameter with every result.
 - The Durable Machine benchmark prepares and compiles one immutable scenario during trial setup. Its measured operation
-  creates a fresh semantic continuation and advances the already compiled Program to a terminal result. It includes
+  creates a fresh semantic continuation with a fresh budget for each Turn and advances the already compiled Program to successful completion. It includes
   replayable Action invocation and all coordinator Turns required by structured gateways, but excludes preparation,
   javac, class loading, Store I/O, Run admission and PostgreSQL. Publish the `scenario` parameter with every result and
   compare only identical scenarios.
@@ -111,16 +111,10 @@ runs Start, Run claim, and Effect reconciliation at 1/4/16/32 threads; this is a
 - JMH allocation profilers are useful for diagnosis, but allocation rate is not retained heap. Publish retained-memory
   claims only from a separately described lifecycle test with an explicit reachability and GC protocol.
 
-## Comparison boundary
+## Measurement boundary
 
-This module measures CompileFlow against itself and against a plain-Java baseline. It does **not** include Activiti,
-Camunda, or Flowable benchmarks. Cross-product comparisons are outside this repository because:
-
-1. **Dependency isolation** — third-party engines bring heavy classpath footprints and database schemas that would
-   pollute the CompileFlow reactor.
-2. **Fairness** — a CompileFlow-tuned benchmark module cannot be the neutral arbiter of a cross-engine comparison.
-3. **Scope** — throughput numbers alone do not capture differences in supported semantics, persistence, deployment, or
-   operational behavior.
+This module measures CompileFlow runtime paths and a handwritten Java baseline. The results describe only the named
+benchmark operation, configuration, and environment.
 
 ## Reporting results
 
@@ -132,48 +126,11 @@ When you publish benchmark results, include:
 4. The CompileFlow commit hash
 5. The raw JSON output (`-rf json -rff ...`)
 
-Do not quote single-number comparisons (`100x faster`) without the above context. The comparison documents explicitly
-avoid such numbers; new results should follow the same discipline.
+Do not publish a single-number speedup claim without the above context and the corresponding raw results.
 
-The weekly and manually dispatched GitHub Actions workflow archives the raw JSON and runner environment for inspection.
-Its engine and Durable contention sweeps use one fork, two 1-second warmups, and three 2-second measurements per thread
-count; the Durable payload sweep uses the same settings across 16 KiB to 1 MiB snapshots. These are trend signals rather
-than publication-quality benchmarks. Standard GitHub-hosted runners are fresh virtual machines, not dedicated stable
-benchmark hardware, so the workflow does not fail builds from an absolute throughput threshold. Compare results only
-when the runner class, JDK, JVM flags, PostgreSQL image, parameters, and JMH settings match; use score uncertainty and
-repeated runs rather than a single point estimate. A release-blocking regression gate requires controlled, dedicated
-hardware and a separately reviewed baseline. The PostgreSQL service in that workflow is a single ephemeral container
-and provides a reproducible regression trend, not HA, failover, storage, or production-capacity evidence.
-
-## Layout
-
-```text
-compileflow-benchmarks/
-├── README.md
-├── pom.xml
-└── src/main/
-    ├── resources/flows/
-    │   ├── hello.bpm                 ← TBBPM benchmark flow
-    │   └── hello.bpmn              ← BPMN 2.0 benchmark flow
-    └── java/com/alibaba/compileflow/
-        ├── benchmarks/
-        │   ├── BaselineJavaBenchmark.java
-        │   ├── CompileFlowExecuteBenchmark.java
-        │   ├── BpmnExecuteBenchmark.java
-        │   ├── CompileFlowFirstExecutionBenchmark.java
-        │   ├── CompileFlowConcurrentExecuteBenchmark.java
-        │   ├── DurableProcessRuntimeLoadBenchmark.java
-        │   ├── DurableMachineAdvanceBenchmark.java
-        │   ├── DurablePostgresBoundaryBenchmark.java
-        │   ├── CompileFlowAliasExecuteBenchmark.java
-        │   ├── ProcessCallExecuteBenchmark.java
-        │   ├── OperationGateBenchmark.java
-        │   └── StructuredGatewayCodeGenerationBenchmark.java
-```
-
-All benchmark sources stay in the benchmark-owned package. Alias setup uses the same public routing-snapshot helper as
-other non-router callers instead of borrowing a production implementation package.
+Automated measurements on shared CI runners are regression signals, not publication-quality benchmarks. Compare runs
+only when the runner class, JDK, JVM flags, database image, parameters, and JMH settings match. Use repeated runs and
+score uncertainty rather than a single measurement. Capacity or release-gating claims require controlled, dedicated
+hardware.
 
 Benchmarks are not part of the default reactor. The `-Pbenchmarks` profile in the root `pom.xml` adds this module.
-Pull-request CI does not run the suite; the weekly performance workflow validates expected benchmarks, forks,
-iterations, and finite metrics before archiving results and environment metadata.

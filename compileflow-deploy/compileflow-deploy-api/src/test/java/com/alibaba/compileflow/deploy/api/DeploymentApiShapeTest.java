@@ -14,7 +14,6 @@
 package com.alibaba.compileflow.deploy.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import com.alibaba.compileflow.deploy.api.protocol.json.DeploymentProtocolJson;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.nio.file.Files;
@@ -36,21 +35,12 @@ class DeploymentApiShapeTest {
                     Set.of("AbortRolloutCommand", "CreateRolloutCommand", "PromoteRolloutCommand",
                             "PublishProcessVersionCommand", "RollbackRolloutCommand", "UpdateCanaryWeightCommand")),
             Map.entry(API_PACKAGE + ".error", Set.of("DeploymentErrorCode", "DeploymentException")),
-            Map.entry(API_PACKAGE + ".observability",
-                    Set.of("ProcessDeploymentMetrics", "ProcessDeploymentOperationMetrics")),
-            Map.entry(API_PACKAGE + ".protocol", Set.of("ProtocolKeyCodec")),
-            Map.entry(API_PACKAGE + ".protocol.json", Set.of("DeploymentProtocolJson")),
-            Map.entry(API_PACKAGE + ".protocol.artifact",
-                    Set.of("ProcessArtifactKeys", "ProcessArtifactParser", "ProcessArtifactPayloads")),
-            Map.entry(API_PACKAGE + ".protocol.routing",
-                    Set.of("RoutingStateKeys", "RoutingStateParser", "RoutingStatePayloads", "RoutingStateUpdate")),
             Map.entry(API_PACKAGE + ".release", Set.of("DeploymentAudit", "ReleaseMetadata", "ReleaseMetadataKeys")),
             Map.entry(API_PACKAGE + ".rollout",
                     Set.of("ProcessRollout", "RolloutConstraints", "RolloutCursor", "RolloutEvent",
                             "RolloutOperationKind", "RolloutPage", "RolloutPhase", "RolloutQuery", "RolloutStrategy")),
             Map.entry(API_PACKAGE + ".routing", Set.of("ProcessAliasState")),
             Map.entry(API_PACKAGE + ".spi", Set.of("ProcessArtifactSource")),
-            Map.entry(API_PACKAGE + ".sync", Set.of("DeploymentSyncChannel")),
             Map.entry(API_PACKAGE + ".version",
                     Set.of("PublishedProcessVersion", "PublishedVersionCursor", "PublishedVersionPage",
                             "PublishedVersionQuery")));
@@ -60,12 +50,6 @@ class DeploymentApiShapeTest {
         assertThat(publicTopLevelTypes())
             .as("complete supported deployment API package and type allowlist")
             .isEqualTo(SUPPORTED_TOP_LEVEL_TYPES);
-    }
-
-    @Test
-    void keepsProtocolJsonConstructionClosed() {
-        assertThat(DeploymentProtocolJson.class.getDeclaredConstructors())
-            .allSatisfy(constructor -> assertThat(Modifier.isPrivate(constructor.getModifiers())).isTrue());
     }
 
     private static Map<String, Set<String>> publicTopLevelTypes() throws Exception {

@@ -26,13 +26,13 @@ import org.springframework.context.annotation.Bean;
  *
  * @author yusu
  */
-@AutoConfiguration(before = CompileFlowCoreAutoConfiguration.class)
+@AutoConfiguration(before = CompileFlowEngineAutoConfiguration.class)
 @ConditionalOnClass(name = "io.micrometer.context.ContextSnapshot")
 public class CompileFlowContextPropagationAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public ProcessContextPropagator processContextPropagator() {
-        ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().build();
+        ContextSnapshotFactory snapshotFactory = ContextSnapshotFactory.builder().clearMissing(true).build();
         return () -> {
             ContextSnapshot snapshot = snapshotFactory.captureAll();
             return () -> {

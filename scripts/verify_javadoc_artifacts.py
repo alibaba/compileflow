@@ -84,6 +84,8 @@ def verify_module(module: Path) -> tuple[Path, int]:
     module = module.resolve()
     archive = javadoc_archive(module)
     expected = expected_type_pages(module)
+    required = {"index.html", "element-list"} | expected
+    files: set[str] = set()
     with zipfile.ZipFile(archive) as contents:
         names: set[str] = set()
         for entry in contents.infolist():
@@ -91,8 +93,11 @@ def verify_module(module: Path) -> tuple[Path, int]:
             if name in names:
                 raise ValueError(f"Javadoc archive has duplicate entry: {name}")
             names.add(name)
-    required = {"index.html", "element-list"} | expected
-    missing = sorted(required - names)
+            if not entry.is_dir():
+                files.add(name)
+                if name in required and entry.file_size == 0:
+                    raise ValueError(f"required Javadoc entry is empty: {name}")
+    missing = sorted(required - files)
     if missing:
         preview = ", ".join(missing[:8])
         suffix = " ..." if len(missing) > 8 else ""

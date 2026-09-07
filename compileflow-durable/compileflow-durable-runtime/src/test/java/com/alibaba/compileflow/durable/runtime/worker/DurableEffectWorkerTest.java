@@ -40,6 +40,7 @@ import com.alibaba.compileflow.engine.core.semantic.plan.ProcessSemanticPlan;
 import com.alibaba.compileflow.engine.core.semantic.plan.EffectPolicyPlan;
 import com.alibaba.compileflow.engine.core.runtime.script.ScriptExecutorRegistry;
 import com.alibaba.compileflow.engine.spi.ProcessComponentResolver;
+import com.alibaba.compileflow.engine.spi.script.ScriptException;
 import com.alibaba.compileflow.engine.tbbpm.parser.TbbpmXmlParser;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
@@ -53,6 +54,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class DurableEffectWorkerTest {
     private static final ProcessRef.Version PROCESS = ProcessRef.version("test", "effect.worker", "v1");
@@ -111,6 +114,22 @@ class DurableEffectWorkerTest {
         assertThat(store.transition).isEqualTo(Transition.UNKNOWN);
         assertThat(store.delay).isZero();
         assertThat(store.reason).isEqualTo(IllegalStateException.class.getName());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void cancellationAfterDispatchUsesFencedUnknownCompletion(boolean leaseCurrent) {
+        DurableProcessRuntime program = loadProgram("dispatchCancelled", "");
+        CapturingStore store =
+                new CapturingStore(claim(program, DurableStore.EffectOperation.DISPATCH, 1, 0), leaseCurrent);
+        DurableRuntimeMetrics metrics = new DurableRuntimeMetrics();
+
+        assertThat(run(store, cache(program), metrics)).isTrue();
+        assertThat(store.transition).isEqualTo(Transition.UNKNOWN);
+        assertThat(store.delay).isZero();
+        assertThat(store.reason).isEqualTo(ScriptException.class.getName());
+        assertThat(metrics.count(Operation.EFFECT_DISPATCH, leaseCurrent ? Outcome.UNKNOWN : Outcome.LEASE_LOST)).isOne();
+        assertThat(metrics.count(Operation.EFFECT_DISPATCH, Outcome.SUCCESS)).isZero();
     }
 
     @Test
@@ -493,6 +512,10 @@ class DurableEffectWorkerTest {
 
         public void dispatchFailure() {
             throw new IllegalStateException("unknown outcome");
+        }
+
+        public void dispatchCancelled() {
+            throw new ScriptException(ScriptException.Kind.CANCELLED, "response handling cancelled after dispatch");
         }
 
         public void dispatchFailure(String effectId) {

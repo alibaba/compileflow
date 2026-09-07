@@ -266,7 +266,7 @@ export function registerTbbpmNodes() {
   })
 
   isRegistered = true
-  logger.info('Registered 14 TBBPM node types to X6')
+  logger.info(`Registered ${TBBPM_NODE_TYPES.length} TBBPM node types to X6`)
 }
 
 export function getNodeConfig(nodeType: string) {

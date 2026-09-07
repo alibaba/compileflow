@@ -103,7 +103,7 @@ public enum ErrorCode {
      */
     CF_RESOURCE_001("Process definition not found"),
     /**
-     * A failure occurred while loading a resource (e.g., a process file).
+     * A failure occurred while loading a resource (e.g., a classpath process definition).
      */
     CF_RESOURCE_002("Resource loading failed"),
     /**
@@ -116,7 +116,7 @@ public enum ErrorCode {
      */
     CF_VALIDATION_001("Parameter validation failed"),
     /**
-     * The process definition file is malformed or does not conform to the schema (e.g., BPMN, TBBPM).
+     * The process definition content is malformed or does not conform to the schema (e.g., BPMN, TBBPM).
      */
     CF_VALIDATION_002("Invalid process definition format"),
     /**

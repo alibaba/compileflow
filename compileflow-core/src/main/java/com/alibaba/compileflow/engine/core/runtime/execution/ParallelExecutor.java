@@ -32,6 +32,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
@@ -85,7 +86,7 @@ final class ParallelExecutor {
                 futures.add(future);
                 executions.add(execution);
             } catch (RejectedExecutionException ree) {
-                cancelUnfinished(futures);
+                cancelUnfinished(futures, executor);
                 List<String> lingering = awaitCancelledBranches(executions);
                 if (!lingering.isEmpty()) {
                     throw cancellationDrainFailure(lingering, ree, cancellationGracePeriod());
@@ -104,7 +105,7 @@ final class ParallelExecutor {
                 orderedResults.set(result.index(), result.value());
             }
         } catch (InterruptedException ie) {
-            cancelUnfinished(futures);
+            cancelUnfinished(futures, executor);
             Duration cancellationGrace = cancellationGracePeriod();
             List<String> lingering = awaitCancelledBranches(executions, cancellationGrace);
             Thread.currentThread().interrupt();
@@ -113,7 +114,7 @@ final class ParallelExecutor {
             }
             throw ie;
         } catch (CancellationException ce) {
-            cancelUnfinished(futures);
+            cancelUnfinished(futures, executor);
             Duration cancellationGrace = cancellationGracePeriod();
             List<String> lingering = awaitCancelledBranches(executions, cancellationGrace);
             if (!lingering.isEmpty()) {
@@ -124,7 +125,7 @@ final class ParallelExecutor {
             throw new CompileFlowException(ErrorCode.CF_EXEC_007, "Parallel execution was cancelled", ce)
                 .withContext("duration", duration);
         } catch (ExecutionException ee) {
-            cancelUnfinished(futures);
+            cancelUnfinished(futures, executor);
             Throwable cause = ee.getCause() != null ? ee.getCause() : ee;
             Duration cancellationGrace = cancellationGracePeriod();
             List<String> lingering = awaitCancelledBranches(executions, cancellationGrace);
@@ -157,10 +158,13 @@ final class ParallelExecutor {
         return Collections.unmodifiableList(orderedResults);
     }
 
-    private static void cancelUnfinished(List<? extends Future<?>> futures) {
+    private static void cancelUnfinished(List<? extends Future<?>> futures, ExecutorService executor) {
         for (Future<?> future : futures) {
             if (!future.isDone()) {
                 future.cancel(true);
+                if (executor instanceof ThreadPoolExecutor threadPool && future instanceof Runnable runnable) {
+                    threadPool.remove(runnable);
+                }
             }
         }
     }

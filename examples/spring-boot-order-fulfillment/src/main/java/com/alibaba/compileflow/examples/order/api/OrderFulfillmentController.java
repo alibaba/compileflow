@@ -14,12 +14,15 @@
 package com.alibaba.compileflow.examples.order.api;
 
 import com.alibaba.compileflow.examples.order.workflow.OrderFulfillmentWorkflow;
+import com.alibaba.compileflow.engine.ProcessIdentifiers;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * HTTP adapter that keeps transport concerns outside the process definition.
@@ -38,6 +41,13 @@ public class OrderFulfillmentController {
     @PostMapping("/fulfill")
     public ResponseEntity<OrderResponse> fulfill(@RequestBody OrderRequest request,
             @RequestHeader(value = "X-Invocation-Id", required = false) String invocationId) {
+        if (invocationId != null && !invocationId.isBlank()) {
+            try {
+                ProcessIdentifiers.requireInvocationId(invocationId);
+            } catch (IllegalArgumentException failure) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid X-Invocation-Id", failure);
+            }
+        }
         return ResponseEntity.ok(workflow.fulfill(request, invocationId));
     }
 }

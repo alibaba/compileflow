@@ -93,6 +93,15 @@ class CanaryHealthServiceTest {
     }
 
     @Test
+    void rejectsNonFiniteErrorRateThresholds() {
+        for (double value : new double[] {Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY}) {
+            assertThatThrownBy(() -> CanaryHealthService.CanaryHealthRequest.of(null, null, value, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("maxCanaryErrorRate must be between 0 and 1");
+        }
+    }
+
+    @Test
     void rejectsHealthEvaluationAfterCanaryIsTerminal() {
         ExecutionLogService logs = mock(ExecutionLogService.class);
         DeploymentService deployments = mock(DeploymentService.class);

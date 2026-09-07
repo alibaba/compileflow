@@ -34,7 +34,7 @@ export default defineConfig({
   use: {
     ...workbenchChineseLocale,
     baseURL: 'http://localhost:5173',
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
@@ -62,7 +62,7 @@ export default defineConfig({
     {
       command: 'pnpm --dir ../dev-gateway dev',
       url: 'http://127.0.0.1:3001/api/status',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 120 * 1000,
       env: {
         ...process.env,
@@ -70,9 +70,9 @@ export default defineConfig({
       },
     },
     {
-      command: 'pnpm dev',
+      command: 'pnpm dev --strictPort',
       url: 'http://localhost:5173',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 120 * 1000,
       env: {
         ...process.env,

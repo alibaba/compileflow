@@ -24,7 +24,7 @@ import java.util.Objects;
  */
 public final class ProcessExecutorConfig {
     private static final int DEFAULT_RUNTIME_LOAD_MAX_PENDING = 4;
-    private static final int DEFAULT_ACTION_TIMEOUT_MAX_PENDING = 32;
+    private static final int DEFAULT_ACTION_TIMEOUT_MAX_PENDING = 0;
     private static final Duration DEFAULT_ACTION_TIMEOUT_CANCELLATION_GRACE_PERIOD = Duration.ofSeconds(2);
     private static final Duration DEFAULT_PARALLEL_CANCELLATION_GRACE_PERIOD = Duration.ofSeconds(2);
     private final int runtimeLoadMaxConcurrency;
@@ -80,21 +80,6 @@ public final class ProcessExecutorConfig {
     }
 
     /**
-     * Creates a builder initialized from this immutable snapshot.
-     *
-     * @return mutable builder carrying all current values
-     */
-    public Builder toBuilder() {
-        return new Builder()
-            .runtimeLoadMaxConcurrency(runtimeLoadMaxConcurrency)
-            .runtimeLoadMaxPending(runtimeLoadMaxPending)
-            .actionTimeoutMaxConcurrency(actionTimeoutMaxConcurrency)
-            .actionTimeoutMaxPending(actionTimeoutMaxPending)
-            .actionTimeoutCancellationGracePeriod(actionTimeoutCancellationGracePeriod)
-            .parallelCancellationGracePeriod(parallelCancellationGracePeriod);
-    }
-
-    /**
      * Returns the maximum number of unique runtime loads that may run concurrently.
      *
      * @return maximum concurrent runtime loads
@@ -126,6 +111,9 @@ public final class ProcessExecutorConfig {
      * Returns the maximum number of timeout-enforced action attempts that may
      * wait when all execution slots are occupied.
      *
+     * <p>The default is zero: deadline-bound work is rejected when no worker is available.
+     * Configure a bounded queue only when measured burst tolerance fits the action's deadline.
+     *
      * @return maximum pending action attempts, or zero for fail-fast admission
      */
     public int getActionTimeoutMaxPending() {
@@ -152,7 +140,7 @@ public final class ProcessExecutorConfig {
         return parallelCancellationGracePeriod;
     }
 
-    ValidationResult validate() {
+    private ValidationResult validate() {
         ValidationResult runtimeConcurrency =
                 ProcessConfigValidator.validatePositive(runtimeLoadMaxConcurrency, "executor.runtimeLoadMaxConcurrency");
         ValidationResult result = ProcessConfigValidator.combine(runtimeConcurrency,
@@ -160,10 +148,6 @@ public final class ProcessExecutorConfig {
                 ProcessConfigValidator.validatePositive(actionTimeoutMaxConcurrency,
                         "executor.actionTimeoutMaxConcurrency"),
                 ProcessConfigValidator.validateNonNegative(actionTimeoutMaxPending, "executor.actionTimeoutMaxPending"));
-        if ((long) runtimeLoadMaxConcurrency + runtimeLoadMaxPending > Integer.MAX_VALUE) {
-            result = result.addError(
-                    "executor.runtimeLoadMaxConcurrency + runtimeLoadMaxPending must not exceed " + Integer.MAX_VALUE);
-        }
         result = result.merge(ProcessConfigValidator.validateNonNegativeDurationMillis(actionTimeoutCancellationGracePeriod,
                 "executor.actionTimeoutCancellationGracePeriod"));
         result = result.merge(ProcessConfigValidator.validateNonNegativeDurationMillis(parallelCancellationGracePeriod,

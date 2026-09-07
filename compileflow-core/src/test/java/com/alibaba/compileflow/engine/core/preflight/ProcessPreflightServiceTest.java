@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.core.preflight;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.alibaba.compileflow.engine.CompileFlowException;
@@ -35,6 +36,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class ProcessPreflightServiceTest {
     private ExecutorService coordinator;
@@ -49,17 +52,72 @@ class ProcessPreflightServiceTest {
         coordinator.shutdownNow();
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void scopesSourceLintAndRuntimeCheckToRequestedClassLoader(boolean lintFails) throws Exception {
+        ClassLoader requested = new ClassLoader(getClass().getClassLoader()) {
+        };
+        ClassLoader original =
+                coordinator
+            .submit(() -> Thread.currentThread().getContextClassLoader())
+            .get(1, TimeUnit.SECONDS);
+        NoOpProcessRuntimeLoader loader = new NoOpProcessRuntimeLoader() {
+            @Override
+            public ProcessDefinitionSnapshot resolve(ProcessRuntimeRequest request, ClassLoader classLoader) {
+                assertThat(Thread.currentThread().getContextClassLoader()).isSameAs(requested);
+                assertThat(classLoader).isSameAs(requested);
+                return super.resolve(request, classLoader);
+            }
+
+            @Override
+            public ProcessRuntimeEntry runtimeCheckSync(ProcessDefinitionSnapshot definition, ClassLoader classLoader) {
+                assertThat(Thread.currentThread().getContextClassLoader()).isSameAs(requested);
+                assertThat(classLoader).isSameAs(requested);
+                return super.runtimeCheckSync(definition, classLoader);
+            }
+        };
+        ProcessPreflightService service = new ProcessPreflightService(loader, source -> {
+            assertThat(Thread.currentThread().getContextClassLoader()).isSameAs(requested);
+            if (lintFails) {
+                throw new IllegalArgumentException("lint failed");
+            }
+        }, coordinator);
+        ProcessPreflightReport report = service.preflight(requested,
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "order.checkout", "<flow/>"),
+                ProcessPreflightOptions.builder().lintEnabled(true).compileEnabled(true).build());
+        assertThat(report.getItems())
+            .extracting(ProcessPreflightReport.Item::getStatus)
+            .containsExactly(lintFails ? ProcessPreflightReport.ItemStatus.FAIL : ProcessPreflightReport.ItemStatus.PASS,
+                    ProcessPreflightReport.ItemStatus.PASS);
+        assertThat(loader.compileCalled()).isTrue();
+        assertThat(coordinator
+            .submit(() -> Thread.currentThread().getContextClassLoader())
+            .get(1, TimeUnit.SECONDS))
+            .isSameAs(original);
+    }
+
     @Test
-    void fatalErrorsFromAStageAreNotConvertedIntoReports() {
+    void fatalErrorsFromAStageAreNotConvertedIntoReports() throws Exception {
+        ClassLoader requested = new ClassLoader(getClass().getClassLoader()) {
+        };
+        ClassLoader original =
+                coordinator
+            .submit(() -> Thread.currentThread().getContextClassLoader())
+            .get(1, TimeUnit.SECONDS);
         AssertionError fatal = new AssertionError("fatal linter failure");
         ProcessPreflightService service =
                 new ProcessPreflightService(new NoOpProcessRuntimeLoader(), source -> {
             throw fatal;
         }, coordinator);
 
-        assertThatThrownBy(() -> service.preflight(getClass().getClassLoader(),
-                ProcessDefinition.inline("order.checkout", "<flow/>"), ProcessPreflightOptions.fast()))
+        assertThatThrownBy(() -> service.preflight(requested,
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "order.checkout", "<flow/>"),
+                ProcessPreflightOptions.fast()))
             .isSameAs(fatal);
+        assertThat(coordinator
+            .submit(() -> Thread.currentThread().getContextClassLoader())
+            .get(1, TimeUnit.SECONDS))
+            .isSameAs(original);
     }
 
     @Test
@@ -70,7 +128,8 @@ class ProcessPreflightServiceTest {
         }, coordinator);
 
         ProcessPreflightReport report = service.preflight(getClass().getClassLoader(),
-                ProcessDefinition.inline("order.checkout", "<flow/>"), ProcessPreflightOptions.fast());
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "order.checkout", "<flow/>"),
+                ProcessPreflightOptions.fast());
 
         assertThat(report.getCode()).isEqualTo("order.checkout");
         assertThat(report.getItems())
@@ -87,7 +146,8 @@ class ProcessPreflightServiceTest {
         }, coordinator);
 
         ProcessPreflightReport report = service.preflight(getClass().getClassLoader(),
-                ProcessDefinition.inline("order.checkout", "<flow/>"), ProcessPreflightOptions.fast());
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "order.checkout", "<flow/>"),
+                ProcessPreflightOptions.fast());
 
         assertThat(report.getItems())
             .singleElement()
@@ -117,7 +177,7 @@ class ProcessPreflightServiceTest {
             .build();
 
         ProcessPreflightReport report = service.preflight(getClass().getClassLoader(),
-                ProcessDefinition.inline("order.checkout", "<flow/>"), options);
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "order.checkout", "<flow/>"), options);
 
         assertThat(lintStarted.getCount()).isZero();
         assertThat(report.getItems())
@@ -135,7 +195,8 @@ class ProcessPreflightServiceTest {
                 new ProcessPreflightService(new NoOpProcessRuntimeLoader(), source -> {}, coordinator);
 
         assertThatThrownBy(() -> service.preflight(getClass().getClassLoader(),
-                ProcessDefinition.inline("order.checkout", "<flow/>"), ProcessPreflightOptions.fast()))
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "order.checkout", "<flow/>"),
+                ProcessPreflightOptions.fast()))
             .isInstanceOfSatisfying(CompileFlowException.class, failure -> assertThat(failure.getErrorCode())
                 .isEqualTo(ErrorCode.CF_EXEC_005));
     }
@@ -161,8 +222,8 @@ class ProcessPreflightServiceTest {
 
         @Override
         public ProcessDefinitionSnapshot resolve(ProcessRuntimeRequest request, ClassLoader classLoader) {
-            return ProcessDefinitionSnapshot.of(request.getNamespace(), request.getCode(), request.getVersion(),
-                    "<flow/>".getBytes(StandardCharsets.UTF_8), "test");
+            return ProcessDefinitionSnapshot.of(ProcessModelType.TBBPM, request.getNamespace(), request.getCode(),
+                    request.getVersion(), "<flow/>".getBytes(StandardCharsets.UTF_8), "test");
         }
 
         @Override

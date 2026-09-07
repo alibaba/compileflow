@@ -54,10 +54,8 @@ public final class ExecutionContextPropagator {
         ContextSnapshot capturedContext = snapshot != null ? snapshot : capture();
         return () -> {
             BoundContext context = BoundContext.open(capturedContext);
-            try {
+            try (context) {
                 return callable.call();
-            } finally {
-                context.close();
             }
         };
     }
@@ -66,10 +64,8 @@ public final class ExecutionContextPropagator {
         ContextSnapshot capturedContext = snapshot != null ? snapshot : capture();
         return () -> {
             BoundContext context = BoundContext.open(capturedContext);
-            try {
+            try (context) {
                 runnable.run();
-            } finally {
-                context.close();
             }
         };
     }
@@ -133,9 +129,7 @@ public final class ExecutionContextPropagator {
             BoundContext context = new BoundContext(Thread.currentThread().getContextClassLoader(), captureMdc(),
                     EngineExecutionContextHolder.current(), bindActionContext(snapshot.actionContext));
             try {
-                if (snapshot.classLoader != null) {
-                    replaceContextClassLoader(snapshot.classLoader);
-                }
+                replaceContextClassLoader(snapshot.classLoader);
                 replaceMdc(snapshot.mdcContext);
                 replaceEngineContext(snapshot.engineContext);
                 context.applicationScope = Objects.requireNonNull(snapshot.applicationContext.open(),

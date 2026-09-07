@@ -43,7 +43,7 @@ class DeploymentExceptionHandlerTest {
 
     @Test
     void doesNotExposeInternalDeploymentDiagnostics() {
-        ResponseEntity<ProblemDetail> response = handler.handle(DeploymentException.of(DeploymentErrorCode.REPOSITORY_ERROR,
+        ResponseEntity<ProblemDetail> response = handler.handle(DeploymentException.of(DeploymentErrorCode.STORAGE_ERROR,
                 "password=secret jdbc:postgresql://internal-host/compileflow",
                 new IllegalStateException("private SQL detail")));
 
@@ -51,7 +51,7 @@ class DeploymentExceptionHandlerTest {
         assertThat(response.getBody().getDetail())
             .isEqualTo("Deployment storage is temporarily unavailable")
             .doesNotContain("password=secret jdbc:postgresql://internal-host/compileflow");
-        assertThat(response.getBody().getProperties()).containsEntry("code", "REPOSITORY_ERROR");
+        assertThat(response.getBody().getProperties()).containsEntry("code", "STORAGE_ERROR");
     }
 
     @Test
@@ -59,7 +59,7 @@ class DeploymentExceptionHandlerTest {
         assertThat(status(DeploymentErrorCode.VERSION_NOT_FOUND)).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(status(DeploymentErrorCode.DEPENDENCY_NOT_FOUND)).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
         assertThat(status(DeploymentErrorCode.IDEMPOTENCY_CONFLICT)).isEqualTo(HttpStatus.CONFLICT);
-        assertThat(status(DeploymentErrorCode.REPOSITORY_ERROR)).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        assertThat(status(DeploymentErrorCode.STORAGE_ERROR)).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
         assertThat(status(DeploymentErrorCode.INTERNAL_ERROR)).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 

@@ -15,6 +15,10 @@ package com.alibaba.compileflow.engine.core.routing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.alibaba.compileflow.engine.AliasRoutingOptions;
 import com.alibaba.compileflow.engine.ProcessAliasTarget;
 import com.alibaba.compileflow.engine.ProcessRef;
@@ -24,6 +28,7 @@ import com.alibaba.compileflow.engine.spi.routing.ProcessAliasTargetingPolicy;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 class AliasTargetSelectorTest {
     private static final ProcessRef.Alias ALIAS = ProcessRef.alias("default", "order.process", "production");
@@ -81,6 +86,39 @@ class AliasTargetSelectorTest {
             .isEqualTo(
                     new AliasTargetSelector.Selection(ProcessAliasTarget.STABLE,
                             AliasTargetSelector.Reason.TARGETING_ERROR, policy.name()));
+    }
+
+    @Test
+    void targetingFailureDoesNotLogTheExtensionException() {
+        String secret = "secret-DO-NOT-LOG-12345";
+        ProcessAliasTargetingPolicy policy = policy(context -> {
+            throw new IllegalStateException(secret);
+        });
+        AliasTargetSelector selector = new AliasTargetSelector(Map.of(policy.name(), policy));
+        ProcessAliasRoute route =
+                ProcessAliasRoute.canary(ALIAS, "v1", "v2", 9_999, new AliasTargeting(policy.name()), 4L);
+        Logger logger = (Logger) LoggerFactory.getLogger(AliasTargetSelector.class);
+
+        synchronized (AliasTargetSelector.class) {
+            Level previousLevel = logger.getLevel();
+            ListAppender<ILoggingEvent> appender = new ListAppender<>();
+            appender.start();
+            logger.addAppender(appender);
+            logger.setLevel(Level.ERROR);
+            try {
+                assertThat(selector.select(route, new AliasRoutingOptions("sensitive-routing-key"))).isNotNull();
+
+                assertThat(appender.list)
+                    .extracting(ILoggingEvent::getFormattedMessage)
+                    .allMatch(message -> !message.contains(secret))
+                    .anyMatch(message -> message.contains(IllegalStateException.class.getName()));
+                assertThat(appender.list).extracting(ILoggingEvent::getThrowableProxy).containsOnlyNulls();
+            } finally {
+                logger.detachAppender(appender);
+                logger.setLevel(previousLevel);
+                appender.stop();
+            }
+        }
     }
 
     @Test

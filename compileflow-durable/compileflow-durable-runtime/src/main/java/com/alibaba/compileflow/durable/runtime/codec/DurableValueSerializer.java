@@ -386,8 +386,9 @@ public final class DurableValueSerializer {
                 .sorted(Comparator.comparingInt(DurableValueSerializer::branchDepth))
                 .toList();
             Map<FrontierId, FrontierSnapshot> decoded = new LinkedHashMap<>();
+            Map<JsonNode, ConcurrentBranchFrame> sharedBranches = new LinkedHashMap<>();
             for (JsonNode frontier : dependencyOrder) {
-                FrontierSnapshot restored = decodeFrontier(frontier, decoded);
+                FrontierSnapshot restored = decodeFrontier(frontier, decoded, sharedBranches);
                 if (decoded.putIfAbsent(restored.frontierId(), restored) != null) {
                     throw invalid("ContinuationSnapshot contains duplicate frontier identities", null);
                 }
@@ -490,7 +491,8 @@ public final class DurableValueSerializer {
         return encoded;
     }
 
-    private FrontierSnapshot decodeFrontier(JsonNode source, Map<FrontierId, FrontierSnapshot> decodedFrontiers) {
+    private FrontierSnapshot decodeFrontier(JsonNode source, Map<FrontierId, FrontierSnapshot> decodedFrontiers,
+            Map<JsonNode, ConcurrentBranchFrame> sharedBranches) {
         if (source == null || !source.isObject()) {
             throw invalid("Continuation frontier must be an object", null);
         }
@@ -507,7 +509,7 @@ public final class DurableValueSerializer {
         FrontierId frontierId = new FrontierId(text(encoded, "id"));
         ResumePoint position = decodeResumePoint(encoded);
         ResumeDescriptor resume = requireResume(position);
-        List<BranchFrame> branches = decodeBranchFrames(encoded.get("branches"));
+        List<BranchFrame> branches = decodeBranchFrames(encoded.get("branches"), sharedBranches);
         Map<String, Object> iterationBaseline = iterationBaseline(branches, decodedFrontiers);
         Map<String, Object> variables = iterationBaseline != null
                 ? decodeProcessVariableDelta(encoded.get("variables"), iterationBaseline)
@@ -537,7 +539,8 @@ public final class DurableValueSerializer {
         return new FrontierSnapshot(frontierId, position, variables, scopes, branches, controller);
     }
 
-    private List<BranchFrame> decodeBranchFrames(JsonNode branchesNode) {
+    private List<BranchFrame> decodeBranchFrames(JsonNode branchesNode,
+            Map<JsonNode, ConcurrentBranchFrame> sharedBranches) {
         if (branchesNode == null || !branchesNode.isArray() || branchesNode.size() > 64) {
             throw invalid("Continuation frontier branch ancestry is invalid", null);
         }
@@ -558,6 +561,13 @@ public final class DurableValueSerializer {
             }
             if (!"CONCURRENT".equals(branchKind)) {
                 throw invalid("Branch frame kind is not supported", null);
+            }
+            // Restore shared ancestry by its complete persisted value. Application values such
+            // as byte arrays need not implement Java value equality after independent decoding.
+            ConcurrentBranchFrame shared = sharedBranches.get(branchNode);
+            if (shared != null) {
+                branches.add(shared);
+                continue;
             }
             requireExactProperties(branch,
                     Set.of("kind", "parentId", "splitId", "joinId", "branchOrdinal", "branchStartId", "baseline",
@@ -591,11 +601,12 @@ public final class DurableValueSerializer {
                     throw invalid("Concurrent branch writes must be unique text values", null);
                 }
             }
-            branches.add(
-                    new ConcurrentBranchFrame(new FrontierId(text(branch, "parentId")), text(branch, "splitId"),
-                            text(branch, "joinId"),
-                            new BranchActivation(integer(branch, "branchOrdinal"), text(branch, "branchStartId")),
-                            decodeProcessVariables(branch.get("baseline"), "branch baseline"), selected, writes));
+            ConcurrentBranchFrame restored = new ConcurrentBranchFrame(new FrontierId(text(branch, "parentId")),
+                    text(branch, "splitId"), text(branch, "joinId"),
+                    new BranchActivation(integer(branch, "branchOrdinal"), text(branch, "branchStartId")),
+                    decodeProcessVariables(branch.get("baseline"), "branch baseline"), selected, writes);
+            sharedBranches.put(branchNode, restored);
+            branches.add(restored);
         }
         return List.copyOf(branches);
     }
@@ -971,7 +982,7 @@ public final class DurableValueSerializer {
     private Map<String, JavaType> resolveVariableTypes(TypeFactory types) {
         Map<String, JavaType> resolved = new LinkedHashMap<>();
         for (ProcessStateField field : schema.fields()) {
-            resolved.put(field.name(), requirePortableType(types.constructFromCanonical(field.declaredType())));
+            resolved.put(field.name(), requirePortableType(resolveDeclaredType(types, field.declaredType())));
         }
         return Collections.unmodifiableMap(resolved);
     }
@@ -985,7 +996,7 @@ public final class DurableValueSerializer {
                     loop.outputTargetVariable() == null ? null : variableTypes.get(loop.outputTargetVariable());
             JavaType outputSource =
                     loop.outputSourceVariable() == null ? null : variableTypes.get(loop.outputSourceVariable());
-            JavaType declaredItem = types.constructFromCanonical(loop.itemType());
+            JavaType declaredItem = resolveDeclaredType(types, loop.itemType());
             JavaType iterationItem = loopElementTypes.get(iterationId);
             boolean compatibleItemType = compatibleElementType(declaredItem, iterationItem);
             if (inputCollection == null || inputCollection.getContentType() == null
@@ -1019,7 +1030,7 @@ public final class DurableValueSerializer {
                         frame.kind() != FrameKind.WHILE
                         ? inferred != null
                         ? inferred
-                        : requirePortableType(types.constructFromCanonical(frame.itemType()))
+                        : requirePortableType(resolveDeclaredType(types, frame.itemType()))
                         : null);
             }
             resolved.put(resume.resumePoint().key(), Collections.unmodifiableList(fields));
@@ -1059,7 +1070,7 @@ public final class DurableValueSerializer {
 
     private JavaType resolveLoopElementType(DurableMachinePlan.Iteration.ForEach loop, Map<String, JavaType> visible,
             TypeFactory types) {
-        JavaType declared = types.constructFromCanonical(loop.itemType());
+        JavaType declared = resolveDeclaredType(types, loop.itemType());
         JavaType collection = visible.get(loop.collectionVariable());
         if (collection == null || collection.getContentType() == null) {
             return requirePortableType(declared);
@@ -1079,7 +1090,7 @@ public final class DurableValueSerializer {
             LinkedHashMap<String, JavaType> fields = new LinkedHashMap<>();
             for (ActionPlan.Input input : action.inputs()) {
                 if (!effectMetaInput(input)) {
-                    fields.put(input.target(), requirePortableType(types.constructFromCanonical(input.declaredType())));
+                    fields.put(input.target(), requirePortableType(resolveDeclaredType(types, input.declaredType())));
                 }
             }
             resolved.put(entry.getKey(), Collections.unmodifiableMap(fields));
@@ -1153,11 +1164,34 @@ public final class DurableValueSerializer {
         }
     }
 
+    private JavaType resolveDeclaredType(TypeFactory types, String declaration) {
+        Class<?> raw = DataTypes.getJavaClass(declaration, classLoader);
+        int dimensions = 0;
+        while (raw.isArray()) {
+            dimensions++;
+            raw = raw.getComponentType();
+        }
+        JavaType[] arguments = DataTypes
+            .getTypeArguments(declaration)
+            .stream()
+            .map(argument -> resolveDeclaredType(types, argument))
+            .toArray(JavaType[]::new);
+        JavaType resolved =
+                arguments.length == 0 ? types.constructType(raw) : types.constructParametricType(raw, arguments);
+        for (int dimension = 0; dimension < dimensions; dimension++) {
+            resolved = types.constructArrayType(resolved);
+        }
+        return resolved;
+    }
+
     private JavaType requirePortableType(JavaType type) {
         if (type == null || type.isJavaLangObject()) {
             throw invalid("Object is not a Durable Process variable type", null);
         }
         Class<?> raw = type.getRawClass();
+        if (raw.isPrimitive()) {
+            return type;
+        }
         if (type.isMapLikeType()) {
             if (type.getKeyType() == null || type.getKeyType().getRawClass() != String.class
                     || type.getContentType() == null || type.getContentType().isJavaLangObject()) {

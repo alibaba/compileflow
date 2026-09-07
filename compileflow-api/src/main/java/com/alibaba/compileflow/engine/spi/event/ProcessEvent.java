@@ -117,7 +117,7 @@ public sealed interface ProcessEvent
      *
      * @param parentInvocationId direct synchronous caller, or {@code null} for a root
      * @param callDepth          zero-based synchronous call depth
-     * @param modelType          executed process format
+     * @param modelType          definition format, or {@code null} before a published definition is resolved
      * @param sourceDigest       exact source digest, or {@code null} when resolution failed
      * @param admittedAlias      Alias used at admission, or {@code null}
      * @param aliasRevision      selected Alias revision, or {@code null} before selection
@@ -133,8 +133,10 @@ public sealed interface ProcessEvent
             if ((callDepth == 0) != (parentInvocationId == null)) {
                 throw new IllegalArgumentException("parentInvocationId must be absent exactly at the root");
             }
-            modelType = Objects.requireNonNull(modelType, "modelType");
             sourceDigest = ProcessIdentifiers.optionalSha256(sourceDigest, "sourceDigest");
+            if (sourceDigest != null && modelType == null) {
+                throw new IllegalArgumentException("Resolved source attribution requires modelType");
+            }
             if ((aliasRevision == null) != (aliasTarget == null)) {
                 throw new IllegalArgumentException("aliasRevision and aliasTarget must be present together");
             }

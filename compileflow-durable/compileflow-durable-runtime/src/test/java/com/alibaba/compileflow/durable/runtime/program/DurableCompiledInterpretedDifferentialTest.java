@@ -47,6 +47,52 @@ import org.junit.jupiter.api.Test;
 
 class DurableCompiledInterpretedDifferentialTest {
     @Test
+    void nullableBooleanConditionUsesTheSameFalseSemantics() throws Exception {
+        Programs programs = programs(
+                """
+                <bpm code="nullable.condition">
+                  <var name="approved" dataType="java.lang.Boolean" inOutType="param"/>
+                  <start id="start"><transition to="loop"/></start>
+                  <while id="loop" condition="approved" maxIterations="1">
+                    <transition to="end"/>
+                    <start id="bodyStart"><transition to="bodyEnd"/></start>
+                    <end id="bodyEnd"/>
+                  </while>
+                  <end id="end"/>
+                </bpm>
+                """);
+        assertThat(programs
+            .advance(ContinuationSnapshot.start(java.util.Collections.singletonMap("approved", null)), List.of())
+            .outcome())
+            .isInstanceOf(FrontierStepResult.Completed.class);
+    }
+
+    @Test
+    void pastAbsoluteTimerPreservesDueAtAndConsumesAfterRecovery() throws Exception {
+        Instant dueAt = Instant.parse("2000-01-01T00:00:00Z");
+        String source = resource("timer-process.bpm")
+            .replace("duration=\"PT5M\"", "wakeAtExpression=\"dueAt\"")
+            .replace("<start", """
+                    <var name="dueAt" dataType="java.time.Instant" inOutType="param"/>
+                    <start""");
+        Programs programs = programs(source);
+        MachineTurnResult waiting = programs.advance(ContinuationSnapshot.start(Map.of("dueAt", dueAt)), List.of());
+        TimerRequest request = ((FrontierStepResult.TimerWaiting) waiting.outcome()).timerRequest();
+        assertThat(request.wakeAt()).isEqualTo(dueAt);
+        DurableValueSerializer serializer = new DurableValueSerializer(DurableCompilerTestSupport.lower(TbbpmXmlParser
+                    .getInstance()
+                    .parse(FlowSource.of("past-timer", source.getBytes(StandardCharsets.UTF_8))),
+                ScriptExecutorRegistry.from(List.of())));
+        Instant scheduledAt = Instant.parse("2026-09-07T00:00:00Z");
+        MachineTurnResult completed = programs.advance(serializer.decode(serializer.encode(waiting.continuation())),
+                List.of(
+                        resolved(BoundaryKind.TIMER, FrontierId.ROOT, 10,
+                                new BoundaryCompletion.TimerFired(1, "cooldown", scheduledAt, dueAt, scheduledAt))));
+        assertThat(completed.outcome()).isInstanceOf(FrontierStepResult.Completed.class);
+        assertThat(completed.consumedOccurrences()).hasSize(1);
+    }
+
+    @Test
     void waitTimerAndEffectBoundariesProduceIdenticalMachineTurns() throws Exception {
         Programs wait = programs(resource("wait-process.bpm"));
         MachineTurnResult waiting = wait.advance(ContinuationSnapshot.start(Map.of()), List.of());

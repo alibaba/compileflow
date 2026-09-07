@@ -26,14 +26,6 @@
         </dependency>
         <dependency>
             <groupId>com.alibaba.compileflow</groupId>
-            <artifactId>compileflow-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.alibaba.compileflow</groupId>
-            <artifactId>compileflow-spring-boot-autoconfigure</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.alibaba.compileflow</groupId>
             <artifactId>compileflow-durable-api</artifactId>
         </dependency>
         <dependency>
@@ -46,17 +38,7 @@
         </dependency>
         <dependency>
             <groupId>com.alibaba.compileflow</groupId>
-            <artifactId>compileflow-durable-postgres</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>com.alibaba.compileflow</groupId>
             <artifactId>compileflow-deploy-api</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -70,6 +52,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-health</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -93,11 +80,6 @@
             <groupId>org.springframework</groupId>
             <artifactId>spring-core</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

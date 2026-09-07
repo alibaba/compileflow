@@ -31,13 +31,14 @@ import com.alibaba.compileflow.durable.api.model.ProcessTimelineQuery;
 import java.util.Optional;
 
 /**
- * Application-code-independent query and recovery service for operators.
+ * Operator-facing query and recovery service.
  *
- * <p>The service returns redaction-safe domain state and never loads or executes
- * process application code. A transport exposing this interface must derive
- * the actor from an authenticated principal, authorize the exact operation
- * and resource, enforce any required approval, rate-limit both mutations and
- * query traversal, and export the resulting audit evidence.</p>
+ * <p>The service returns redaction-safe domain state and never invokes Process actions or advances
+ * a Run. Confirming a typed Effect result may load the exact stored Process runtime to validate and
+ * encode that result. A transport exposing this interface must derive the actor from an
+ * authenticated principal, authorize the exact operation and resource, enforce any required
+ * approval, rate-limit both mutations and query traversal, and export the resulting audit
+ * evidence.</p>
  *
  * @author yusu
  */

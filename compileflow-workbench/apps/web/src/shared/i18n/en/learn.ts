@@ -2,7 +2,7 @@ const enLearn = {
   'examples.title': 'Examples',
 
   'examples.subtitle':
-    'Hands-on flows that teach CompileFlow—from first steps to advanced patterns.',
+    'Learn CompileFlow with runnable examples, from basic workflows to advanced patterns.',
 
   'examples.difficulty': 'Difficulty',
 
@@ -14,7 +14,7 @@ const enLearn = {
 
   'examples.notFound': 'No matching examples',
 
-  'examples.startLearning': 'Start →',
+  'examples.startLearning': 'Open example →',
 
   'examples.viewDetail': 'View details',
 
@@ -22,9 +22,9 @@ const enLearn = {
 
   // Difficulty Levels
 
-  'level.beginner': 'Beginner',
+  'level.beginner': 'Introductory',
 
-  'level.basic': 'Basic',
+  'level.basic': 'Beginner',
 
   'level.intermediate': 'Intermediate',
 
@@ -48,7 +48,7 @@ const enLearn = {
 
   'detail.difficulty': 'Difficulty: {{stars}}',
 
-  'detail.difficultyValue': '{{value}} out of 5 stars',
+  'detail.difficultyValue': '{{value}} of 5 stars',
 
   'detail.format': 'Format: {{desc}}',
 
@@ -66,7 +66,7 @@ const enLearn = {
   'detail.explanation': 'How it works',
   'detail.nextSteps': 'Next steps',
 
-  'detail.noCode': 'No code available',
+  'detail.noCode': 'No code is available for this example',
 
   // Execution
 
@@ -78,9 +78,9 @@ const enLearn = {
 
   // Operate Module - Monitoring
 
-  'category.beginner': 'Getting Started',
+  'category.beginner': 'Getting started',
 
-  'category.advanced': 'Advanced Features',
+  'category.advanced': 'Advanced',
 
   // Sort
 
@@ -90,7 +90,7 @@ const enLearn = {
 
   // Detail - noDocs
 
-  'detail.noDocs': 'No documentation yet',
+  'detail.noDocs': 'No documentation is available for this example',
 
   // Logs extras
 
@@ -100,11 +100,11 @@ const enLearn = {
 
   'learning.completed': 'Done',
 
-  'learning.totalProgress': 'Overall',
+  'learning.totalProgress': 'Overall progress',
 
-  'learning.markComplete': 'Mark complete',
+  'learning.markComplete': 'Mark as complete',
 
-  'learning.congrats': 'Nice work—this example is done. Keep going.',
+  'learning.congrats': 'Example complete. Continue when you are ready.',
 
   // Table of contents
 
@@ -122,7 +122,7 @@ const enLearn = {
 
   'examples.noRelated': 'No related examples',
 
-  'examples.totalCount': 'Examples',
+  'examples.totalCount': 'Total examples',
 
   // Example Navigation
 
@@ -130,94 +130,94 @@ const enLearn = {
 
   'exampleNav.next': 'Next',
 
-  'exampleNav.progress': 'Example {{current}} / {{total}}',
+  'exampleNav.progress': 'Example {{current}} of {{total}}',
 
   'exampleNav.navigationLabel': 'Example navigation',
 
   'exampleContent.learn.tbbpm.greeting.name': 'TBBPM Greeting',
 
   'exampleContent.learn.tbbpm.greeting.description':
-    'Build a return value with a self-contained QL Script action.',
+    'Create a greeting with a self-contained QLExpress script action.',
   'exampleContent.learn.tbbpm.greeting.overview':
-    'This is the smallest useful TBBPM definition: one start node, one executable task, and one end node. It has no application-specific class dependency, so the built-in QL Script can be preflighted and executed as-is.',
+    'This minimal TBBPM process contains a start node, a script task, and an end node. The script has no application class dependencies, so you can validate and run the example immediately.',
   'exampleContent.learn.tbbpm.greeting.whatYouWillLearn.0':
     'Declare process input and return variables',
   'exampleContent.learn.tbbpm.greeting.whatYouWillLearn.1': 'Connect start, task, and end nodes',
   'exampleContent.learn.tbbpm.greeting.whatYouWillLearn.2':
-    'Map an action result into the process context',
-  'exampleContent.learn.tbbpm.greeting.keyConcepts.0': 'TBBPM document',
+    'Map a script result to a process return variable',
+  'exampleContent.learn.tbbpm.greeting.keyConcepts.0': 'TBBPM definition',
   'exampleContent.learn.tbbpm.greeting.keyConcepts.1': 'Script action',
-  'exampleContent.learn.tbbpm.greeting.keyConcepts.2': 'return variable',
+  'exampleContent.learn.tbbpm.greeting.keyConcepts.2': 'Return variable',
   'exampleContent.learn.tbbpm.greeting.explanation':
-    'The missing `name` input uses the declared `World` default. The QL Script evaluates a string and the nested action variable maps that value to the root `message` output.',
+    'If `name` is omitted, the process uses the default value `World`. The QLExpress script creates the greeting, and its output mapping writes the result to the process return variable `message`.',
   'exampleContent.learn.tbbpm.greeting.nextSteps':
-    'Add a string input variable with a default value, map it into the action, and build a personalized greeting.',
+    'Run the process with a custom `name`, then change the default value and compare the returned messages.',
   'exampleContent.learn.tbbpm.greeting.documentation':
-    'See the [TBBPM specification](https://github.com/alibaba/compileflow/blob/master/docs/specs/tbbpm-specification.en.md) and the [node support matrix](https://github.com/alibaba/compileflow/blob/master/docs/en/node-support.md).',
+    'See the [TBBPM specification](https://github.com/alibaba/compileflow/blob/master/docs/en/specifications/tbbpm.md) and the [node support matrix](https://github.com/alibaba/compileflow/blob/master/docs/en/node-support.md).',
 
   'exampleContent.learn.bpmn.routing.name': 'BPMN Amount Routing',
 
   'exampleContent.learn.bpmn.routing.description':
-    'Route an amount through an exclusive gateway and return the selected path.',
+    'Use an exclusive gateway to select a route based on an amount.',
   'exampleContent.learn.bpmn.routing.overview':
-    'This example uses only the CompileFlow-supported BPMN subset. It models a synchronous decision, not a durable human task: an external task system must own human-task state and lifecycle.',
+    'This example uses CompileFlow-supported BPMN elements to make a synchronous routing decision. The `manual-review` branch returns a route name; it does not create or persist a human task.',
   'exampleContent.learn.bpmn.routing.whatYouWillLearn.0':
     'Declare CompileFlow variables in BPMN extension elements',
   'exampleContent.learn.bpmn.routing.whatYouWillLearn.1':
-    'Use mutually exclusive sequence-flow conditions',
+    'Define mutually exclusive conditions on sequence flows',
   'exampleContent.learn.bpmn.routing.whatYouWillLearn.2':
-    'Attach executable actions to BPMN service tasks',
+    'Use Script Tasks to set the result for each route',
   'exampleContent.learn.bpmn.routing.keyConcepts.0': 'BPMN subset',
-  'exampleContent.learn.bpmn.routing.keyConcepts.1': 'exclusiveGateway',
-  'exampleContent.learn.bpmn.routing.keyConcepts.2': 'cf:action',
+  'exampleContent.learn.bpmn.routing.keyConcepts.1': 'Exclusive gateway',
+  'exampleContent.learn.bpmn.routing.keyConcepts.2': 'Script task',
   'exampleContent.learn.bpmn.routing.explanation':
-    'The default amount is 150, so an empty input selects `manual-review`. Supplying an amount below 100 selects `automatic`. Both branches converge on the same end event.',
+    'The default amount is 150, which selects `manual-review` when no input is provided. An amount below 100 selects `automatic`. Both routes finish at the same end event.',
   'exampleContent.learn.bpmn.routing.nextSteps':
-    'Run the flow with `{"amount": 50}` and compare the returned `route`, then add a third policy through an explicit default sequence flow.',
+    'Run the process with `{"amount": 50}` and compare the returned `route`. Then add a third route with an explicit default sequence flow.',
   'exampleContent.learn.bpmn.routing.documentation':
-    'See the [Process model](https://github.com/alibaba/compileflow/blob/master/docs/architecture/07-PROCESS_MODEL.en.md) for BPMN extension placement and supported-node rules.',
+    'See the [Process model](https://github.com/alibaba/compileflow/blob/master/docs/en/architecture/process-model.md) for BPMN extension placement and supported-node rules.',
 
   'exampleContent.learn.tbbpm.parallel.name': 'TBBPM Parallel Calculation',
 
   'exampleContent.learn.tbbpm.parallel.description':
-    'Run two independent calculations with explicit concurrency capabilities and join their outputs.',
+    'Run two independent calculations in parallel and return both results.',
   'exampleContent.learn.tbbpm.parallel.overview':
-    'Parallel branches are appropriate only when their work and outputs are independent. This example writes to two separate return variables and joins before completion.',
+    'The two branches run independently and write to separate return variables. A join waits for both branches before the process ends.',
   'exampleContent.learn.tbbpm.parallel.whatYouWillLearn.0':
-    'Model a parallel split and structural join',
+    'Create parallel branches and join them',
   'exampleContent.learn.tbbpm.parallel.whatYouWillLearn.1':
-    'Keep branch outputs in distinct process variables',
+    'Store each branch output in a separate process variable',
   'exampleContent.learn.tbbpm.parallel.whatYouWillLearn.2':
-    'Use self-contained actions without application classes',
-  'exampleContent.learn.tbbpm.parallel.keyConcepts.0': 'parallel split',
-  'exampleContent.learn.tbbpm.parallel.keyConcepts.1': 'parallel join',
-  'exampleContent.learn.tbbpm.parallel.keyConcepts.2': 'branch output',
+    'Use script actions without application class dependencies',
+  'exampleContent.learn.tbbpm.parallel.keyConcepts.0': 'Parallel split',
+  'exampleContent.learn.tbbpm.parallel.keyConcepts.1': 'Parallel join',
+  'exampleContent.learn.tbbpm.parallel.keyConcepts.2': 'Branch output',
   'exampleContent.learn.tbbpm.parallel.explanation':
-    'The split starts both calculations through the engine execution executor. The join waits for both paths, then the result map exposes `leftResult=20` and `rightResult=22`.',
+    'The parallel split starts both calculations. The join waits for both branches to finish, and the result contains `leftResult=20` and `rightResult=22`.',
   'exampleContent.learn.tbbpm.parallel.nextSteps':
-    'Replace one constant with a mapped input and compare the behavior with a sequential pair of tasks.',
+    'Replace one constant with an input variable, then compare the result with the same tasks arranged in sequence.',
   'exampleContent.learn.tbbpm.parallel.documentation':
     'See [Advanced Features](https://github.com/alibaba/compileflow/blob/master/docs/en/advanced-features.md) for concurrency behavior.',
 
   'exampleContent.learn.bpmn.script-task.name': 'BPMN Script Task',
 
   'exampleContent.learn.bpmn.script-task.description':
-    'Author definition-owned inline code in a standard BPMN Script Task.',
+    'Write inline QLExpress code in a standard BPMN Script Task.',
   'exampleContent.learn.bpmn.script-task.overview':
-    'The BPMN Script Task owns its inline source while CompileFlow extensions describe variable mappings and optional execution policies. The example has no external bean or class dependency.',
+    'The script source is stored directly in the BPMN Script Task. CompileFlow extensions map its output to a process variable, so the example runs without external beans or application classes.',
   'exampleContent.learn.bpmn.script-task.whatYouWillLearn.0':
-    'Keep BPMN control flow in standard elements',
+    'Build the control flow with standard BPMN elements',
   'exampleContent.learn.bpmn.script-task.whatYouWillLearn.1':
     'Author QLExpress directly in a Script Task',
   'exampleContent.learn.bpmn.script-task.whatYouWillLearn.2':
     'Map script output to a process variable',
-  'exampleContent.learn.bpmn.script-task.keyConcepts.0': 'scriptTask',
-  'exampleContent.learn.bpmn.script-task.keyConcepts.1': 'scriptFormat',
-  'exampleContent.learn.bpmn.script-task.keyConcepts.2': 'output mapping',
+  'exampleContent.learn.bpmn.script-task.keyConcepts.0': 'Script task',
+  'exampleContent.learn.bpmn.script-task.keyConcepts.1': '`scriptFormat` attribute',
+  'exampleContent.learn.bpmn.script-task.keyConcepts.2': 'Output mapping',
   'exampleContent.learn.bpmn.script-task.explanation':
-    'The Script Task evaluates QLExpress and writes `completed` into the process-level return variable `status`.',
+    'The Script Task runs the QLExpress script and maps its result, `completed`, to the process return variable `status`.',
   'exampleContent.learn.bpmn.script-task.nextSteps':
-    'Add an input variable and map it into the script, then switch the language to Java 17 and rewrite the source.',
+    'Add an input variable and use it in the script. Then switch the script language to Java 17 and rewrite the expression.',
   'exampleContent.learn.bpmn.script-task.documentation':
     'See the [extension guide](https://github.com/alibaba/compileflow/blob/master/docs/en/extension-guide.md) for supported action types and custom providers.',
 

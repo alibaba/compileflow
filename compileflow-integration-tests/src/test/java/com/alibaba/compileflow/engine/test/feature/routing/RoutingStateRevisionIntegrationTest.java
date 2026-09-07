@@ -22,15 +22,15 @@ import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.core.routing.LocalRoutingState;
 import com.alibaba.compileflow.engine.core.routing.AliasAdmission;
-import com.alibaba.compileflow.deploy.api.protocol.routing.RoutingStateKeys;
-import com.alibaba.compileflow.deploy.api.protocol.routing.RoutingStatePayloads;
-import com.alibaba.compileflow.deploy.api.sync.inmemory.InMemoryDeploymentSyncChannel;
-import com.alibaba.compileflow.deploy.control.repository.InMemoryProcessVersionRepository;
-import com.alibaba.compileflow.deploy.control.repository.ProcessVersionRecord;
-import com.alibaba.compileflow.deploy.runtime.DeployRuntime;
+import com.alibaba.compileflow.deploy.protocol.RoutingStateKeys;
+import com.alibaba.compileflow.deploy.protocol.RoutingStateCodec;
+import com.alibaba.compileflow.deploy.testkit.InMemoryDeploymentProjectionStore;
+import com.alibaba.compileflow.deploy.testkit.InMemoryProcessVersionStore;
+import com.alibaba.compileflow.deploy.spi.store.ProcessVersionRecord;
+import com.alibaba.compileflow.deploy.runtime.DeploymentRuntime;
 import com.alibaba.compileflow.engine.test.support.config.ProcessEngineTestConfiguration;
 import com.alibaba.compileflow.engine.test.support.helpers.Awaiter;
-import com.alibaba.compileflow.engine.test.support.helpers.DeployRuntimeTestSupport;
+import com.alibaba.compileflow.engine.test.support.helpers.DeploymentRuntimeTestSupport;
 import com.alibaba.compileflow.engine.test.support.helpers.ProcessEngineTestFactory;
 import java.time.Duration;
 import java.util.Collections;
@@ -54,20 +54,20 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @Tag("revision")
 @Execution(ExecutionMode.SAME_THREAD)
 class RoutingStateRevisionIntegrationTest {
-    private static final Duration CHANNEL_TIMEOUT = Duration.ofSeconds(2);
+    private static final Duration OPERATION_TIMEOUT = Duration.ofSeconds(2);
     private static final String STATE_PREFIX = "compileflow.test.revision.";
     private static final String NAMESPACE = "default";
     private static final String ALIAS = "prod";
-    private InMemoryProcessVersionRepository versionRepository;
+    private InMemoryProcessVersionStore versionRepository;
     private ProcessEngine engine;
     private LocalRoutingState localRoutingState;
-    private InMemoryDeploymentSyncChannel channel;
+    private InMemoryDeploymentProjectionStore projectionStore;
     private ExecutorService executor;
-    private DeployRuntime runtime;
+    private DeploymentRuntime runtime;
     private AliasAdmission aliasAdmission;
 
     private static String aliasPayload(String code, String version, long revision) {
-        return RoutingStatePayloads.aliasStateJson(NAMESPACE, code, ALIAS, version, null, null, revision, "test",
+        return RoutingStateCodec.aliasStateJson(NAMESPACE, code, ALIAS, version, null, null, revision, "test",
                 System.currentTimeMillis());
     }
 
@@ -85,10 +85,10 @@ class RoutingStateRevisionIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        versionRepository = new InMemoryProcessVersionRepository();
-        engine = ProcessEngineTestFactory.createTbbpm();
+        versionRepository = new InMemoryProcessVersionStore();
+        engine = ProcessEngineTestFactory.create();
         localRoutingState = new LocalRoutingState();
-        channel = new InMemoryDeploymentSyncChannel();
+        projectionStore = new InMemoryDeploymentProjectionStore();
         executor = Executors.newSingleThreadExecutor(runnable -> {
             Thread thread = new Thread(runnable, "test-deploy-runtime");
             thread.setDaemon(true);
@@ -99,17 +99,21 @@ class RoutingStateRevisionIntegrationTest {
 
     @AfterEach
     void tearDown() throws Exception {
-        if (runtime != null) {
-            runtime.close();
-        }
-        if (engine != null) {
-            engine.close();
-        }
-        if (executor != null) {
-            executor.shutdown();
-        }
-        if (localRoutingState != null) {
-            localRoutingState.clear();
+        try {
+            if (runtime != null) {
+                runtime.close();
+            }
+        } finally {
+            try {
+                if (engine != null) {
+                    engine.close();
+                }
+            } finally {
+                if (executor != null) {
+                    executor.shutdownNow();
+                    assertThat(executor.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+                }
+            }
         }
     }
 
@@ -119,17 +123,20 @@ class RoutingStateRevisionIntegrationTest {
         deployReady(code, "v1", flowReturningMarker(code, "v1"));
         deployReady(code, "v2", flowReturningMarker(code, "v2"));
         String key = RoutingStateKeys.aliasState(STATE_PREFIX, NAMESPACE, code, ALIAS);
-        runtime = DeployRuntimeTestSupport.dbRuntime(channel, Collections.singletonList(key), engine,
-                ProcessModelType.TBBPM, versionRepository, CHANNEL_TIMEOUT, executor, localRoutingState);
+        runtime = DeploymentRuntimeTestSupport.sourceRuntime(projectionStore, Collections.singletonList(key), engine,
+                versionRepository, OPERATION_TIMEOUT, executor, localRoutingState);
         runtime.start();
 
-        assertThat(channel.compareAndSet(key, null, aliasPayload(code, "v2", 10L), "json", CHANNEL_TIMEOUT)).isTrue();
+        assertThat(projectionStore.compareAndSet(key, null, aliasPayload(code, "v2", 10L), "json", OPERATION_TIMEOUT)).isTrue();
         awaitRoute(code, "v2");
         awaitDeployed(code, "v2");
 
-        String current = channel.read(key, CHANNEL_TIMEOUT);
-        assertThat(channel.compareAndSet(key, current, aliasPayload(code, "v1", 5L), "json", CHANNEL_TIMEOUT)).isTrue();
+        String current = projectionStore.read(key, OPERATION_TIMEOUT);
+        assertThat(projectionStore.compareAndSet(key, current, aliasPayload(code, "v1", 5L), "json", OPERATION_TIMEOUT))
+            .isTrue();
         assertThat(route(code)).isEqualTo("v2");
+        assertThat(localRoutingState.getAliasRouteState().resolve(NAMESPACE, code, ALIAS))
+            .hasValueSatisfying(route -> assertThat(route.revision()).isEqualTo(10L));
     }
 
     private void deployReady(String code, String version, String content) {
@@ -138,15 +145,17 @@ class RoutingStateRevisionIntegrationTest {
             .namespace(NAMESPACE)
             .code(code)
             .version(version)
-            .modelType(ProcessModelType.TBBPM)
-            .processDefinition(ProcessDefinition.inline(code, content))
-            .artifactDigest(ProcessArtifactDigest.compute(ProcessModelType.TBBPM,
-                    ProcessDefinition.inline(code, content), Map.of()))
+            .processDefinition(ProcessDefinition.inline(ProcessModelType.TBBPM, code, content))
+            .artifactDigest(ProcessArtifactDigest.compute(ProcessDefinition.inline(ProcessModelType.TBBPM, code, content),
+                    Map.of()))
             .actor("test")
             .createdAt(System.currentTimeMillis())
             .build();
         versionRepository.save(record);
-        engine.runtime().load(ProcessRef.version(NAMESPACE, code, version), ProcessDefinition.inline(code, content));
+        engine
+            .runtime()
+            .load(ProcessRef.version(NAMESPACE, code, version),
+                    ProcessDefinition.inline(ProcessModelType.TBBPM, code, content));
     }
 
     private void awaitRoute(String code, String expectedVersion) {

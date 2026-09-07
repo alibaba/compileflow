@@ -82,13 +82,6 @@ if [[ "$assembly_only" == false ]]; then
   echo "==> compileflow-workbench-server: targeted JVM tests"
   "$ROOT/scripts/run_server_targeted_tests.sh"
 
-  echo "==> Distributed deployment: JDBC outbox and multi-node runtime contract"
-  test -f "$ROOT/compileflow-integration-tests/src/test/java/com/alibaba/compileflow/engine/test/feature/deployment/control/DeploymentRuntimeChainIntegrationTest.java"
-  (cd "$ROOT" && ./mvnw test -pl compileflow-integration-tests -am \
-    -Dtest=DeploymentRuntimeChainIntegrationTest \
-    -Dsurefire.failIfNoSpecifiedTests=false \
-    -B -V --no-transfer-progress)
-  test -s "$ROOT/compileflow-integration-tests/target/surefire-reports/TEST-com.alibaba.compileflow.engine.test.feature.deployment.control.DeploymentRuntimeChainIntegrationTest.xml"
 else
   echo "==> Java/server quality gates: owned by workbench-server-ci; assembly-only mode"
 fi

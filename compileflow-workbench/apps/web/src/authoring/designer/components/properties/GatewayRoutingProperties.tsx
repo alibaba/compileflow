@@ -52,6 +52,7 @@ export function GatewayRoutingProperties({
           onChange={onDefaultConnectionChange}
           placeholder={labels.phDefaultProcess}
           notFoundContent={labels.noOutgoingEdges}
+          aria-label={labels.defaultEdgeId}
         />
       </Form.Item>
       {conditionHelp}

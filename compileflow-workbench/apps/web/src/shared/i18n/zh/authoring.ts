@@ -1,7 +1,7 @@
 const zhAuthoring = {
-  'code.copy': '复制代码',
+  'code.copy': '复制',
 
-  'code.download': '下载代码',
+  'code.download': '下载',
 
   'code.copySuccess': '已复制到剪贴板',
 
@@ -14,9 +14,9 @@ const zhAuthoring = {
   'exec.title': '服务器执行',
 
   'exec.desc':
-    '将在服务器上真实执行该草稿。动作可能调用外部系统并产生不可逆副作用，请在隔离环境中使用安全参数。',
+    '将在服务器上执行当前草稿。动作可能访问外部系统并产生不可撤销的变更，请在隔离环境中使用安全参数。',
 
-  'exec.params': '执行参数（JSON）',
+  'exec.params': '输入参数（JSON）',
 
   'exec.paramsPlaceholder': '{"参数1": "值1", "参数2": 123}',
 
@@ -30,17 +30,17 @@ const zhAuthoring = {
 
   'exec.result': '执行结果',
 
-  'exec.error': '执行出错：{{error}}',
+  'exec.error': '执行失败：{{error}}',
 
-  'exec.paramError': '参数不是有效 JSON，请检查格式。',
+  'exec.paramError': '请输入有效的 JSON 参数。',
 
-  'exec.noCode': '没有可执行的代码',
+  'exec.noCode': '没有可执行的流程',
 
   // 主题
 
   'workspace.title': '构建',
 
-  'workspace.subtitle': '在设计器中编排流程，从模板起步，快速迭代。',
+  'workspace.subtitle': '从空白画布创建流程，或使用模板快速开始。',
 
   'workspace.newBpmn': '新建 BPMN',
 
@@ -50,19 +50,19 @@ const zhAuthoring = {
 
   'workspace.newBpmnAction': '新建 BPMN 流程',
 
-  'workspace.newBpmnDesc': '从 BPMN 建模画布开始。',
+  'workspace.newBpmnDesc': '在空白画布上创建 BPMN 流程。',
 
   'workspace.newTbbpmAction': '新建 TBBPM 流程',
 
-  'workspace.newTbbpmDesc': '面向高吞吐的编译型进程内编排。',
+  'workspace.newTbbpmDesc': '创建支持编译执行的 TBBPM 流程。',
 
   'workspace.browseExamplesAction': '浏览示例',
 
-  'workspace.browseExamplesDesc': '从精选示例学习常见模式。',
+  'workspace.browseExamplesDesc': '查看常用流程模式和配置。',
 
   'workspace.apiIntegration': 'API 集成',
 
-  'workspace.apiIntegrationDesc': '把 CompileFlow 接到你的业务系统。',
+  'workspace.apiIntegrationDesc': '将 CompileFlow 集成到应用中。',
 
   'workspace.exportAll': '全部导出',
 
@@ -88,7 +88,7 @@ const zhAuthoring = {
 
   'workspace.use': '使用',
 
-  'workspace.importFileLabel': '选择要导入的工作台 JSON 文件',
+  'workspace.importFileLabel': '选择 Workbench JSON 文件',
 
   'workspace.template.tpl-1.name': 'BPMN 入门模板',
 
@@ -96,7 +96,7 @@ const zhAuthoring = {
 
   'workspace.template.tpl-2.name': 'TBBPM 问候示例',
 
-  'workspace.template.tpl-2.description': '包含输入、输出映射的自包含 Java 内联动作',
+  'workspace.template.tpl-2.description': '包含输入和输出映射的 Java 内联动作',
 
   'workspace.template.tpl-3.name': '空白 BPMN',
 
@@ -122,7 +122,7 @@ const zhAuthoring = {
 
   'designer.header.workspace': '构建',
 
-  'designer.header.editName': '点击修改名称',
+  'designer.header.editName': '重命名流程',
 
   'designer.header.unsavedChanges': '有未保存的更改',
 
@@ -136,7 +136,7 @@ const zhAuthoring = {
 
   'designer.status.local': '本地',
 
-  'designer.xmlEditor.dirtyHint': '编辑内容仅在本地，点击「应用到画布」后才会更新可视化视图。',
+  'designer.xmlEditor.dirtyHint': '点击「应用到画布」，用 XML 修改更新画布。',
 
   'designer.xmlEditor.parseError': 'XML 解析错误',
 
@@ -157,17 +157,17 @@ const zhAuthoring = {
   'designer.xmlEditor.editorRegion': 'XML 代码编辑器',
 
   'designer.debug.simulationBanner':
-    '仅限浏览器预览：条件按失败关闭的安全 Java 子集求值；Action 为模拟执行，完整 javac、重试、等待、子流程及并发语义请使用「引擎执行」。',
+    '浏览器模拟仅支持部分 Java 条件，动作结果为模拟数据。如需验证重试、等待、子流程和并发分支，请使用服务器执行。',
 
-  'designer.debug.modeSimulation': '模拟调试',
+  'designer.debug.modeSimulation': '浏览器模拟',
 
-  'designer.debug.modeEngine': '引擎执行',
+  'designer.debug.modeEngine': '服务器执行',
 
-  'designer.debug.engineBanner': '使用开发态 Mock Gateway 或 Workbench Server 托管执行。',
+  'designer.debug.engineBanner': '通过已配置的 Workbench Server 执行当前草稿。',
 
-  'designer.debug.engineUnavailable': '执行后端不可用，请检查本地开发进程或同源网关路由。',
+  'designer.debug.engineUnavailable': '服务器执行不可用，请检查 Workbench Server 连接后重试。',
 
-  'designer.debug.engineTitle': '引擎执行',
+  'designer.debug.engineTitle': '服务器执行',
 
   'designer.debug.engineOnline': '在线',
 
@@ -180,7 +180,7 @@ const zhAuthoring = {
   'designer.debug.engineExecutionWarningTitle': '服务器执行',
 
   'designer.debug.engineExecutionWarning':
-    '此操作会在 Workbench Server 上真实执行当前草稿。脚本、Java Action 和 Spring Bean 可能以服务器权限运行并产生外部副作用。',
+    '此操作会在 Workbench Server 上执行当前草稿。脚本、Java 动作和 Spring Bean 可以访问服务器资源和外部系统。',
 
   'designer.debug.engineReset': '清空日志',
 
@@ -188,23 +188,23 @@ const zhAuthoring = {
 
   'designer.debug.engineParams': '输入参数（JSON）',
 
-  'designer.debug.engineMissingCode': '引擎执行需要有效的流程 code',
+  'designer.debug.engineMissingCode': '请输入流程编码后再执行',
 
-  'designer.debug.engineInvalidParams': '参数 JSON 格式错误',
+  'designer.debug.engineInvalidParams': '请输入有效的 JSON 参数',
 
-  'designer.debug.engineStart': '正在通过引擎执行: {{code}}',
+  'designer.debug.engineStart': '正在服务器上执行 {{code}}',
 
-  'designer.debug.engineSuccess': '引擎执行完成',
+  'designer.debug.engineSuccess': '服务器执行完成',
 
-  'designer.debug.engineFailed': '引擎执行失败',
+  'designer.debug.engineFailed': '服务器执行失败',
 
   'designer.save.workspaceSuccess': '已保存',
 
-  'designer.save.operateSuccess': '已保存到运维流程库',
+  'designer.save.operateSuccess': '已保存到流程管理',
 
   'designer.save.failed': '保存失败',
 
-  'designer.delete.operateSuccess': '运维流程已删除',
+  'designer.delete.operateSuccess': '流程已删除',
 
   'designer.autoSave.failed': '自动保存失败',
 
@@ -236,15 +236,15 @@ const zhAuthoring = {
 
   'designer.toolbar.distributeV': '垂直分布',
 
-  'designer.toolbar.copySelected': '复制选中 (Ctrl+D)',
+  'designer.toolbar.copySelected': '创建选中节点的副本（Ctrl+D）',
 
-  'designer.toolbar.deleteSelected': '删除选中 (Delete)',
+  'designer.toolbar.deleteSelected': '删除选中节点（Delete）',
 
-  'designer.toolbar.selectAll': '全选 (Ctrl+A)',
+  'designer.toolbar.selectAll': '全选（Ctrl+A）',
 
-  'designer.toolbar.zoomIn': '放大 (Ctrl+滚轮)',
+  'designer.toolbar.zoomIn': '放大（Ctrl+滚轮）',
 
-  'designer.toolbar.zoomOut': '缩小 (Ctrl+滚轮)',
+  'designer.toolbar.zoomOut': '缩小（Ctrl+滚轮）',
 
   'designer.toolbar.zoomFit': '适应画布',
 
@@ -252,7 +252,7 @@ const zhAuthoring = {
 
   'designer.toolbar.loadExample': '加载示例',
 
-  'designer.toolbar.loadExampleHint': '加载示例流程模板',
+  'designer.toolbar.loadExampleHint': '加载示例流程',
 
   'designer.toolbar.loadExampleSuccess': '示例流程已加载',
 
@@ -278,7 +278,7 @@ const zhAuthoring = {
 
   'designer.layout.emptySub': '在画布上点击元素以查看其属性',
 
-  'designer.layout.emptyHint': '使用工具栏「验证」和「调试」按钮检查流程',
+  'designer.layout.emptyHint': '使用工具栏中的「验证」和「调试」检查流程',
 
   'designer.statusBar.zoomOut': '缩小',
 
@@ -316,29 +316,29 @@ const zhAuthoring = {
 
   'designer.contextMenu.selectAll': '全选',
 
-  'designer.palette.searchPlaceholder': '搜索节点...',
+  'designer.palette.searchPlaceholder': '搜索节点…',
 
-  'designer.palette.dragToAdd': '拖拽添加节点：{{label}}',
+  'designer.palette.addNode': '点击或拖拽添加节点：{{label}}',
 
   'designer.palette.empty': '未找到匹配的节点',
 
-  'designer.palette.emptyHint': '试试其他关键词，如"开始"、"决策"',
+  'designer.palette.emptyHint': '试试其他关键词，如「开始」或「网关」',
 
   'designer.palette.tbbpmTitle': '节点工具箱',
 
   'designer.palette.bpmnTitle': 'BPMN 节点',
 
-  'designer.header.undo': '撤销 (Ctrl+Z)',
+  'designer.header.undo': '撤销（Ctrl+Z）',
 
-  'designer.header.redo': '重做 (Ctrl+Shift+Z)',
+  'designer.header.redo': '重做（Ctrl+Shift+Z）',
 
-  'designer.header.copy': '复制 (Ctrl+C)',
+  'designer.header.copy': '复制（Ctrl+C）',
 
-  'designer.header.paste': '粘贴 (Ctrl+V)',
+  'designer.header.paste': '粘贴（Ctrl+V）',
 
-  'designer.header.toggleGrid': '切换网格 (Ctrl+G)',
+  'designer.header.toggleGrid': '切换网格（Ctrl+G）',
 
-  'designer.header.searchNodes': '搜索节点 (Ctrl+F)',
+  'designer.header.searchNodes': '搜索节点（Ctrl+F）',
 
   'designer.header.validate': '验证流程',
 
@@ -346,11 +346,11 @@ const zhAuthoring = {
 
   'designer.header.variables': '变量管理',
 
-  'designer.header.shortcuts': '快捷键 (Ctrl+/)',
+  'designer.header.shortcuts': '快捷键（Ctrl+/）',
 
   'designer.header.help': '帮助文档',
 
-  'designer.header.menu.exportGroup': '导入 / 导出',
+  'designer.header.menu.exportGroup': '导入和导出',
 
   'designer.header.menu.moreActions': '更多操作',
 
@@ -372,15 +372,15 @@ const zhAuthoring = {
 
   'designer.header.menu.deleteProcess': '删除流程',
 
-  'designer.header.deleteConfirmTitle': '确认删除',
+  'designer.header.deleteConfirmTitle': '删除流程？',
 
-  'designer.header.deleteConfirmContent': '确定要删除流程"{{name}}"？此操作不可恢复。',
+  'designer.header.deleteConfirmContent': '删除流程「{{name}}」？此操作无法撤销。',
 
   'designer.layout.breakpointSet': '已在节点 {{nodeId}} 设置断点',
 
   'designer.debug.sim.runComplete': '执行完成',
 
-  'designer.debug.sim.runFailed': '执行失败: {{message}}',
+  'designer.debug.sim.runFailed': '执行失败：{{message}}',
 
   'designer.debug.sim.resetDone': '已重置',
 
@@ -420,7 +420,7 @@ const zhAuthoring = {
 
   'designer.debug.sim.initialVars': '初始变量（JSON格式）',
 
-  'designer.debug.sim.currentNode': '当前节点：',
+  'designer.debug.sim.currentNode': '当前节点',
 
   'designer.debug.sim.breakpoints': '断点',
 
@@ -454,7 +454,7 @@ const zhAuthoring = {
 
   'designer.debug.event.error': '错误',
 
-  'designer.debug.col.nodeId': '节点ID',
+  'designer.debug.col.nodeId': '节点 ID',
 
   'designer.debug.col.condition': '条件',
 
@@ -474,15 +474,15 @@ const zhAuthoring = {
 
   'designer.debug.disabled': '禁用',
 
-  'designer.debug.detail.node': '节点: {{id}}',
+  'designer.debug.detail.node': '节点：{{id}}',
 
-  'designer.debug.detail.edge': '连线: {{id}}',
+  'designer.debug.detail.edge': '连线：{{id}}',
 
-  'designer.debug.detail.error': '错误: {{message}}',
+  'designer.debug.detail.error': '错误：{{message}}',
 
   'designer.props.exampleTitle': '配置示例',
 
-  'designer.props.nodeId': '节点ID',
+  'designer.props.nodeId': '节点 ID',
 
   'designer.props.nodeName': '节点名称',
 
@@ -492,9 +492,9 @@ const zhAuthoring = {
 
   'designer.props.nodeType': '节点类型',
 
-  'designer.props.documentation': '说明文档',
+  'designer.props.documentation': '节点说明',
 
-  'designer.props.documentationPlaceholder': '请输入节点说明（可选）',
+  'designer.props.documentationPlaceholder': '输入节点说明（可选）',
 
   'designer.palette.tbbpm.cat.flow': '流程控制',
 
@@ -536,7 +536,7 @@ const zhAuthoring = {
 
   'designer.palette.tbbpm.node.scriptTask': '脚本任务',
 
-  'designer.palette.tbbpm.node.scriptTaskDesc': '内联代码 · Java / QLExpress',
+  'designer.palette.tbbpm.node.scriptTaskDesc': '内联代码 · Java、QLExpress',
 
   'designer.palette.tbbpm.node.exclusive': '排他网关',
 
@@ -552,7 +552,7 @@ const zhAuthoring = {
 
   'designer.palette.tbbpm.node.subBpm': '内嵌 BPM',
 
-  'designer.palette.tbbpm.node.subBpmDesc': '定义当前 BPM 内的嵌套作用域',
+  'designer.palette.tbbpm.node.subBpmDesc': '将节点组织为内嵌 BPM',
 
   'designer.palette.tbbpm.node.bpmCall': 'BPM 调用',
 
@@ -620,11 +620,11 @@ const zhAuthoring = {
 
   'designer.palette.bpmn.node.callActivity': '调用活动',
 
-  'designer.palette.bpmn.node.callActivityDesc': '调用其他流程',
+  'designer.palette.bpmn.node.callActivityDesc': '调用另一个流程',
 
   'designer.palette.bpmn.node.subProcess': '嵌入式子流程',
 
-  'designer.palette.bpmn.node.subProcessDesc': '流程内的结构化独立执行作用域',
+  'designer.palette.bpmn.node.subProcessDesc': '将活动组织为内嵌子流程',
 
   'designer.props.common.add': '添加',
 
@@ -642,10 +642,10 @@ const zhAuthoring = {
 
   'designer.props.common.actionTypeScript': '内联脚本',
 
-  'designer.props.common.execution': 'Durable 执行语义',
+  'designer.props.common.execution': 'Durable 动作类型',
 
   'designer.props.common.executionHelp':
-    'Replayable 动作可在恢复后重新执行；Effect 动作会先跨越 Durable 提交边界再分发。',
+    '可重放动作可能在恢复时再次执行；Effect 动作会先记录状态，再进行调度。',
 
   'designer.props.common.executionReplayable': '可重放（默认）',
 
@@ -677,13 +677,13 @@ const zhAuthoring = {
 
   'designer.props.common.reconcileActionEnabled': '配置对账动作',
 
-  'designer.props.common.className': '类名 (Class)',
+  'designer.props.common.className': 'Java 类名',
 
-  'designer.props.common.classNameHelp': '完整 Java 类名',
+  'designer.props.common.classNameHelp': '包含包名的完整 Java 类名',
 
-  'designer.props.common.methodName': '方法名 (Method)',
+  'designer.props.common.methodName': '方法名',
 
-  'designer.props.common.methodNameOptional': '方法名 (Method)',
+  'designer.props.common.methodNameOptional': '方法名（可选）',
 
   'designer.props.common.methodNameOptionalHelp': '默认调用 execute，仅在调用其他方法时配置',
 
@@ -697,11 +697,11 @@ const zhAuthoring = {
 
   'designer.props.common.timeout': '超时',
 
-  'designer.props.common.timeoutHelp': 'ISO 8601 格式，例如 PT30S（30秒）',
+  'designer.props.common.timeoutHelp': 'ISO 8601 时长，例如 PT30S（30 秒）',
 
   'designer.props.common.invocationTimeout': '调用总超时',
 
-  'designer.props.common.invocationTimeoutHelp': '整个调用的最长时间，包含所有尝试和重试退避',
+  'designer.props.common.invocationTimeoutHelp': '整次调用的最长时间，包括重试和退避等待',
 
   'designer.props.common.attemptTimeout': '单次尝试超时',
 
@@ -727,7 +727,7 @@ const zhAuthoring = {
 
   'designer.props.common.jitter': '重试抖动',
 
-  'designer.props.common.jitterHelp': '全抖动会在 0 到退避上限间随机分散重试，是生产默认值',
+  'designer.props.common.jitterHelp': '全抖动会将重试随机分散在退避时间内，默认开启',
 
   'designer.props.common.jitterFull': '全抖动（推荐）',
 
@@ -745,9 +745,9 @@ const zhAuthoring = {
 
   'designer.props.common.defaultEdgeIdHelp': '无条件命中时使用的已有出向流',
 
-  'designer.props.common.gatewayJoinNoConfig': '汇合网关是纯同步点，不包含路由属性。',
+  'designer.props.common.gatewayJoinNoConfig': '汇合网关用于同步多个分支，无需配置路由条件。',
 
-  'designer.props.common.exprBuilderTooltip': '可视化构建表达式',
+  'designer.props.common.exprBuilderTooltip': '可视化编辑表达式',
 
   'designer.props.section.basic': '基础配置',
 
@@ -769,7 +769,7 @@ const zhAuthoring = {
 
   'designer.props.section.varParams': '变量参数',
 
-  'designer.props.section.varTransfer': '变量传递',
+  'designer.props.section.varTransfer': '变量映射',
 
   'designer.props.col.seq': '序号',
 
@@ -785,44 +785,44 @@ const zhAuthoring = {
 
   'designer.props.col.direction': '方向',
 
-  'designer.props.col.mappingReference': '来源 / 目标',
+  'designer.props.col.mappingReference': '来源/目标',
 
   'designer.props.col.defaultValue': '默认值',
 
   'designer.props.col.description': '说明',
 
-  'designer.props.table.emptyParams': '暂无参数，点击"添加"',
+  'designer.props.table.emptyParams': '暂无参数，点击「添加」创建',
 
-  'designer.props.table.emptySubVars': '暂无变量传递配置',
+  'designer.props.table.emptySubVars': '暂无变量映射',
 
-  'designer.props.alert.noOutgoingEdges': '未发现出边',
+  'designer.props.alert.noOutgoingEdges': '暂无出边',
 
   'designer.props.alert.noOutgoingEdgesExclusiveDesc': '请从此排他网关连线到其他节点后再配置条件',
 
   'designer.props.alert.noOutgoingEdgesGatewayDesc': '请从此网关节点连线到其他节点后再配置条件',
 
-  'designer.props.node.note.title': '注释节点',
+  'designer.props.node.note.title': '注释',
 
-  'designer.props.node.note.desc': '设计时注解，不参与流程执行',
+  'designer.props.node.note.desc': '用于补充流程说明，不影响执行',
 
   'designer.props.node.note.content': '注释内容',
 
-  'designer.props.node.note.contentPlaceholder': '输入注释内容...',
+  'designer.props.node.note.contentPlaceholder': '输入注释内容…',
 
   'designer.props.node.parallel.title': '并行网关',
 
   'designer.props.node.parallel.desc': '分叉时激活所有出边并行执行；汇聚时等待所有入边完成后继续',
 
-  'designer.props.node.parallel.noConfig': '并行网关无需额外配置',
+  'designer.props.node.parallel.noConfig': '无需额外配置',
 
   'designer.props.node.parallel.noConfigDesc':
     '所有出边都会被激活并行执行。汇聚时等待所有并行分支全部到达后继续。',
 
-  'designer.props.node.break.title': 'Break（中断循环）',
+  'designer.props.node.break.title': '中断循环（break）',
 
   'designer.props.node.break.desc': '退出当前循环，可配置执行条件',
 
-  'designer.props.node.continue.title': 'Continue（继续循环）',
+  'designer.props.node.continue.title': '继续循环（continue）',
 
   'designer.props.node.continue.desc': '跳过当前迭代，进入下一次循环，可配置执行条件',
 
@@ -840,20 +840,20 @@ const zhAuthoring = {
 
   'designer.props.node.inclusive.desc': '满足条件的所有出边都会被激活并行执行',
 
-  'designer.props.node.autoTask.title': '自动任务节点',
+  'designer.props.node.autoTask.title': '自动任务',
 
   'designer.props.node.autoTask.desc': '调用应用提供的 Java 方法或 Spring Bean',
 
   'designer.props.node.subBpm.title': '内嵌 BPM',
 
-  'designer.props.node.subBpm.desc': '在当前 BPM 内部定义的嵌套作用域',
+  'designer.props.node.subBpm.desc': '将当前 BPM 的部分节点组织为内嵌流程',
 
   'designer.props.node.subBpm.boundaryHint':
-    '内嵌 BPM 必须包含且仅包含一个 start 和一个 end 节点。',
+    '内嵌 BPM 必须包含且仅包含一个开始节点和一个结束节点。',
 
   'designer.props.node.subBpm.children': '内部节点',
 
-  'designer.props.node.subBpm.childrenHelp': '选择归属于该内嵌 BPM 的节点。',
+  'designer.props.node.subBpm.childrenHelp': '选择包含在该内嵌 BPM 中的节点。',
 
   'designer.props.node.bpmCall.title': 'BPM 调用',
 
@@ -867,7 +867,7 @@ const zhAuthoring = {
 
   'designer.props.node.waitEventTask.title': '等待事件任务',
 
-  'designer.props.node.waitTask.desc': '外部触发时，以当前状态节点 ID 为入口启动一次新执行',
+  'designer.props.node.waitTask.desc': '等待外部触发，然后从当前入口继续执行',
 
   'designer.props.node.waitTask.eventName': '事件名称',
 
@@ -891,18 +891,17 @@ const zhAuthoring = {
 
   'designer.props.node.timerTask.wakeAtExpressionHelp': '返回唤醒时刻的 Java 表达式',
 
-  'designer.props.node.scriptTbbpm.title': '脚本任务节点',
+  'designer.props.node.scriptTbbpm.title': '脚本任务',
 
-  'designer.props.node.scriptTbbpm.desc':
-    '执行流程定义内的内联代码；内置 QLExpress 和受信任的进程内 Java 17',
+  'designer.props.node.scriptTbbpm.desc': '执行内联 QLExpress 或受信任的进程内 Java 17 代码',
 
   'designer.props.node.loop.whileTitle': 'While 循环',
 
-  'designer.props.node.loop.whileDesc': 'Java 条件为 true 时重复执行局部循环体',
+  'designer.props.node.loop.whileDesc': 'Java 条件为 true 时重复执行循环体',
 
   'designer.props.node.loop.forEachTitle': 'Foreach 循环',
 
-  'designer.props.node.loop.forEachDesc': '顺序遍历集合，或使用 Durable 有序并行模式',
+  'designer.props.node.loop.forEachDesc': '顺序处理集合，或使用 Durable 有序并行执行',
 
   'designer.props.node.loop.execution': '执行方式',
 
@@ -915,7 +914,7 @@ const zhAuthoring = {
 
   'designer.props.node.loop.whileExpr': '循环条件表达式',
 
-  'designer.props.node.loop.whileExprHelp': '当表达式为true时继续循环，为false时退出',
+  'designer.props.node.loop.whileExprHelp': '表达式为 true 时继续，为 false 时退出',
 
   'designer.props.node.loop.maxIterations': '最大迭代次数',
 
@@ -933,7 +932,7 @@ const zhAuthoring = {
 
   'designer.props.node.loop.index': '索引变量名',
 
-  'designer.props.node.loop.indexHelp': '可选：当前元素的索引变量名（从0开始）',
+  'designer.props.node.loop.indexHelp': '当前元素的索引变量名（可选，从 0 开始）',
 
   'designer.props.node.loop.outputTarget': '输出目标',
 
@@ -943,11 +942,11 @@ const zhAuthoring = {
     '用于按输入顺序接收结果的已声明 List 流程变量；两个输出字段必须同时配置或同时留空',
 
   'designer.props.node.loop.outputSourceHelp':
-    '每次迭代前重置为默认值、迭代结束后追加到输出集合的已声明 inner 流程变量',
+    '已声明的内部流程变量；每次迭代前重置，迭代后追加到输出集合',
 
   'designer.props.node.loop.bodyNodes': '循环体节点',
 
-  'designer.props.node.loop.bodyNodesHelp': '由当前循环直接包含的节点',
+  'designer.props.node.loop.bodyNodesHelp': '选择直接包含在当前循环中的节点',
 
   'designer.props.node.loop.bodyNodesPlaceholder': '选择循环体节点',
 
@@ -957,7 +956,7 @@ const zhAuthoring = {
 
   'designer.props.bpmnLoop.none': '不循环',
 
-  'designer.props.bpmnLoop.standard': '标准 while / until 循环',
+  'designer.props.bpmnLoop.standard': '标准 while/until 循环',
 
   'designer.props.bpmnLoop.multiInstance': '多实例',
 
@@ -975,14 +974,14 @@ const zhAuthoring = {
   'designer.props.subProcess.childrenHelp':
     '请选择且仅选择一个开始事件、一个结束事件，以及该子流程直接拥有的全部节点',
 
-  'designer.props.subProcess.boundaryHint': '嵌入式子流程是独立图容器，顺序流不能跨越该容器边界。',
+  'designer.props.subProcess.boundaryHint': '顺序流不能跨越内嵌子流程的边界。',
 
-  'designer.props.node.exclusiveGateway.title': 'XOR 网关（互斥网关）',
+  'designer.props.node.exclusiveGateway.title': '排他网关（XOR）',
 
   'designer.props.node.exclusiveGateway.desc':
     '只有一条出边条件为真时执行对应分支。条件在出边（连接线）上配置。',
 
-  'designer.props.node.inclusiveGateway.title': 'Inclusive 网关（包容网关）',
+  'designer.props.node.inclusiveGateway.title': '包容网关（OR）',
 
   'designer.props.node.inclusiveGateway.desc':
     '所有条件为真的出边都会被激活并行执行；汇聚时等待所有被激活的入边完成。',
@@ -998,11 +997,11 @@ const zhAuthoring = {
 
   'designer.validation.notRun': '未验证',
 
-  'designer.validation.notRunDesc': '点击「验证流程」按钮开始验证',
+  'designer.validation.notRunDesc': '点击工具栏中的「验证流程」进行检查',
 
   'designer.validation.passed': '验证通过',
 
-  'designer.validation.passedDesc': '流程定义没有发现问题 ✓',
+  'designer.validation.passedDesc': '未发现问题',
 
   'designer.validation.errors': '错误',
 
@@ -1010,7 +1009,7 @@ const zhAuthoring = {
 
   'designer.validation.infos': '信息',
 
-  'designer.validation.suggestion': '建议：',
+  'designer.validation.suggestion': '修复建议：',
 
   'designer.validation.involvedNodes': '涉及节点：',
 
@@ -1036,9 +1035,9 @@ const zhAuthoring = {
 
   'designer.validation.toast.passed': '验证通过，未发现问题',
 
-  'designer.validation.toast.errors': '发现 {{count}} 个错误，请在验证面板查看详情',
+  'designer.validation.toast.errors': '发现 {{count}} 个错误，请打开「验证」查看详情',
 
-  'designer.validation.toast.warnings': '发现 {{count}} 个警告，请在验证面板查看详情',
+  'designer.validation.toast.warnings': '发现 {{count}} 个警告，请打开「验证」查看详情',
 
   'designer.validation.property.start.mustHaveOutgoing': '开始节点必须有至少一条出边',
 
@@ -1064,36 +1063,36 @@ const zhAuthoring = {
   'designer.validation.property.gateway.nestedConcurrencyUnsupported':
     '循环内暂不支持并行或包容分流',
 
-  'designer.validation.property.node.requiresExplicitGateway': '非网关节点不能分支，请使用显式网关',
+  'designer.validation.property.node.requiresExplicitGateway': '只有网关可以创建分支，请先添加网关',
 
   'designer.validation.property.node.conditionRequiresGateway':
     '条件只能配置在排他或包容分流网关的出边上',
 
   'designer.validation.property.node.inapplicableProperty':
-    '属性“{{property}}”不属于 TBBPM 节点类型“{{nodeType}}”',
+    '属性「{{property}}」不适用于 TBBPM 节点类型「{{nodeType}}」',
 
   'designer.validation.property.condition.directMutation':
     '条件表达式必须无副作用，不允许直接修改状态「{{operator}}」',
 
   'designer.validation.property.mapping.inapplicableDefault':
-    'defaultValue 仅适用于未配置 source 的输入映射（冲突类型：{{reason}}）',
+    'defaultValue 仅适用于未设置 source 的输入映射（{{reason}}）',
 
-  'designer.validation.property.action.missingType': '必须配置动作类型',
+  'designer.validation.property.action.missingType': '请选择动作类型',
 
-  'designer.validation.property.action.missingClass': '必须配置动作 Java 类',
+  'designer.validation.property.action.missingClass': '请输入动作对应的 Java 类',
 
-  'designer.validation.property.action.invalidClass': '动作 Java 类必须是合法的规范类名',
+  'designer.validation.property.action.invalidClass': '请输入包含包名的完整 Java 类名',
 
-  'designer.validation.property.action.invalidMethod': '动作方法必须是合法的 Java 标识符',
+  'designer.validation.property.action.invalidMethod': '请输入有效的 Java 方法名',
 
-  'designer.validation.property.action.missingBean': '必须配置动作 Spring Bean 名称',
+  'designer.validation.property.action.missingBean': '请输入动作对应的 Spring Bean 名称',
 
   'designer.validation.property.action.invalidBean':
     '动作 Spring Bean 名称不能包含首尾空白或控制字符',
 
-  'designer.validation.property.action.missingScriptLanguage': '必须配置脚本语言',
+  'designer.validation.property.action.missingScriptLanguage': '请选择脚本语言',
 
-  'designer.validation.property.action.missingScriptSource': '必须配置脚本源码',
+  'designer.validation.property.action.missingScriptSource': '请输入脚本内容',
 
   'designer.validation.property.action.unsupportedType': '不支持动作类型「{{actionType}}」',
 
@@ -1103,51 +1102,51 @@ const zhAuthoring = {
   'designer.validation.property.autoTask.unsupportedActionType':
     'autoTask 不支持动作类型「{{actionType}}」，请使用 java 或 spring-bean',
 
-  'designer.validation.property.invocationPolicy.invalid': 'InvocationPolicy 配置无效：{{message}}',
+  'designer.validation.property.invocationPolicy.invalid': '调用策略无效：{{message}}',
 
   'designer.validation.property.effectPolicy.invalid': 'Effect 恢复策略无效：{{message}}',
 
-  'designer.validation.property.waitEventTask.missingEvent':
-    '等待事件任务必须配置 event（事件名称）',
+  'designer.validation.property.waitEventTask.missingEvent': '请为等待事件任务输入事件名称',
 
   'designer.validation.property.timerTask.schedule':
-    '定时任务必须且只能配置 duration、durationExpression 或 wakeAtExpression 中的一项',
+    '定时任务只能设置一项：duration、durationExpression 或 wakeAtExpression',
 
-  'designer.validation.property.bpmCall.missingCode': 'BPM 调用必须配置 code',
+  'designer.validation.property.bpmCall.missingCode': '请输入要调用的 BPM 编码',
 
   'designer.validation.property.processCall.targetRequired':
-    '流程调用必须声明 classpath 路径或精确版本',
+    '请为被调用流程选择 Classpath 路径或精确版本',
 
   'designer.validation.property.processCall.targetConflict':
-    '流程调用不能同时声明 classpath 和 version',
+    '被调用流程的 Classpath 路径和版本不能同时设置',
 
   'designer.validation.property.processCall.invalidReference':
     '被调用流程的 code、classpath 或 version 不合法',
 
-  'designer.validation.property.container.unknownParent': '父容器「{{parentId}}」不存在',
+  'designer.validation.property.container.unknownParent': '父节点「{{parentId}}」不存在',
 
-  'designer.validation.property.container.invalidParent': '父节点「{{parentId}}」不是 TBBPM 容器',
+  'designer.validation.property.container.invalidParent':
+    '父节点「{{parentId}}」不能包含 TBBPM 节点',
 
-  'designer.validation.property.container.invalidChildType': '当前容器内不允许 {{nodeType}} 节点',
+  'designer.validation.property.container.invalidChildType': '当前区域不支持 {{nodeType}} 节点',
 
-  'designer.validation.property.container.parentCycle': '容器的包含关系存在环',
+  'designer.validation.property.container.parentCycle': '节点包含关系存在环',
 
-  'designer.validation.property.container.crossBoundaryTransition': '连接线不能跨越容器边界',
+  'designer.validation.property.container.crossBoundaryTransition': '连线不能跨越所属区域的边界',
 
   'designer.validation.property.loop.endHasOutgoing': '循环体的结束节点不能有出边',
 
-  'designer.validation.property.loop.missingBody': '循环必须包含循环体',
+  'designer.validation.property.loop.missingBody': '请在循环体中至少添加一个节点',
 
-  'designer.validation.property.loop.missingCondition': '条件循环必须配置 condition',
+  'designer.validation.property.loop.missingCondition': '请输入条件循环的表达式',
 
   'designer.validation.property.loop.invalidMaxIterations':
     'maxIterations 必须是 1 到 2,147,483,647 之间的整数',
 
-  'designer.validation.property.loop.missingCollection': '集合遍历必须配置 collection',
+  'designer.validation.property.loop.missingCollection': '请选择要遍历的集合',
 
   'designer.validation.property.loop.unknownCollection': 'collection「{{name}}」未声明',
 
-  'designer.validation.property.loop.missingItem': '集合遍历必须配置 item',
+  'designer.validation.property.loop.missingItem': '请输入集合元素的变量名',
 
   'designer.validation.property.loop.invalidLocalVariable':
     '{{property}}「{{value}}」不是合法变量名',
@@ -1160,21 +1159,21 @@ const zhAuthoring = {
 
   'designer.validation.property.loop.unknownOutputReference': '输出引用「{{name}}」未声明',
 
-  'designer.validation.property.loop.outputReferenceCollision': '输出 target 和 source 必须不同',
+  'designer.validation.property.loop.outputReferenceCollision': '输出目标和输出来源不能相同',
 
-  'designer.validation.property.loop.outputSourceNotInner': '输出 source 必须是 inner 流程变量',
+  'designer.validation.property.loop.outputSourceNotInner': '输出来源必须是内部流程变量',
 
   'designer.validation.property.loop.parallelBreakUnsupported': '并行集合遍历不支持 break',
 
   'designer.validation.property.loop.rootOnlyChildType': 'break/continue 必须位于循环体内',
 
-  'designer.validation.property.conn.missingSource': '连接的源节点 "{{nodeId}}" 不存在',
+  'designer.validation.property.conn.missingSource': '源节点「{{nodeId}}」不存在',
 
-  'designer.validation.property.conn.missingTarget': '连接的目标节点 "{{nodeId}}" 不存在',
+  'designer.validation.property.conn.missingTarget': '目标节点「{{nodeId}}」不存在',
 
   'designer.validation.property.conn.selfLoop': '节点不能连接到自己',
 
-  'designer.validation.property.note.transitionNotAllowed': '注释节点不能参与执行转移',
+  'designer.validation.property.note.transitionNotAllowed': '注释节点不能与可执行节点连线',
 
   'designer.validation.property.bpmn.start.mustHaveOutgoing': '开始事件必须有出边',
 
@@ -1185,15 +1184,15 @@ const zhAuthoring = {
   'designer.validation.property.bpmn.end.shouldNotHaveOutgoing': '结束事件不应有出边',
 
   'designer.validation.property.bpmn.serviceTask.missingAction':
-    '服务任务必须配置 CompileFlow 动作',
+    '请为服务任务配置 CompileFlow 动作',
 
   'designer.validation.property.bpmn.serviceTask.unsupportedActionType':
     '服务任务仅支持 Java 方法和 Spring Bean 动作',
 
   'designer.validation.property.bpmn.scriptTask.missingScriptFormat':
-    '脚本任务必须配置 scriptFormat',
+    '请为脚本任务选择 scriptFormat',
 
-  'designer.validation.property.bpmn.scriptTask.missingScript': '脚本任务应配置 script 内容',
+  'designer.validation.property.bpmn.scriptTask.missingScript': '请输入脚本任务内容',
 
   'designer.validation.property.bpmn.gateway.minTwoOutgoing': '网关应有至少 2 条出边（分支）',
 
@@ -1201,7 +1200,7 @@ const zhAuthoring = {
     '网关必须是分流（1 条入边、至少 2 条出边）或汇聚（至少 2 条入边、1 条出边）',
 
   'designer.validation.property.bpmn.node.inapplicableProperty':
-    '属性“{{property}}”不属于 BPMN 节点类型“{{nodeType}}”',
+    '属性「{{property}}」不适用于 BPMN 节点类型「{{nodeType}}」',
 
   'designer.validation.property.bpmn.gateway.defaultUnsupported': '并行网关不能配置默认流',
 
@@ -1231,28 +1230,28 @@ const zhAuthoring = {
   'designer.validation.property.bpmn.gateway.duplicateCondition': '排他网关的出边条件不能重复',
 
   'designer.validation.property.bpmn.node.requiresExplicitGateway':
-    '非网关节点不能分支，请使用显式网关',
+    '只有网关可以创建分支，请先添加网关',
 
   'designer.validation.property.bpmn.node.conditionRequiresGateway':
     '条件只能配置在排他或包容分流网关的出边上',
 
-  'designer.validation.property.bpmn.receiveTask.missingMessageRef': '接收任务必须配置 messageRef',
+  'designer.validation.property.bpmn.receiveTask.missingMessageRef': '请为接收任务选择 BPMN 消息',
 
   'designer.validation.property.bpmn.receiveTask.unknownMessageRef':
-    '接收任务的 messageRef「{{messageRef}}」必须且只能解析到一个 BPMN message',
+    'messageRef「{{messageRef}}」必须唯一指向一条 BPMN 消息',
 
-  'designer.validation.property.bpmn.message.missingId': 'BPMN message 必须配置 ID',
+  'designer.validation.property.bpmn.message.missingId': '请输入 BPMN 消息 ID',
 
-  'designer.validation.property.bpmn.message.duplicateId': 'BPMN message ID「{{messageId}}」重复',
+  'designer.validation.property.bpmn.message.duplicateId': 'BPMN 消息 ID「{{messageId}}」重复',
 
   'designer.validation.property.bpmn.message.idCollision':
-    'BPMN message ID「{{messageId}}」与节点或顺序流 ID 冲突',
+    'BPMN 消息 ID「{{messageId}}」与节点或顺序流 ID 冲突',
 
   'designer.validation.property.bpmn.message.missingName':
-    'BPMN message「{{messageId}}」必须配置运行时事件名',
+    '请为 BPMN 消息「{{messageId}}」输入运行时事件名',
 
   'designer.validation.property.bpmn.callActivity.missingCalledElement':
-    '调用活动必须配置 calledElement',
+    '请为调用活动输入 calledElement',
 
   'designer.validation.property.bpmn.subProcess.unknownParent':
     '节点引用了不存在的子流程父级「{{parentId}}」',
@@ -1282,23 +1281,21 @@ const zhAuthoring = {
   'designer.validation.property.bpmn.loop.unknownOutputReference':
     '多实例输出「{{name}}」不是已声明的流程变量',
 
-  'designer.validation.property.bpmn.loop.outputSourceNotInner':
-    '多实例输出 source 必须是 inner 流程变量',
+  'designer.validation.property.bpmn.loop.outputSourceNotInner': '多实例输出来源必须是内部流程变量',
 
   'designer.validation.property.bpmn.loop.variableShadowing':
     '多实例变量「{{name}}」不能遮蔽流程状态变量',
 
   'designer.validation.property.bpmn.invocationPolicy.unsupportedNode':
-    'InvocationPolicy 只能配置在服务任务或脚本任务上',
+    '调用策略只能配置在服务任务或脚本任务上',
 
-  'designer.validation.property.bpmn.invocationPolicy.invalid':
-    'InvocationPolicy 配置无效：{{message}}',
+  'designer.validation.property.bpmn.invocationPolicy.invalid': '调用策略无效：{{message}}',
 
   'designer.validation.property.bpmn.mapping.incomplete': '变量映射缺少必填字段',
 
   'designer.validation.property.bpmn.mapping.duplicate': '变量映射名称「{{name}}」重复',
 
-  'designer.validation.property.bpmn.mapping.missingOutputTarget': '输出映射必须声明 target',
+  'designer.validation.property.bpmn.mapping.missingOutputTarget': '输出映射必须声明 target 属性',
 
   'designer.validation.property.bpmn.mapping.unknownOutputTarget':
     '输出目标「{{target}}」不是已声明的流程变量',
@@ -1312,7 +1309,8 @@ const zhAuthoring = {
 
   'designer.validation.property.tbbpm.mapping.duplicate': '变量映射名称「{{name}}」重复',
 
-  'designer.validation.property.tbbpm.mapping.missingOutputTarget': '子流程输出映射必须声明 target',
+  'designer.validation.property.tbbpm.mapping.missingOutputTarget':
+    '子流程输出映射必须声明 target 属性',
 
   'designer.validation.property.tbbpm.mapping.unknownOutputTarget':
     '输出目标「{{target}}」不是已声明的流程变量',
@@ -1340,7 +1338,7 @@ const zhAuthoring = {
   'designer.validation.property.process.variable.invalidDirection':
     '流程变量「{{name}}」的方向必须是 param、return 或 inner',
 
-  'designer.validation.summary.passed': '✓ 流程验证通过',
+  'designer.validation.summary.passed': '✓ 验证通过',
 
   'designer.validation.summary.failed': '✗ {{details}}',
 
@@ -1350,9 +1348,9 @@ const zhAuthoring = {
 
   'designer.validation.summary.infos': '{{count}} 条信息',
 
-  'designer.validation.issue.multiStart.missing': '流程缺少起点节点',
+  'designer.validation.issue.multiStart.missing': '流程缺少开始节点',
 
-  'designer.validation.issue.multiStart.missingSuggestion': '添加一个 Start 节点作为流程起点',
+  'designer.validation.issue.multiStart.missingSuggestion': '添加一个开始节点',
 
   'designer.validation.issue.multiStart.multiple': '流程有 {{count}} 个起点节点',
 
@@ -1360,41 +1358,37 @@ const zhAuthoring = {
 
   'designer.validation.issue.noEnd.message': '流程缺少终点节点',
 
-  'designer.validation.issue.noEnd.suggestion': '添加至少一个 End 节点作为流程终点',
+  'designer.validation.issue.noEnd.suggestion': '添加至少一个结束节点',
 
   'designer.validation.issue.multiEnd.message': '流程存在 {{count}} 个终点节点',
 
-  'designer.validation.issue.multiEnd.suggestion': '仅保留一个 End 节点',
+  'designer.validation.issue.multiEnd.suggestion': '仅保留一个结束节点',
 
   'designer.validation.issue.cycle.message': '检测到环路 #{{index}}：{{path}}',
 
   'designer.validation.issue.cycle.suggestion': '移除环路中的某条连接线，或添加终止条件',
 
-  'designer.validation.issue.isolated.message': '检测到 {{count}} 个孤岛节点（没有任何连接）',
+  'designer.validation.issue.isolated.message': '{{count}} 个节点没有任何连线',
 
   'designer.validation.issue.isolated.suggestion': '连接这些节点到流程中，或删除它们',
 
-  'designer.validation.issue.unreachable.message':
-    '检测到 {{count}} 个不可达节点（从起点无法到达）',
+  'designer.validation.issue.unreachable.message': '{{count}} 个节点无法从开始节点到达',
 
   'designer.validation.issue.unreachable.suggestion': '添加从起点到这些节点的路径，或删除这些节点',
 
-  'designer.validation.issue.orphanEdge.message':
-    '检测到 {{count}} 条孤立连接线（源或目标节点不存在）',
+  'designer.validation.issue.orphanEdge.message': '{{count}} 条连线缺少源节点或目标节点',
 
   'designer.validation.issue.orphanEdge.suggestion': '删除这些孤立的连接线',
 
   'designer.validation.issue.deadlock.ambiguous':
-    '并行网关「{{name}}」配置不明确（入度={{inDegree}}，出度={{outDegree}}）',
+    '并行网关「{{name}}」的连线结构无效（入度={{inDegree}}，出度={{outDegree}}）',
 
   'designer.validation.issue.deadlock.ambiguousSuggestion':
-    'Fork 网关应有 1 个输入和多个输出，Join 网关应有多个输入和 1 个输出',
+    '分流网关需要 1 条入边和多条出边；汇合网关需要多条入边和 1 条出边',
 
-  'designer.validation.issue.deadlock.missingJoin':
-    '并行 Fork 网关「{{name}}」缺少对应的 Join 网关',
+  'designer.validation.issue.deadlock.missingJoin': '并行分流网关「{{name}}」缺少对应的汇合网关',
 
-  'designer.validation.issue.deadlock.missingJoinSuggestion':
-    '在所有并行分支汇合处添加一个 Join 网关',
+  'designer.validation.issue.deadlock.missingJoinSuggestion': '在并行分支汇合处添加一个汇合网关',
 
   'designer.clipboard.nothingToCopy': '没有可复制的内容',
 
@@ -1462,13 +1456,13 @@ const zhAuthoring = {
 
   'designer.properties.tab.subProcess': '嵌入式子流程',
 
-  'designer.xmlEditor.generationFailed': '无法从当前流程生成 XML',
+  'designer.xmlEditor.generationFailed': 'XML 生成失败',
 
   'designer.scriptEditor.placeholder': '// 请输入脚本代码…',
 
   'designer.localSnapshots.title': '本地快照',
 
-  'designer.localSnapshots.empty': '暂无快照，显式保存流程后会创建快照',
+  'designer.localSnapshots.empty': '暂无快照，保存流程后会自动创建',
 
   'designer.localSnapshots.loadFailed': '加载本地快照失败',
 
@@ -1489,29 +1483,32 @@ const zhAuthoring = {
   'designer.debug.sim.errorNodeNotFound': '节点不存在：{{nodeId}}',
 
   'designer.debug.sim.errorConcurrentGatewayUnsupported':
-    '浏览器预览不执行并行或包容分支，请使用「引擎执行」验证真实分支隔离与并发语义。',
+    '浏览器模拟不支持并行或包容分支，请使用服务器执行进行验证。',
 
   'designer.debug.sim.errorNoBranchMatched': '网关 {{nodeId}} 没有匹配的出边',
 
   'designer.debug.sim.errorTriggerEntryUnsupported':
-    '浏览器预览无法执行触发入口 {{nodeId}}，请使用「引擎执行」。',
+    '浏览器模拟不支持触发入口 {{nodeId}}，请使用服务器执行。',
 
   'designer.debug.sim.errorTimerUnsupported':
-    '浏览器预览无法推进定时任务 {{nodeId}}，请使用 Durable Runtime 验证持久化定时语义。',
+    '浏览器模拟无法推进定时任务 {{nodeId}}，请使用 Durable Runtime 验证定时行为。',
 
   'designer.debug.sim.errorLoopUnsupported':
-    '浏览器预览无法复现节点 {{nodeId}} 的循环语义，请使用「引擎执行」。',
+    '浏览器模拟不支持节点 {{nodeId}} 的循环，请使用服务器执行。',
 
   'designer.debug.sim.errorCalledProcessUnsupported':
-    '浏览器预览无法执行节点 {{nodeId}} 调用的子流程，请使用「引擎执行」。',
+    '浏览器模拟无法执行节点 {{nodeId}} 调用的流程，请使用服务器执行。',
 
   'designer.debug.sim.errorEmbeddedProcessUnsupported':
-    '浏览器预览无法复现节点 {{nodeId}} 的嵌入式子流程语义，请使用「引擎执行」。',
+    '浏览器模拟不支持节点 {{nodeId}} 的内嵌子流程，请使用服务器执行。',
 
   'designer.debug.sim.errorExpressionEvaluationFailed':
     '浏览器预览无法安全求值 {{elementId}} 上的表达式',
 
   'designer.debug.sim.errorDeadEnd': '执行停在没有出边的非结束节点 {{nodeId}}',
+  'designer.debug.sim.errorCycle': '模拟再次到达节点 {{nodeId}}，已停止。',
+  'designer.debug.sim.errorStepLimit': '模拟在节点 {{nodeId}} 附近达到步数上限，已停止。',
+  'designer.debug.sim.errorRunSuperseded': '已开始新的模拟，本次运行已停止。',
 
   'designer.node.bpmn.start': '开始',
 
@@ -1533,7 +1530,7 @@ const zhAuthoring = {
 
   'designer.node.bpmn.subProcess': '嵌入式子流程',
 
-  'designer.palette.dndFailed': '画布拖放初始化失败',
+  'designer.palette.dndFailed': '画布拖放功能不可用',
 
   'designer.props.common.timeoutPlaceholder': 'PT0S（不超时）',
 
@@ -1541,33 +1538,33 @@ const zhAuthoring = {
 
   'designer.props.common.attemptTimeoutPlaceholder': '例如 PT30S',
 
-  'designer.props.ph.varName': '例如: order',
+  'designer.props.ph.varName': '例如 order',
 
   'designer.props.ph.javaType': 'java.lang.String',
 
-  'designer.props.ph.mappingReference': '流程变量',
+  'designer.props.ph.mappingReference': '选择流程变量',
 
-  'designer.props.ph.defaultValue': '字面量',
+  'designer.props.ph.defaultValue': '输入字面量',
 
-  'designer.props.ph.description': '可选：映射说明',
+  'designer.props.ph.description': '映射说明（可选）',
 
   'designer.props.ph.javaClass': 'com.example.OrderService',
 
   'designer.props.ph.springExpression': '${orderService.process(order)}',
 
-  'designer.props.ph.condition': '例如: amount > 1000',
+  'designer.props.ph.condition': '例如 amount > 1000',
 
-  'designer.props.ph.loopWhile': '例如: counter < 10 && !cancelled',
+  'designer.props.ph.loopWhile': '例如 counter < 10 && !cancelled',
 
-  'designer.props.ph.loopCollection': '例如: orderList',
+  'designer.props.ph.loopCollection': '例如 orderList',
 
-  'designer.props.ph.loopElement': '例如: order',
+  'designer.props.ph.loopElement': '例如 order',
 
-  'designer.props.ph.loopElementClass': '例如: com.example.model.Order',
+  'designer.props.ph.loopElementClass': '例如 com.example.model.Order',
 
-  'designer.props.ph.loopIteration': '例如: iteration',
+  'designer.props.ph.loopIteration': '例如 iteration',
 
-  'designer.props.ph.loopIndex': '例如: index',
+  'designer.props.ph.loopIndex': '例如 index',
 
   'designer.props.ph.defaultProcess': 'Flow_default',
 
@@ -1577,9 +1574,9 @@ const zhAuthoring = {
 
   'designer.props.ph.script': '// 脚本',
 
-  'designer.props.ph.processCode': '例如: user.approval.flow',
+  'designer.props.ph.processCode': '例如 user.approval.flow',
 
-  'designer.props.ph.eventName': '例如: approval.completed',
+  'designer.props.ph.eventName': '例如 approval.completed',
 
   'designer.props.ph.methodName': 'processOrder',
 
@@ -1616,7 +1613,7 @@ const zhAuthoring = {
   'designer.props.node.parallelGateway.title': 'AND 网关（并行网关）',
 
   'designer.props.node.waitTask.triggerTip':
-    'Tip: 通过 engine.trigger(ProcessDefinition.classpath("processCode", "flows/process.bpm"), ProcessTrigger.at(node.id), data) 从该入口启动一次新执行',
+    '使用 engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM, "processCode", "flows/process.bpm"), ProcessTrigger.at(node.id), data) 从该入口启动执行',
 
   'designer.props.node.loop.whileExampleTitle': '// 条件循环示例',
 
@@ -1630,26 +1627,24 @@ const zhAuthoring = {
 
   'designer.props.node.loop.continueDesc': '— 跳过当前迭代，继续下一次循环',
 
-  'designer.props.node.loop.limitBehaviorHint':
-    '达到最大迭代次数后条件若仍为 true，执行将失败；循环不会被静默截断',
+  'designer.props.node.loop.limitBehaviorHint': '达到迭代上限后条件若仍为 true，执行将失败',
 
-  'designer.props.node.scriptTask.scriptFormat': '脚本格式 (scriptFormat)',
+  'designer.props.node.scriptTask.scriptFormat': '脚本格式（scriptFormat）',
 
-  'designer.props.node.scriptTask.script': '脚本内容 (script)',
+  'designer.props.node.scriptTask.script': '脚本内容（script）',
 
-  'designer.props.node.receiveTask.messageId': '消息 ID (messageRef)',
+  'designer.props.node.receiveTask.messageId': '消息 ID（messageRef）',
 
-  'designer.props.node.receiveTask.messageHelp':
-    '引用顶层 BPMN message 定义；缺失时 Workbench 会自动创建',
+  'designer.props.node.receiveTask.messageHelp': '引用顶层 BPMN 消息，需要时 Workbench 会自动创建',
 
   'designer.props.node.receiveTask.eventName': '运行时事件名',
 
   'designer.props.node.receiveTask.eventNameHelp':
-    'ProcessTrigger.event 必须等于该 message.name；修改共享消息会影响所有引用它的接收任务',
+    'ProcessTrigger.event 必须与该名称匹配。修改后，所有引用该消息的接收任务都会受到影响。',
 
   'designer.props.node.receiveTask.eventNamePlaceholder': 'payment.received',
 
-  'designer.props.node.callActivity.calledElement': '被调用元素 (calledElement)',
+  'designer.props.node.callActivity.calledElement': '被调用元素（calledElement）',
 
   'designer.props.node.callActivity.calledElementHelp': '被调用的流程 code 或 ID',
 
@@ -1671,7 +1666,7 @@ const zhAuthoring = {
 
   'designer.actions.unsavedLeaveTitle': '未保存的更改',
 
-  'designer.actions.unsavedLeaveContent': '您有未保存的更改，确定要离开吗？',
+  'designer.actions.unsavedLeaveContent': '当前更改尚未保存，是否离开？',
 
   'designer.actions.saveAndLeave': '保存并离开',
 
@@ -1689,9 +1684,9 @@ const zhAuthoring = {
 
   'designer.actions.importXmlInvalid': '请检查 XML 格式',
 
-  'designer.actions.canvasNotReady': '画布未初始化',
+  'designer.actions.canvasNotReady': '画布尚未就绪，请稍后重试',
 
-  'designer.actions.duplicateSuccess': '副本已创建，请在流程列表中打开',
+  'designer.actions.duplicateSuccess': '流程已复制，可在流程列表中打开副本',
 
   'designer.actions.duplicateFailed': '创建副本失败',
 
@@ -1713,7 +1708,7 @@ const zhAuthoring = {
 
   'designer.actions.exportImageSuccess': '已导出 PNG 和 SVG 图片',
 
-  'designer.actions.duplicateOperateUnavailable': '运维流程不支持复制副本',
+  'designer.actions.duplicateOperateUnavailable': '从流程管理打开的流程不支持复制',
 
   'designer.flow.defaultName': '新建{{type}}流程',
 
@@ -1740,8 +1735,7 @@ const zhAuthoring = {
 
   'designer.warnings.dismiss': '关闭',
 
-  'designer.split.canvasStaleHint':
-    '画布有未同步的更改。编辑 XML 后请点击「应用」，或切换标签页刷新预览。',
+  'designer.split.canvasStaleHint': '画布有未保存的更改。请应用 XML 修改，或切换视图刷新预览。',
 
   'designer.properties.selectNode': '请选择一个节点',
 
@@ -1759,7 +1753,7 @@ const zhAuthoring = {
 
   'designer.edge.name': '连接名称',
 
-  'designer.edge.nameTooltip': '用于标识连接线，如：同意、拒绝、默认等',
+  'designer.edge.nameTooltip': '用于标识连线，如「同意」「拒绝」或「默认」',
 
   'designer.edge.namePlaceholder': '请输入连接名称',
 
@@ -1771,13 +1765,13 @@ const zhAuthoring = {
 
   'designer.edge.expressionHelp': '使用无副作用的 Java 布尔表达式，例如：amount > 1000',
 
-  'designer.edge.expressionPlaceholder': '例如: amount > 1000',
+  'designer.edge.expressionPlaceholder': '例如 amount > 1000',
 
   'designer.edge.sourceNode': '源节点',
 
   'designer.edge.targetNode': '目标节点',
 
-  'designer.variableManager.title': '流程变量管理',
+  'designer.variableManager.title': '流程变量',
 
   'designer.variableManager.add': '添加变量',
 
@@ -1785,8 +1779,7 @@ const zhAuthoring = {
 
   'designer.variableManager.empty': '暂无变量，点击「添加变量」创建',
 
-  'designer.variableManager.tip':
-    '变量对应 .bpm 文件中的 &lt;var&gt; 元素，dataType 需要填写完整的 Java 类名，例如 java.lang.String',
+  'designer.variableManager.tip': '数据类型请使用包含包名的完整 Java 类名，如 java.lang.String。',
 
   'designer.variableManager.col.name': '变量名',
 
@@ -1812,7 +1805,7 @@ const zhAuthoring = {
 
   'designer.variableManager.added': '变量已添加',
 
-  'designer.variableManager.deleteConfirm': '确认删除？',
+  'designer.variableManager.deleteConfirm': '删除该变量？',
 
   'designer.variableManager.field.name': '变量名',
 
@@ -1824,14 +1817,14 @@ const zhAuthoring = {
 
   'designer.variableManager.field.nameReserved': '该前缀由 CompileFlow 保留',
 
-  'designer.variableManager.field.namePlaceholder': '例如: orderData',
+  'designer.variableManager.field.namePlaceholder': '例如 orderData',
 
-  'designer.variableManager.field.dataType': '数据类型 (Java 类名)',
+  'designer.variableManager.field.dataType': '数据类型（Java 类名）',
 
   'designer.variableManager.field.dataTypeRequired': '请输入 Java 类名',
 
   'designer.variableManager.field.dataTypePlaceholder':
-    '例如: java.lang.String 或 com.example.OrderData',
+    '例如 java.lang.String 或 com.example.OrderData',
 
   'designer.variableManager.field.direction': '方向',
 
@@ -1847,13 +1840,13 @@ const zhAuthoring = {
 
   'designer.nodeSearch.total': '（共 {{count}} 个节点）',
 
-  'designer.nodeSearch.placeholder': '输入节点名称、ID或类型进行搜索…',
+  'designer.nodeSearch.placeholder': '按节点名称、ID 或类型搜索…',
 
   'designer.nodeSearch.noResults': '未找到匹配的节点',
 
-  'designer.nodeSearch.startHint': '请输入关键词开始搜索',
+  'designer.nodeSearch.startHint': '输入关键词',
 
-  'designer.nodeSearch.startSubhint': '支持按节点名称、ID或类型搜索',
+  'designer.nodeSearch.startSubhint': '支持按节点名称、ID 或类型搜索',
 
   'designer.nodeSearch.position': '位置',
 
@@ -1905,9 +1898,9 @@ const zhAuthoring = {
 
   'designer.errorBoundary.title': '设计器出现错误',
 
-  'designer.errorBoundary.unknown': '发生了一个未知错误',
+  'designer.errorBoundary.unknown': '设计器遇到未预期错误',
 
-  'designer.errorBoundary.devInfo': '开发调试信息',
+  'designer.errorBoundary.devInfo': '技术详情',
 
   'designer.errorBoundary.retry': '重试',
 
@@ -1915,7 +1908,7 @@ const zhAuthoring = {
 
   'designer.loading.default': '加载中…',
 
-  'designer.loading.suspense': '加载组件中…',
+  'designer.loading.suspense': '加载中…',
 
   'designer.loading.contextMenu': '加载菜单中…',
 
@@ -1925,7 +1918,7 @@ const zhAuthoring = {
 
   'designer.flowInit.exampleMissingXml': '示例缺少可导入的流程 XML',
 
-  'designer.flowInit.exampleLoaded': '已加载示例: {{name}}',
+  'designer.flowInit.exampleLoaded': '已加载示例：{{name}}',
 
   'designer.flowInit.exampleLoadFailed': '加载示例失败：{{message}}',
 
@@ -1933,19 +1926,19 @@ const zhAuthoring = {
 
   'designer.flowInit.flowNotFound': '流程不存在',
 
-  'designer.flowInit.templateNotFound': '模板不存在: {{id}}',
+  'designer.flowInit.templateNotFound': '模板不存在：{{id}}',
 
   'designer.flowInit.templateCreated': '已从模板「{{name}}」创建流程',
 
-  'designer.flowInit.templateFrom': '基于{{name}}',
+  'designer.flowInit.templateFrom': '基于 {{name}}',
 
   'designer.flowInit.templateLoadFailed': '模板加载失败',
 
   'designer.flowInit.createFailed': '创建流程失败',
 
-  'designer.flowInit.operateLoaded': '已加载运维流程: {{name}}',
+  'designer.flowInit.operateLoaded': '已加载流程：{{name}}',
 
-  'designer.flowInit.operateLoadFailed': '加载运维流程失败：{{message}}',
+  'designer.flowInit.operateLoadFailed': '加载流程失败：{{message}}',
 
   'designer.flowInit.operateLoadFailedGeneric': '流程加载失败',
 
@@ -1967,7 +1960,7 @@ const zhAuthoring = {
 
   'designer.condition.tab.help': '帮助',
 
-  'designer.condition.content': '表达式内容',
+  'designer.condition.content': '条件表达式',
 
   'designer.condition.variables': '可用变量',
 
@@ -1978,28 +1971,28 @@ const zhAuthoring = {
 
   'designer.condition.help.syntaxTitle': '表达式语法',
 
-  'designer.condition.help.syntax1': 'BPMN 条件直接填写 <code>Java 布尔表达式</code>正文',
+  'designer.condition.help.syntax1': 'BPMN 条件使用 <code>Java 布尔表达式</code>',
 
-  'designer.condition.help.syntax2': 'TBBPM 条件同样直接填写 <code>Java 布尔表达式</code>正文',
+  'designer.condition.help.syntax2': 'TBBPM 条件同样使用 <code>Java 布尔表达式</code>',
 
-  'designer.condition.help.syntax3': '条件统一使用无副作用的 Java 布尔表达式',
+  'designer.condition.help.syntax3': '条件表达式不应产生副作用',
 
   'designer.condition.help.examplesTitle': '示例',
 
   'designer.condition.help.notesTitle': '注意事项',
 
-  'designer.condition.help.note1': '表达式必须返回boolean值',
+  'designer.condition.help.note1': '表达式必须返回 boolean 值',
 
   'designer.condition.help.note2': '变量名区分大小写',
 
   'designer.condition.help.note3':
-    '字符串使用双引号，并采用 <code>"READY".equals(status)</code> 这类 null-safe 值比较',
+    '字符串使用双引号；建议用 <code>"READY".equals(status)</code> 避免空值错误',
 
-  'designer.condition.help.note4': '浏览器只支持安全子集，最终以服务端 javac 编译和执行为准',
+  'designer.condition.help.note4': '浏览器模拟仅支持部分语法，请使用服务器执行做最终验证',
 
   'designer.condition.tpl.compare': '数值比较',
 
-  'designer.condition.tpl.compare.amountGt': '金额大于1000',
+  'designer.condition.tpl.compare.amountGt': '金额大于 1000',
 
   'designer.condition.tpl.compare.qtyRange': '数量在范围内',
 
@@ -2009,7 +2002,7 @@ const zhAuthoring = {
 
   'designer.condition.tpl.string.statusPending': '状态等于待审核',
 
-  'designer.condition.tpl.string.vipUser': '类型为VIP用户',
+  'designer.condition.tpl.string.vipUser': '类型为 VIP 用户',
 
   'designer.condition.tpl.string.nameContains': '名称包含关键字',
 
@@ -2025,7 +2018,7 @@ const zhAuthoring = {
 
   'designer.condition.tpl.collection.itemsNotEmpty': '订单项不为空',
 
-  'designer.condition.tpl.collection.listGt3': '数组长度大于3',
+  'designer.condition.tpl.collection.listGt3': '列表长度大于 3',
 
   'designer.condition.tpl.collection.tagsContains': '包含指定元素',
 
@@ -2039,7 +2032,7 @@ const zhAuthoring = {
 
   'designer.shortcuts.help': '快捷键帮助',
 
-  'designer.loading.propertiesPanel': '加载属性面板...',
+  'designer.loading.propertiesPanel': '加载属性面板…',
 
   'designer.clipboard.pasteSuffix': '_副本',
 
@@ -2047,19 +2040,19 @@ const zhAuthoring = {
 
   'designer.expr.modeText': '文本',
 
-  'designer.expr.insertVariable': '插入变量:',
+  'designer.expr.insertVariable': '插入变量',
 
-  'designer.expr.selectVariable': '选择变量...',
+  'designer.expr.selectVariable': '选择变量…',
 
-  'designer.expr.insertOperator': '插入操作符:',
+  'designer.expr.insertOperator': '插入运算符',
 
-  'designer.expr.label': '表达式:',
+  'designer.expr.label': '表达式',
 
-  'designer.expr.placeholder': "请输入表达式，例如: variable > 100 && status == 'active'",
+  'designer.expr.placeholder': '输入表达式，例如 variable > 100 && "active".equals(status)',
 
-  'designer.expr.panelFunctions': '内置函数参考',
+  'designer.expr.panelFunctions': '函数',
 
-  'designer.expr.panelTemplates': '常用表达式模板',
+  'designer.expr.panelTemplates': '表达式模板',
 
   'designer.expr.apply': '应用',
 
@@ -2067,9 +2060,9 @@ const zhAuthoring = {
 
   'designer.expr.syntaxTip1': '变量名使用字母、数字、下划线',
 
-  'designer.expr.syntaxTip2': '字符串使用双引号或单引号',
+  'designer.expr.syntaxTip2': '字符串使用双引号，通过 "active".equals(status) 比较值',
 
-  'designer.expr.syntaxTip3': 'Guard 使用无副作用的 Java 表达式',
+  'designer.expr.syntaxTip3': '条件使用无副作用的 Java 表达式',
 
   'designer.expr.syntaxTip4': '按 Ctrl+Space 可触发自动补全（文本模式）',
 
@@ -2079,7 +2072,7 @@ const zhAuthoring = {
 
   'designer.expr.validation.illegal': '包含非法字符',
 
-  'designer.expr.validation.ok': '表达式语法正确',
+  'designer.expr.validation.ok': '表达式有效',
 
   'designer.expr.op.eq': '等于',
 
@@ -2101,9 +2094,9 @@ const zhAuthoring = {
 
   'designer.expr.op.contains': '包含',
 
-  'designer.expr.op.startsWith': '以...开头',
+  'designer.expr.op.startsWith': '以…开头',
 
-  'designer.expr.op.endsWith': '以...结尾',
+  'designer.expr.op.endsWith': '以…结尾',
 
   'designer.expr.op.isNull': '为空',
 
@@ -2153,13 +2146,13 @@ const zhAuthoring = {
 
   'designer.expr.tpl.containsDesc': '判断是否包含关键字',
 
-  'designer.expr.tpl.multiOr': '多条件或',
+  'designer.expr.tpl.multiOr': '匹配任意值',
 
-  'designer.expr.tpl.multiOrDesc': '多个值的或关系',
+  'designer.expr.tpl.multiOrDesc': '匹配多个值中的任意一个',
 
   'designer.shortcutsModal.title': '快捷键参考',
 
-  'designer.shortcutsModal.searchPlaceholder': '搜索快捷键或功能...',
+  'designer.shortcutsModal.searchPlaceholder': '搜索快捷键或操作…',
 
   'designer.shortcutsModal.col.category': '分类',
 
@@ -2193,9 +2186,9 @@ const zhAuthoring = {
 
   'designer.shortcuts.item.save': '保存流程',
 
-  'designer.shortcuts.item.import': '导入XML文件',
+  'designer.shortcuts.item.import': '导入 XML 文件',
 
-  'designer.shortcuts.item.export': '导出XML文件',
+  'designer.shortcuts.item.export': '导出 XML 文件',
 
   'designer.shortcuts.item.undo': '撤销上一步操作',
 
@@ -2243,11 +2236,17 @@ const zhAuthoring = {
 
   'designer.shortcuts.item.fullscreen': '切换全屏',
 
-  'designer.help.title': '帮助文档',
+  'designer.shortcuts.gesture.doubleClickNode': '双击节点',
+
+  'designer.shortcuts.gesture.dragPort': '拖动连接点',
+
+  'designer.shortcuts.gesture.dragNode': '拖动节点',
+
+  'designer.help.title': '帮助',
 
   'designer.help.section.quickStart': '快速开始',
 
-  'designer.help.section.nodeTypes': '节点类型说明',
+  'designer.help.section.nodeTypes': '节点类型',
 
   'designer.help.section.faq': '常见问题',
 
@@ -2257,15 +2256,15 @@ const zhAuthoring = {
 
   'designer.help.quickStart.step1.title': '第一步：创建流程',
 
-  'designer.help.quickStart.step1.li1': '从左侧工具箱中拖拽「开始」节点到画布',
+  'designer.help.quickStart.step1.li1': '从左侧节点面板将「开始」节点拖到画布',
 
-  'designer.help.quickStart.step1.li2': '添加业务节点（如自动任务、排他网关等）',
+  'designer.help.quickStart.step1.li2': '添加流程所需的任务和网关',
 
   'designer.help.quickStart.step1.li3': '添加「结束」节点',
 
   'designer.help.quickStart.step2.title': '第二步：连接节点',
 
-  'designer.help.quickStart.step2.li1': '从节点的连接点拖动到另一个节点，创建连接线',
+  'designer.help.quickStart.step2.li1': '从一个节点的连接点拖到另一个节点，创建连线',
 
   'designer.help.quickStart.step2.li2': '点击连接线可编辑条件表达式',
 
@@ -2273,9 +2272,9 @@ const zhAuthoring = {
 
   'designer.help.quickStart.step3.li1': '点击节点，在右侧属性面板编辑节点属性',
 
-  'designer.help.quickStart.step3.li2': '自动任务：配置 Java 方法或 Spring Bean Action',
+  'designer.help.quickStart.step3.li2': '自动任务：配置 Java 方法或 Spring Bean 动作',
 
-  'designer.help.quickStart.step3.li3': '脚本任务：选择脚本语言并编写源码',
+  'designer.help.quickStart.step3.li3': '脚本任务：选择脚本语言并输入脚本',
 
   'designer.help.quickStart.step3.li4': '排他网关：在连接线上配置条件表达式',
 
@@ -2283,23 +2282,23 @@ const zhAuthoring = {
 
   'designer.help.quickStart.step4.li1': '点击工具栏的「验证」按钮检查流程错误',
 
-  'designer.help.quickStart.step4.li2': '点击「调试」按钮测试流程执行',
+  'designer.help.quickStart.step4.li2': '点击「调试」，在浏览器中模拟流程',
 
   'designer.help.quickStart.step4.li3': '设置断点，单步调试',
 
   'designer.help.quickStart.step5.title': '第五步：保存和导出',
 
-  'designer.help.quickStart.step5.li1': '点击「保存」按钮保存流程',
+  'designer.help.quickStart.step5.li1': '点击「保存」保存流程',
 
-  'designer.help.quickStart.step5.li2': '导出 XML 生成流程定义文件',
+  'designer.help.quickStart.step5.li2': '导出 XML 流程定义',
 
-  'designer.help.quickStart.step5.li3': '导出图片生成 PNG/SVG',
+  'designer.help.quickStart.step5.li3': '将流程图导出为 PNG 和 SVG 图片',
 
   'designer.help.nodeTypes.flowControl': '流程控制节点',
 
-  'designer.help.nodeTypes.start': '开始 — 流程起点，每个流程必须有一个开始节点',
+  'designer.help.nodeTypes.start': '开始 — 流程入口',
 
-  'designer.help.nodeTypes.end': '结束 — 流程终点，每个流程必须恰好有一个结束节点',
+  'designer.help.nodeTypes.end': '结束 — 流程出口',
 
   'designer.help.nodeTypes.tasks': '任务节点',
 
@@ -2311,11 +2310,11 @@ const zhAuthoring = {
 
   'designer.help.nodeTypes.timerTask': '定时任务 — Durable 等待固定时长或指定时刻',
 
-  'designer.help.nodeTypes.scriptTask': '脚本任务 — 编写流程定义内的内联代码',
+  'designer.help.nodeTypes.scriptTask': '脚本任务 — 执行内联代码',
 
   'designer.help.nodeTypes.gateways': '网关节点',
 
-  'designer.help.nodeTypes.exclusive': '排他网关 - 根据条件选择一个分支（XOR）',
+  'designer.help.nodeTypes.exclusive': '排他网关 — 根据条件选择一个分支（XOR）',
 
   'designer.help.nodeTypes.parallel': '并行网关 — 同时执行多个分支（AND）',
 
@@ -2323,7 +2322,7 @@ const zhAuthoring = {
 
   'designer.help.nodeTypes.subprocess': '子流程节点',
 
-  'designer.help.nodeTypes.subBpm': '内嵌 BPM — 在当前 BPM 内定义嵌套作用域',
+  'designer.help.nodeTypes.subBpm': '内嵌 BPM — 在当前 BPM 中组织一组节点',
 
   'designer.help.nodeTypes.bpmCall': 'BPM 调用 — 调用另一个 BPM 定义',
 
@@ -2341,15 +2340,15 @@ const zhAuthoring = {
 
   'designer.help.nodeTypes.note': '注释 — 添加说明文字，不影响流程执行',
 
-  'designer.help.faq.branch.q': 'Q: 如何创建条件分支？',
+  'designer.help.faq.branch.q': '如何创建条件分支？',
 
-  'designer.help.faq.branch.a': 'A: 使用排他网关，然后在每个出口连接线上配置条件表达式。',
+  'designer.help.faq.branch.a': '使用排他网关，然后在每条出边上配置条件表达式。',
 
   'designer.help.faq.branch.example': '示例：连接线1配置 amount > 1000，连接线2配置 amount <= 1000',
 
-  'designer.help.faq.panel.q': 'Q: 节点点击后属性面板无响应怎么办？',
+  'designer.help.faq.panel.q': '选中节点后，属性面板没有响应怎么办？',
 
-  'designer.help.faq.panel.a': 'A: 尝试以下解决方法：',
+  'designer.help.faq.panel.a': '请尝试：',
 
   'designer.help.faq.panel.li1': '刷新页面重新加载流程',
 
@@ -2357,45 +2356,45 @@ const zhAuthoring = {
 
   'designer.help.faq.panel.li3': '确保节点已成功添加到画布（查看状态栏节点数）',
 
-  'designer.help.faq.variables.q': 'Q: 如何引用流程变量？',
+  'designer.help.faq.variables.q': '如何引用流程变量？',
 
-  'designer.help.faq.variables.a': 'A: 在表达式中直接使用变量名即可。',
+  'designer.help.faq.variables.a': '在表达式中直接使用变量名。',
 
   'designer.help.faq.variables.example': '示例：amount > 1000 && status == "active"',
 
-  'designer.help.faq.variables.tip': '建议：使用「变量管理」功能预先定义全局变量',
+  'designer.help.faq.variables.tip': '请先在「流程变量」中定义要使用的变量',
 
-  'designer.help.faq.validation.q': 'Q: 验证提示发现问题如何解决？',
+  'designer.help.faq.validation.q': '如何修复验证问题？',
 
-  'designer.help.faq.validation.a': 'A: 点击验证面板中的错误项，查看详细错误信息：',
+  'designer.help.faq.validation.a': '点击「验证」面板中的问题查看详情：',
 
   'designer.help.faq.validation.li1': '流程必须有开始和结束节点',
 
-  'designer.help.faq.validation.li2': '自动任务必须配置完整的 Action',
+  'designer.help.faq.validation.li2': '自动任务必须配置完整的动作',
 
   'designer.help.faq.validation.li3': '排他网关必须有至少2个出口，且每个出口配置条件',
 
   'designer.help.faq.validation.li4': '检查是否有孤立节点（未连接的节点）',
 
-  'designer.help.faq.debug.q': 'Q: 如何使用调试功能？',
+  'designer.help.faq.debug.q': '如何使用调试器？',
 
-  'designer.help.faq.debug.a': 'A: 调试流程步骤：',
+  'designer.help.faq.debug.a': '调试流程时：',
 
   'designer.help.faq.debug.li1': '点击工具栏的「调试」按钮打开调试面板',
 
-  'designer.help.faq.debug.li2': '在「初始变量」中输入JSON格式的变量值',
+  'designer.help.faq.debug.li2': '在「初始变量」中输入 JSON 格式的变量值',
 
   'designer.help.faq.debug.li3': '（可选）在节点上设置断点',
 
-  'designer.help.faq.debug.li4': '点击「开始」按钮执行流程',
+  'designer.help.faq.debug.li4': '点击「开始」运行模拟',
 
   'designer.help.faq.debug.li5': '观察「变量」和「执行日志」面板',
 
-  'designer.help.faq.rubberband.q': 'Q: 框选功能如何使用？',
+  'designer.help.faq.rubberband.q': '如何框选多个节点？',
 
-  'designer.help.faq.rubberband.a': 'A: 按住 Shift 键，然后在画布上拖动鼠标即可框选多个节点。',
+  'designer.help.faq.rubberband.a': '按住 Shift 键并在画布上拖动，即可框选多个节点。',
 
-  'designer.help.faq.rubberband.tip': '提示：框选后可批量移动、复制或删除节点',
+  'designer.help.faq.rubberband.tip': '框选后可以一起移动、复制或删除节点',
 
   'designer.help.practices.naming.title': '命名规范',
 
@@ -2409,9 +2408,9 @@ const zhAuthoring = {
 
   'designer.help.practices.design.li1': '单一职责：一个流程只做一件事',
 
-  'designer.help.practices.design.li2': '避免过度复杂：超过20个节点考虑拆分为子流程',
+  'designer.help.practices.design.li2': '将较大的流程片段拆分为子流程，保持结构清晰',
 
-  'designer.help.practices.design.li3': '错误处理：为关键节点添加异常分支',
+  'designer.help.practices.design.li3': '为关键动作设计失败处理',
 
   'designer.help.practices.design.li4': '可读性：使用注释节点说明复杂逻辑',
 
@@ -2419,21 +2418,21 @@ const zhAuthoring = {
 
   'designer.help.practices.performance.li1': '避免在循环中调用耗时操作',
 
-  'designer.help.practices.performance.li2': '使用并行网关提高并发执行效率',
+  'designer.help.practices.performance.li2': '当多个分支可以并发执行时，使用并行网关',
 
   'designer.help.practices.performance.li3': '合理使用子流程，避免流程定义过大',
 
-  'designer.help.practices.performance.li4': '脚本任务中避免复杂计算，优先使用Java方法',
+  'designer.help.practices.performance.li4': '脚本任务中避免复杂计算，优先使用 Java 方法',
 
   'designer.help.practices.security.title': '安全建议',
 
   'designer.help.practices.security.li1': '敏感信息不要硬编码在脚本中',
 
-  'designer.help.practices.security.li2': '使用变量或配置文件管理敏感数据',
+  'designer.help.practices.security.li2': '使用应用配置或密钥管理服务保存敏感数据',
 
-  'designer.help.practices.security.li3': '表达式中避免使用 eval 等危险函数',
+  'designer.help.practices.security.li3': '不要用不可信输入拼接可执行代码',
 
-  'designer.help.practices.security.li4': '定期备份流程定义',
+  'designer.help.practices.security.li4': '在服务器执行前审查脚本和 Java 动作',
 
   'designer.help.links.github': 'CompileFlow GitHub 仓库',
 
@@ -2441,11 +2440,11 @@ const zhAuthoring = {
 
   'designer.help.links.docsZh': 'CompileFlow 中文文档',
 
-  'designer.help.links.docsZhDesc': '— 完整的使用指南',
+  'designer.help.links.docsZhDesc': '— 使用指南与参考',
 
   'designer.help.links.nodeSupport': '节点支持列表',
 
-  'designer.help.links.nodeSupportDesc': '— TBBPM 节点详细说明',
+  'designer.help.links.nodeSupportDesc': '— TBBPM 支持节点',
 
   'designer.help.links.issues': '问题反馈',
 

@@ -38,14 +38,13 @@ function parseInvocationId(
       message: 'Invalid request: invocationId must be a non-empty string when provided',
     }
   }
-  const normalized = value.trim()
-  if (normalized.length > MAX_INVOCATION_ID_LENGTH || !INVOCATION_ID_PATTERN.test(normalized)) {
+  if (value.length > MAX_INVOCATION_ID_LENGTH || !INVOCATION_ID_PATTERN.test(value)) {
     return {
       ok: false,
       message: 'Invalid request: invocationId contains unsupported characters or is too long',
     }
   }
-  return { ok: true, value: normalized }
+  return { ok: true, value }
 }
 
 export function parseExecutionRequest(body: unknown): ExecutionRequestParseResult {

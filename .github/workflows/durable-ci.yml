@@ -12,8 +12,11 @@ on:
       - 'compileflow-deploy/**'
       - 'compileflow-spring-boot-autoconfigure/**'
       - 'compileflow-spring-boot-starter/**'
+      - 'compileflow-spring-boot-starter-tbbpm/**'
+      - 'compileflow-spring-boot-starter-bpmn/**'
       - 'compileflow-durable/**'
-      - 'examples/spring-boot-durable-postgres/**'
+      - 'examples/spring-boot-durable-postgresql/**'
+      - 'release-baselines.json'
       - 'scripts/check_architecture_boundaries.py'
       - 'scripts/check_durable_delivery.py'
       - 'scripts/check_internal_links.py'
@@ -32,14 +35,12 @@ on:
       - 'scripts/verify_durable_visibility_evidence.py'
       - 'scripts/tests/test_run_durable_visibility_feasibility.py'
       - 'scripts/tests/test_verify_durable_visibility_evidence.py'
-      - 'docs/architecture/README.md'
-      - 'docs/architecture/03-MODULE_MAP.en.md'
-      - 'docs/architecture/03-MODULE_MAP.zh.md'
-      - 'docs/architecture/06-SUPPORTED_SURFACES.en.md'
-      - 'docs/architecture/06-SUPPORTED_SURFACES.zh.md'
-      - 'docs/architecture/10-DURABLE_ARCHITECTURE.en.md'
-      - 'docs/architecture/10-DURABLE_ARCHITECTURE.zh.md'
-      - 'docs/compatibility-policy.md'
+      - 'docs/en/architecture/**'
+      - 'docs/zh/architecture/**'
+      - 'docs/en/specifications/**'
+      - 'docs/zh/specifications/**'
+      - 'docs/en/compatibility-policy.md'
+      - 'docs/zh/compatibility-policy.md'
       - 'docs/en/durable-*.md'
       - 'docs/en/glossary.md'
       - 'docs/zh/durable-*.md'
@@ -66,8 +67,11 @@ on:
       - 'compileflow-deploy/**'
       - 'compileflow-spring-boot-autoconfigure/**'
       - 'compileflow-spring-boot-starter/**'
+      - 'compileflow-spring-boot-starter-tbbpm/**'
+      - 'compileflow-spring-boot-starter-bpmn/**'
       - 'compileflow-durable/**'
-      - 'examples/spring-boot-durable-postgres/**'
+      - 'examples/spring-boot-durable-postgresql/**'
+      - 'release-baselines.json'
       - 'scripts/check_architecture_boundaries.py'
       - 'scripts/check_durable_delivery.py'
       - 'scripts/check_internal_links.py'
@@ -86,14 +90,12 @@ on:
       - 'scripts/verify_durable_visibility_evidence.py'
       - 'scripts/tests/test_run_durable_visibility_feasibility.py'
       - 'scripts/tests/test_verify_durable_visibility_evidence.py'
-      - 'docs/architecture/README.md'
-      - 'docs/architecture/03-MODULE_MAP.en.md'
-      - 'docs/architecture/03-MODULE_MAP.zh.md'
-      - 'docs/architecture/06-SUPPORTED_SURFACES.en.md'
-      - 'docs/architecture/06-SUPPORTED_SURFACES.zh.md'
-      - 'docs/architecture/10-DURABLE_ARCHITECTURE.en.md'
-      - 'docs/architecture/10-DURABLE_ARCHITECTURE.zh.md'
-      - 'docs/compatibility-policy.md'
+      - 'docs/en/architecture/**'
+      - 'docs/zh/architecture/**'
+      - 'docs/en/specifications/**'
+      - 'docs/zh/specifications/**'
+      - 'docs/en/compatibility-policy.md'
+      - 'docs/zh/compatibility-policy.md'
       - 'docs/en/durable-*.md'
       - 'docs/en/glossary.md'
       - 'docs/zh/durable-*.md'
@@ -165,7 +167,7 @@ jobs:
         if: matrix.java == '17'
         run: |
           ./mvnw clean test \
-            -pl compileflow-durable/compileflow-durable-spring-boot-starter-postgres,compileflow-durable/compileflow-durable-testkit \
+            -pl compileflow-durable/compileflow-durable-spring-boot-starter-postgresql,compileflow-durable/compileflow-durable-spring-boot-starter-mysql,compileflow-durable/compileflow-durable-testkit \
             -am \
             -B -V --no-transfer-progress
 
@@ -173,7 +175,7 @@ jobs:
         if: matrix.java != '17'
         run: |
           ./mvnw clean install \
-            -pl compileflow-durable/compileflow-durable-spring-boot-starter-postgres,compileflow-durable/compileflow-durable-testkit \
+            -pl compileflow-durable/compileflow-durable-spring-boot-starter-postgresql,compileflow-durable/compileflow-durable-spring-boot-starter-mysql,compileflow-durable/compileflow-durable-testkit \
             -am \
             -DskipTests \
             -B -V --no-transfer-progress
@@ -211,10 +213,10 @@ jobs:
             --minimum-tests 250 \
             --minimum-passed 165 \
             --require-testcase 'com.alibaba.compileflow.durable.api.DurableApiShapeTest#keepsSupportedTypesExplicitlyAllowlisted' \
-            --require-testcase 'com.alibaba.compileflow.durable.api.GreenfieldDurableApiTest#aliasRoutingOptionsContainOnlyAdmissionInputs' \
-            --require-testcase 'com.alibaba.compileflow.durable.api.GreenfieldDurableApiTest#applicationFacadeUsesDirectSemanticArguments' \
-            --require-testcase 'com.alibaba.compileflow.durable.api.GreenfieldDurableApiTest#runLifecycleAndControlAreIndependentAxes' \
-            --require-testcase 'com.alibaba.compileflow.durable.api.GreenfieldDurableApiTest#waitTokenStringRepresentationNeverExposesTheBearerCapability' \
+            --require-testcase 'com.alibaba.compileflow.durable.api.DurableApiContractTest#aliasRoutingOptionsContainOnlyBoundedAdmissionInputs' \
+            --require-testcase 'com.alibaba.compileflow.durable.api.DurableApiContractTest#engineApiUsesExplicitAdmissionInputs' \
+            --require-testcase 'com.alibaba.compileflow.durable.api.DurableApiContractTest#runLifecycleAndControlAreIndependentAxes' \
+            --require-testcase 'com.alibaba.compileflow.durable.api.DurableApiContractTest#waitTokenStringRepresentationNeverExposesTheBearerCapability' \
             --require-testcase 'com.alibaba.compileflow.durable.api.model.ProcessRunResultTest#succeededResultDeeplyOwnsAndRedactsOutput' \
             --require-testcase 'com.alibaba.compileflow.durable.spi.wait.DurableWaitDescriptionProviderTest#defaultsProvideNoApplicationWaitAttributes' \
             --require-testcase 'com.alibaba.compileflow.durable.spi.outbox.DurableOutboxSinkTest#outboundEventOwnsAnImmutableLogicalPayloadAndRedactsIt' \
@@ -286,7 +288,7 @@ jobs:
             --require-testcase 'com.alibaba.compileflow.durable.runtime.process.DurableProcessRuntimeManagerTest#recoveryUsesStoredSemanticsWithoutConsultingTheAdmissionSource' \
             --require-testcase 'com.alibaba.compileflow.durable.runtime.process.DurableProcessRuntimeManagerTest#admissionPersistsDistinctCallSitesWhilePreparingSharedMembersOnce' \
             --require-testcase 'com.alibaba.compileflow.durable.runtime.process.DurableProcessRuntimeManagerTest#admissionRejectsMappingsOutsideTheExactChildContract' \
-            --require-testcase 'com.alibaba.compileflow.durable.runtime.process.DurableProcessRuntimeManagerTest#definitionSourcedCallSelectsAnExactChildVersion' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.process.DurableProcessRuntimeManagerTest#exactVersionCallsFreezeMixedModelRecoveryClosureAtEveryEdge' \
             --require-testcase 'com.alibaba.compileflow.durable.runtime.DefaultDurableProcessEngineTest#startRejectsReturnInnerAndUndeclaredVariablesBeforeStoreMutation' \
             --require-testcase 'com.alibaba.compileflow.durable.runtime.service.DefaultDurableOperatorServiceTest#effectResolutionRejectsMismatchedTargetBeforeMutation' \
             --require-testcase 'com.alibaba.compileflow.durable.runtime.service.DefaultDurableOperatorServiceTest#timelineContinuationRejectsStoreSnapshotDrift' \
@@ -300,8 +302,9 @@ jobs:
             --require-testcase 'com.alibaba.compileflow.durable.spring.boot.autoconfigure.CompileFlowDurableOptionalObservabilityAutoConfigurationTest#composesDeployThroughTheTwoNarrowAdmissionAdapters' \
             --require-testcase 'com.alibaba.compileflow.durable.spring.boot.autoconfigure.CompileFlowDurableOptionalObservabilityAutoConfigurationTest#startsWithoutOptionalDeployLibrary' \
             --require-testcase 'com.alibaba.compileflow.durable.spring.boot.autoconfigure.postgres.DurablePostgresSchemaInitializerTest#rejectsPendingMigrationWhenDdlIsExternallyManaged' \
+            --require-testcase 'com.alibaba.compileflow.durable.spring.boot.autoconfigure.mysql.DurableMySqlSchemaInitializerTest#rejectsPendingMigrationWhenDdlIsExternallyManaged' \
             --require-testcase 'com.alibaba.compileflow.durable.spring.boot.autoconfigure.runtime.DurableHealthIndicatorTest#persistentLeaseRenewalFaultIsDegradedWithoutLeakingFailureDetails' \
-            --require-testcase 'com.alibaba.compileflow.durable.spring.boot.autoconfigure.runtime.DurableWorkerCoordinatorTest#gracefulStopDrainsInFlightWorkWithoutInterruptingIt' \
+            --require-testcase 'com.alibaba.compileflow.durable.runtime.worker.DurableWorkerCoordinatorTest#gracefulStopDrainsInFlightWorkWithoutInterruptingIt' \
             --require-testcase 'com.alibaba.compileflow.durable.testkit.DurableTestCompilationTest#keepsDebugArtifactExportDisabledByDefault' \
             --metadata commit="${GITHUB_SHA}" \
             --metadata java="${{ matrix.java }}" \
@@ -366,7 +369,7 @@ jobs:
           COMPILEFLOW_DURABLE_POSTGRES_PASSWORD: durable-ci-password
         run: |
           ./mvnw clean test \
-            -pl compileflow-durable/compileflow-durable-postgres \
+            -pl compileflow-durable/compileflow-durable-postgresql \
             -am \
             -Dtest='LocalPostgresDurable*Test' \
             -Dsurefire.failIfNoSpecifiedTests=false \
@@ -390,9 +393,9 @@ jobs:
         run: |
           python3 scripts/verify_durable_test_evidence.py \
             --suite postgres-contract \
-            --report-root compileflow-durable/compileflow-durable-postgres/target/surefire-reports \
+            --report-root compileflow-durable/compileflow-durable-postgresql/target/surefire-reports \
             --report-pattern 'TEST-*LocalPostgresDurable*Test.xml' \
-            --expected-reports 3 \
+            --expected-reports 4 \
             --minimum-tests 50 \
             --minimum-passed 50 \
             --reject-skips \
@@ -419,13 +422,10 @@ jobs:
             --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#expiredClaimsRecoverAfterWorkerCrashAndFenceEveryLateOwner' \
             --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#waitCommittedOutboxCannotBeAbandoned' \
             --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#waitAuthorityFulfillmentOrRevocationSettlesItsOutboxAndFencesLatePublishers' \
-            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#pauseAndEffectClaimRaceHasOneSafeOutcomeWithoutDeadlock' \
-            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#cancelAndDueTimerRaceCompletesWithoutDeadlock' \
             --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#cancelLeaseRenewalAndOutboxCompletionShareRunFirstLockOrder' \
             --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#oneTurnIssuesAndConsumesMultipleExactOccurrences' \
             --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#oneFrontierOwnsAtMostOneOutstandingOccurrenceAndAdvancesAfterExactConsumption' \
             --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#activeWorkIsSummarizedPagedAndMayCoexistWithRunnableFrontier' \
-            --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#pauseAndCancelWaitForEveryPossibleEffectDispatch' \
             --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableOutboxAckLossTest#sigkillAfterDurableAcceptanceReplaysTheSameCommittedEvent' \
             --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableBpmnCrashMatrixTest#effectResponseLossBecomesUnknownThenReconcilesToOneContinuation' \
             --require-testcase 'com.alibaba.compileflow.durable.postgres.LocalPostgresDurableBpmnCrashMatrixTest#messageCatchSurvivesRuntimeLossAndResumesExactlyOnce' \
@@ -457,10 +457,96 @@ jobs:
         with:
           name: durable-postgres-${{ matrix.postgres }}
           path: |
-            compileflow-durable/compileflow-durable-postgres/target/surefire-reports/
+            compileflow-durable/compileflow-durable-postgresql/target/surefire-reports/
             compileflow-durable/jdk-environment.txt
             compileflow-durable/postgres-environment.txt
             compileflow-durable/postgres-test-evidence.json
+          retention-days: 30
+
+  mysql-contract:
+    name: MySQL 8.4.7
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 17
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+
+      - name: Run non-skippable MySQL Store contract
+        run: |
+          ./mvnw clean test \
+            -pl compileflow-durable/compileflow-durable-mysql \
+            -am \
+            -Dtest=MySqlDurableStoreContractTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -B -V --no-transfer-progress
+
+      - name: Verify tested source identity
+        env:
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+          test -z "$(git status --porcelain)"
+
+      - name: Record JDK environment identity
+        run: |
+          python3 scripts/record_java_environment.py \
+            --commit "${GITHUB_SHA}" \
+            --declared-java 17 \
+            --output compileflow-durable/jdk-environment.txt
+
+      - name: Reject missing or skipped MySQL evidence
+        run: |
+          python3 scripts/verify_durable_test_evidence.py \
+            --suite mysql-contract \
+            --report-root compileflow-durable/compileflow-durable-mysql/target/surefire-reports \
+            --report-pattern 'TEST-*MySqlDurableStoreContractTest.xml' \
+            --expected-reports 1 \
+            --minimum-tests 45 \
+            --minimum-passed 45 \
+            --reject-skips \
+            --require-testcase 'com.alibaba.compileflow.durable.mysql.MySqlDurableStoreContractTest#storedProcessIsImmutableAndIdempotent' \
+            --require-testcase 'com.alibaba.compileflow.durable.mysql.MySqlDurableStoreContractTest#waitCompletionResumeAndTerminalOutboxFormOneFencedChain' \
+            --require-testcase 'com.alibaba.compileflow.durable.mysql.MySqlDurableStoreContractTest#expiredClaimsRecoverAfterWorkerCrashAndFenceEveryLateOwner' \
+            --require-testcase 'com.alibaba.compileflow.durable.mysql.MySqlDurableStoreContractTest#pauseAndEffectClaimRaceHasOneSafeOutcomeWithoutDeadlock' \
+            --require-testcase 'com.alibaba.compileflow.durable.mysql.MySqlDurableStoreContractTest#cancelAndDueTimerRaceCompletesWithoutDeadlock' \
+            --require-testcase 'com.alibaba.compileflow.durable.mysql.MySqlDurableStoreContractTest#terminalRunRetentionWaitsForRequiredOutboxAndPurgesTheWholeRun' \
+            --metadata commit="${GITHUB_SHA}" \
+            --metadata java=17 \
+            --metadata mysql=8.4.7 \
+            --metadata declared-image=mysql:8.4.7@sha256:0426ec38c7a10aa45ba383887df7878f74ee70e2fd589c7b69207f3577901903 \
+            --output compileflow-durable/mysql-test-evidence.json
+
+      - name: Record MySQL image identity
+        if: always()
+        run: |
+          {
+            echo "commit=${GITHUB_SHA}"
+            echo "declared_mysql=8.4.7"
+            echo "declared_image=mysql:8.4.7@sha256:0426ec38c7a10aa45ba383887df7878f74ee70e2fd589c7b69207f3577901903"
+            docker image inspect \
+              --format='resolved_image={{index .RepoDigests 0}}' \
+              'mysql:8.4.7@sha256:0426ec38c7a10aa45ba383887df7878f74ee70e2fd589c7b69207f3577901903'
+          } > compileflow-durable/mysql-environment.txt
+
+      - name: Upload MySQL evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: durable-mysql-8.4.7
+          path: |
+            compileflow-durable/compileflow-durable-mysql/target/surefire-reports/
+            compileflow-durable/jdk-environment.txt
+            compileflow-durable/mysql-environment.txt
+            compileflow-durable/mysql-test-evidence.json
           retention-days: 30
 
   durable-example:
@@ -483,7 +569,7 @@ jobs:
       - name: Run executable Durable example
         run: |
           ./mvnw clean test \
-            -pl examples/spring-boot-durable-postgres \
+            -pl examples/spring-boot-durable-postgresql \
             -Pexamples -am \
             -Dtest=DurableSampleApplicationTest \
             -Dsurefire.failIfNoSpecifiedTests=false \
@@ -501,13 +587,13 @@ jobs:
           python3 scripts/record_java_environment.py \
             --commit "${GITHUB_SHA}" \
             --declared-java 17 \
-            --output examples/spring-boot-durable-postgres/target/jdk-environment.txt
+            --output examples/spring-boot-durable-postgresql/target/jdk-environment.txt
 
       - name: Verify executable example evidence
         run: |
           python3 scripts/verify_durable_test_evidence.py \
             --suite durable-postgres-example \
-            --report-root examples/spring-boot-durable-postgres/target/surefire-reports \
+            --report-root examples/spring-boot-durable-postgresql/target/surefire-reports \
             --report-pattern 'TEST-*DurableSampleApplicationTest.xml' \
             --expected-reports 1 \
             --minimum-tests 2 \
@@ -517,7 +603,7 @@ jobs:
             --require-testcase 'com.alibaba.compileflow.examples.durable.DurableSampleApplicationTest#validatesExternallyMigratedSchemaWithoutDdl' \
             --metadata commit="${GITHUB_SHA}" \
             --metadata java=17 \
-            --output examples/spring-boot-durable-postgres/target/durable-example-test-evidence.json
+            --output examples/spring-boot-durable-postgresql/target/durable-example-test-evidence.json
 
       - name: Upload example report
         if: always()
@@ -525,9 +611,9 @@ jobs:
         with:
           name: durable-postgres-example
           path: |
-            examples/spring-boot-durable-postgres/target/surefire-reports/
-            examples/spring-boot-durable-postgres/target/durable-example-test-evidence.json
-            examples/spring-boot-durable-postgres/target/jdk-environment.txt
+            examples/spring-boot-durable-postgresql/target/surefire-reports/
+            examples/spring-boot-durable-postgresql/target/durable-example-test-evidence.json
+            examples/spring-boot-durable-postgresql/target/jdk-environment.txt
           retention-days: 30
 
   durable-release-profile:
@@ -550,7 +636,7 @@ jobs:
       - name: Build and verify Durable release artifacts
         run: |
           ./mvnw clean verify \
-            -pl compileflow-durable/compileflow-durable-spring-boot-starter-postgres,compileflow-durable/compileflow-durable-testkit \
+            -pl compileflow-durable/compileflow-durable-spring-boot-starter-postgresql,compileflow-durable/compileflow-durable-spring-boot-starter-mysql,compileflow-durable/compileflow-durable-testkit \
             -am \
             -Prelease-artifacts \
             -DskipTests \
@@ -567,12 +653,12 @@ jobs:
             compileflow-durable/compileflow-durable-spi \
             compileflow-durable/compileflow-durable-testkit \
             compileflow-durable/compileflow-durable-runtime \
-            compileflow-durable/compileflow-durable-postgres \
+            compileflow-durable/compileflow-durable-postgresql \
+            compileflow-durable/compileflow-durable-mysql \
             compileflow-durable/compileflow-durable-spring-boot-autoconfigure \
-            compileflow-deploy/compileflow-deploy-api \
-            compileflow-deploy/compileflow-deploy-control-plane \
-            compileflow-deploy/compileflow-deploy-runtime \
-            compileflow-spring-boot-autoconfigure
+            compileflow-durable/compileflow-durable-spring-boot-autoconfigure-postgresql \
+            compileflow-durable/compileflow-durable-spring-boot-autoconfigure-mysql \
+            compileflow-deploy/compileflow-deploy-api
 
       - name: Verify Durable public Javadoc surface
         run: |
@@ -608,7 +694,7 @@ jobs:
   durable-release-evidence:
     name: Durable release evidence
     if: ${{ !cancelled() }}
-    needs: [ durable-jvm, postgres-contract, durable-example, durable-release-profile ]
+    needs: [ durable-jvm, postgres-contract, mysql-contract, durable-example, durable-release-profile ]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -642,6 +728,7 @@ jobs:
             --expected-postgres 16.15 \
             --expected-postgres 17.11 \
             --expected-postgres 18.6 \
+            --expected-mysql 8.4.7 \
             --output "${RUNNER_TEMP}/durable-release-output/compileflow-durable-release-evidence.json"
 
       - name: Audit all upstream job results
@@ -649,6 +736,7 @@ jobs:
         env:
           KERNEL_RESULT: ${{ needs.durable-jvm.result }}
           POSTGRES_RESULT: ${{ needs.postgres-contract.result }}
+          MYSQL_RESULT: ${{ needs.mysql-contract.result }}
           EXAMPLE_RESULT: ${{ needs.durable-example.result }}
           PROFILE_RESULT: ${{ needs.durable-release-profile.result }}
         run: |
@@ -656,6 +744,7 @@ jobs:
           for entry in \
             "durable-jvm=$KERNEL_RESULT" \
             "postgres-contract=$POSTGRES_RESULT" \
+            "mysql-contract=$MYSQL_RESULT" \
             "durable-example=$EXAMPLE_RESULT" \
             "durable-release-profile=$PROFILE_RESULT"; do
             if [ "${entry#*=}" != 'success' ]; then

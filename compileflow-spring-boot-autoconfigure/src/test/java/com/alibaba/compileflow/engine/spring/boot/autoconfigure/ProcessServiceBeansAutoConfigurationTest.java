@@ -27,7 +27,7 @@ import org.springframework.context.annotation.Configuration;
 class ProcessServiceBeansAutoConfigurationTest {
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(CompileFlowEnginePropertiesAutoConfiguration.class,
-                CompileFlowCoreAutoConfiguration.class))
+                CompileFlowEngineAutoConfiguration.class))
         .withPropertyValues("compileflow.engine.enabled=true");
 
     @Test

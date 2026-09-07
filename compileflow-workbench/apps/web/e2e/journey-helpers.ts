@@ -1,14 +1,9 @@
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-
-import { expect, type Page } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 
 export const TIMEOUT = 25_000
-const ROOT = path.dirname(fileURLToPath(import.meta.url))
-const SHOT_DIR = path.join(ROOT, '../test-results/journey-review')
 
 export async function shot(page: Page, name: string) {
-  await page.screenshot({ path: path.join(SHOT_DIR, `${name}.png`), fullPage: true })
+  await page.screenshot({ path: test.info().outputPath(`${name}.png`), fullPage: true })
 }
 
 export function trackErrors(page: Page): Error[] {

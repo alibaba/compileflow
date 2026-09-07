@@ -13,11 +13,11 @@
 
     <artifactId>compileflow-bpmn</artifactId>
     <name>CompileFlow BPMN</name>
-    <description>Provider, parser, validator, writer, and code generator for the supported BPMN 2.0 subset.
+    <description>Parser, validator, writer, and semantic frontend for the supported BPMN 2.0 subset.
     </description>
 
     <dependencies>
-        <!-- Internal module dependencies -->
+        <!-- CompileFlow module dependencies -->
         <dependency>
             <groupId>com.alibaba.compileflow</groupId>
             <artifactId>compileflow-api</artifactId>

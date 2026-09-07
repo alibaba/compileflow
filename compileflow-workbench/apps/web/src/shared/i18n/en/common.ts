@@ -34,7 +34,7 @@ const enCommon = {
 
   'common.filter': 'Filter',
 
-  'filters.processType': 'Process Type',
+  'filters.processType': 'Process type',
 
   'common.clear': 'Clear',
 
@@ -88,7 +88,7 @@ const enCommon = {
 
   'pageTitle.home': 'Learn',
 
-  'pageTitle.learn': 'Learn Process Patterns',
+  'pageTitle.learn': 'Process Examples',
 
   'pageTitle.build': 'Design & Compile',
 
@@ -164,7 +164,7 @@ const enCommon = {
 
   'settings.title': 'Settings',
 
-  'settings.subtitle': 'Preferences and build details',
+  'settings.subtitle': 'Customize the workbench and view build information',
 
   'settings.eyebrow': 'Preferences',
 
@@ -190,14 +190,14 @@ const enCommon = {
 
   // Home Page
 
-  'home.eyebrow': 'AI-ready process orchestration for Java',
+  'home.eyebrow': 'Visual process orchestration for Java applications',
 
-  'home.title': 'Build the reliable process layer for the AI era',
+  'home.title': 'Build clear, reliable business processes',
 
   'home.subtitle':
-    'Design, compile, publish, and operate high-performance Java processes—from deterministic business logic to durable execution and agent-ready orchestration.',
+    'Visualize business logic for high-performance in-memory execution, durable workflows, and agent orchestration, with versioned deployment and runtime monitoring.',
 
-  'home.start': 'Build your first process',
+  'home.start': 'Create your first process',
 
   'home.docs': 'Explore examples',
 
@@ -205,41 +205,41 @@ const enCommon = {
 
   'home.modules': 'Modules',
 
-  'home.version': 'v{{version}} - {{status}}',
+  'home.version': 'v{{version}} · {{status}}',
 
-  'home.features': 'From idea to reliable execution',
+  'home.features': 'Learn, build, and operate',
 
   'home.featuresDesc':
-    'Learn proven patterns, build visually, and operate every version with confidence.',
+    'Learn common patterns from examples, build your own processes, and manage versions and runtime state.',
 
   // Features
 
   'feature.learn.title': 'Learn',
 
   'feature.learn.desc':
-    'Explore real process patterns—from deterministic decisions to durable waits and governed effects.',
+    'Learn common patterns through examples of decisions, parallel execution, waits, and recovery.',
 
   'feature.learn.action': 'Explore examples',
 
   'feature.workspace.title': 'Build',
 
   'feature.workspace.desc':
-    'Design visually, edit source, validate, and compile Java processes in one workspace.',
+    'Design processes visually or edit their source, then validate and compile each definition.',
 
   'feature.workspace.action': 'Open workspace',
 
   'feature.ops.title': 'Operate',
 
   'feature.ops.desc':
-    'Publish immutable versions, roll out safely, and trace every execution to its exact source.',
+    'Publish immutable versions, route canary traffic, and identify the process version used for every execution.',
 
   'feature.ops.action': 'Open operations',
 
   // Example List
 
-  'theme.light': 'Light mode',
+  'theme.light': 'Switch to light mode',
 
-  'theme.dark': 'Dark mode',
+  'theme.dark': 'Switch to dark mode',
 
   // Process Types
 
@@ -269,13 +269,11 @@ const enCommon = {
 
   'error.operationFailed': 'Operation failed',
 
-  'error.pageRenderTitle': 'This page hit an error',
+  'error.pageRenderTitle': 'This page could not be displayed',
 
   'error.pageRenderDescription': 'Refresh the page and try again.',
 
-  'error.application': 'The app hit an error. Refresh and try again.',
-
-  'error.retryExhausted': 'Still failing after retries',
+  'error.application': 'The application encountered an error. Refresh the page and try again.',
 
   'errorBoundary.title': 'Something went wrong',
 
@@ -287,15 +285,19 @@ const enCommon = {
 
   'errorBoundary.details': 'Error details (dev only)',
 
+  'errorBoundary.errorLabel': 'Error:',
+
+  'errorBoundary.componentStackLabel': 'Component stack:',
+
   // Empty states
 
   'empty.search.title': 'No matches',
 
   'empty.search.description': 'Adjust or clear filters to see more.',
 
-  'empty.data.title': 'Nothing here yet',
+  'empty.data.title': 'No data yet',
 
-  'empty.data.description': 'Create your first flow to get started.',
+  'empty.data.description': 'Create your first process to get started.',
 
   'empty.error.title': 'Could not load',
 
@@ -303,19 +305,19 @@ const enCommon = {
 
   // Mock mode
 
-  'mockBanner.prefix': 'Demo mode uses local mock data, not engine output. Set',
+  'mockBanner.prefix': 'Demo mode displays local sample data rather than engine output. Set',
 
-  'mockBanner.suffix': 'and connect a real backend through the same-origin gateway.',
+  'mockBanner.suffix': 'and connect to a backend through the same-origin gateway.',
 
   'mockBanner.dismiss': 'Dismiss',
 
   // Status pages
 
-  'notFound.message': 'This page does not exist.',
+  'notFound.message': 'The page you requested could not be found.',
 
   'notFound.home': 'Go home',
 
-  'serverError.message': 'The server hit a problem.',
+  'serverError.message': 'The server encountered an error.',
 
   'serverError.reload': 'Reload',
 
@@ -325,7 +327,7 @@ const enCommon = {
 
   'common.actions': 'Actions',
 
-  'common.detail': 'Details',
+  'common.detail': 'View details',
 
   'common.totalItems': '{{total}} items',
 
@@ -345,7 +347,7 @@ const enCommon = {
 
   // Process extras
 
-  'feedback.helpfulQuestion': 'Was this helpful?',
+  'feedback.helpfulQuestion': 'Was this example helpful?',
 
   'feedback.quickActions': 'Actions',
 
@@ -357,13 +359,13 @@ const enCommon = {
 
   'feedback.share': 'Share',
 
-  'feedback.likeSuccess': 'Thanks for the feedback',
+  'feedback.likeSuccess': 'Marked as helpful',
 
-  'feedback.likeCancelled': 'Like removed',
+  'feedback.likeCancelled': 'Helpful vote removed',
 
-  'feedback.dislikeSuccess': 'Thanks—we will improve',
+  'feedback.dislikeSuccess': 'Marked as not helpful',
 
-  'feedback.dislikeCancelled': 'Dislike removed',
+  'feedback.dislikeCancelled': 'Not-helpful vote removed',
 
   'feedback.bookmarkAdded': 'Bookmarked',
 
@@ -371,7 +373,7 @@ const enCommon = {
 
   'feedback.linkCopied': 'Link copied',
 
-  'feedback.copyFailed': 'Could not copy the link',
+  'feedback.copyFailed': 'Could not copy link',
 
   'feedback.shareSuccess': 'Shared',
 
@@ -381,7 +383,7 @@ const enCommon = {
 
   'footer.copyright': 'Copyright 2026 Alibaba CompileFlow contributors.',
 
-  'footer.subtitle': 'CompileFlow Workbench—from learning flows to publishing them.',
+  'footer.subtitle': 'Learn, design, publish, and operate processes with CompileFlow Workbench.',
 
   // Workspace Page
 
@@ -396,13 +398,13 @@ const enCommon = {
   'search.enterHint': 'Press Enter',
   'search.loading': 'Opening global search…',
   'search.indexing': 'Building search index…',
-  'search.sourcesUnavailable': 'Some search sources are temporarily unavailable',
+  'search.sourcesUnavailable': 'Some search sources are temporarily unavailable. Try again later.',
 
   'search.matchedExamples': 'Examples',
 
   'search.matchedProcesses': 'Local processes',
 
-  'search.noMatch': 'No matches—try quick links',
+  'search.noMatch': 'No matches. Try a quick link instead.',
 
   'search.quickNav': 'Quick links',
 
@@ -412,7 +414,7 @@ const enCommon = {
 
   'search.openShortcut': 'Search (⌘K)',
 
-  'search.quickLink.examplesDesc': 'Browse flow examples',
+  'search.quickLink.examplesDesc': 'Browse process examples',
 
   'search.quickLink.processesDesc': 'Manage process definitions',
 

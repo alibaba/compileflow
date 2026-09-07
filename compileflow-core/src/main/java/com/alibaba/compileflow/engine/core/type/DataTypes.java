@@ -174,15 +174,9 @@ public final class DataTypes {
             return type;
         }
 
-        JavaTypeDescriptor descriptor = TypeRegistry.getDescriptor(type);
-        if (descriptor == null) {
-            return type;
-        }
-        if (descriptor.isPrimitive()) {
-            return getWrapperClass(descriptor.getJavaClass()).getName();
-        }
-        if (descriptor.isWrapper()) {
-            return descriptor.getJavaClass().getName();
+        Class<?> known = TypeRegistry.getJavaClass(type);
+        if (known != null && (known.isPrimitive() || Primitives.isWrapperType(known))) {
+            return Primitives.wrap(known).getName();
         }
         return type;
     }
@@ -221,32 +215,6 @@ public final class DataTypes {
         }
 
         throw new IllegalArgumentException("Unsupported primitive type: " + primitiveType.getName());
-    }
-
-    public static String generateTypeConversionCode(Class<?> sourceType, Class<?> destType, String varName) {
-        if (destType == null) {
-            throw new IllegalArgumentException("Destination type cannot be null");
-        }
-        if (StringUtils.isBlank(varName)) {
-            throw new IllegalArgumentException("Variable name cannot be null or empty");
-        }
-        // Preserve Java's assignment-conversion path whenever the declared
-        // source is already compatible. Besides avoiding runtime overhead,
-        // this keeps generic arguments visible to javac instead of hiding
-        // them behind an erased conversion call.
-        if (sourceType != null && isJavaAssignmentCompatible(sourceType, destType)) {
-            return varName;
-        }
-
-        if (destType.isPrimitive()) {
-            Class<?> wrapperClass = getWrapperClass(destType);
-            String wrapperName = sourceSimpleName(wrapperClass);
-            String unboxingMethod = getUnboxingMethodName(destType);
-            return "DataTypes.transfer(" + varName + ", " + wrapperName + ".class)." + unboxingMethod;
-        } else {
-            String destTypeName = sourceSimpleName(destType);
-            return "DataTypes.transfer(" + varName + ", " + destTypeName + ".class)";
-        }
     }
 
     /**
@@ -383,33 +351,39 @@ public final class DataTypes {
             return defaultValueCode(type, JavaSourceLiteral.stringExpression(value));
         }
         if (type == Short.class) {
-            return defaultValueCode(type, "Short.valueOf(" + getPrimitiveDefaultValue(short.class, value) + ")");
+            return defaultValueCode(type,
+                    "java.lang.Short.valueOf(" + getPrimitiveDefaultValue(short.class, value) + ")");
         }
         if (type == Integer.class) {
-            return defaultValueCode(type, "Integer.valueOf(" + getPrimitiveDefaultValue(int.class, value) + ")");
+            return defaultValueCode(type,
+                    "java.lang.Integer.valueOf(" + getPrimitiveDefaultValue(int.class, value) + ")");
         }
         if (type == Long.class) {
-            return defaultValueCode(type, "Long.valueOf(" + getPrimitiveDefaultValue(long.class, value) + ")");
+            return defaultValueCode(type, "java.lang.Long.valueOf(" + getPrimitiveDefaultValue(long.class, value) + ")");
         }
         if (type == Double.class) {
-            return defaultValueCode(type, "Double.valueOf(" + getPrimitiveDefaultValue(double.class, value) + ")");
+            return defaultValueCode(type,
+                    "java.lang.Double.valueOf(" + getPrimitiveDefaultValue(double.class, value) + ")");
         }
         if (type == Float.class) {
-            return defaultValueCode(type, "Float.valueOf(" + getPrimitiveDefaultValue(float.class, value) + ")");
+            return defaultValueCode(type,
+                    "java.lang.Float.valueOf(" + getPrimitiveDefaultValue(float.class, value) + ")");
         }
         if (type == Byte.class) {
-            return defaultValueCode(type, "Byte.valueOf(" + getPrimitiveDefaultValue(byte.class, value) + ")");
+            return defaultValueCode(type, "java.lang.Byte.valueOf(" + getPrimitiveDefaultValue(byte.class, value) + ")");
         }
         if (type == Character.class) {
-            return defaultValueCode(type, "Character.valueOf(" + getPrimitiveDefaultValue(char.class, value) + ")");
+            return defaultValueCode(type,
+                    "java.lang.Character.valueOf(" + getPrimitiveDefaultValue(char.class, value) + ")");
         }
         if (type == Boolean.class) {
-            return defaultValueCode(type, "Boolean.valueOf(" + getPrimitiveDefaultValue(boolean.class, value) + ")");
+            return defaultValueCode(type,
+                    "java.lang.Boolean.valueOf(" + getPrimitiveDefaultValue(boolean.class, value) + ")");
         }
         if (type == BigDecimal.class) {
             try {
                 String canonical = new BigDecimal(value.trim()).toString();
-                return defaultValueCode(type, "new BigDecimal(\"" + canonical + "\")");
+                return defaultValueCode(type, "new java.math.BigDecimal(\"" + canonical + "\")");
             } catch (NumberFormatException failure) {
                 throw new DataTypeException.ConversionException("String", BigDecimal.class.getName() + " literal");
             }
@@ -417,37 +391,37 @@ public final class DataTypes {
         if (type == BigInteger.class) {
             try {
                 String canonical = new BigInteger(value.trim()).toString();
-                return defaultValueCode(type, "new BigInteger(\"" + canonical + "\")");
+                return defaultValueCode(type, "new java.math.BigInteger(\"" + canonical + "\")");
             } catch (NumberFormatException failure) {
                 throw new DataTypeException.ConversionException("String", BigInteger.class.getName() + " literal");
             }
         }
         if (type == LocalDate.class) {
             LocalDate parsed = parseLocalDate(value);
-            return defaultValueCode(type, "LocalDate.parse(\"" + parsed + "\")");
+            return defaultValueCode(type, "java.time.LocalDate.parse(\"" + parsed + "\")");
         }
         if (type == LocalTime.class) {
             LocalTime parsed = parseLocalTime(value);
-            return defaultValueCode(type, "LocalTime.parse(\"" + parsed + "\")");
+            return defaultValueCode(type, "java.time.LocalTime.parse(\"" + parsed + "\")");
         }
         if (type == LocalDateTime.class) {
             LocalDateTime parsed = parseLocalDateTime(value);
-            return defaultValueCode(type, "LocalDateTime.parse(\"" + parsed + "\")");
+            return defaultValueCode(type, "java.time.LocalDateTime.parse(\"" + parsed + "\")");
         }
         if (type == Instant.class) {
             Instant parsed = parseInstant(value);
-            return defaultValueCode(type, "Instant.parse(\"" + parsed + "\")");
+            return defaultValueCode(type, "java.time.Instant.parse(\"" + parsed + "\")");
         }
         if (type == java.sql.Date.class) {
             LocalDate parsed = parseLocalDate(value);
-            return defaultValueCode(type, "Date.valueOf(\"" + parsed + "\")");
+            return defaultValueCode(type, "java.sql.Date.valueOf(\"" + parsed + "\")");
         }
         if (type == java.sql.Time.class) {
             LocalTime parsed = parseLocalTime(value);
             if (parsed.getNano() != 0) {
                 throw conversionFailure(value, java.sql.Time.class);
             }
-            return defaultValueCode(type, "Time.valueOf(\"" + java.sql.Time.valueOf(parsed) + "\")");
+            return defaultValueCode(type, "java.sql.Time.valueOf(\"" + java.sql.Time.valueOf(parsed) + "\")");
         }
         if (type == Timestamp.class) {
             return getTimestampDefaultValue(value);
@@ -455,7 +429,7 @@ public final class DataTypes {
         if (type == java.util.Date.class) {
             Instant parsed = parseInstant(value);
             toUtilDateExact(parsed, value);
-            return defaultValueCode(type, "new Date(" + parsed.toEpochMilli() + "L)");
+            return defaultValueCode(type, "new java.util.Date(" + parsed.toEpochMilli() + "L)");
         }
         throw new DataTypeException.UnsupportedTypeException(type.getName());
     }
@@ -463,10 +437,11 @@ public final class DataTypes {
     private static DefaultValueCode getTimestampDefaultValue(String value) {
         try {
             LocalDateTime parsed = parseLocalDateTime(value);
-            return defaultValueCode(Timestamp.class, "Timestamp.valueOf(\"" + Timestamp.valueOf(parsed) + "\")");
+            return defaultValueCode(Timestamp.class, "java.sql.Timestamp.valueOf(\"" + Timestamp.valueOf(parsed) + "\")");
         } catch (DataTypeException.ConversionException localFailure) {
             Instant parsed = parseInstant(value);
-            return defaultValueCode(Timestamp.class, "Timestamp.from(Instant.parse(\"" + parsed + "\"))", Instant.class);
+            return defaultValueCode(Timestamp.class,
+                    "java.sql.Timestamp.from(java.time.Instant.parse(\"" + parsed + "\"))", Instant.class);
         }
     }
 
@@ -505,18 +480,6 @@ public final class DataTypes {
             return "0";
         }
         return "null";
-    }
-
-    private static String sourceSimpleName(Class<?> type) {
-        Class<?> requiredType = Objects.requireNonNull(type, "type");
-        if (requiredType.isArray()) {
-            return sourceSimpleName(requiredType.getComponentType()) + "[]";
-        }
-        if (requiredType.getCanonicalName() == null) {
-            throw new IllegalArgumentException(
-                    "Class cannot be referenced from generated source: " + requiredType.getName());
-        }
-        return requiredType.getSimpleName();
     }
 
     @SuppressWarnings("unchecked")
@@ -888,10 +851,10 @@ public final class DataTypes {
     }
 
     /**
-     * One validated Java default-value expression and the types it references.
+     * One validated Java default-value expression with fully qualified type references.
      *
      * @param expression      Java source expression
-     * @param referencedTypes types that must be visible in generated source
+     * @param referencedTypes types available for collision-aware import shortening
      */
     public record DefaultValueCode(String expression, List<Class<?>> referencedTypes) {
         public DefaultValueCode {

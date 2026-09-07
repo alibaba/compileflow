@@ -48,7 +48,7 @@ public final class MultiInstanceState {
             Set<Integer> completedIndices, int nextIndex) {
         this.loopId = requireText(loopId);
         this.totalIterations = totalIterations;
-        this.results = immutableNullableList(Objects.requireNonNull(results, "results"));
+        this.results = DurableValueSnapshots.immutableList(Objects.requireNonNull(results, "results"));
         this.activeIndices = orderedIndices(activeIndices, "activeIndices");
         this.completedIndices = orderedIndices(completedIndices, "completedIndices");
         this.nextIndex = nextIndex;
@@ -161,14 +161,6 @@ public final class MultiInstanceState {
             throw new IllegalArgumentException("totalIterations must be positive");
         }
         return new ArrayList<>(Collections.nCopies(totalIterations, null));
-    }
-
-    private static List<Object> immutableNullableList(List<?> source) {
-        List<Object> values = new ArrayList<>(source.size());
-        for (Object value : source) {
-            values.add(DurableValueSnapshots.detachedValue(value));
-        }
-        return Collections.unmodifiableList(values);
     }
 
     private static Set<Integer> orderedIndices(Set<Integer> source, String name) {

@@ -98,9 +98,11 @@ function parseExecutionParams(value: string): Record<string, unknown> | null {
   return parsed as Record<string, unknown>
 }
 
-function useExampleData(exampleId: string | undefined): ExampleDataState {
+function useExampleData(
+  exampleId: string | undefined,
+  setTotalExamples: (total: number) => void
+): ExampleDataState {
   const { t } = useTranslation()
-  const { setTotalExamples } = useLearningProgress()
   const tRef = useRef(t)
   const setTotalExamplesRef = useRef(setTotalExamples)
   const catalogRequestRef = useRef(0)
@@ -554,6 +556,7 @@ function ExampleSidebar({
   allExamples,
   contentRef,
   example,
+  learningProgress,
   onDownload,
   onExecute,
   onOpenInDesigner,
@@ -561,6 +564,7 @@ function ExampleSidebar({
   allExamples: Example[]
   contentRef: RefObject<HTMLDivElement | null>
   example: Example
+  learningProgress: ReturnType<typeof useLearningProgress>
   onDownload: () => void
   onExecute: () => void
   onOpenInDesigner: () => void
@@ -568,7 +572,7 @@ function ExampleSidebar({
   return (
     <aside className={styles.sidebarColumn}>
       <div className={styles.sidebarStack}>
-        <LearningProgressCard exampleId={example.id} />
+        <LearningProgressCard exampleId={example.id} learningProgress={learningProgress} />
         <QuickActions
           example={example}
           onDownload={onDownload}
@@ -593,7 +597,13 @@ function ExampleDetail() {
   const { i18n, t } = useTranslation()
   const contentRef = useRef<HTMLDivElement>(null)
   const [activeTabKey, setActiveTabKey] = useState<string>('overview')
-  const { allExamples, error, example: sourceExample, loading } = useExampleData(id)
+  const learningProgress = useLearningProgress()
+  const {
+    allExamples,
+    error,
+    example: sourceExample,
+    loading,
+  } = useExampleData(id, learningProgress.setTotalExamples)
   const language = i18n.resolvedLanguage || i18n.language
   const example = sourceExample ? localizeExample(sourceExample, t, language) : null
   const localizedExamples = useMemo(
@@ -664,6 +674,7 @@ function ExampleDetail() {
           allExamples={localizedExamples}
           contentRef={contentRef}
           example={example}
+          learningProgress={learningProgress}
           onDownload={handleDownload}
           onExecute={() => {
             setActiveTabKey('execute')

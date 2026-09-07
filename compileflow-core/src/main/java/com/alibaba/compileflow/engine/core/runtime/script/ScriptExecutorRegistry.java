@@ -15,7 +15,6 @@ package com.alibaba.compileflow.engine.core.runtime.script;
 
 import com.alibaba.compileflow.engine.CompileFlowException;
 import com.alibaba.compileflow.engine.ErrorCode;
-import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
 import com.alibaba.compileflow.engine.spi.script.ScriptProgram;
 import com.alibaba.compileflow.engine.spi.script.ScriptException;
 import com.alibaba.compileflow.engine.spi.script.ScriptExecutor;
@@ -47,24 +46,24 @@ public final class ScriptExecutorRegistry implements AutoCloseable {
     /**
      * Creates an engine-scoped registry containing the built-in script executors.
      *
-     * @param config immutable engine configuration
+     * @param classLoader application class loader
      * @return registry with the configured core-provided executor
      */
-    public static ScriptExecutorRegistry builtIns(ProcessEngineConfig config) {
-        return assemble(config, Map.of());
+    public static ScriptExecutorRegistry builtIns(ClassLoader classLoader) {
+        return assemble(classLoader, Map.of());
     }
 
     /**
      * Creates a registry containing built-ins and configured language providers.
      * Semantic language names must be unique, and built-in providers cannot be replaced.
      *
-     * @param config    immutable engine configuration
+     * @param classLoader application class loader
      * @param executors user-provided executors from the engine configuration
      * @return script executor registry
      */
-    public static ScriptExecutorRegistry configured(ProcessEngineConfig config,
+    public static ScriptExecutorRegistry configured(ClassLoader classLoader,
             Collection<? extends ScriptExecutor> executors) {
-        return assemble(config, index(executors));
+        return assemble(classLoader, index(executors));
     }
 
     /**
@@ -90,11 +89,11 @@ public final class ScriptExecutorRegistry implements AutoCloseable {
         return resolved;
     }
 
-    private static ScriptExecutorRegistry assemble(ProcessEngineConfig config, Map<String, ScriptExecutor> configured) {
-        ProcessEngineConfig engineConfig = Objects.requireNonNull(config, "config");
+    private static ScriptExecutorRegistry assemble(ClassLoader classLoader, Map<String, ScriptExecutor> configured) {
+        Objects.requireNonNull(classLoader, "classLoader");
         Map<String, ScriptExecutor> resolved = new LinkedHashMap<>();
         List<QlExpressScriptExecutor> owned = new ArrayList<>();
-        QlExpressScriptExecutor qlExecutor = new QlExpressScriptExecutor(engineConfig.getClassLoader());
+        QlExpressScriptExecutor qlExecutor = new QlExpressScriptExecutor(classLoader);
         resolved.put("qlexpress", qlExecutor);
         resolved.put("java", new JavaSourceScriptExecutor());
         owned.add(qlExecutor);

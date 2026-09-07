@@ -1,6 +1,6 @@
 const zhCommon = {
   'common.loading': '加载中…',
-  'common.skipToContent': '跳到主要内容',
+  'common.skipToContent': '跳转到主要内容',
 
   'common.retry': '重试',
 
@@ -34,7 +34,7 @@ const zhCommon = {
 
   'common.filter': '筛选',
 
-  'filters.processType': '类型',
+  'filters.processType': '流程类型',
 
   'common.clear': '清除',
 
@@ -88,7 +88,7 @@ const zhCommon = {
 
   'pageTitle.home': '学习',
 
-  'pageTitle.learn': '流程示例',
+  'pageTitle.learn': '流程示例库',
 
   'pageTitle.build': '设计与编译',
 
@@ -126,9 +126,9 @@ const zhCommon = {
 
   'navigation.github': 'GitHub 仓库',
 
-  'navigation.toggleToEnglish': '切换为英文',
+  'navigation.toggleToEnglish': '切换到英文',
 
-  'navigation.toggleToChinese': '切换为中文',
+  'navigation.toggleToChinese': '切换到中文',
 
   'navigation.openMenu': '打开导航菜单',
 
@@ -164,7 +164,7 @@ const zhCommon = {
 
   'settings.title': '设置',
 
-  'settings.subtitle': '工作台偏好与构建信息',
+  'settings.subtitle': '设置工作台偏好并查看构建信息',
 
   'settings.eyebrow': '偏好设置',
 
@@ -190,14 +190,14 @@ const zhCommon = {
 
   // 首页
 
-  'home.eyebrow': '面向 AI 时代的 Java 流程编排',
+  'home.eyebrow': '面向 Java 应用的可视化流程编排',
 
-  'home.title': '构建 AI 时代的可靠流程底座',
+  'home.title': '让业务流程更清晰、更可靠',
 
   'home.subtitle':
-    '设计、编译、发布并运维高性能 Java 流程，从确定性业务逻辑延展到可持久执行，并为 Agent 编排做好准备。',
+    '将业务逻辑可视化，支持高性能进程内执行、持久化流程和 Agent 工作流编排，并提供版本化发布与运行监控。',
 
-  'home.start': '构建第一条流程',
+  'home.start': '创建第一个流程',
 
   'home.docs': '浏览示例',
 
@@ -205,29 +205,29 @@ const zhCommon = {
 
   'home.modules': '模块',
 
-  'home.version': 'v{{version}} - {{status}}',
+  'home.version': 'v{{version}} · {{status}}',
 
-  'home.features': '从想法到可靠运行',
+  'home.features': '学习、构建与运维',
 
-  'home.featuresDesc': '通过真实模式学习、可视化构建，并可靠发布与运维每一个流程版本。',
+  'home.featuresDesc': '通过示例学习常用模式，构建自己的流程，并管理流程版本和运行状态。',
 
   // 功能模块
 
   'feature.learn.title': '学习',
 
-  'feature.learn.desc': '通过真实流程模式，理解确定性决策、持久等待与受治理的外部副作用。',
+  'feature.learn.desc': '通过示例学习条件分支、并行执行、流程等待和恢复等常用模式。',
 
   'feature.learn.action': '浏览示例',
 
   'feature.workspace.title': '构建',
 
-  'feature.workspace.desc': '在同一工作区完成可视化设计、源码编辑、语义校验与 Java 流程编译。',
+  'feature.workspace.desc': '可视化设计流程或直接编辑源码，并完成流程定义校验和编译。',
 
   'feature.workspace.action': '打开工作区',
 
   'feature.ops.title': '运维',
 
-  'feature.ops.desc': '发布不可变版本、安全灰度切流，并将每次执行追溯到精确源码。',
+  'feature.ops.desc': '发布不可变版本、配置灰度流量，并准确识别每次执行所使用的流程版本。',
 
   'feature.ops.action': '进入运维',
 
@@ -265,13 +265,11 @@ const zhCommon = {
 
   'error.operationFailed': '操作失败',
 
-  'error.pageRenderTitle': '页面渲染出错',
+  'error.pageRenderTitle': '无法显示此页面',
 
   'error.pageRenderDescription': '请刷新页面后重试。',
 
-  'error.application': '应用出错，请刷新页面后重试。',
-
-  'error.retryExhausted': '多次重试后仍失败',
+  'error.application': '应用发生错误，请刷新页面后重试。',
 
   'errorBoundary.title': '页面出错了',
 
@@ -283,15 +281,19 @@ const zhCommon = {
 
   'errorBoundary.details': '错误详情（仅开发环境）',
 
+  'errorBoundary.errorLabel': '错误：',
+
+  'errorBoundary.componentStackLabel': '组件调用栈：',
+
   // 空状态
 
   'empty.search.title': '未找到相关内容',
 
   'empty.search.description': '请调整或清空筛选条件。',
 
-  'empty.data.title': '暂无数据',
+  'empty.data.title': '暂无内容',
 
-  'empty.data.description': '创建第一个流程即可开始。',
+  'empty.data.description': '创建第一个流程后即可开始使用。',
 
   'empty.error.title': '加载失败',
 
@@ -299,19 +301,19 @@ const zhCommon = {
 
   // Mock 模式
 
-  'mockBanner.prefix': '演示模式使用本地 mock 数据，并非真实引擎输出。请设置',
+  'mockBanner.prefix': '演示模式显示本地模拟数据，不代表引擎实际输出。请设置',
 
-  'mockBanner.suffix': '，并通过同源网关连接真实后端。',
+  'mockBanner.suffix': '，并通过同源网关连接后端服务。',
 
   'mockBanner.dismiss': '关闭提示',
 
   // 状态页
 
-  'notFound.message': '你访问的页面不存在。',
+  'notFound.message': '找不到你访问的页面。',
 
   'notFound.home': '返回首页',
 
-  'serverError.message': '服务器出现问题。',
+  'serverError.message': '服务器发生错误。',
 
   'serverError.reload': '刷新页面',
 
@@ -341,25 +343,25 @@ const zhCommon = {
 
   // 流程扩展
 
-  'feedback.helpfulQuestion': '这篇教程有帮助吗？',
+  'feedback.helpfulQuestion': '这个示例有帮助吗？',
 
   'feedback.quickActions': '快捷操作',
 
   'feedback.helpful': '有帮助',
 
-  'feedback.notHelpful': '没帮助',
+  'feedback.notHelpful': '没有帮助',
 
   'feedback.bookmark': '收藏',
 
   'feedback.share': '分享',
 
-  'feedback.likeSuccess': '感谢反馈',
+  'feedback.likeSuccess': '已标记为有帮助',
 
-  'feedback.likeCancelled': '已取消点赞',
+  'feedback.likeCancelled': '已取消“有帮助”反馈',
 
-  'feedback.dislikeSuccess': '感谢反馈，我们会改进',
+  'feedback.dislikeSuccess': '已标记为没有帮助',
 
-  'feedback.dislikeCancelled': '已取消踩',
+  'feedback.dislikeCancelled': '已取消“没有帮助”反馈',
 
   'feedback.bookmarkAdded': '已收藏',
 
@@ -367,7 +369,7 @@ const zhCommon = {
 
   'feedback.linkCopied': '链接已复制',
 
-  'feedback.copyFailed': '无法复制链接',
+  'feedback.copyFailed': '链接复制失败',
 
   'feedback.shareSuccess': '已分享',
 
@@ -377,7 +379,7 @@ const zhCommon = {
 
   'footer.copyright': 'Copyright 2026 Alibaba CompileFlow contributors.',
 
-  'footer.subtitle': 'CompileFlow 工作台——从学习流程到发布上线。',
+  'footer.subtitle': '使用 CompileFlow 工作台学习、设计、发布和运维流程。',
 
   // 工作台
 
@@ -392,13 +394,13 @@ const zhCommon = {
   'search.enterHint': '按 Enter 搜索',
   'search.loading': '正在打开全局搜索…',
   'search.indexing': '正在建立搜索索引…',
-  'search.sourcesUnavailable': '部分搜索来源暂时不可用',
+  'search.sourcesUnavailable': '部分搜索来源暂时不可用，请稍后重试',
 
   'search.matchedExamples': '匹配的示例',
 
   'search.matchedProcesses': '匹配的本地流程',
 
-  'search.noMatch': '无匹配结果，可尝试快速导航',
+  'search.noMatch': '没有匹配结果，可尝试使用快速导航',
 
   'search.quickNav': '快速导航',
 
@@ -408,9 +410,9 @@ const zhCommon = {
 
   'search.openShortcut': '打开全局搜索（⌘K）',
 
-  'search.quickLink.examplesDesc': '浏览全部流程示例',
+  'search.quickLink.examplesDesc': '浏览流程示例',
 
-  'search.quickLink.processesDesc': '管理已部署流程',
+  'search.quickLink.processesDesc': '管理流程定义',
 
   'search.quickLink.monitoringDesc': '查看实时运行指标',
 

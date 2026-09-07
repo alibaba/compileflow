@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.quality.boundary;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
@@ -33,8 +34,8 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class GeneratedTypeIntegrationTest {
-    private static final ProcessDefinition.Inline PARAMETER_DEFAULTS = ProcessDefinition.inline("test.parameter-"
-            + "defaults",
+    private static final ProcessDefinition.Inline PARAMETER_DEFAULTS = ProcessDefinition.inline(ProcessModelType.TBBPM,
+            "test.parameter-" + "defaults",
             """
             <bpm code="test.parameter-defaults" name="Parameter Defaults">
                 <var name="optional" dataType="java.lang.String" inOutType="param"/>
@@ -57,7 +58,8 @@ class GeneratedTypeIntegrationTest {
                 <end id="end" g="200,0,32,32"/>
             </bpm>
             """);
-    private static final ProcessDefinition.Inline SOURCE = ProcessDefinition.inline("test.generated-types",
+    private static final ProcessDefinition.Inline SOURCE = ProcessDefinition.inline(ProcessModelType.TBBPM,
+            "test.generated-types",
             """
         <?xml version="1.0" encoding="UTF-8" ?>
         <bpm code="test.generated-types" name="Generated Types">
@@ -86,8 +88,8 @@ class GeneratedTypeIntegrationTest {
             <end id="end" name="End" g="320,50,32,32"/>
         </bpm>
         """);
-    private static final ProcessDefinition.Inline ACTION_OUTPUT_CONVERSION = ProcessDefinition.inline("test.action-"
-            + "output-conversion",
+    private static final ProcessDefinition.Inline ACTION_OUTPUT_CONVERSION = ProcessDefinition.inline(ProcessModelType.TBBPM,
+            "test.action-" + "output-conversion",
             """
             <bpm code="test.action-output-conversion"
                  name="Action Output Conversion">
@@ -153,8 +155,8 @@ class GeneratedTypeIntegrationTest {
                 <end id="end" g="540,0,32,32"/>
             </bpm>
             """);
-    private static final ProcessDefinition.Inline DEFAULT_VALUE_TYPES = ProcessDefinition.inline("test.default-value-"
-            + "types",
+    private static final ProcessDefinition.Inline DEFAULT_VALUE_TYPES = ProcessDefinition.inline(ProcessModelType.TBBPM,
+            "test.default-value-" + "types",
             """
             <bpm code="test.default-value-types"
                  name="Default Value Types">
@@ -202,7 +204,8 @@ class GeneratedTypeIntegrationTest {
                 <end id="end" g="80,0,32,32"/>
             </bpm>
             """);
-    private static final ProcessDefinition.Inline UTIL_DATE_DEFAULT = ProcessDefinition.inline("test.util-date-default",
+    private static final ProcessDefinition.Inline UTIL_DATE_DEFAULT = ProcessDefinition.inline(ProcessModelType.TBBPM,
+            "test.util-date-default",
             """
             <bpm code="test.util-date-default"
                  name="Util Date Default">
@@ -216,8 +219,8 @@ class GeneratedTypeIntegrationTest {
                 <end id="end" g="80,0,32,32"/>
             </bpm>
             """);
-    private static final ProcessDefinition.Inline ACTION_PARAMETER_DEFAULTS = ProcessDefinition.inline("test.action-"
-            + "parameter-defaults",
+    private static final ProcessDefinition.Inline ACTION_PARAMETER_DEFAULTS = ProcessDefinition.inline(ProcessModelType.TBBPM,
+            "test.action-" + "parameter-defaults",
             """
             <bpm code="test.action-parameter-defaults"
                  name="Action Parameter Defaults">
@@ -268,7 +271,7 @@ class GeneratedTypeIntegrationTest {
 
     @Test
     void guardsOnlyParametersWhoseDefaultsMustBePreserved() {
-        ProcessEngineConfig config = ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory.builder().discoverPlugins(false).build();
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
             String sourceCode = engine.tooling().generateJavaCode(PARAMETER_DEFAULTS);
@@ -290,7 +293,7 @@ class GeneratedTypeIntegrationTest {
     @Test
     void compilesLargeScriptSourcesWithoutOversizedConstants() {
         String script = "/*" + "x".repeat(70_000) + "*/ return 1;";
-        ProcessDefinition definition = ProcessDefinition.inline("test.large-script-literal",
+        ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.TBBPM, "test.large-script-literal",
                 """
                 <bpm code="test.large-script-literal" name="Large Script Literal">
                     <var name="result" dataType="java.lang.Integer" inOutType="return"/>
@@ -309,7 +312,7 @@ class GeneratedTypeIntegrationTest {
                 """
                     .formatted(script));
 
-        try (ProcessEngine engine = ProcessEngineTestFactory.createTbbpm()) {
+        try (ProcessEngine engine = ProcessEngineTestFactory.create()) {
             String sourceCode = engine.tooling().generateJavaCode(definition);
             ProcessResult<Map<String, Object>> result = engine.execute(definition, Map.of());
 
@@ -322,7 +325,7 @@ class GeneratedTypeIntegrationTest {
 
     @Test
     void normalizesPrimitiveVariablesAndExecutesNestedGenericVariables() {
-        ProcessEngineConfig config = ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory.builder().discoverPlugins(false).build();
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
             String sourceCode = engine.tooling().generateJavaCode(SOURCE);
@@ -370,7 +373,7 @@ class GeneratedTypeIntegrationTest {
 
     @Test
     void convertsEveryActionOutputAtTheProcessVariableBoundary() {
-        ProcessEngineConfig config = ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory.builder().discoverPlugins(false).build();
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
             String sourceCode = engine.tooling().generateJavaCode(ACTION_OUTPUT_CONVERSION);
@@ -387,7 +390,7 @@ class GeneratedTypeIntegrationTest {
 
     @Test
     void importsAndExecutesCanonicalDefaultValueExpressions() {
-        ProcessEngineConfig config = ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory.builder().discoverPlugins(false).build();
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
             String sourceCode = engine.tooling().generateJavaCode(DEFAULT_VALUE_TYPES);
@@ -421,7 +424,7 @@ class GeneratedTypeIntegrationTest {
 
     @Test
     void importsAndExecutesUtilDateDefaultWithoutHelperTypePaths() {
-        ProcessEngineConfig config = ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory.builder().discoverPlugins(false).build();
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
             String sourceCode = engine.tooling().generateJavaCode(UTIL_DATE_DEFAULT);
@@ -437,7 +440,7 @@ class GeneratedTypeIntegrationTest {
 
     @Test
     void importsDefaultTypesAcrossEveryActionExecutionPath() {
-        ProcessEngineConfig config = ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory.builder().discoverPlugins(false).build();
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
             String sourceCode = engine.tooling().generateJavaCode(ACTION_PARAMETER_DEFAULTS);

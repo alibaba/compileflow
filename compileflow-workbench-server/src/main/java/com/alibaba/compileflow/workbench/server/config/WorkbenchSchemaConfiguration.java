@@ -15,24 +15,38 @@ package com.alibaba.compileflow.workbench.server.config;
 
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationInfo;
+import java.sql.Connection;
+import java.sql.SQLException;
+import javax.sql.DataSource;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.flyway.autoconfigure.FlywayMigrationStrategy;
+import org.springframework.boot.flyway.autoconfigure.FlywayConfigurationCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 /**
  * Owns Workbench Server schema migration and fail-closed startup admission.
  *
- * <p>The product root composes the Deploy and Workbench migration locations.
- * Local evaluation may let the Server apply both migrations. Production may
- * instead use a separate DDL identity, but the runtime still validates Flyway
- * checksums and rejects pending migrations before becoming ready.</p>
+ * <p>This migration history owns only Workbench tables. The selected Deploy Provider owns and
+ * validates its independent schema history.</p>
  *
  * @author yusu
  */
 @Configuration(proxyBeanMethods = false)
 public class WorkbenchSchemaConfiguration {
+    private static final String WORKBENCH_HISTORY_TABLE = "cf_workbench_schema_history";
+
+    static String migrationLocation(CompileFlowWorkbenchServerProperties.Database.Provider provider) {
+        String directory =
+                switch (provider) {
+            case POSTGRESQL -> "postgres";
+            case MYSQL -> "mysql";
+        };
+        return "classpath:db/compileflow-workbench-server/" + directory + "/migration";
+    }
+
     static FlywayMigrationStrategy schemaMigrationStrategy(boolean migrate) {
         return flyway -> {
             if (migrate) {
@@ -43,7 +57,7 @@ public class WorkbenchSchemaConfiguration {
             if (pending.length > 0) {
                 throw new IllegalStateException(
                         "CompileFlow Workbench Server schema has " + pending.length
-                        + " pending Flyway migration(s); apply them with the deployment migration identity before starting the Server");
+                        + " pending Flyway migration(s); apply them with the Workbench migration identity before starting the Server");
             }
         };
     }
@@ -55,6 +69,17 @@ public class WorkbenchSchemaConfiguration {
      * @param properties immutable Workbench Server configuration
      * @return migration and validation strategy
      */
+    @Bean
+    public FlywayConfigurationCustomizer workbenchFlywayConfiguration(CompileFlowWorkbenchServerProperties properties) {
+        return configuration -> configuration
+            .locations(migrationLocation(properties.getDatabase().getProvider()))
+            .table(WORKBENCH_HISTORY_TABLE)
+            .baselineOnMigrate(true)
+            .baselineVersion("0")
+            .cleanDisabled(true)
+            .failOnMissingLocations(true);
+    }
+
     @Bean
     public FlywayMigrationStrategy workbenchSchemaMigrationStrategy(CompileFlowWorkbenchServerProperties properties) {
         return schemaMigrationStrategy(properties.getDatabase().isMigrate());
@@ -75,5 +100,29 @@ public class WorkbenchSchemaConfiguration {
                         "CompileFlow Workbench Server requires Flyway schema admission; do not disable spring.flyway.enabled");
             }
         };
+    }
+
+    @Bean
+    @Profile("!test")
+    public SmartInitializingSingleton workbenchDatabaseProviderGuard(DataSource dataSource,
+            CompileFlowWorkbenchServerProperties properties) {
+        return () -> requireSelectedProvider(dataSource, properties.getDatabase().getProvider());
+    }
+
+    static void requireSelectedProvider(DataSource dataSource,
+            CompileFlowWorkbenchServerProperties.Database.Provider provider) {
+        try (Connection connection = dataSource.getConnection()) {
+            String actual = connection.getMetaData().getDatabaseProductName();
+            String expected =
+                    provider == CompileFlowWorkbenchServerProperties.Database.Provider.POSTGRESQL
+                    ? "PostgreSQL"
+                    : "MySQL";
+            if (!expected.equals(actual)) {
+                throw new IllegalStateException(
+                        "CompileFlow Workbench database Provider is " + provider + ", but the DataSource reports " + actual);
+            }
+        } catch (SQLException failure) {
+            throw new IllegalStateException("Cannot verify the CompileFlow Workbench DataSource", failure);
+        }
     }
 }

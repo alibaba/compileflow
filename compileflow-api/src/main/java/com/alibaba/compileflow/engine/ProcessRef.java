@@ -101,7 +101,7 @@ public sealed interface ProcessRef permits ProcessRef.Version, ProcessRef.Alias 
          *
          * @param namespace explicit process namespace
          * @param code      process code
-         * @param version   immutable published version
+         * @param version   immutable exact version
          */
         public Version {
             namespace = ProcessIdentifiers.requireNamespace(namespace);

@@ -22,7 +22,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
  *
  * @author yusu
  */
-@AutoConfiguration(before = CompileFlowCoreAutoConfiguration.class)
+@AutoConfiguration(before = CompileFlowEngineAutoConfiguration.class)
 @EnableConfigurationProperties(ProcessEngineProperties.class)
 public class CompileFlowEnginePropertiesAutoConfiguration {
 }

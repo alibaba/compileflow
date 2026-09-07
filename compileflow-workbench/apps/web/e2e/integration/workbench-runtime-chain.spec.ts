@@ -47,7 +47,7 @@ interface AsyncInvocation {
   traceId?: string
 }
 
-interface DeployRuntimeDiagnostics {
+interface DeploymentRuntimeDiagnostics {
   available: boolean
   deployedVersions?: Array<{
     code: string
@@ -158,7 +158,7 @@ async function locallyInstalledVersions(
   request: APIRequestContext,
   code: string
 ): Promise<string[]> {
-  const diagnostics = await expectJson<DeployRuntimeDiagnostics>(
+  const diagnostics = await expectJson<DeploymentRuntimeDiagnostics>(
     await request.get(`${serverUrl}/api/monitoring/deploy-runtime`, { headers: apiHeaders() })
   )
   expect(diagnostics.available).toBe(true)
@@ -395,12 +395,7 @@ test('persisted async invocation exhausts retries, dead-letters, and requeues th
 
   const code = `workbench.retry.${crypto.randomUUID()}`
   const invocationId = `retry-${crypto.randomUUID()}`
-  const failureMessage = `expected-runtime-failure-${crypto.randomUUID()}`
-  const deployed = await publishStableMarkerProcess(
-    request,
-    code,
-    failingProcessXml(code, failureMessage)
-  )
+  const deployed = await publishStableMarkerProcess(request, code, failingProcessXml(code))
 
   const accepted = await postJson<AsyncInvocation>(
     request,
@@ -445,7 +440,6 @@ test('persisted async invocation exhausts retries, dead-letters, and requeues th
     })
   )
   expect(firstDeadLetter.error).toBe('Script execution error')
-  expect(firstDeadLetter.error).not.toContain(failureMessage)
 
   const degraded = await expectJson<AsyncInvocationHealth>(
     await request.get(`${serverUrl}/api/async-invocations/health`, { headers: apiHeaders() })

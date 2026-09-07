@@ -15,20 +15,41 @@ package com.alibaba.compileflow.workbench.server.process;
 
 import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessText;
+import java.io.IOException;
 import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.Objects;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
+import org.xml.sax.helpers.DefaultHandler;
 
 /**
- * Parses imported process definition files for the Workbench.
+ * Parses imported process definitions and rewrites editable draft identities without model conversion.
  *
  * @author yusu
  */
 final class ProcessImportParser {
     private static final String BPMN_MODEL_NAMESPACE = "http://www.omg.org/spec/BPMN/20100524/MODEL";
+    private static final String MAX_ELEMENT_DEPTH_PROPERTY = "jdk.xml.maxElementDepth";
+    private static final String MAX_ELEMENT_DEPTH = "128";
 
     private static ImportedProcess parseDocument(XMLStreamReader reader) throws XMLStreamException {
         ImportedProcess imported = null;
@@ -127,8 +148,10 @@ final class ProcessImportParser {
     private static XMLInputFactory secureInputFactory() {
         XMLInputFactory factory = XMLInputFactory.newFactory();
         factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
-        factory.setProperty("javax.xml.stream.isSupportingExternalEntities", false);
+        factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
         factory.setProperty(XMLInputFactory.IS_REPLACING_ENTITY_REFERENCES, false);
+        factory.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        factory.setProperty(MAX_ELEMENT_DEPTH_PROPERTY, MAX_ELEMENT_DEPTH);
         factory.setXMLResolver((publicId, systemId, baseUri, namespace) -> {
             throw new XMLStreamException("External XML resources are not allowed");
         });
@@ -158,6 +181,113 @@ final class ProcessImportParser {
             }
         } catch (XMLStreamException failure) {
             throw new IllegalArgumentException("Imported file is not well-formed XML", failure);
+        }
+    }
+
+    String copyWithIdentity(String xml, ProcessModelType type, String code, String name) {
+        if (xml == null || xml.isBlank()) {
+            return xml;
+        }
+        String documentXml = xml.charAt(0) == '\uFEFF' ? xml.substring(1) : xml;
+        ImportedProcess imported;
+        try {
+            imported = parse(documentXml);
+        } catch (IllegalArgumentException invalidDraft) {
+            return xml;
+        }
+        if (imported.type() != type) {
+            return xml;
+        }
+        Document document;
+        try {
+            document = secureDocumentBuilder().parse(new InputSource(new StringReader(documentXml)));
+        } catch (SAXException | IOException invalidDraft) {
+            return xml;
+        }
+        Element root = document.getDocumentElement();
+        Element process = type == ProcessModelType.TBBPM ? root : directBpmnProcess(root);
+        process.setAttribute(type == ProcessModelType.TBBPM ? "code" : "id", code);
+        process.setAttribute("name", name);
+        if (type == ProcessModelType.BPMN) {
+            String namespace = root.getAttribute("targetNamespace");
+            renameProcessReferences(document, BPMN_MODEL_NAMESPACE, "participant", "processRef", namespace,
+                    imported.code(), code);
+            renameProcessReferences(document, "http://www.omg.org/spec/BPMN/20100524/DI", "BPMNPlane", "bpmnElement",
+                    namespace, imported.code(), code);
+        }
+        try {
+            TransformerFactory factory = TransformerFactory.newDefaultInstance();
+            factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
+            var transformer = factory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
+            transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+            transformer.setOutputProperty(OutputKeys.VERSION, document.getXmlVersion());
+            transformer.setOutputProperty(OutputKeys.INDENT, "no");
+            StringWriter output = new StringWriter();
+            transformer.transform(new DOMSource(document), new StreamResult(output));
+            return output.toString();
+        } catch (TransformerException failure) {
+            throw new IllegalStateException("Failed to rewrite process draft identity", failure);
+        }
+    }
+
+    private static DocumentBuilder secureDocumentBuilder() {
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newDefaultInstance();
+            factory.setNamespaceAware(true);
+            factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+            factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+            factory.setXIncludeAware(false);
+            factory.setExpandEntityReferences(false);
+            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+            factory.setAttribute(MAX_ELEMENT_DEPTH_PROPERTY, MAX_ELEMENT_DEPTH);
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            builder.setEntityResolver((publicId, systemId) -> {
+                throw new SAXException("External XML resources are not allowed");
+            });
+            builder.setErrorHandler(new DefaultHandler() {
+                @Override
+                public void fatalError(SAXParseException failure) throws SAXException {
+                    throw failure;
+                }
+            });
+            return builder;
+        } catch (ParserConfigurationException failure) {
+            throw new IllegalStateException("Cannot configure the secure draft XML parser", failure);
+        }
+    }
+
+    private static Element directBpmnProcess(Element root) {
+        for (Node child = root.getFirstChild(); child != null; child = child.getNextSibling()) {
+            if (child instanceof Element element && "process".equals(element.getLocalName())
+                    && BPMN_MODEL_NAMESPACE.equals(element.getNamespaceURI())) {
+                return element;
+            }
+        }
+        throw new IllegalStateException("Validated BPMN document has no direct process element");
+    }
+
+    private static void renameProcessReferences(Document document, String elementNamespace, String elementName,
+            String attributeName, String processNamespace, String oldCode, String newCode) {
+        NodeList elements = document.getElementsByTagNameNS(elementNamespace, elementName);
+        for (int index = 0; index < elements.getLength(); index++) {
+            Element element = (Element) elements.item(index);
+            String reference = element.getAttribute(attributeName);
+            if (oldCode.equals(reference)) {
+                element.setAttribute(attributeName, newCode);
+            } else {
+                int colon = reference.indexOf(':');
+                if (colon > 0 && oldCode.equals(reference.substring(colon + 1)) && !processNamespace.isEmpty()
+                        && processNamespace.equals(element.lookupNamespaceURI(reference.substring(0, colon)))) {
+                    element.setAttribute(attributeName, reference.substring(0, colon + 1) + newCode);
+                }
+            }
         }
     }
 

@@ -4,14 +4,16 @@ The following ownership and change map applies to `apps/web`.
 
 ## Product Boundaries
 
-| Domain  | Responsibility                                                    | Durable data                           |
-| ------- | ----------------------------------------------------------------- | -------------------------------------- |
-| Learn   | Examples, concepts, and explicit-definition preview               | Server catalog or bundled mock catalog |
-| Build   | BPMN/TBBPM authoring and local workspace management               | Browser IndexedDB                      |
-| Operate | Draft persistence, releases, routing, execution, health, and logs | Workbench Server and PostgreSQL        |
+| Domain  | Responsibility                                                       | Durable data                                 |
+| ------- | -------------------------------------------------------------------- | -------------------------------------------- |
+| Learn   | Examples, concepts, and explicit-definition preview                  | Server catalog or bundled mock catalog       |
+| Build   | BPMN/TBBPM authoring and local workspace management                  | Browser IndexedDB                            |
+| Operate | Draft persistence, publication, routing, execution, health, and logs | Workbench Server and its configured database |
 
 Build owns local editable state. Operate owns managed server state. Learn and Build preview current XML through
 `POST /api/executions/preview`; Operate executes published state by explicit version or alias.
+The shared designer can edit an Operate draft: its explicit binding carries the process code and revision, and Save
+updates the Server draft with that revision instead of writing IndexedDB.
 
 ## Runtime Topology
 
@@ -23,7 +25,7 @@ Browser
 authentication-capable gateway
   | private service credential
   v
-compileflow-workbench-server -> PostgreSQL
+compileflow-workbench-server -> PostgreSQL or MySQL
 
 Frontend development
 Vite -> loopback dev-gateway preview mock
@@ -54,11 +56,10 @@ Cross-domain navigation uses the route builders in
 - Component state owns transient presentation state.
 - Redux owns shared designer editing state and undo history.
 - IndexedDB owns local processes, snapshots, and templates.
-- Workbench Server owns server drafts, releases, routes, async invocation, and execution logs.
+- Workbench Server owns server drafts, published versions, routes, async invocations, and execution logs.
 - `VITE_COMPILEFLOW_*` values are parsed once as public build inputs.
 
-Server lifecycle state is never mirrored into local designer persistence or represented as dynamically refreshed
-configuration.
+Server lifecycle state is not copied into local designer storage or represented as browser configuration.
 
 ## Designer Data Flow
 
@@ -70,7 +71,7 @@ route descriptor
   -> X6 canvas and property panels
   -> structured state updates
   -> format writer
-  -> IndexedDB save, export, or explicit preview request
+  -> local IndexedDB or revision-checked Server draft save, export, or explicit preview request
 ```
 
 Canvas and XML are projections of the same structured state. UI components do not rewrite XML with ad hoc string
@@ -101,4 +102,4 @@ pnpm --filter @compileflow/workbench-dev-gateway test
 pnpm --filter @compileflow/workbench-web test:e2e:smoke
 ```
 
-The release-like gate is `pnpm verify:delivery`.
+The delivery gate is `pnpm verify:delivery`.

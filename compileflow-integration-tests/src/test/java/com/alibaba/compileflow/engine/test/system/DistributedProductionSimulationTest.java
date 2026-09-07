@@ -19,15 +19,15 @@ import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
 import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.core.routing.LocalRoutingState;
-import com.alibaba.compileflow.deploy.api.protocol.routing.RoutingStateKeys;
-import com.alibaba.compileflow.deploy.api.protocol.routing.RoutingStatePayloads;
-import com.alibaba.compileflow.deploy.api.sync.inmemory.InMemoryDeploymentSyncChannel;
-import com.alibaba.compileflow.deploy.control.repository.InMemoryProcessVersionRepository;
-import com.alibaba.compileflow.deploy.control.repository.ProcessVersionRecord;
-import com.alibaba.compileflow.deploy.runtime.DeployRuntime;
+import com.alibaba.compileflow.deploy.protocol.RoutingStateKeys;
+import com.alibaba.compileflow.deploy.protocol.RoutingStateCodec;
+import com.alibaba.compileflow.deploy.testkit.InMemoryDeploymentProjectionStore;
+import com.alibaba.compileflow.deploy.testkit.InMemoryProcessVersionStore;
+import com.alibaba.compileflow.deploy.spi.store.ProcessVersionRecord;
+import com.alibaba.compileflow.deploy.runtime.DeploymentRuntime;
 import com.alibaba.compileflow.engine.test.support.config.ProcessEngineTestConfiguration;
 import com.alibaba.compileflow.engine.test.support.helpers.Awaiter;
-import com.alibaba.compileflow.engine.test.support.helpers.DeployRuntimeTestSupport;
+import com.alibaba.compileflow.engine.test.support.helpers.DeploymentRuntimeTestSupport;
 import com.alibaba.compileflow.engine.test.support.helpers.ProcessEngineTestFactory;
 import java.time.Duration;
 import java.util.Collections;
@@ -52,13 +52,13 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @Tag("slow")
 @Execution(ExecutionMode.SAME_THREAD)
 public class DistributedProductionSimulationTest {
-    private static final Duration CHANNEL_TIMEOUT = Duration.ofSeconds(2);
-    private InMemoryProcessVersionRepository versionRepository;
+    private static final Duration OPERATION_TIMEOUT = Duration.ofSeconds(2);
+    private InMemoryProcessVersionStore versionRepository;
     private ProcessEngine engine;
     private ExecutorService executor;
     private LocalRoutingState localRoutingState;
 
-    private static String minimalBpmnFlow(String code, String marker) {
+    private static String minimalTbbpmFlow(String code, String marker) {
         return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + "<bpm code=\"" + code + "\" name=\"" + code + "\">\n"
                 + "    <var name=\"version_marker\" dataType=\"java.lang.String\" inOutType=\"return\"/>\n"
                 + "    <start id=\"start\" name=\"Start\" g=\"50,50,32,32\">\n" + "        <transition to=\"calc\"/>\n"
@@ -72,9 +72,9 @@ public class DistributedProductionSimulationTest {
 
     @BeforeEach
     void setUp() {
-        versionRepository = new InMemoryProcessVersionRepository();
+        versionRepository = new InMemoryProcessVersionStore();
 
-        engine = ProcessEngineTestFactory.createTbbpm();
+        engine = ProcessEngineTestFactory.create();
         localRoutingState = new LocalRoutingState();
         executor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "test-deploy-runtime");
@@ -91,10 +91,8 @@ public class DistributedProductionSimulationTest {
             }
         } finally {
             if (executor != null) {
-                executor.shutdown();
-            }
-            if (localRoutingState != null) {
-                localRoutingState.clear();
+                executor.shutdownNow();
+                assertThat(executor.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
             }
         }
     }
@@ -105,52 +103,50 @@ public class DistributedProductionSimulationTest {
         String code = "dist.unified.flow";
         String version = "1";
 
-        String content = minimalBpmnFlow(code, "v1");
+        String content = minimalTbbpmFlow(code, "v1");
 
         ProcessVersionRecord record = ProcessVersionRecord
             .builder()
             .namespace(ns)
             .code(code)
             .version(version)
-            .modelType(ProcessModelType.TBBPM)
-            .processDefinition(ProcessDefinition.inline(code, content))
-            .artifactDigest(ProcessArtifactDigest.compute(ProcessModelType.TBBPM,
-                    ProcessDefinition.inline(code, content), Map.of()))
+            .processDefinition(ProcessDefinition.inline(ProcessModelType.TBBPM, code, content))
+            .artifactDigest(ProcessArtifactDigest.compute(ProcessDefinition.inline(ProcessModelType.TBBPM, code, content),
+                    Map.of()))
             .actor("test")
             .createdAt(System.currentTimeMillis())
             .build();
         versionRepository.save(record);
 
-        InMemoryDeploymentSyncChannel channel = new InMemoryDeploymentSyncChannel();
+        InMemoryDeploymentProjectionStore projectionStore = new InMemoryDeploymentProjectionStore();
         String statePrefix = "compileflow.test.deployment.";
         String routingKey = RoutingStateKeys.aliasState(statePrefix, ns, code, "prod");
         List<String> stateKeys = Collections.singletonList(routingKey);
 
-        DeployRuntime rt = DeployRuntimeTestSupport.dbRuntime(channel, stateKeys, engine, ProcessModelType.TBBPM,
-                versionRepository, CHANNEL_TIMEOUT, executor, localRoutingState);
-        rt.start();
+        try (DeploymentRuntime rt = DeploymentRuntimeTestSupport.sourceRuntime(projectionStore, stateKeys, engine,
+                versionRepository, OPERATION_TIMEOUT, executor, localRoutingState)) {
+            rt.start();
 
-        String routePayload = RoutingStatePayloads.aliasStateJson(ns, code, "prod", version, null, null, 1L, "test",
-                System.currentTimeMillis());
-        assertThat(channel.compareAndSet(routingKey, null, routePayload, "json", CHANNEL_TIMEOUT)).isTrue();
+            String routePayload = RoutingStateCodec.aliasStateJson(ns, code, "prod", version, null, null, 1L, "test",
+                    System.currentTimeMillis());
+            assertThat(projectionStore.compareAndSet(routingKey, null, routePayload, "json", OPERATION_TIMEOUT)).isTrue();
 
-        Awaiter.await("installedState contains demanded version ns=" + ns + ", code=" + code + ", version=" + version, Duration.ofSeconds(
-                5), Duration.ofMillis(50), () -> localRoutingState
-            .getInstalledVersionState()
-            .contains(ns, code, version), () -> {
-            StringBuilder sb = new StringBuilder();
-            sb
-                .append("aliasState=")
-                .append(localRoutingState.getAliasRouteState().resolve(ns, code, "prod").orElse(null))
-                .append('\n');
-            sb.append("installedState=").append(localRoutingState.getInstalledVersionState()).append('\n');
-            return sb.toString();
-        });
+            Awaiter.await("installedState contains demanded version ns=" + ns + ", code=" + code + ", version="
+                    + version, Duration.ofSeconds(5), Duration.ofMillis(50), () -> localRoutingState
+                .getInstalledVersionState()
+                .contains(ns, code, version), () -> {
+                StringBuilder sb = new StringBuilder();
+                sb
+                    .append("aliasState=")
+                    .append(localRoutingState.getAliasRouteState().resolve(ns, code, "prod").orElse(null))
+                    .append('\n');
+                sb.append("installedState=").append(localRoutingState.getInstalledVersionState()).append('\n');
+                return sb.toString();
+            });
 
-        assertThat(localRoutingState.getInstalledVersionState().contains(ns, code, version))
-            .as("Expected runtime to install demanded version and mark deployed snapshot")
-            .isTrue();
-
-        rt.close();
+            assertThat(localRoutingState.getInstalledVersionState().contains(ns, code, version))
+                .as("Expected runtime to install demanded version and mark deployed snapshot")
+                .isTrue();
+        }
     }
 }

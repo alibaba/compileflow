@@ -51,7 +51,7 @@ public sealed interface ProcessCallTarget permits ProcessCallTarget.Classpath, P
     }
 
     /**
-     * Calls one immutable published Process Version.
+     * Calls one immutable exact Process Version.
      */
     record Version(String version) implements ProcessCallTarget {
         public Version {

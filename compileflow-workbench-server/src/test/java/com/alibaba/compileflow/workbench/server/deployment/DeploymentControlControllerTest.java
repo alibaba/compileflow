@@ -16,7 +16,7 @@ package com.alibaba.compileflow.workbench.server.deployment;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import com.alibaba.compileflow.deploy.control.routing.RoutingOutboxAdminService;
+import com.alibaba.compileflow.deploy.control.outbox.RoutingOutboxAdminService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;

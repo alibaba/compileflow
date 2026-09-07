@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for suggesting a feature! Please provide detailed information to help us evaluate and implement your idea.
+        Describe the user problem, expected behavior, and affected product area.
 
   - type: checkboxes
     id: prerequisites
@@ -24,9 +24,7 @@ body:
     attributes:
       label: Problem Statement
       description: Describe the problem or pain point this feature would solve
-      placeholder: |
-        Is your feature request related to a problem? Please describe.
-        Example: "I'm always frustrated when..."
+      placeholder: Describe the problem, who it affects, and why the current behavior is insufficient.
     validations:
       required: true
 
@@ -70,9 +68,11 @@ body:
       render: java
       placeholder: |
         // Example of how you'd like to use this feature
-        ProcessEngine engine = ProcessEngineFactory.createBpmn();
+        ProcessEngine engine = ProcessEngineFactory.create(ProcessEngineConfig.defaults());
         ProcessResult<Map<String, Object>> result =
-            engine.execute(ProcessRef.code("example.flow"), variables);
+            engine.execute(
+                ProcessDefinition.classpath(ProcessModelType.BPMN, "example.flow", "flows/example.bpmn"),
+                variables);
 
   - type: dropdown
     id: category
@@ -105,6 +105,8 @@ body:
         - compileflow-tbbpm
         - compileflow-deploy
         - compileflow-spring-boot-starter
+        - compileflow-spring-boot-starter-tbbpm
+        - compileflow-spring-boot-starter-bpmn
         - compileflow-workbench-server
         - compileflow-workbench
         - Documentation
@@ -130,10 +132,10 @@ body:
     id: breaking
     attributes:
       label: Breaking Change?
-      description: Would the cleanest design require behavior, API, or migration changes?
+      description: Would the cleanest design require an incompatible behavior, API, protocol, or schema change?
       options:
         - "No"
-        - "Yes - and the migration path is acceptable"
+        - "Yes"
         - "Not sure"
     validations:
       required: true
@@ -155,7 +157,6 @@ body:
       description: Add any other context, mockups, or references about the feature request
       placeholder: |
         - Related issues or PRs
-        - Links to similar features in other projects
         - Diagrams or mockups
 
   - type: checkboxes

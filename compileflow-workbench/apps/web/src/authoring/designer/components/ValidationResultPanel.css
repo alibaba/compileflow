@@ -21,7 +21,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-md) var(--spacing-base); /* 12px 16px */
+  padding: var(--spacing-3) var(--spacing-4); /* 12px 16px */
   background: var(--color-bg-layout);
   border-bottom: 1px solid var(--color-border-light);
 }
@@ -29,7 +29,7 @@
 .validation-result-panel .panel-title {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm); /* 8px */
+  gap: var(--spacing-2); /* 8px */
   font-size: var(--font-size-base); /* 14px */
   font-weight: var(--font-weight-semibold); /* 600 */
   color: var(--color-text-primary);
@@ -43,7 +43,7 @@
 /* ===== 内容区 ===== */
 .validation-result-panel .panel-content {
   flex: 1;
-  padding: var(--spacing-base); /* 16px */
+  padding: var(--spacing-4); /* 16px */
   overflow-y: auto;
 }
 
@@ -56,8 +56,8 @@
 
 /* ===== 问题项 ===== */
 .validation-issue-item {
-  padding: var(--spacing-md); /* 12px */
-  margin-bottom: var(--spacing-sm); /* 8px */
+  padding: var(--spacing-3); /* 12px */
+  margin-bottom: var(--spacing-2); /* 8px */
   background: var(--color-bg-layout);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md); /* 6px */
@@ -79,8 +79,8 @@
 .issue-header {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm); /* 8px */
-  margin-bottom: var(--spacing-sm); /* 8px */
+  gap: var(--spacing-2); /* 8px */
+  margin-bottom: var(--spacing-2); /* 8px */
 }
 
 .issue-header .anticon {
@@ -97,34 +97,34 @@
 
 /* 建议 */
 .issue-suggestion {
-  padding: var(--spacing-sm); /* 8px */
-  margin-top: var(--spacing-sm); /* 8px */
+  padding: var(--spacing-2); /* 8px */
+  margin-top: var(--spacing-2); /* 8px */
   background: var(--color-primary-bg);
   border-left: 3px solid var(--color-primary);
-  border-radius: var(--radius-base); /* 4px */
+  border-radius: var(--radius-sm); /* 4px */
   font-size: var(--font-size-sm); /* 12px */
   color: var(--color-text-secondary);
 }
 
 .issue-suggestion strong {
   color: var(--color-primary);
-  margin-right: var(--spacing-xs); /* 4px */
+  margin-right: var(--spacing-1); /* 4px */
 }
 
 /* 涉及节点/连接线 */
 .issue-nodes,
 .issue-connections {
-  margin-top: var(--spacing-sm); /* 8px */
-  padding: var(--spacing-sm); /* 8px */
+  margin-top: var(--spacing-2); /* 8px */
+  padding: var(--spacing-2); /* 8px */
   background: var(--color-bg-container);
-  border-radius: var(--radius-base); /* 4px */
+  border-radius: var(--radius-sm); /* 4px */
   font-size: var(--font-size-sm); /* 12px */
 }
 
 .issue-nodes strong,
 .issue-connections strong {
   color: var(--color-text-secondary);
-  margin-right: var(--spacing-xs); /* 4px */
+  margin-right: var(--spacing-1); /* 4px */
 }
 
 /* ===== 滚动条样式 ===== */
@@ -149,15 +149,15 @@
 /* ===== 响应式 ===== */
 @media (max-width: 768px) {
   .validation-result-panel .panel-header-bar {
-    padding: var(--spacing-sm) var(--spacing-md); /* 8px 12px */
+    padding: var(--spacing-2) var(--spacing-3); /* 8px 12px */
   }
 
   .validation-result-panel .panel-content {
-    padding: var(--spacing-md); /* 12px */
+    padding: var(--spacing-3); /* 12px */
   }
 
   .validation-issue-item {
-    padding: var(--spacing-sm); /* 8px → 10px保留 */
+    padding: var(--spacing-2); /* 8px → 10px保留 */
     padding: 10px;
   }
 }

@@ -29,19 +29,6 @@ class ProcessExecutorConfigTest {
     }
 
     @Test
-    void snapshotBuilderPreservesCancellationBudgets() {
-        ProcessExecutorConfig original = ProcessExecutorConfig
-            .builder()
-            .parallelCancellationGracePeriod(Duration.ofMillis(750))
-            .actionTimeoutCancellationGracePeriod(Duration.ofMillis(500))
-            .build();
-
-        ProcessExecutorConfig copy = original.toBuilder().build();
-
-        assertThat(copy).usingRecursiveComparison().isEqualTo(original);
-    }
-
-    @Test
     void rejectsNegativePendingAndCancellationSettingsTogether() {
         assertThatThrownBy(() -> ProcessExecutorConfig
             .builder()
@@ -71,17 +58,5 @@ class ProcessExecutorConfigTest {
         assertThat(config.getActionTimeoutMaxPending()).isZero();
         assertThat(config.getParallelCancellationGracePeriod()).isZero();
         assertThat(config.getActionTimeoutCancellationGracePeriod()).isZero();
-    }
-
-    @Test
-    void rejectsCompilationAdmissionCapacityOverflow() {
-        assertThatThrownBy(() -> ProcessExecutorConfig
-            .builder()
-            .runtimeLoadMaxConcurrency(Integer.MAX_VALUE)
-            .runtimeLoadMaxPending(1)
-            .build())
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("runtimeLoadMaxConcurrency + runtimeLoadMaxPending")
-            .hasMessageContaining(Integer.toString(Integer.MAX_VALUE));
     }
 }

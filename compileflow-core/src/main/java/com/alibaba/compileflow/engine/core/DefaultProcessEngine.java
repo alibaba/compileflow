@@ -23,7 +23,6 @@ import com.alibaba.compileflow.engine.ProcessError;
 import com.alibaba.compileflow.engine.ProcessExecution;
 import com.alibaba.compileflow.engine.ProcessExecutionException;
 import com.alibaba.compileflow.engine.ProcessExecutionOptions;
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.ProcessResult;
 import com.alibaba.compileflow.engine.ProcessRuntimeManager;
@@ -42,7 +41,7 @@ import com.alibaba.compileflow.engine.core.semantic.ProcessCallContract;
 import com.alibaba.compileflow.engine.core.semantic.SemanticText;
 import com.alibaba.compileflow.engine.core.event.ProcessEventPublisher;
 import com.alibaba.compileflow.engine.core.concurrent.ProcessEngineExecutors;
-import com.alibaba.compileflow.engine.core.lifecycle.BudgetedShutdown;
+import com.alibaba.compileflow.engine.core.concurrent.ProcessExecutorMetrics;
 import com.alibaba.compileflow.engine.core.lifecycle.OperationGate;
 import com.alibaba.compileflow.engine.core.observability.tracing.TraceIds;
 import com.alibaba.compileflow.engine.core.semantic.plan.AwaitPlan;
@@ -62,6 +61,7 @@ import com.alibaba.compileflow.engine.core.runtime.ProcessRuntimeRequest;
 import com.alibaba.compileflow.engine.core.runtime.ProcessCallGraph;
 import com.alibaba.compileflow.engine.core.runtime.ProcessExecutionGraphPreparer;
 import com.alibaba.compileflow.engine.core.semantic.ProcessSemanticCompiler;
+import com.alibaba.compileflow.engine.core.semantic.ProcessSemanticCompilerRegistry;
 import com.alibaba.compileflow.engine.core.source.ProcessDefinitionSnapshot;
 import com.alibaba.compileflow.engine.core.runtime.cache.DefaultProcessRuntimeCache;
 import com.alibaba.compileflow.engine.core.runtime.cache.ProcessRuntimeCache;
@@ -95,6 +95,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -115,18 +116,17 @@ import org.slf4j.LoggerFactory;
  */
 public final class DefaultProcessEngine
         implements ProcessEngine, ProcessRuntimeManager, ProcessToolingService, ProcessRuntimeOwnership,
-        ProcessCallInspector, ProcessExecutionGraphPreparer, AliasSelectionExecutor, ProcessCallInvoker,
-        BudgetedShutdown {
+        ProcessCallInspector, ProcessExecutionGraphPreparer, AliasSelectionExecutor, ProcessCallInvoker {
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultProcessEngine.class);
     private static final String RUNTIME_MANAGER_OWNER = ProcessRuntimeManager.class.getName();
     private static final int VARIABLE_DIAGNOSTIC_LIMIT = 8;
     private static final int MAX_PROCESS_CALL_SITES = 4_096;
+    private final ProcessEngineConfig configuration;
     private final ProcessEngineExecutors executors;
     private final ProcessEventPublisher eventPublisher;
     private final ProcessComponentResolver componentResolver;
     private final ProcessDataMapper dataMapper;
-    private final ProcessSemanticCompiler<?> semanticCompiler;
-    private final ProcessModelType modelType;
+    private final ProcessSemanticCompilerRegistry semanticCompilers;
     private final ProcessRuntimeCache runtimeCache;
     private final Cache<ProcessRef.Version, CachedProcessCallGraph> processCallGraphs;
     private final Object processCallGraphMutationLock = new Object();
@@ -146,12 +146,10 @@ public final class DefaultProcessEngine
     private final ProcessPreflightService preflightService;
     private final OperationGate lifecycleGate = new OperationGate("ProcessEngine");
 
-    public DefaultProcessEngine(ProcessEngineConfig config, EngineDependencies dependencies,
-            ProcessSemanticCompiler<?> semanticCompiler) {
-        Objects.requireNonNull(config, "config");
+    public DefaultProcessEngine(ProcessEngineConfig config, EngineDependencies dependencies) {
+        this.configuration = Objects.requireNonNull(config, "config");
         Objects.requireNonNull(dependencies, "dependencies");
-        this.semanticCompiler = Objects.requireNonNull(semanticCompiler, "semanticCompiler");
-        this.modelType = config.getModelType();
+        this.semanticCompilers = new ProcessSemanticCompilerRegistry(config.getClassLoader());
         this.runtimeLoadMaxConcurrency = config.getExecutorConfig().getRuntimeLoadMaxConcurrency();
         this.maxProcessCallDepth = config.getMaxCallDepth();
         this.classLoader = config.getClassLoader();
@@ -175,17 +173,17 @@ public final class DefaultProcessEngine
                     config.getEventListeners(), createdExecutors.event());
             createdRuntimeCache = new DefaultProcessRuntimeCache(config.getMaxResidentRuntimes());
             ProcessRuntimeFactory runtimeFactory = config.getRuntimeMode() == ProcessRuntimeMode.INTERPRETED
-                    ? new InterpretedProcessRuntimeFactory(this.semanticCompiler, dependencies.javaCompiler(),
-                            javaDiagnostics, dependencies.componentResolver(), dependencies.scriptExecutors())
-                    : new CompiledProcessRuntimeFactory(this.semanticCompiler, dependencies.scriptExecutors(),
-                            dependencies.javaCompiler(), javaDiagnostics);
+                    ? new InterpretedProcessRuntimeFactory(dependencies.javaCompiler(), javaDiagnostics,
+                            dependencies.componentResolver(), dependencies.scriptExecutors())
+                    : new CompiledProcessRuntimeFactory(dependencies.scriptExecutors(), dependencies.javaCompiler(),
+                            javaDiagnostics);
             createdProcessRuntimeLoader = new DefaultProcessRuntimeLoader(createdRuntimeCache,
-                    dependencies.definitionLoader(), runtimeFactory, createdExecutors.runtimeLoad(),
-                    config.getRuntimeLoadTimeout(), config.getModelType());
+                    dependencies.definitionLoader(), this.semanticCompilers::compile, runtimeFactory,
+                    createdExecutors.runtimeLoad(), config.getRuntimeLoadTimeout());
             ProcessRuntimeResolver createdRuntimeResolver = new ProcessRuntimeResolver(createdRuntimeCache,
                     createdProcessRuntimeLoader, dependencies.localRoutingState(), dependencies.aliasAdmission());
             ProcessPreflightService createdPreflightService = new ProcessPreflightService(createdProcessRuntimeLoader,
-                    source -> this.semanticCompiler.compile(source), createdExecutors.preflight());
+                    source -> this.semanticCompilers.compile(source), createdExecutors.preflight());
 
             this.executors = createdExecutors;
             this.eventPublisher = createdEventPublisher;
@@ -199,6 +197,22 @@ public final class DefaultProcessEngine
                     startupFailure);
             throw startupFailure;
         }
+    }
+
+    public ProcessEngineConfig getConfiguration() {
+        return configuration;
+    }
+
+    public ProcessExecutorMetrics getRuntimeLoadMetrics() {
+        return executors.runtimeLoadMetrics();
+    }
+
+    public ProcessExecutorMetrics getActionTimeoutMetrics() {
+        return executors.actionMetrics();
+    }
+
+    public ProcessExecutorMetrics getEventDeliveryMetrics() {
+        return executors.eventMetrics();
     }
 
     private static String requireOwnerId(String ownerId) {
@@ -275,11 +289,7 @@ public final class DefaultProcessEngine
     }
 
     private static String failureType(Throwable failure) {
-        Throwable root = failure;
-        while (root.getCause() != null && root.getCause() != root) {
-            root = root.getCause();
-        }
-        return root.getClass().getName();
+        return failure.getClass().getName();
     }
 
     private static void rethrowCloseFailure(Throwable failure) {
@@ -522,11 +532,10 @@ public final class DefaultProcessEngine
 
     @Override
     public void close() {
-        close(executors.shutdownTimeout());
+        closeWithin(executors.shutdownTimeout());
     }
 
-    @Override
-    public void close(Duration gracefulBudget) {
+    private void closeWithin(Duration gracefulBudget) {
         Duration budget = Objects.requireNonNull(gracefulBudget, "gracefulBudget");
         if (budget.isNegative()) {
             throw new IllegalArgumentException("gracefulBudget must not be negative");
@@ -720,7 +729,7 @@ public final class DefaultProcessEngine
             ClassLoader effectiveClassLoader = resolveEffectiveClassLoader(null);
             ProcessDefinitionSnapshot snapshot =
                     runtimeLoader.resolve(ProcessRuntimeRequest.from(requestedDefinition), effectiveClassLoader);
-            ProcessSemanticCompiler.ProcessSemanticCompilation compilation = semanticCompiler.compile(snapshot);
+            ProcessSemanticCompiler.ProcessSemanticCompilation compilation = semanticCompilers.compile(snapshot);
             ProcessRuntimeEligibilityChecker.validate(compilation.semanticPlan(), compilation.structuredPlan());
             ScriptProgramCatalog.validate(compilation.semanticPlan(), scriptExecutors);
             return new JavaProcessCodeGenerator(compilation.semanticPlan(), compilation.structuredPlan(),
@@ -743,7 +752,7 @@ public final class DefaultProcessEngine
         try {
             ProcessDefinitionSnapshot source =
                     runtimeLoader.resolve(ProcessRuntimeRequest.from(requested), resolveEffectiveClassLoader(null));
-            ProcessSemanticPlan plan = semanticCompiler.compile(source).semanticPlan();
+            ProcessSemanticPlan plan = semanticCompilers.compile(source).semanticPlan();
             List<ProcessCallInspector.DeclaredProcessCall> calls = new ArrayList<>();
             for (ProcessSemanticPlan.NodePlan node : plan.getNodes().values()) {
                 if (node.operation() instanceof ProcessCallPlan call) {
@@ -800,7 +809,7 @@ public final class DefaultProcessEngine
         Map<ProcessCallGraph.CallSite, ProcessCallGraph.ProcessNode> calls = new LinkedHashMap<>();
         Map<String, ProcessCallGraph.ProcessNode> nodes = new LinkedHashMap<>();
         nodes.put(root.id(), root);
-        resolveProcessCalls(root, calls, nodes, new HashSet<>(), new HashSet<>(),
+        resolveProcessCalls(root, calls, nodes, new HashSet<>(), new LinkedHashSet<>(),
                 resolveEffectiveClassLoader(classLoader));
         validateProcessCallDepth(root, calls, nodes);
         ProcessCallGraph resolved = new ProcessCallGraph(root, calls);
@@ -840,6 +849,13 @@ public final class DefaultProcessEngine
                     "Process call graph contains a cycle at " + caller.id());
         }
         try {
+            // Bound expansion itself; the later DAG pass still checks shared descendants' longest paths.
+            if (visiting.size() > maxProcessCallDepth) {
+                throw new ProcessCallDepthException(visiting
+                            .stream()
+                            .map(id -> nodes.get(id).code())
+                            .toList(), maxProcessCallDepth);
+            }
             for (ProcessSemanticPlan.NodePlan node : caller
                 .runtimeEntry()
                 .getRuntime()
@@ -939,8 +955,10 @@ public final class DefaultProcessEngine
 
     private ProcessCallGraph.ProcessNode resolveClasspathCall(ProcessCallGraph.ProcessNode caller, String callSiteId,
             ProcessCallPlan call, ProcessCallTarget.Classpath classpath, ClassLoader effectiveClassLoader) {
-        ProcessRuntimeRequest request =
-                ProcessRuntimeRequest.from(ProcessDefinition.classpath(call.code(), classpath.resourcePath()));
+        ProcessRuntimeRequest request = ProcessRuntimeRequest.from(ProcessDefinition.classpath(caller
+                    .runtimeEntry()
+                    .getRuntimeIdentity()
+                    .getModelType(), call.code(), classpath.resourcePath()));
         ProcessRuntimeEntry entry = runtimeLoader.loadExactSync(request, effectiveClassLoader);
         validateResolvedCall(call, callSiteId, entry);
         return processNode(caller.namespace(), call.code(), null, entry);
@@ -1166,7 +1184,7 @@ public final class DefaultProcessEngine
             .admittedAlias(
                     request.getAlias() == null ? null : ProcessRef.alias(request.getNamespace(), request.getCode(),
                             request.getAlias()))
-            .modelType(modelType)
+            .modelType(request.getDefinition() == null ? null : request.getDefinition().modelType())
             .processCallInvoker(this)
             .executors(executors)
             .componentResolver(componentResolver)

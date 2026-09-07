@@ -22,7 +22,7 @@ public final class FlowWarmup {
     @EventListener(ApplicationReadyEvent.class)
     public void warm() {
         ProcessDefinition definition =
-                ProcessDefinition.classpath("order.process", "flows/order.bpm");
+                ProcessDefinition.classpath(ProcessModelType.TBBPM, "order.process", "flows/order.bpm");
         ProcessPreflightReport report = engine.tooling()
                 .preflight(definition, ProcessPreflightOptions.strict());
         if (report.getOverallStatus() != ProcessPreflightReport.OverallStatus.PASS) {
@@ -48,10 +48,10 @@ For a published exact version, the deployment runtime uses:
 ```java
 engine.runtime().load(
         ProcessRef.version("default", "order.process", "2026-07-25.1"),
-        ProcessDefinition.inline("order.process", xml));
+        ProcessDefinition.inline(ProcessModelType.TBBPM, "order.process", xml));
 ```
 
-Application code normally lets the deployment data plane own this exact-version lifecycle.
+Application code normally lets the deployment runtime own this exact-version lifecycle.
 
 ## Generate Java Source
 
@@ -59,7 +59,7 @@ Application code normally lets the deployment data plane own this exact-version 
 
 ```java
 ProcessDefinition definition =
-        ProcessDefinition.classpath("order.process", "flows/order.bpm");
+        ProcessDefinition.classpath(ProcessModelType.TBBPM, "order.process", "flows/order.bpm");
 String javaSource = engine.tooling().generateJavaCode(definition);
 ```
 
@@ -75,7 +75,7 @@ try (URLClassLoader applicationLoader = new URLClassLoader(
         new URL[] {Path.of("/opt/application/actions.jar").toUri().toURL()},
         FlowWarmup.class.getClassLoader())) {
 
-    ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder()
+    ProcessEngineConfig config = ProcessEngineConfig.builder()
             .classLoader(applicationLoader)
             .build();
     try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
@@ -106,7 +106,7 @@ after the process has completed and does not roll back action side effects.
 Inject a custom mapper only when its conversion and failure semantics are deterministic and thread-safe:
 
 ```java
-ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder()
+ProcessEngineConfig config = ProcessEngineConfig.builder()
         .dataMapper(customMapper)
         .build();
 ```

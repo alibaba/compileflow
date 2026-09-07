@@ -45,10 +45,6 @@ public final class EngineExecutionContextHolder {
         CONTEXT.remove();
     }
 
-    public static boolean isAvailable() {
-        return CONTEXT.get() != null;
-    }
-
     public static ExecutorService action() {
         return requireCurrent().action();
     }

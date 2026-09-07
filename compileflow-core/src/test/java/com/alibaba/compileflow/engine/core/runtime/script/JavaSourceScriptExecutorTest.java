@@ -24,6 +24,36 @@ import org.junit.jupiter.api.Test;
 
 class JavaSourceScriptExecutorTest {
     @Test
+    void classifiesInterruptedJavaCodeAsCancellationAndRestoresTheInterrupt() {
+        JavaSourceScriptExecutor executor = new JavaSourceScriptExecutor();
+        ScriptProgram program = executor.compile(
+                new ScriptProgramSpec("java", "Thread.currentThread().interrupt(); Thread.sleep(1); return 1;",
+                        List.of(), "int"));
+
+        try {
+            assertThatThrownBy(() -> executor.evaluate(program, Map.of()))
+                .isInstanceOfSatisfying(ScriptException.class, failure -> {
+                    assertThat(failure.kind()).isEqualTo(ScriptException.Kind.CANCELLED);
+                    assertThat(failure.getCause()).isInstanceOf(InterruptedException.class);
+                });
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    void keepsUnloadedNestedClassesAvailableAfterDefiningTheScriptClass() {
+        JavaSourceScriptExecutor executor = new JavaSourceScriptExecutor();
+        ScriptProgram program = executor.compile(
+                new ScriptProgramSpec("java",
+                        "return new java.util.function.IntSupplier() { public int getAsInt() { return 42; } }.getAsInt();",
+                        List.of(), "int"));
+        assertThat(executor.evaluate(program, Map.of())).isEqualTo(42);
+        assertThat(executor.evaluate(program, Map.of())).isEqualTo(42);
+    }
+
+    @Test
     void compilesMethodBodyWithTypedExplicitInputs() {
         JavaSourceScriptExecutor executor = new JavaSourceScriptExecutor();
         ScriptProgramSpec spec = new ScriptProgramSpec("java",
@@ -35,6 +65,19 @@ class JavaSourceScriptExecutorTest {
         ScriptProgram program = executor.compile(spec);
 
         assertThat(executor.evaluate(program, Map.of("price", 200, "quantity", 6))).isEqualTo(1_100);
+    }
+
+    @Test
+    void declaredInputsCannotCollideWithTheGeneratedContextParameter() {
+        JavaSourceScriptExecutor executor = new JavaSourceScriptExecutor();
+        ScriptProgramSpec spec = new ScriptProgramSpec("java", "return input + _input;",
+                List.of(new ScriptProgramSpec.Input("input", "int"), new ScriptProgramSpec.Input("_input", "int")),
+                "int");
+
+        executor.validate(spec);
+        ScriptProgram program = executor.compile(spec);
+
+        assertThat(executor.evaluate(program, Map.of("input", 20, "_input", 22))).isEqualTo(42);
     }
 
     @Test

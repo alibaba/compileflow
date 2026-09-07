@@ -70,6 +70,7 @@ class CompileFlowWorkbenchServerEnvironmentPostProcessorTest {
                 + "FLOW_WORKBENCH_SERVER_CONFIG_AUTHENTICATION_MODE", "API_KEY",
                 "COMPILEFLOW_WORKBENCH_SERVER_CONFIG_AUTHENTICATION_API_KEY", "server-secret",
                 "COMPILEFLOW_WORKBENCH_SERVER_CONFIG_AUTHENTICATION_SERVICE_PRINCIPAL", "gateway-service",
+                "COMPILEFLOW_WORKBENCH_SERVER_CONFIG_DATABASE_PROVIDER", "MYSQL",
                 "COMPILEFLOW_WORKBENCH_SERVER_CONFIG_DATABASE_MIGRATE", "false",
                 "COMPILEFLOW_WORKBENCH_SERVER_CONFIG_PREVIEW_EXECUTION_ENABLED", "true",
                 "COMPILEFLOW_WORKBENCH_SERVER_CONFIG_EXECUTION_LOG_MAX_QUERY_ROWS", "25000",
@@ -80,6 +81,7 @@ class CompileFlowWorkbenchServerEnvironmentPostProcessorTest {
             .containsEntry("compileflow.workbench.server.authentication.mode", "API_KEY")
             .containsEntry("compileflow.workbench.server.authentication.api-key", "server-secret")
             .containsEntry("compileflow.workbench.server.authentication.service-principal", "gateway-service")
+            .containsEntry("compileflow.workbench.server.database.provider", "MYSQL")
             .containsEntry("compileflow.workbench.server.database.migrate", "false")
             .containsEntry("compileflow.workbench.server.preview-execution.enabled", "true")
             .containsEntry("compileflow.workbench.server.execution-log.max-query-rows", "25000")

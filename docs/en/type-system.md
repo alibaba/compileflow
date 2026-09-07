@@ -29,13 +29,17 @@ can check statically assignable paths. Values entering through dynamic boundarie
 scripts, or child-process results can only be checked by raw class. The engine does not implicitly traverse, coerce, or
 inspect collection elements; applications remain responsible for the contents of `List<T>` and `Map<K,V>`.
 
+These Java declaration rules do not imply Durable persistence support. Durable Run state must additionally satisfy
+the Kernel's fixed portable value-schema and encoding contract; JVM class visibility alone is not sufficient.
+There is no application payload-codec SPI.
+
 ## Runtime conversion
 
 `null` remains `null`, and a value already assignable to the target type is returned unchanged. Other supported
 conversions are:
 
 | Target                                               | Accepted source                                                 | Rule                                                                                                                        |
-|------------------------------------------------------|-----------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
+| ---------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | Integral numbers and `BigInteger`                    | `Number` or decimal text                                        | Conversion must be exact and in range; fractional values, overflow, separators, and non-finite numbers fail                 |
 | `float` / `double`                                   | `Number` or decimal text                                        | Result must be finite                                                                                                       |
 | `BigDecimal`                                         | `Number` or decimal text                                        | Java locale-independent decimal syntax only                                                                                 |

@@ -1,8 +1,8 @@
-# CompileFlow Node Support List
+# Node support
 
-The ProcessEngine without persisted continuation `ProcessRuntime` and the opt-in Durable execution surface support different BPMN and TBBPM
-elements. A flow element is executable only when its selected surface has both a semantic model and an implementation.
-Support on one surface does not imply support on the other.
+The in-memory `ProcessEngine` and the opt-in Durable execution surface support different BPMN and TBBPM elements. A
+flow element is executable only when the selected surface provides both semantic validation and a runtime
+implementation. Support on one surface does not imply support on the other.
 
 ## TBBPM Supported Nodes
 
@@ -47,23 +47,24 @@ may occur inside bounded loops; resumption requires the exact Run's one-time Wai
 
 `timerTask` is accepted by the TBBPM schema and Durable compiler, including inside loops; ProcessEngine
 execution rejects it because `ProcessRuntime` has no durable scheduler. Effect is not a node. Every executable Action in a Durable
-model explicitly declares `execution="replayable|effect"`. An Effect Action uses its ProcessEngine Java, bean, inline, or
+TBBPM model explicitly declares `execution="replayable|effect"`. BPMN service Actions have the same requirement;
+a BPMN `scriptTask` defaults to `replayable` and can explicitly select `cf:execution="effect"`. An Effect Action uses its ProcessEngine Java, bean, inline, or
 registered script implementation while the Kernel durably owns dispatch and unknown-outcome handling.
 
 The Durable TBBPM profile supports `start`, `end`, `autoTask`, `scriptTask`, `exclusive`, both Wait nodes, `timerTask`,
 `while`, `foreach`, `break`, `continue`, structured `parallel`/`inclusive`, `subBpm`, and `bpmCall`. Parallel and Inclusive use persisted
 deterministic frontiers and stable merge order; a process call is excluded from a concurrent region because its
 application writes cannot be proven branch-local. Durable `bpmCall` declares an exact application-classpath location
-in a Direct graph, or an exact child Version. Exact-Version graphs use Version-only dependencies. Alias is
+in a Direct graph, or an exact Version. Exact-Version graphs use Version-only dependencies. Alias is
 resolved only for the root admission, and every static
 call-site binding remains exact. The call executes as another `ProcessInvocation` frame inside the same Run; it does not
-create a Child Run.
+create a second Run.
 Exclusive-gateway, While, Timer, guard, and transition expressions remain generated Java source. Action types can
 indirectly use a registered `ScriptExecutor`; CompileFlow does not fix one script language. The source-neutral Durable
 While plan accepts an optional `maxIterations` guard, but TBBPM requires it on every `while`. Durable Turn budgets
 bound one execution slice independently of that source-language rule.
 
-See the [TBBPM specification](../specs/tbbpm-specification.en.md#34-durable-timer-and-effect-actions)
+See the [TBBPM specification](specifications/tbbpm.md#34-durable-timer-and-effect-actions)
 and [Durable Process guide](durable-process.md).
 
 ### Others
@@ -85,7 +86,7 @@ and [Durable Process guide](durable-process.md).
 
 - `serviceTask` - Service task. Requires exactly one `cf:action`; action mappings are nested in
   `cf:action`, not attached to the task.
-- `scriptTask` - Script task. Requires `scriptFormat` and nonblank standard `<script>` content; mapped `cf:var` elements
+- `scriptTask` - Script task. Requires `scriptFormat` and nonblank standard `<script>` content; mapped `cf:input`/`cf:output` elements
   are attached directly to the task.
 - `receiveTask` - Requires `messageRef`, which must resolve to exactly one top-level `message` definition with a
   nonblank name. On `ProcessEngine` runtime it is a named entry for a new invocation; on Durable it is an exact
@@ -101,10 +102,10 @@ and [Durable Process guide](durable-process.md).
 ### Structures
 
 - `subProcess` - Embedded subprocess. Each subprocess must be a connected graph with exactly one start event and one end
-  event. Trigger entry nodes such as `receiveTask` are supported only in the root process because a new `trigger(...)`
-  invocation does not restore an embedded call stack.
+  event. On ProcessEngine, trigger entry nodes such as `receiveTask` are supported only in the root process because a new
+  `trigger(...)` invocation does not restore an embedded call stack. Durable persists the scope stack and supports Waits inside embedded scopes.
 - `callActivity` - Call activity. Requires `calledElement` and exactly one of `cf:classpath` or `cf:version`; mapped
-  `cf:var` elements are attached directly and return mappings must name target process variables.
+  `cf:input`/`cf:output` elements are attached directly and return mappings must name target process variables.
 
 > **Workbench execution boundary:** the BPMN designer preserves and edits the full `subProcess`
 > hierarchy, including nested nodes and transitions, across visual and XML round trips. The
@@ -130,21 +131,20 @@ Executable BPMN requires a nonblank `targetNamespace`, one process with `isExecu
 only supported attributes and extension data. Unknown executable data is rejected instead of being discarded during
 canonical write-back. The BPMN process `id` is its CompileFlow process code and must exactly match the code carried by
 `ProcessDefinition`. The complete `cf:` syntax and ownership rules are defined by the
-[BPMN Extension Specification](../specs/bpmn-extension-specification.en.md).
+[BPMN Extension Specification](specifications/bpmn-extensions.md).
 
-## Removed Nodes
+## Unsupported BPMN elements
 
-The following BPMN 2.0 elements are not supported by CompileFlow and their definition classes have been removed from the
-codebase. CompileFlow does not provide the product lifecycle or broadcast/collaboration infrastructure required by
-these elements. Files containing them fail parsing or preflight; the engine never deploys them with silently missing
-behavior.
+The following BPMN 2.0 elements are not supported by CompileFlow. CompileFlow does not provide the product lifecycle or
+broadcast/collaboration infrastructure required by these elements. Files containing them fail parsing or preflight; the
+engine never deploys them with silently missing behavior.
 
-### Removed — Architecture-Incompatible
+### Runtime infrastructure not provided
 
 These elements require runtime infrastructure that CompileFlow does not provide:
 
-- `userTask` — Requires a persistent task store with claim/complete lifecycle. Use a durable external task system; use
-  TBBPM `waitTask` + `trigger` only when starting a new invocation at a named entry is sufficient.
+- `userTask` — Requires a persistent task store with claim/complete lifecycle. Application-owned task handling can use
+  TBBPM `waitTask` + `trigger` when starting a new invocation at a named entry is sufficient.
 - `manualTask` — Has the same persistence constraint as `userTask`.
 - `businessRuleTask` — Requires a decision table engine. Use `serviceTask` with a Java action instead.
 - `sendTask` — Requires a messaging system with send/receive semantics. Use `serviceTask` instead.
@@ -156,7 +156,7 @@ These elements require runtime infrastructure that CompileFlow does not provide:
   `terminateEventDefinition`) — All require event infrastructure that
   CompileFlow does not provide.
 
-### Removed — Collaboration Domain Not Applicable
+### Collaboration and choreography
 
 CompileFlow executes single-process flows; collaboration/choreography elements are out of scope:
 
@@ -165,7 +165,7 @@ CompileFlow executes single-process flows; collaboration/choreography elements a
 - `globalBusinessRuleTask`, `globalConversation`, `globalManualTask`, `globalScriptTask`, `globalUserTask`
 - `partnerEntity`, `partnerRole`, `participantAssociation`, `participantMultiplicity`
 
-### Removed — Persistence/Resource Layer Not Applicable
+### Data stores and resource assignment
 
 The ProcessEngine runtime keeps invocation state in memory, and the Durable Store persists only CompileFlow's own execution
 records. Neither execution surface implements BPMN data-store or resource-assignment semantics; applications own those
@@ -176,13 +176,13 @@ concerns:
 - `resource`, `resourceRole`, `potentialOwner`, `performer`, `humanPerformer`
 - `assignment`, `resourceParameter`, `resourceParameterBinding`, `resourceAssignmentExpression`
 
-### Removed — Other
+### Other unsupported elements
 
 - `transaction` — Use Spring `@Transactional` at the service layer.
 - `complexGateway` — Requires event-condition evaluation infrastructure.
 - `eventBasedGateway` — Requires event subscription registry.
 - `group`, `textAnnotation`, `association` — Diagram-only artifacts with no runtime semantics.
-- `auditing`, `monitoring` — Observability is handled via external APM systems.
+- `auditing`, `monitoring` — Use CompileFlow events, metrics, and application-owned observability.
 - `category`, `categoryValue` — Diagram grouping; no runtime effect.
 - `correlationProperty`, `correlationSubscription`, `correlationKey` — Message correlation requires a message broker.
 - `error`, `escalation`, `itemDefinition`, `interface`, `operation`,
@@ -193,7 +193,7 @@ concerns:
 - `complexBehaviorDefinition` — Behavior monitoring infrastructure.
 - `endPoint`, `import`, `relationship`, `rendering` — Schema-level metadata with no runtime effect.
 
-## Alternative Solutions
+## Related how-to guides
 
 ### Human Task Implementation
 
@@ -208,7 +208,7 @@ entry:
 
 ```java
 ProcessResult<Map<String, Object>> result = engine.trigger(
-        ProcessDefinition.classpath("approval.flow", "flows/approval.flow.bpm"),
+        ProcessDefinition.classpath(ProcessModelType.TBBPM, "approval.flow", "flows/approval.flow.bpm"),
         ProcessTrigger.at("approval"),
         approvalData);
 ```
@@ -231,31 +231,32 @@ orchestration, not an engine-native `humanTask` node or Human Task Management se
 
 ### ProcessEngine Runtime Scheduled Task Implementation
 
-For ProcessEngine execution, call the process through an external scheduling system such as Spring Scheduler or Quartz. For a
-persisted delay within one Durable Run, use `timerTask` instead:
+For ProcessEngine execution, invoke the process from the application's scheduler. For a persisted delay within one
+Durable Run, use `timerTask` instead:
 
 ```java
 @Scheduled(fixedDelayString = "${jobs.scheduled-flow.delay:PT1M}")
 public void scheduledTask() {
-    engine.execute(ProcessDefinition.classpath("scheduled.flow", "flows/scheduled.flow.bpm"), Map.of()).orElseThrow();
+    engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM, "scheduled.flow", "flows/scheduled.flow.bpm"), Map.of()).orElseThrow();
 }
 ```
 
 Fixed delay prevents one scheduler instance from overlapping its own executions. Distributed deployments still need an
 external single-owner or idempotency policy if only one cluster-wide invocation is allowed.
 
-## Source Of Truth
+## Implementation references
 
-The runtime support boundary is defined by these provider classes:
+This page and the process-format specifications define the supported boundary. The following internal classes are
+useful starting points for maintainers; they are not public APIs:
 
-- TBBPM parser registry: `TbbpmElementParserRegistry`
-- TBBPM semantic frontend: `TbbpmSemanticFrontend`
-- BPMN parser registry: `BpmnElementParserRegistry`
-- BPMN semantic frontend: `BpmnSemanticFrontend`
-- ProcessEngine compiled realization: `JavaProcessCodeGenerator`
-- Durable realization boundary: `DurableMachineLowerer`
+- TBBPM parser registry: [`TbbpmElementParserRegistry`](../../compileflow-tbbpm/src/main/java/com/alibaba/compileflow/engine/tbbpm/parser/TbbpmElementParserRegistry.java)
+- TBBPM semantic frontend: [`TbbpmSemanticFrontend`](../../compileflow-tbbpm/src/main/java/com/alibaba/compileflow/engine/tbbpm/semantic/TbbpmSemanticFrontend.java)
+- BPMN parser registry: [`BpmnElementParserRegistry`](../../compileflow-bpmn/src/main/java/com/alibaba/compileflow/engine/bpmn/parser/BpmnElementParserRegistry.java)
+- BPMN semantic frontend: [`BpmnSemanticFrontend`](../../compileflow-bpmn/src/main/java/com/alibaba/compileflow/engine/bpmn/semantic/BpmnSemanticFrontend.java)
+- ProcessEngine code generator: [`JavaProcessCodeGenerator`](../../compileflow-core/src/main/java/com/alibaba/compileflow/engine/core/java/codegen/JavaProcessCodeGenerator.java)
+- Durable state-machine lowerer: [`DurableMachineLowerer`](../../compileflow-durable/compileflow-durable-runtime/src/main/java/com/alibaba/compileflow/durable/runtime/machine/DurableMachineLowerer.java)
 
 Parser presence alone is not enough. Some elements, such as BPMN `message` and loop characteristics, are metadata or
-wrappers rather than standalone runtime nodes. Durable-only semantics use `DurableMachineLowerer` instead of the
-ProcessEngine runtime realization. When adding node support, update the parser, source validator, semantic frontend,
-applicable eligibility/lowering/realization, tests, and this document together.
+wrappers rather than standalone runtime nodes. `DurableMachineLowerer` lowers Durable-only semantics to the persisted
+state machine; they do not use the regular ProcessEngine runtime. A supported node therefore requires aligned parsing,
+source validation, semantic lowering, runtime implementation, tests, and documentation.

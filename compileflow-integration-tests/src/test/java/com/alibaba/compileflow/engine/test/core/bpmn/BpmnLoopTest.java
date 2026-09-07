@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.core.bpmn;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessEngine;
@@ -50,7 +51,7 @@ public class BpmnLoopTest {
 
     @BeforeEach
     void setUp() {
-        engine = ProcessEngineTestFactory.createBpmn();
+        engine = ProcessEngineTestFactory.create();
         runtimeManager = engine.runtime();
         toolingService = engine.tooling();
     }
@@ -71,8 +72,8 @@ public class BpmnLoopTest {
         loopContext.put("i", 0);
         loopContext.put("msg", "hello");
         // When: Execute the flow
-        ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(standardLoopFlowCode,
-                        standardLoopFlowCode.replace(".", "/") + ".bpmn"), loopContext);
+        ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        standardLoopFlowCode, standardLoopFlowCode.replace(".", "/") + ".bpmn"), loopContext);
         // Then: Verify execution success and semantic output
         assertThat(executionResult.isSuccess()).as("Standard loop should execute successfully").isTrue();
         assertThat(executionResult.getOutput())
@@ -92,8 +93,9 @@ public class BpmnLoopTest {
         Map<String, Object> multiInstanceContext = new HashMap<>();
         multiInstanceContext.put("pList", Arrays.asList("A", "B", "C"));
         // When: Execute the flow
-        ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(multiInstanceLoopFlowCode,
-                        multiInstanceLoopFlowCode.replace(".", "/") + ".bpmn"), multiInstanceContext);
+        ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        multiInstanceLoopFlowCode, multiInstanceLoopFlowCode.replace(".", "/") + ".bpmn"),
+                multiInstanceContext);
         // Then: Verify execution success and semantic output
         assertThat(executionResult.isSuccess()).as("Multi-instance loop should execute successfully").isTrue();
         assertThat(executionResult.getOutput())
@@ -109,7 +111,7 @@ public class BpmnLoopTest {
     @Test
     @DisplayName("should execute multi-instance lexical bindings through explicit Code Task inputs")
     void shouldExecuteMultiInstanceLexicalBindingsThroughCodeTask() {
-        ProcessDefinition definition = ProcessDefinition.inline("bpmn20.loop.snapshot",
+        ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.BPMN, "bpmn20.loop.snapshot",
                 """
             <?xml version="1.0" encoding="UTF-8"?>
             <definitions
@@ -181,8 +183,9 @@ public class BpmnLoopTest {
         nestedLoopContext.put("pList", Arrays.asList("A", "B"));
         nestedLoopContext.put("subList", Arrays.asList(1, 2, 3));
         // When: Execute the flow
-        ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(nestedMultiInstanceFlowCode,
-                        nestedMultiInstanceFlowCode.replace(".", "/") + ".bpmn"), nestedLoopContext);
+        ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        nestedMultiInstanceFlowCode, nestedMultiInstanceFlowCode.replace(".", "/") + ".bpmn"),
+                nestedLoopContext);
         // Then: Verify execution success and semantic output
         assertThat(executionResult.isSuccess()).as("Nested multi-instance loop should execute successfully").isTrue();
         assertThat(executionResult.getOutput())
@@ -201,8 +204,9 @@ public class BpmnLoopTest {
         Map<String, Object> context = new HashMap<>();
         context.put("msg", "nested");
 
-        ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpmn20.compat.nested_"
-                        + "standard_loop", "bpmn20.compat.nested_standard_loop".replace(".", "/") + ".bpmn"), context);
+        ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        "bpmn20.compat.nested_" + "standard_loop",
+                        "bpmn20.compat.nested_standard_loop".replace(".", "/") + ".bpmn"), context);
 
         assertThat(result.isSuccess()).isTrue();
         assertThat(result.getOutput()).containsEntry("processedMessage", "processed_nested");
@@ -211,7 +215,8 @@ public class BpmnLoopTest {
     @Test
     @DisplayName("should not evaluate a standard-loop condition after loopMaximum is reached")
     void shouldShortCircuitConditionAfterLoopMaximum() {
-        ProcessDefinition definition = ProcessDefinition.inline("bpmn20.loop.maximum-short-circuit",
+        ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.BPMN,
+                "bpmn20.loop.maximum-short-circuit",
                 """
             <?xml version="1.0" encoding="UTF-8"?>
             <definitions
@@ -265,7 +270,8 @@ public class BpmnLoopTest {
     @Test
     @DisplayName("should preserve multi-instance locals when invocation policy extracts an action method")
     void shouldExecuteMultiInstanceInvocationPolicyWithLexicalInputs() {
-        ProcessDefinition definition = ProcessDefinition.inline("bpmn20.loop.policy-lexical-inputs",
+        ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.BPMN,
+                "bpmn20.loop.policy-lexical-inputs",
                 """
             <?xml version="1.0" encoding="UTF-8"?>
             <definitions
@@ -337,9 +343,10 @@ public class BpmnLoopTest {
         parallelGatewayMultiInstanceContext.put("pList", Arrays.asList("X", "Y"));
         parallelGatewayMultiInstanceContext.put("subList", Arrays.asList(10, 20));
 
-        String source = toolingService.generateJavaCode(ProcessDefinition.classpath(parallelGatewayMultiInstanceFlowCode,
-                "bpmn20/gateway/parallel_gateway_multi_instance.bpmn"));
-        ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(parallelGatewayMultiInstanceFlowCode,
+        String source = toolingService.generateJavaCode(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                parallelGatewayMultiInstanceFlowCode, "bpmn20/gateway/parallel_gateway_multi_instance.bpmn"));
+        ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        parallelGatewayMultiInstanceFlowCode,
                         parallelGatewayMultiInstanceFlowCode.replace(".", "/") + ".bpmn"),
                 parallelGatewayMultiInstanceContext);
 

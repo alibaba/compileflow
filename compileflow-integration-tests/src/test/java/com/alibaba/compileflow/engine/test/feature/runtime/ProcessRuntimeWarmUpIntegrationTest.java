@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.feature.runtime;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.CompileFlowException;
@@ -63,7 +64,7 @@ public class ProcessRuntimeWarmUpIntegrationTest {
         @BeforeEach
         void setUp() {
             engine = ProcessEngineFactory.create(ProcessEngineTestFactory
-                .bpmnBuilder()
+                .builder()
                 .componentResolver(componentResolver("ktvService", ktvService))
                 .build());
             tooling = engine.tooling();
@@ -85,8 +86,8 @@ public class ProcessRuntimeWarmUpIntegrationTest {
             Map<String, Object> ctx = new HashMap<>();
             ctx.put("pList", Arrays.asList("u1", "u2"));
             // 1) Execute V1 (resource file default content)
-            ProcessResult<Map<String, Object>> v1 =
-                    engine.execute(ProcessDefinition.classpath(code, code.replace(".", "/") + ".bpmn"), ctx);
+            ProcessResult<Map<String, Object>> v1 = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                            code, code.replace(".", "/") + ".bpmn"), ctx);
             assertThat(v1.isSuccess()).as("V1 execution should succeed: %s", v1.getError()).isTrue();
             assertThat(v1.getOutput()).as("V1 data should not be null").isNotNull();
             assertThat(v1.getOutput().get("price")).as("V1 price should be 2 * 27 * 0.9 = 54").isEqualTo(54);
@@ -98,12 +99,12 @@ public class ProcessRuntimeWarmUpIntegrationTest {
             assertThat(v2Xml).as("V2 xml must differ from V1 to change digest").isNotEqualTo(v1Xml);
             // 3) Engine-level observability: tooling generated code must reflect action binding
             // changes
-            String v2Java = tooling.generateJavaCode(ProcessDefinition.inline(code, v2Xml));
+            String v2Java = tooling.generateJavaCode(ProcessDefinition.inline(ProcessModelType.BPMN, code, v2Xml));
             assertThat(v2Java).as("V2 java code should be generated").isNotNull();
             assertThat(v2Java).as("Generated code should contain updated method binding").contains(
                     "calculatePriceForHotDeploy");
 
-            ProcessDefinition.Inline v2Definition = ProcessDefinition.inline(code, v2Xml);
+            ProcessDefinition.Inline v2Definition = ProcessDefinition.inline(ProcessModelType.BPMN, code, v2Xml);
             // 4) Load the changed definition into the local runtime cache.
             admin.warmUp(v2Definition);
             // 5) Execute V2: same input produces distinguishable output
@@ -118,20 +119,20 @@ public class ProcessRuntimeWarmUpIntegrationTest {
     @Nested
     @DisplayName("B. TBBPM runtime warm-up")
     class TbbpmWarmUpTests {
-        private ProcessEngine tbbpmEngine;
+        private ProcessEngine engine;
 
         @BeforeEach
         void setUp() {
-            tbbpmEngine = ProcessEngineFactory.create(ProcessEngineTestFactory
-                .tbbpmBuilder()
+            engine = ProcessEngineFactory.create(ProcessEngineTestFactory
+                .builder()
                 .componentResolver(componentResolver("ktvService", ktvService))
                 .build());
         }
 
         @AfterEach
         void tearDown() throws Exception {
-            if (tbbpmEngine != null) {
-                tbbpmEngine.close();
+            if (engine != null) {
+                engine.close();
             }
         }
 
@@ -143,14 +144,15 @@ public class ProcessRuntimeWarmUpIntegrationTest {
             Map<String, Object> ctx = new HashMap<>();
             ctx.put("pList", Arrays.asList("u1", "u2"));
 
-            ProcessDefinition.Classpath definition = ProcessDefinition.classpath(code, "bpm/ktv/ktvExample.bpm");
-            tbbpmEngine.runtime().warmUp(definition);
-            ProcessResult<Map<String, Object>> result1 =
-                    tbbpmEngine.execute(ProcessDefinition.classpath(code, code.replace(".", "/") + ".bpm"), ctx);
+            ProcessDefinition.Classpath definition =
+                    ProcessDefinition.classpath(ProcessModelType.TBBPM, code, "bpm/ktv/ktvExample.bpm");
+            engine.runtime().warmUp(definition);
+            ProcessResult<Map<String, Object>> result1 = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            code, code.replace(".", "/") + ".bpm"), ctx);
             // Repeated local loading is idempotent.
-            tbbpmEngine.runtime().warmUp(definition);
-            ProcessResult<Map<String, Object>> result2 =
-                    tbbpmEngine.execute(ProcessDefinition.classpath(code, code.replace(".", "/") + ".bpm"), ctx);
+            engine.runtime().warmUp(definition);
+            ProcessResult<Map<String, Object>> result2 = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            code, code.replace(".", "/") + ".bpm"), ctx);
             // Semantic assertions:
             // 1) Both executions must succeed
             // 2) Both should produce price (proves flow is executable and return var mechanism
@@ -177,16 +179,17 @@ public class ProcessRuntimeWarmUpIntegrationTest {
             Map<String, Object> ctx = new HashMap<>();
             ctx.put("pList", Arrays.asList("u1", "u2"));
 
-            ProcessDefinition.Classpath v1Definition = ProcessDefinition.classpath(code, "bpm/ktv/ktvExample.bpm");
-            tbbpmEngine.runtime().warmUp(v1Definition);
-            ProcessResult<Map<String, Object>> r1 =
-                    tbbpmEngine.execute(ProcessDefinition.classpath(code, code.replace(".", "/") + ".bpm"), ctx);
+            ProcessDefinition.Classpath v1Definition =
+                    ProcessDefinition.classpath(ProcessModelType.TBBPM, code, "bpm/ktv/ktvExample.bpm");
+            engine.runtime().warmUp(v1Definition);
+            ProcessResult<Map<String, Object>> r1 = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            code, code.replace(".", "/") + ".bpm"), ctx);
 
-            ProcessDefinition.Inline v2Definition = ProcessDefinition.inline(code, v2);
-            tbbpmEngine.runtime().warmUp(v2Definition);
-            ProcessResult<Map<String, Object>> r2 = tbbpmEngine.execute(v2Definition, ctx);
-            ProcessResult<Map<String, Object>> codeAfterWarmUp =
-                    tbbpmEngine.execute(ProcessDefinition.classpath(code, code.replace(".", "/") + ".bpm"), ctx);
+            ProcessDefinition.Inline v2Definition = ProcessDefinition.inline(ProcessModelType.TBBPM, code, v2);
+            engine.runtime().warmUp(v2Definition);
+            ProcessResult<Map<String, Object>> r2 = engine.execute(v2Definition, ctx);
+            ProcessResult<Map<String, Object>> codeAfterWarmUp = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            code, code.replace(".", "/") + ".bpm"), ctx);
 
             assertThat(r1.isSuccess()).as("V1 execute failed: %s", r1.getError()).isTrue();
             assertThat(r2.isSuccess()).as("V2 execute failed: %s", r2.getError()).isTrue();

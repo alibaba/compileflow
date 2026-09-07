@@ -1,7 +1,6 @@
 # CompileFlow 节点支持列表
 
-`ProcessEngine` runtime 与可选 Durable 执行面支持不同的 BPMN/TBBPM 元素。一个流程元素只有在所选执行面
-同时具备语义模型和该节点实现时才属于可执行节点；某个执行面支持不代表另一个执行面也支持。
+`ProcessEngine` 与 Durable 支持的 BPMN/TBBPM 元素并不完全相同。只有语义模型和所选执行方式都实现了某个元素，该元素才可以执行。
 
 ## TBBPM 支持的节点
 
@@ -34,28 +33,24 @@
 - `waitTask` - 等待任务
 - `waitEventTask` - 等待事件任务
 
-在`ProcessEngine` 中，它们是新 `trigger(...)` invocation 的顶层具名入口，不是持久化检查点，也不能位于循环
-内。在 `durable-strict@1` 中，它们是持久化 Wait 边界，可以位于有界循环内；恢复时必须提供该精确 Run 的一次性 Wait token。
+在 `ProcessEngine` 中，它们是 `trigger(...)` 新调用的顶层具名入口，不是持久化检查点，也不能位于循环内。在 `durable-strict@1` 中，它们是持久化 Wait 边界，可以位于有界循环内；恢复时必须提供对应流程实例的一次性 Wait 令牌。
 
 ### Durable 边界与 Action 语义
 
 - `timerTask` - 持久化挂起，直到字面 duration、duration 表达式或绝对唤醒时间表达式到期。
 
 `timerTask` 由 TBBPM Schema 与 Durable 编译器支持，也可以位于循环内；ProcessEngine 没有持久化调度器，因此会拒绝它。
-Effect 不是节点。Durable 模型中的每个可执行 Action 必须显式声明 `execution="replayable|effect"`。Effect Action 仍使用普通
-Java、Bean、Inline 或已注册脚本实现；Kernel 只持久化管理 dispatch 与 unknown outcome。
+Effect 不是节点。Durable TBBPM 模型中的每个可执行 Action 必须显式声明 `execution="replayable|effect"`。
+BPMN service Action 同样要求显式声明；BPMN `scriptTask` 默认 `replayable`，也可显式选择 `cf:execution="effect"`。Effect Action 仍使用普通
+Java、Bean、Inline 或已注册脚本实现；Durable 内核只负责持久化投递状态和结果未知状态。
 
-Durable TBBPM profile 支持 `start`、`end`、`autoTask`、`scriptTask`、`exclusive`、两个 Wait 节点、`timerTask`、
+Durable TBBPM 能力集支持 `start`、`end`、`autoTask`、`scriptTask`、`exclusive`、两个 Wait 节点、`timerTask`、
 `while`、`foreach`、`break`、`continue`、结构化 `parallel`/`inclusive`、`subBpm` 与 `bpmCall`。Parallel/Inclusive 使用持久化的
-deterministic frontier 与稳定 merge 顺序；process call 的应用写入无法证明为 branch-local，因此不能位于 concurrent region。
-Durable `bpmCall` 在 Direct graph 中声明精确的应用 classpath 路径，也可以声明 exact child Version；精确
-Version graph 只使用 Version 依赖；
-Alias 只在 root admission 解析，所有静态 call-site binding 此后保持 exact。调用作为同一 Run 内的另一个
-`ProcessInvocation` frame 执行，不创建 Child Run。排他网关、While、Timer、guard 与 transition 表达式继续拼接生成 Java 源码。Action type
-可以间接使用已注册的 `ScriptExecutor`；CompileFlow 不固定某一种脚本语言。与源格式无关的 Durable While plan 允许可选的
-`maxIterations` guard，但 TBBPM 要求每个 `while` 都必须声明它；Durable Turn budget 独立于该源语言规则，始终限制单个执行 slice。
+确定性的分支边界和稳定合并顺序。流程调用产生的应用写入无法证明只属于单个分支，因此不能放在并发区域中。
 
-详见 [TBBPM 规范](../specs/tbbpm-specification.zh.md#34-durable-timer-与-effect-action)
+Durable `bpmCall` 可以在 Direct graph 中声明精确的应用 classpath 路径，也可以声明精确 Version；版本图只使用 Version 依赖。Alias 只在根流程启动时解析，此后所有静态调用位置都绑定到精确目标。子流程调用在同一个 Run 中使用新的 `ProcessInvocation` 帧执行，不会创建另一个 Run。排他网关、While、Timer、guard 和 transition 表达式会继续生成 Java 源码。Action 可以间接使用已注册的 `ScriptExecutor`，CompileFlow 不限定脚本语言。Durable While 计划允许配置 `maxIterations` 上限，TBBPM 则要求每个 `while` 都必须声明该值；单次执行步数还会受到独立的 Turn 预算限制。
+
+详见 [TBBPM 规范](specifications/tbbpm.md#34-durable-timer-与-effect-action)
 与 [Durable Process 使用指南](durable-process.md)。
 
 ### 其他
@@ -68,7 +63,7 @@ Alias 只在 root admission 解析，所有静态 call-site binding 此后保持
 
 - `startEvent` - 开始事件
 - `endEvent` - 结束事件
-- 带 `messageEventDefinition` 的 `intermediateCatchEvent` - 按引用 message name 选择的 Durable Wait 边界。
+- 带 `messageEventDefinition` 的 `intermediateCatchEvent` - 根据引用的消息名称选择 Durable Wait 边界。
 - 带 `timerEventDefinition` 的 `intermediateCatchEvent` - 使用字面 duration、duration 表达式或绝对唤醒时间表达式的
   Durable Timer 边界；不支持 `timeCycle`。
 
@@ -76,10 +71,8 @@ Alias 只在 root admission 解析，所有静态 call-site binding 此后保持
 
 - `serviceTask` - 服务任务。必须恰好包含一个 `cf:action`；action 映射变量放在
   `cf:action` 内，不能直接挂在任务上。
-- `scriptTask` - 脚本任务。必须提供 `scriptFormat` 和非空的标准 `<script>` 内容；映射用 `cf:var` 直接挂在任务上。
-- `receiveTask` - 必须提供 `messageRef`，且必须恰好指向一个具有非空名称的顶层 `message` 定义。普通
-  `ProcessRuntime` 把它作为新 invocation 的具名入口；Durable 把它 lower 为精确持久化 Wait occurrence。它没有
-  `inAction`/`outAction` hook；需要边界前后工作时使用显式 task。
+- `scriptTask` - 脚本任务。必须提供 `scriptFormat` 和非空的标准 `<script>` 内容；映射用 `cf:input`/`cf:output` 直接挂在任务上。
+- `receiveTask` - 必须提供 `messageRef`，且只能指向一个名称非空的顶层 `message` 定义。普通 `ProcessRuntime` 将其作为新调用的具名入口；Durable 将其转换为精确的持久化 Wait occurrence。该节点没有 `inAction`/`outAction` 钩子；需要在边界前后执行操作时，应使用显式任务节点。
 
 ### 网关
 
@@ -90,13 +83,12 @@ Alias 只在 root admission 解析，所有静态 call-site binding 此后保持
 ### 结构
 
 - `subProcess` - 内嵌子流程。每个子流程必须是只有一个开始事件和一个结束事件的连通图。
-  `receiveTask` 等触发入口仅支持放在根流程中，因为新的 `trigger(...)` invocation 不会恢复内嵌调用栈。
+  在 ProcessEngine 中，`receiveTask` 等触发入口仅支持放在根流程中，因为新的 `trigger(...)` invocation 不会恢复内嵌调用栈；
+  Durable 持久化作用域栈，支持内嵌作用域中的 Wait。
 - `callActivity` - 调用活动。必须提供 `calledElement`，并且必须且只能提供 `cf:classpath` 或 `cf:version` 之一；
-  映射用 `cf:var` 直接挂载，返回映射必须指定目标流程变量。
+  映射用 `cf:input`/`cf:output` 直接挂载，返回映射必须指定目标流程变量。
 
-> **Workbench 执行边界：**BPMN 设计器可在可视化与 XML 往返过程中完整保留并编辑
-> `subProcess` 层级、内部节点和连线。浏览器模拟器对内嵌子流程执行采用失败关闭策略；
-> 生成代码及真实运行语义请使用后端执行模式验证。
+> **Workbench 执行边界：**BPMN 设计器可以在可视化编辑与 XML 转换过程中完整保留 `subProcess` 层级、内部节点和连线。浏览器模拟器不执行内嵌子流程；生成代码和实际运行语义应通过后端执行模式验证。
 
 ### 定义元数据
 
@@ -113,19 +105,17 @@ Alias 只在 root admission 解析，所有静态 call-site binding 此后保持
 可执行 BPMN 必须具有非空 `targetNamespace`、一个声明 `isExecutable="true"` 的 process、全局唯一
 ID，并且只能包含受支持的属性和扩展数据。未知可执行数据会被拒绝，不会在规范化写回时被丢弃。BPMN process `id` 就是其
 CompileFlow 流程 code，必须与 `ProcessDefinition` 携带的 code 完全一致。完整 `cf:`
-语法和归属规则见 [BPMN 扩展规范](../specs/bpmn-extension-specification.zh.md)。
+语法和归属规则见 [BPMN 扩展规范](specifications/bpmn-extensions.md)。
 
-## 已移除的节点
+## 不支持的 BPMN 元素
 
-以下 BPMN 2.0 元素不被 CompileFlow 支持，其定义类已从代码库中移除。CompileFlow 不提供这些元素所需的产品生命周期、
-广播或协作基础设施。包含这些元素的文件会在解析或 preflight 阶段失败；引擎不会部署静默缺失行为的流程。
+CompileFlow 不支持以下 BPMN 2.0 元素，也不提供这些元素所需的生命周期、广播或协作基础设施。包含这些元素的流程会在解析或预检阶段失败，不会以缺失部分语义的方式运行。
 
-### 已移除 — 架构不兼容
+### 未提供所需的运行时基础设施
 
 这些元素需要 CompileFlow 不提供的运行时基础设施：
 
-- `userTask` — 需要持久化任务存储及领取/完成生命周期，应使用持久化外部任务系统；只有在“从具名入口启动一次新
-  invocation”已经足够时，才使用 TBBPM `waitTask` + `trigger`。
+- `userTask` — 需要持久化任务存储以及领取和完成生命周期。应用负责管理这些状态；只有在从具名入口启动一次新调用已经足够时，才使用 TBBPM `waitTask` 与 `trigger`。
 - `manualTask` — 与 `userTask` 具有相同的持久化约束。
 - `businessRuleTask` — 需要决策表引擎。请使用 `serviceTask` + Java action。
 - `sendTask` — 需要具有发送/接收语义的消息系统。请使用 `serviceTask`。
@@ -136,7 +126,7 @@ CompileFlow 流程 code，必须与 `ProcessDefinition` 携带的 code 完全一
   `errorEventDefinition`、`escalationEventDefinition`、`linkEventDefinition`、`signalEventDefinition`、
   `terminateEventDefinition`）— 都需要 CompileFlow 不提供的事件基础设施。
 
-### 已移除 — 协作域不适用
+### 协作与编排
 
 CompileFlow 执行单流程；协作/编排元素超出范围：
 
@@ -145,23 +135,22 @@ CompileFlow 执行单流程；协作/编排元素超出范围：
 - `globalBusinessRuleTask`、`globalConversation`、`globalManualTask`、`globalScriptTask`、`globalUserTask`
 - `partnerEntity`、`partnerRole`、`participantAssociation`、`participantMultiplicity`
 
-### 已移除 — 持久化/资源层不适用
+### 数据存储与资源分配
 
-ProcessEngine runtime 的 invocation state 位于内存中，Durable Store 也只持久化 CompileFlow 自身的执行记录。两个执行面都不实现
-BPMN data store 或 resource assignment 语义；这些职责由应用承担：
+`ProcessEngine` 的调用状态保存在内存中，Durable 存储也只记录 CompileFlow 自身的执行状态。两种执行方式都不实现 BPMN 数据存储或资源分配语义，这些职责由应用承担：
 
 - `dataStore`、`dataStoreReference`、`dataAssociation`、`dataInputAssociation`
 - `loopDataInputRef`、`loopDataOutputRef`
 - `resource`、`resourceRole`、`potentialOwner`、`performer`、`humanPerformer`
 - `assignment`、`resourceParameter`、`resourceParameterBinding`、`resourceAssignmentExpression`
 
-### 已移除 — 其他
+### 其他不支持元素
 
 - `transaction` — 请在服务层使用 Spring `@Transactional`。
 - `complexGateway` — 需要事件条件评估基础设施。
 - `eventBasedGateway` — 需要事件订阅注册表。
 - `group`、`textAnnotation`、`association` — 仅图表元素，无运行时语义。
-- `auditing`、`monitoring` — 可观测性通过外部 APM 系统处理。
+- `auditing`、`monitoring` — 使用 CompileFlow 事件、指标和应用自有可观测性。
 - `category`、`categoryValue` — 图表分组；无运行时效果。
 - `correlationProperty`、`correlationSubscription`、`correlationKey` — 消息关联需要消息代理。
 - `error`、`escalation`、`itemDefinition`、`interface`、`operation`、
@@ -171,11 +160,11 @@ BPMN data store 或 resource assignment 语义；这些职责由应用承担：
 - `complexBehaviorDefinition` — 行为监控基础设施。
 - `endPoint`、`import`、`relationship`、`rendering` — Schema 级元数据，无运行时效果。
 
-## 替代方案
+## 相关操作指南
 
 ### 人工任务实现
 
-外部任务系统可以持有任务 identity、持久化、授权和变量，再调用 TBBPM trigger 入口：
+应用的任务模块可以管理任务身份、持久化、授权和变量，再调用 TBBPM trigger 入口：
 
 ```xml
 <waitTask id="approval" name="等待审批" g="80,0,120,48">
@@ -185,50 +174,47 @@ BPMN data store 或 resource assignment 语义；这些职责由应用承担：
 
 ```java
 ProcessResult<Map<String, Object>> result = engine.trigger(
-        ProcessDefinition.classpath("approval.flow", "flows/approval.flow.bpm"),
+        ProcessDefinition.classpath(ProcessModelType.TBBPM, "approval.flow", "flows/approval.flow.bpm"),
         ProcessTrigger.at("approval"),
         approvalData);
 ```
 
-该调用从入口启动一次新执行；CompileFlow 不存储或恢复先前 invocation。
+该调用从指定入口启动一次新执行；CompileFlow 不存储或恢复之前的调用状态。
 
 ### Durable 人在回路编排
 
-对于持久化 Run，应将人工步骤建模为 `waitTask`。Durable 内核提交 Wait 及其 `WAIT_COMMITTED` Outbox 事件。
-外部任务服务可以据此创建并管理自己的任务，包括分配、授权、表单、评论和 SLA 策略。外部服务完成授权并
-按事件去重后，通过 `DurableProcessEngine.completeWait(...)` 完成精确的 Wait 实例。
+对于持久化流程实例，应将人工步骤建模为 `waitTask`。Durable 内核提交 Wait 及其 `WAIT_COMMITTED` Outbox 事件。应用的任务模块可以据此创建和管理任务，包括分配、授权、表单、评论和 SLA 策略。完成授权并按事件去重后，通过 `DurableProcessEngine.completeWait(...)` 完成对应的 Wait。
 
 ```java
 durable.completeWait(waitToken, Map.of("approved", true));
 ```
 
-`waitToken` 是 bearer capability，必须按凭证保护。CompileFlow 提供的是人在回路编排，不是内建的
-`humanTask` 节点或 Human Task Management 服务。
+`waitToken` 是持有者凭证，必须按敏感凭据进行保护。CompileFlow 提供人在回路编排能力，但不内置 `humanTask` 节点或人工任务管理模块。
 
 ### ProcessEngine Runtime 定时任务实现
 
-ProcessEngine 流程可以通过 Spring Scheduler、Quartz 等外部调度系统调用。若要在同一个 Durable Run 中持久化延迟，请改用 `timerTask`：
+ProcessEngine 流程由应用调度器发起。若要在同一个 Durable Run 中持久化延迟，请改用 `timerTask`：
 
 ```java
 @Scheduled(fixedDelayString = "${jobs.scheduled-flow.delay:PT1M}")
 public void scheduledTask() {
-    engine.execute(ProcessDefinition.classpath("scheduled.flow", "flows/scheduled.flow.bpm"), Map.of()).orElseThrow();
+    engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM, "scheduled.flow", "flows/scheduled.flow.bpm"), Map.of()).orElseThrow();
 }
 ```
 
-fixed delay 可防止同一个 scheduler 实例重叠执行。分布式部署若只允许一次集群级 invocation，仍需外部单一所有者机制或幂等策略。
+固定延迟可以避免同一个调度器实例重叠执行。分布式部署若要求整个集群只发起一次调用，仍需由应用提供单一所有者机制或幂等策略。
 
-## 事实源
+## 实现依据
 
-运行时支持边界由以下 provider 类决定：
+以下实现共同定义运行时支持边界：
 
-- TBBPM parser registry: `TbbpmElementParserRegistry`
-- TBBPM semantic frontend: `TbbpmSemanticFrontend`
-- BPMN parser registry: `BpmnElementParserRegistry`
-- BPMN semantic frontend: `BpmnSemanticFrontend`
-- 普通 compiled realization: `JavaProcessCodeGenerator`
-- Durable realization 边界: `DurableMachineLowerer`
+- TBBPM 解析器注册表：[`TbbpmElementParserRegistry`](../../compileflow-tbbpm/src/main/java/com/alibaba/compileflow/engine/tbbpm/parser/TbbpmElementParserRegistry.java)
+- TBBPM 语义前端：[`TbbpmSemanticFrontend`](../../compileflow-tbbpm/src/main/java/com/alibaba/compileflow/engine/tbbpm/semantic/TbbpmSemanticFrontend.java)
+- BPMN 解析器注册表：[`BpmnElementParserRegistry`](../../compileflow-bpmn/src/main/java/com/alibaba/compileflow/engine/bpmn/parser/BpmnElementParserRegistry.java)
+- BPMN 语义前端：[`BpmnSemanticFrontend`](../../compileflow-bpmn/src/main/java/com/alibaba/compileflow/engine/bpmn/semantic/BpmnSemanticFrontend.java)
+- ProcessEngine 代码生成器：[`JavaProcessCodeGenerator`](../../compileflow-core/src/main/java/com/alibaba/compileflow/engine/core/java/codegen/JavaProcessCodeGenerator.java)
+- Durable 状态机转换器：[`DurableMachineLowerer`](../../compileflow-durable/compileflow-durable-runtime/src/main/java/com/alibaba/compileflow/durable/runtime/machine/DurableMachineLowerer.java)
 
-只有 parser 并不代表可执行。BPMN `message` 和 loop characteristics 等元素是元数据或包装元素，不是独立运行时节点。Durable-only
-语义使用 `DurableMachineLowerer`，而不是ProcessEngine runtime realization。新增节点支持时，应同时更新 parser、source validator、
-semantic frontend、适用的 eligibility/lowering/realization、测试和本文档。
+仅有解析器并不代表元素可执行。BPMN `message` 和循环特征等元素只是元数据或包装结构，不是独立运行时节点。
+`DurableMachineLowerer` 将 Durable 专属语义转换为持久化状态机，不经过普通 ProcessEngine 运行时。受支持节点必须具备一致的解析、
+源码校验、语义转换、运行时实现、测试和文档。

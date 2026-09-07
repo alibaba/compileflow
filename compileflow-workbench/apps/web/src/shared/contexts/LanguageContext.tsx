@@ -35,8 +35,12 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
       }
     }
     window.addEventListener('storage', syncLanguage)
-    const storedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY)
-    if (isLanguage(storedLanguage)) void i18n.changeLanguage(storedLanguage)
+    try {
+      const storedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY)
+      if (isLanguage(storedLanguage)) void i18n.changeLanguage(storedLanguage)
+    } catch {
+      // Browser policy can deny storage while the current locale remains usable.
+    }
     return () => window.removeEventListener('storage', syncLanguage)
   }, [i18n])
 

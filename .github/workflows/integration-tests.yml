@@ -12,6 +12,8 @@ on:
       - 'compileflow-bpmn/**'
       - 'compileflow-deploy/**'
       - 'compileflow-spring-boot-starter/**'
+      - 'compileflow-spring-boot-starter-tbbpm/**'
+      - 'compileflow-spring-boot-starter-bpmn/**'
       - 'compileflow-spring-boot-autoconfigure/**'
       - 'examples/spring-boot-basic/**'
       - 'examples/spring-boot-order-fulfillment/**'
@@ -32,6 +34,8 @@ on:
       - 'compileflow-bpmn/**'
       - 'compileflow-deploy/**'
       - 'compileflow-spring-boot-starter/**'
+      - 'compileflow-spring-boot-starter-tbbpm/**'
+      - 'compileflow-spring-boot-starter-bpmn/**'
       - 'compileflow-spring-boot-autoconfigure/**'
       - 'examples/spring-boot-basic/**'
       - 'examples/spring-boot-order-fulfillment/**'
@@ -75,14 +79,14 @@ jobs:
             -pl compileflow-integration-tests -am \
             -B -V --no-transfer-progress
 
-      - name: Run distributed deployment topology contract
+      - name: Run deployment runtime restart and idempotency contract
         run: |
-          test -f compileflow-integration-tests/src/test/java/com/alibaba/compileflow/engine/test/feature/deployment/control/DeploymentRuntimeChainIntegrationTest.java
+          test -f compileflow-integration-tests/src/test/java/com/alibaba/compileflow/engine/test/system/DeploymentRuntimeRestartIdempotencyTest.java
           ./mvnw test -pl compileflow-integration-tests -am \
-            -Dtest=DeploymentRuntimeChainIntegrationTest \
+            -Dtest=DeploymentRuntimeRestartIdempotencyTest \
             -Dsurefire.failIfNoSpecifiedTests=false \
             -B -V --no-transfer-progress
-          test -s compileflow-integration-tests/target/surefire-reports/TEST-com.alibaba.compileflow.engine.test.feature.deployment.control.DeploymentRuntimeChainIntegrationTest.xml
+          test -s compileflow-integration-tests/target/surefire-reports/TEST-com.alibaba.compileflow.engine.test.system.DeploymentRuntimeRestartIdempotencyTest.xml
 
       - name: Run storage-free Spring Boot examples
         run: |

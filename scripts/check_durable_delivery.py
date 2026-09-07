@@ -18,10 +18,14 @@ DURABLE_MODULES = (
     "compileflow-durable-spi",
     "compileflow-durable-testkit",
     "compileflow-durable-runtime",
-    "compileflow-durable-postgres",
+    "compileflow-durable-postgresql",
+    "compileflow-durable-mysql",
     "compileflow-durable-spring-boot-autoconfigure",
+    "compileflow-durable-spring-boot-autoconfigure-postgresql",
+    "compileflow-durable-spring-boot-autoconfigure-mysql",
     "compileflow-durable-spring-boot-starter",
-    "compileflow-durable-spring-boot-starter-postgres",
+    "compileflow-durable-spring-boot-starter-postgresql",
+    "compileflow-durable-spring-boot-starter-mysql",
 )
 
 KERNEL_TABLES = frozenset(
@@ -88,8 +92,8 @@ BPMN_CRASH_MATRIX_TESTS = (
 
 AUTHORITATIVE_DOCUMENTS = (
     "compileflow-durable/README.md",
-    "docs/architecture/10-DURABLE_ARCHITECTURE.en.md",
-    "docs/architecture/10-DURABLE_ARCHITECTURE.zh.md",
+    "docs/en/architecture/durable-architecture.md",
+    "docs/zh/architecture/durable-architecture.md",
     "docs/en/durable-process.md",
     "docs/zh/durable-process.md",
 )
@@ -180,73 +184,51 @@ def check_maven_surface() -> None:
 
 
 def check_database_baseline() -> None:
-    migration_dir = (
-        DURABLE
-        / "compileflow-durable-postgres/src/main/resources/db/compileflow-durable/migration"
-    )
-    migrations = tuple(sorted(path.name for path in migration_dir.glob("*.sql")))
-    require(migrations == ("V1__durable_kernel.sql",), f"Durable migration baseline drifted: {migrations}")
-
-    schema = read(migration_dir.relative_to(ROOT) / "V1__durable_kernel.sql")
-    require(
-        extract_sql_tables(schema) == KERNEL_TABLES,
-        f"PostgreSQL V1 layout must contain the expected seven tables: {sorted(extract_sql_tables(schema))}",
-    )
-    sql = strip_sql_comments(schema).lower()
-    for retired in (
-        "process_alias",
-        "application_build",
-        "program_abi",
-        "machine_semantics_version",
-        "compiler_version",
-        "generator_version",
-        "runtime_version",
-        "execution_semantics_version",
-        "stored_program",
-        "codec_id",
-        "fence_token",
-        "fencing_token",
-        "cf_durable_command_receipt",
-        "cf_durable_idempotency_config",
-    ):
-        require(retired not in sql, f"Retired identity leaked into Durable schema: {retired}")
-
-    for marker in (
-        "process_code",
-        "process_id            uuid primary key",
-        "definition_digest",
-        "occurrence_sequence",
-        "frontier_id",
-        "ck_cf_durable_wait_frontier",
-        "ck_cf_durable_effect_frontier",
-        "consumed_at",
-        "references public.cf_durable_process(process_id)",
-        "lease_token               uuid",
-        "default clock_timestamp()",
-    ):
-        require(marker in sql, f"Durable schema misses {marker!r}")
-    process_table = sql.split("create table public.cf_durable_process", 1)[1].split(
-        "create function public.cf_durable_process_reject_update", 1
-    )[0]
-    for attribution in ("namespace", "process_version"):
-        require(
-            attribution not in process_table,
-            f"Stored Process semantics must not contain admission attribution {attribution!r}",
-        )
-    run_table = sql.split("create table public.cf_durable_run", 1)[1].split(
-        "create function public.cf_durable_run_validate_root_process", 1
-    )[0]
-    for attribution in ("namespace", "process_version"):
-        require(attribution in run_table, f"Run must retain optional admission attribution {attribution!r}")
-    for retired in ("artifact_digest", "effect_token"):
-        require(retired not in sql, f"Retired Durable storage term remains: {retired}")
-
-    require(
-        extract_outbox_event_types(schema) == INTEGRATION_EVENTS,
-        "Outbox must expose exactly the closed five Integration Events",
-    )
-    outbox = sql.split("create table public.cf_durable_outbox", 1)[1]
-    require("journal" not in outbox, "Outbox must not be coupled 1:1 to Journal")
+    providers = {
+        "PostgreSQL": (
+            DURABLE / "compileflow-durable-postgresql/src/main/resources/db/compileflow-durable/postgres/migration",
+            "public.",
+            ("process_id            uuid primary key", "lease_token               uuid", "default clock_timestamp()"),
+        ),
+        "MySQL": (
+            DURABLE / "compileflow-durable-mysql/src/main/resources/db/compileflow-durable/mysql/migration",
+            "",
+            ("process_id            char(36) primary key", "lease_token               char(36)",
+             "default current_timestamp(3)"),
+        ),
+    }
+    for provider, (migration_dir, schema_prefix, provider_markers) in providers.items():
+        migrations = tuple(sorted(path.name for path in migration_dir.glob("*.sql")))
+        require(migrations == ("V1__durable_kernel.sql",),
+                f"{provider} Durable migration baseline drifted: {migrations}")
+        schema = read(migration_dir.relative_to(ROOT) / "V1__durable_kernel.sql")
+        require(extract_sql_tables(schema) == KERNEL_TABLES,
+                f"{provider} V1 layout must contain the expected seven tables: {sorted(extract_sql_tables(schema))}")
+        sql = strip_sql_comments(schema).lower()
+        for retired in (
+            "process_alias", "application_build", "program_abi", "machine_semantics_version",
+            "compiler_version", "generator_version", "runtime_version", "execution_semantics_version",
+            "stored_program", "codec_id", "fence_token", "fencing_token", "cf_durable_command_receipt",
+            "cf_durable_idempotency_config", "artifact_digest", "effect_token",
+        ):
+            require(retired not in sql, f"Retired identity leaked into {provider} Durable schema: {retired}")
+        for marker in (
+            "process_code", "definition_digest", "occurrence_sequence", "frontier_id",
+            "ck_cf_durable_wait_frontier", "ck_cf_durable_effect_frontier", "consumed_at",
+            f"references {schema_prefix}cf_durable_process(process_id)", *provider_markers,
+        ):
+            require(marker in sql, f"{provider} Durable schema misses {marker!r}")
+        process_table = sql.split(f"create table {schema_prefix}cf_durable_process", 1)[1].split("create ", 1)[0]
+        for attribution in ("namespace", "process_version"):
+            require(attribution not in process_table,
+                    f"Stored Process semantics must not contain admission attribution {attribution!r}")
+        run_table = sql.split(f"create table {schema_prefix}cf_durable_run", 1)[1].split("create ", 1)[0]
+        for attribution in ("namespace", "process_version"):
+            require(attribution in run_table, f"Run must retain optional admission attribution {attribution!r}")
+        require(extract_outbox_event_types(schema) == INTEGRATION_EVENTS,
+                f"{provider} Outbox must expose exactly the closed five Integration Events")
+        outbox = sql.split(f"create table {schema_prefix}cf_durable_outbox", 1)[1]
+        require("journal" not in outbox, f"{provider} Outbox must not be coupled 1:1 to Journal")
 
 
 def check_admission_boundary() -> None:
@@ -288,7 +270,7 @@ def check_admission_boundary() -> None:
     )
     require(
         "ProcessModelType" not in engine,
-        "Durable explicit-definition Start must inherit the composed engine model type",
+        "Durable Start must derive model type from its typed Definition, not a parallel argument",
     )
     for method in (
         r"\bcompleteWait\s*\(\s*WaitToken\s+\w+\s*,\s*Map<String,\s*\?>\s+\w+\s*\)",
@@ -301,13 +283,13 @@ def check_admission_boundary() -> None:
     for command in ("StartProcessRunCommand", "CompleteWaitCommand", "CancelProcessRunCommand"):
         require(command not in engine, f"High-frequency Durable Application API must not expose {command}")
 
-    auto_configuration = read(
-        "compileflow-durable/compileflow-durable-spring-boot-autoconfigure/src/main/java/"
-        "com/alibaba/compileflow/durable/spring/boot/autoconfigure/CompileFlowDurableAutoConfiguration.java"
+    factory = read(
+        "compileflow-durable/compileflow-durable-runtime/src/main/java/"
+        "com/alibaba/compileflow/durable/runtime/DurableProcessEngineFactory.java"
     )
     for compiler in ("DurableJavaProgramCompiler", "DurableInterpretedProgramCompiler"):
         require(
-            compiler in auto_configuration,
+            compiler in factory,
             f"Durable runtime must retain the {compiler} realization",
         )
 
@@ -417,16 +399,11 @@ def check_wait_token_contract() -> None:
         "compileflow-durable/compileflow-durable-spi/src/main/java/"
         "com/alibaba/compileflow/durable/spi/store/DurableStore.java"
     )
-    process_store = read(
-        "compileflow-durable/compileflow-durable-spi/src/main/java/"
-        "com/alibaba/compileflow/durable/spi/store/DurableProcessStore.java"
-    )
-    protocol = store + process_store
     for marker in (
-        "Optional<DurableStore.WaitTarget> findWaitTarget(String tokenDigest)",
+        "Optional<WaitTarget> findWaitTarget(String tokenDigest)",
         "record WaitTarget(ProcessRunId runId, RunProcess rootProcess, UUID processId, String tokenDigest)",
     ):
-        require(marker in protocol, f"WaitToken owner discovery contract misses {marker!r}")
+        require(marker in store, f"WaitToken owner discovery contract misses {marker!r}")
 
     engine = read(
         "compileflow-durable/compileflow-durable-runtime/src/main/java/"
@@ -439,7 +416,7 @@ def check_wait_token_contract() -> None:
 
     api_test = read(
         "compileflow-durable/compileflow-durable-api/src/test/java/"
-        "com/alibaba/compileflow/durable/api/GreenfieldDurableApiTest.java"
+        "com/alibaba/compileflow/durable/api/DurableApiContractTest.java"
     )
     require(
         "waitTokenStringRepresentationNeverExposesTheBearerCapability" in api_test,
@@ -470,9 +447,7 @@ def check_atomic_store_protocol() -> None:
         )
         for name in (
             "DurableCatalogStore",
-            "DurableProcessStore",
             "DurableOperatorStore",
-            "DurableRunProjectionStore",
             "DurableTurnStore",
             "DurableEffectStore",
             "DurableOutboxDeliveryStore",
@@ -538,31 +513,31 @@ def check_random_lease_fencing() -> None:
     ):
         require(lease in store, f"Run-owned lease must carry RunId: {lease}")
 
-    implementation = read(
-        "compileflow-durable/compileflow-durable-postgres/src/main/java/"
-        "com/alibaba/compileflow/durable/postgres/PostgresDurableStore.java"
-    )
-    require(
-        implementation.count("UUID.randomUUID()") >= 3,
-        "Run, Effect and Outbox claims need random lease tokens",
-    )
-    for predicate in (
-        "status = 'RUNNING' AND lease_token = ?",
-        "e.lease_token = ?",
-        "status = 'DELIVERING'",
-        "lease_token = ?",
-    ):
-        require(predicate in implementation, f"Token-fenced completion path misses {predicate!r}")
-    require(
-        "numericFence" not in implementation and "fencingToken" not in implementation,
-        "Numeric fencing must not re-enter the PostgreSQL implementation",
-    )
-    for marker in (
-        "lockEffectLeaseRunFirst(connection,",
-        "lockOutboxLeaseRunFirst(connection,",
-        "FOR UPDATE OF r SKIP LOCKED LIMIT 1",
-    ):
-        require(marker in implementation, f"Run-first occurrence protocol misses {marker!r}")
+    implementations = {
+        "PostgreSQL": read(
+            "compileflow-durable/compileflow-durable-postgresql/src/main/java/"
+            "com/alibaba/compileflow/durable/postgres/PostgresDurableStore.java"
+        ),
+        "MySQL": read(
+            "compileflow-durable/compileflow-durable-mysql/src/main/java/"
+            "com/alibaba/compileflow/durable/mysql/MySqlDurableStore.java"
+        ),
+    }
+    for provider, implementation in implementations.items():
+        require(implementation.count("UUID.randomUUID()") >= 3,
+                f"{provider} Run, Effect and Outbox claims need random lease tokens")
+        for predicate in (
+            "status = 'RUNNING' AND lease_token = ?", "e.lease_token = ?",
+            "status = 'DELIVERING'", "lease_token = ?",
+        ):
+            require(predicate in implementation,
+                    f"{provider} token-fenced completion path misses {predicate!r}")
+        require("numericFence" not in implementation and "fencingToken" not in implementation,
+                f"Numeric fencing must not enter the {provider} implementation")
+        for marker in ("lockEffectLeaseRunFirst(connection,", "lockOutboxLeaseRunFirst(connection,"):
+            require(marker in implementation, f"{provider} Run-first occurrence protocol misses {marker!r}")
+    require("FOR UPDATE OF r SKIP LOCKED LIMIT 1" in implementations["PostgreSQL"],
+            "PostgreSQL run acquisition must preserve its run-first SKIP LOCKED protocol")
 
 
 def check_store_contract() -> None:
@@ -582,7 +557,7 @@ def check_store_contract() -> None:
         "LocalPostgresDurableStoreContractTest.java",
     ):
         source = read(
-            "compileflow-durable/compileflow-durable-postgres/src/test/java/"
+            "compileflow-durable/compileflow-durable-postgresql/src/test/java/"
             f"com/alibaba/compileflow/durable/postgres/{implementation}"
         )
         require(
@@ -590,8 +565,17 @@ def check_store_contract() -> None:
             f"{implementation} must inherit the kernel Store contract",
         )
 
+    mysql_contract = read(
+        "compileflow-durable/compileflow-durable-mysql/src/test/java/"
+        "com/alibaba/compileflow/durable/mysql/MySqlDurableStoreContractTest.java"
+    )
+    require("extends DurableStoreContract" in mysql_contract,
+            "MySQL Durable implementation must inherit the complete kernel Store contract")
+    require("db/compileflow-durable/mysql/migration" in mysql_contract,
+            "MySQL Durable contract must execute the Provider-owned migration")
+
     schema_test = read(
-        "compileflow-durable/compileflow-durable-postgres/src/test/java/"
+        "compileflow-durable/compileflow-durable-postgresql/src/test/java/"
         "com/alibaba/compileflow/durable/postgres/DurableKernelSchemaContractTest.java"
     )
     require(
@@ -600,7 +584,7 @@ def check_store_contract() -> None:
     )
 
     crash_matrix = read(
-        "compileflow-durable/compileflow-durable-postgres/src/test/java/"
+        "compileflow-durable/compileflow-durable-postgresql/src/test/java/"
         "com/alibaba/compileflow/durable/postgres/LocalPostgresDurableBpmnCrashMatrixTest.java"
     )
     require(
@@ -610,7 +594,7 @@ def check_store_contract() -> None:
     for test in BPMN_CRASH_MATRIX_TESTS:
         require(f"void {test}()" in crash_matrix, f"BPMN PostgreSQL crash matrix misses {test}")
 
-    postgres_pom = read("compileflow-durable/compileflow-durable-postgres/pom.xml")
+    postgres_pom = read("compileflow-durable/compileflow-durable-postgresql/pom.xml")
     require(
         re.search(
             r"<artifactId>compileflow-bpmn</artifactId>\s*<scope>test</scope>",
@@ -622,12 +606,21 @@ def check_store_contract() -> None:
 
     workflow = read(".github/workflows/durable-ci.yml")
     for marker in (
-        "--expected-reports 3",
+        "--expected-reports 4",
         "--minimum-tests 50",
         "--minimum-passed 50",
         "LocalPostgresDurableBpmnCrashMatrixTest",
     ):
         require(marker in workflow, f"PostgreSQL 16/17/18 evidence gate misses {marker!r}")
+    for marker in (
+        "mysql-contract:",
+        "--minimum-tests 45",
+        "--minimum-passed 45",
+        "MySqlDurableStoreContractTest",
+        "mysql:8.4.7@sha256:",
+        "--expected-mysql 8.4.7",
+    ):
+        require(marker in workflow, f"MySQL 8.4 evidence gate misses {marker!r}")
 
 
 def check_action_semantics() -> None:
@@ -744,19 +737,28 @@ def check_action_semantics() -> None:
 
 
 def check_schema_startup_validation() -> None:
-    initializer = read(
-        "compileflow-durable/compileflow-durable-spring-boot-autoconfigure/src/main/java/"
-        "com/alibaba/compileflow/durable/spring/boot/autoconfigure/postgres/"
-        "DurablePostgresSchemaInitializer.java"
-    )
-    for marker in (
-        '.defaultSchema("public")',
-        '.schemas("public")',
-        '.table("cf_durable_schema_history")',
-        "flyway.validate();",
-        "flyway.info().pending()",
-    ):
-        require(marker in initializer, f"Fail-closed Durable schema initialization misses {marker!r}")
+    initializers = {
+        "PostgreSQL": read(
+            "compileflow-durable/compileflow-durable-spring-boot-autoconfigure-postgresql/src/main/java/"
+            "com/alibaba/compileflow/durable/spring/boot/autoconfigure/postgres/"
+            "DurablePostgresSchemaInitializer.java"
+        ),
+        "MySQL": read(
+            "compileflow-durable/compileflow-durable-spring-boot-autoconfigure-mysql/src/main/java/"
+            "com/alibaba/compileflow/durable/spring/boot/autoconfigure/mysql/"
+            "DurableMySqlSchemaInitializer.java"
+        ),
+    }
+    for provider, initializer in initializers.items():
+        for marker in (
+            '.table("cf_durable_schema_history")', '.baselineVersion("0")',
+            "flyway.validate();", "flyway.info().pending()",
+        ):
+            require(marker in initializer,
+                    f"Fail-closed {provider} Durable schema initialization misses {marker!r}")
+    for marker in ('.defaultSchema("public")', '.schemas("public")'):
+        require(marker not in initializers["PostgreSQL"],
+                f"PostgreSQL Durable schema initialization hard-codes the public schema via {marker!r}")
 
 
 def check_optional_observability() -> None:
@@ -774,6 +776,9 @@ def check_optional_observability() -> None:
     autoconfigure = read(
         "compileflow-durable/compileflow-durable-spring-boot-autoconfigure/src/main/java/"
         "com/alibaba/compileflow/durable/spring/boot/autoconfigure/CompileFlowDurableAutoConfiguration.java"
+    ) + read(
+        "compileflow-durable/compileflow-durable-spring-boot-autoconfigure/src/main/java/"
+        "com/alibaba/compileflow/durable/spring/boot/autoconfigure/CompileFlowDurableObservabilityAutoConfiguration.java"
     )
     for marker in (
         "@ConditionalOnBean(DurableStore.class)",
@@ -789,33 +794,39 @@ def check_optional_observability() -> None:
             f"Provider-neutral Durable Runtime composition leaks {provider_leak}",
         )
 
-    postgres_autoconfigure = read(
-        "compileflow-durable/compileflow-durable-spring-boot-autoconfigure/src/main/java/"
-        "com/alibaba/compileflow/durable/spring/boot/autoconfigure/"
-        "CompileFlowDurablePostgresAutoConfiguration.java"
-    )
-    for marker in (
-        "PostgresDurableStore",
-        "DurablePostgresSchemaInitializer",
-        "compileFlowDurableDataSource",
-        "@ConditionalOnMissingBean(DurableStore.class)",
-    ):
-        require(marker in postgres_autoconfigure, f"PostgreSQL Durable composition misses {marker!r}")
+    provider_compositions = {
+        "PostgreSQL": (
+            read("compileflow-durable/compileflow-durable-spring-boot-autoconfigure-postgresql/src/main/java/"
+                 "com/alibaba/compileflow/durable/spring/boot/autoconfigure/postgres/"
+                 "CompileFlowDurablePostgresAutoConfiguration.java"),
+            ("PostgresDurableStore", "DurablePostgresSchemaInitializer"),
+        ),
+        "MySQL": (
+            read("compileflow-durable/compileflow-durable-spring-boot-autoconfigure-mysql/src/main/java/"
+                 "com/alibaba/compileflow/durable/spring/boot/autoconfigure/mysql/"
+                 "CompileFlowDurableMySqlAutoConfiguration.java"),
+            ("MySqlDurableStore", "DurableMySqlSchemaInitializer"),
+        ),
+    }
+    for provider, (configuration, markers) in provider_compositions.items():
+        for marker in (*markers, "compileFlowDurableDataSource", "@ConditionalOnMissingBean(DurableStore.class)"):
+            require(marker in configuration, f"{provider} Durable composition misses {marker!r}")
 
     neutral_starter = read(
         "compileflow-durable/compileflow-durable-spring-boot-starter/pom.xml"
     )
-    for provider_dependency in ("compileflow-durable-postgres", "flyway-core", "postgresql"):
+    for provider_dependency in ("compileflow-durable-postgresql", "compileflow-durable-mysql", "flyway-core",
+                                "postgresql", "mysql-connector-j"):
         require(
             provider_dependency not in neutral_starter,
             f"Provider-neutral Durable starter leaks {provider_dependency}",
         )
     postgres_starter = read(
-        "compileflow-durable/compileflow-durable-spring-boot-starter-postgres/pom.xml"
+        "compileflow-durable/compileflow-durable-spring-boot-starter-postgresql/pom.xml"
     )
     for provider_dependency in (
         "compileflow-durable-spring-boot-starter",
-        "compileflow-durable-postgres",
+        "compileflow-durable-spring-boot-autoconfigure-postgresql",
         "flyway-database-postgresql",
         "postgresql",
     ):
@@ -823,6 +834,15 @@ def check_optional_observability() -> None:
             provider_dependency in postgres_starter,
             f"PostgreSQL Durable starter misses {provider_dependency}",
         )
+    mysql_starter = read(
+        "compileflow-durable/compileflow-durable-spring-boot-starter-mysql/pom.xml"
+    )
+    for provider_dependency in (
+        "compileflow-durable-spring-boot-starter", "compileflow-durable-spring-boot-autoconfigure-mysql",
+        "flyway-mysql", "mysql-connector-j",
+    ):
+        require(provider_dependency in mysql_starter,
+                f"MySQL Durable starter misses {provider_dependency}")
 
     health = read(
         "compileflow-durable/compileflow-durable-spring-boot-autoconfigure/src/main/java/"
@@ -853,14 +873,14 @@ def check_documented_boundary() -> None:
             f"Authoritative Durable documentation retains stale API contract {stale_contract!r}",
         )
 
-    architecture = read("docs/architecture/10-DURABLE_ARCHITECTURE.en.md")
+    architecture = read("docs/en/architecture/durable-architecture.md")
     normalized_architecture = " ".join(architecture.lower().split())
     for marker in (
         "admission materializes one exact immutable stored process",
         "binds the run to its `processid`",
         "alias is deploy control-plane state",
         "before resolving alias once",
-        "generated java source, classes, bytecode, or runtime objects",
+        "kernel does not persist generated java source, classes, bytecode, live object instances",
         "application/runtime capability problem",
         "opaque, one-shot bearer capability",
         "does not require an application token table",
@@ -872,11 +892,15 @@ def check_documented_boundary() -> None:
         )
 
     normalized_architecture = " ".join(architecture.split())
-    require(
-        "Every Run stores one exact root `processId`; Version is optional admission attribution"
-        in normalized_architecture,
-        "Durable architecture misses the content-addressed recovery identity",
-    )
+    for marker in (
+        "content-addressed `processId`",
+        "Namespace and optional Version belong to Run admission attribution, not stored semantic identity",
+        "Every Run stores one exact root `processId`",
+    ):
+        require(
+            marker in normalized_architecture,
+            f"Durable architecture misses recovery identity boundary {marker!r}",
+        )
 
 
 def main() -> int:

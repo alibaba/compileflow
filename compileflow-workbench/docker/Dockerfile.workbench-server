@@ -4,6 +4,7 @@ WORKDIR /src
 COPY .mvn .mvn
 COPY mvnw .
 COPY pom.xml .
+COPY compileflow-bom/pom.xml compileflow-bom/pom.xml
 COPY LICENSE NOTICE ./
 COPY compileflow-api compileflow-api
 COPY compileflow-core compileflow-core
@@ -12,6 +13,8 @@ COPY compileflow-bpmn compileflow-bpmn
 COPY compileflow-durable compileflow-durable
 COPY compileflow-spring-boot-autoconfigure compileflow-spring-boot-autoconfigure
 COPY compileflow-spring-boot-starter/pom.xml compileflow-spring-boot-starter/pom.xml
+COPY compileflow-spring-boot-starter-tbbpm/pom.xml compileflow-spring-boot-starter-tbbpm/pom.xml
+COPY compileflow-spring-boot-starter-bpmn/pom.xml compileflow-spring-boot-starter-bpmn/pom.xml
 COPY compileflow-deploy compileflow-deploy
 COPY compileflow-integration-tests/pom.xml compileflow-integration-tests/pom.xml
 COPY compileflow-workbench-server compileflow-workbench-server

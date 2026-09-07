@@ -101,15 +101,17 @@ export const useLearningProgress = () => {
 
 interface LearningProgressCardProps {
   exampleId: string
+  learningProgress: ReturnType<typeof useLearningProgress>
   onMarkComplete?: () => void
 }
 
 export const LearningProgressCard: React.FC<LearningProgressCardProps> = ({
   exampleId,
+  learningProgress,
   onMarkComplete,
 }) => {
   const { t } = useTranslation()
-  const { isCompleted, markAsCompleted, getCompletionRate, progress } = useLearningProgress()
+  const { isCompleted, markAsCompleted, getCompletionRate, progress } = learningProgress
 
   const completed = isCompleted(exampleId)
   const completionRate = getCompletionRate()

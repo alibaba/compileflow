@@ -44,6 +44,29 @@ public final class CompileFlowDurableProperties {
      */
     @NotNull
     private final ProcessRuntimeMode runtimeMode;
+    /**
+     * ProcessCall admission limits.
+     */
+    @Valid
+    @NotNull
+    @NestedConfigurationProperty
+    private final Call call;
+    @Valid
+    @NotNull
+    @NestedConfigurationProperty
+    private final Shutdown shutdown;
+    @Valid
+    @NotNull
+    @NestedConfigurationProperty
+    private final DurableDefinitionProperties definition;
+    @Valid
+    @NotNull
+    @NestedConfigurationProperty
+    private final DurableJavaDiagnosticsProperties javaDiagnostics;
+    @Valid
+    @NotNull
+    @NestedConfigurationProperty
+    private final Database database;
     @Valid
     @NotNull
     @NestedConfigurationProperty
@@ -66,11 +89,18 @@ public final class CompileFlowDurableProperties {
     private final Cache cache;
 
     public CompileFlowDurableProperties(@DefaultValue("false") boolean enabled,
-            @DefaultValue("COMPILED") ProcessRuntimeMode runtimeMode, @DefaultValue Worker worker,
-            @DefaultValue Outbox outbox, @DefaultValue Maintenance maintenance, @DefaultValue Retention retention,
-            @DefaultValue Cache cache) {
+            @DefaultValue("COMPILED") ProcessRuntimeMode runtimeMode, @DefaultValue Call call,
+            @DefaultValue Shutdown shutdown, @DefaultValue DurableDefinitionProperties definition,
+            @DefaultValue DurableJavaDiagnosticsProperties javaDiagnostics, @DefaultValue Database database,
+            @DefaultValue Worker worker, @DefaultValue Outbox outbox, @DefaultValue Maintenance maintenance,
+            @DefaultValue Retention retention, @DefaultValue Cache cache) {
         this.enabled = enabled;
         this.runtimeMode = runtimeMode;
+        this.call = call;
+        this.shutdown = shutdown;
+        this.definition = definition;
+        this.javaDiagnostics = javaDiagnostics;
+        this.database = database;
         this.worker = worker;
         this.outbox = outbox;
         this.maintenance = maintenance;
@@ -84,6 +114,26 @@ public final class CompileFlowDurableProperties {
 
     public ProcessRuntimeMode getRuntimeMode() {
         return runtimeMode;
+    }
+
+    public Call getCall() {
+        return call;
+    }
+
+    public Shutdown getShutdown() {
+        return shutdown;
+    }
+
+    public DurableDefinitionProperties getDefinition() {
+        return definition;
+    }
+
+    public DurableJavaDiagnosticsProperties getJavaDiagnostics() {
+        return javaDiagnostics;
+    }
+
+    public Database getDatabase() {
+        return database;
     }
 
     public Worker getWorker() {
@@ -104,6 +154,81 @@ public final class CompileFlowDurableProperties {
 
     public Cache getCache() {
         return cache;
+    }
+
+    /**
+     * Optional first-party persistence Provider selection for this Durable runtime.
+     */
+    public static final class Database {
+        private final Provider provider;
+        private final boolean migrate;
+
+        public Database(Provider provider, @DefaultValue("false") boolean migrate) {
+            this.provider = provider;
+            this.migrate = migrate;
+        }
+
+        public Provider getProvider() {
+            return provider;
+        }
+
+        public boolean isMigrate() {
+            return migrate;
+        }
+
+        /**
+         * First-party Durable persistence Providers.
+         */
+        public enum Provider {
+            POSTGRESQL,
+            MYSQL
+        }
+    }
+
+    /**
+     * Worker drain budget used by stop and close; excludes admitted application operations
+     * and subsequent resource cleanup.
+     */
+    public static final class Shutdown {
+        /**
+         * Maximum worker drain wait before requesting interruption and reporting unfinished work.
+         */
+        @NotNull
+        private final Duration timeout;
+
+        public Shutdown(@DefaultValue("15s") Duration timeout) {
+            this.timeout = timeout;
+        }
+
+        public Duration getTimeout() {
+            return timeout;
+        }
+
+        @AssertTrue(message = "compileflow.durable.shutdown.timeout must be a positive whole-millisecond duration"
+                + " at most 1d")
+        public boolean isTimeoutValid() {
+            return isPositiveWholeMillisecondsAtMost(timeout, Duration.ofDays(1));
+        }
+    }
+
+    /**
+     * Synchronous ProcessCall admission limits.
+     */
+    public static final class Call {
+        /**
+         * Maximum root-inclusive ProcessCall depth admitted into a Run.
+         */
+        @Min(value = 1, message = "compileflow.durable.call.max-depth must be between 1 and 256")
+        @Max(value = 256, message = "compileflow.durable.call.max-depth must be between 1 and 256")
+        private final int maxDepth;
+
+        public Call(@DefaultValue("32") int maxDepth) {
+            this.maxDepth = maxDepth;
+        }
+
+        public int getMaxDepth() {
+            return maxDepth;
+        }
     }
 
     /**
@@ -215,10 +340,11 @@ public final class CompileFlowDurableProperties {
             return isOptionalText(id, 96);
         }
 
-        @AssertTrue(message = "compileflow.durable.worker.lease-duration must be a positive whole-millisecond"
-                + " duration at most 1h")
+        @AssertTrue(message = "compileflow.durable.worker.lease-duration must be a whole-millisecond"
+                + " duration between 2ms and 1h to allow renewal before expiry")
         public boolean isLeaseDurationValid() {
-            return isPositiveWholeMillisecondsAtMost(leaseDuration, Duration.ofHours(1));
+            return isPositiveWholeMillisecondsAtMost(leaseDuration, Duration.ofHours(1))
+                    && leaseDuration.toMillis() >= 2L;
         }
 
         @AssertTrue(message = "compileflow.durable.worker.idle-poll-delay must be a positive whole-millisecond"
@@ -327,10 +453,10 @@ public final class CompileFlowDurableProperties {
         @NotNull
         private final Duration interval;
         /**
-         * Maximum records processed by one maintenance operation.
+         * Maximum records processed by one maintenance operation (1..1000).
          */
-        @Min(value = 1, message = "compileflow.durable.maintenance.batch-size must be between 1 and 10000")
-        @Max(value = 10_000, message = "compileflow.durable.maintenance.batch-size must be between 1 and 10000")
+        @Min(value = 1, message = "compileflow.durable.maintenance.batch-size must be between 1 and 1000")
+        @Max(value = 1_000, message = "compileflow.durable.maintenance.batch-size must be between 1 and 1000")
         private final int batchSize;
 
         public Maintenance(@DefaultValue("1s") Duration interval, @DefaultValue("100") int batchSize) {

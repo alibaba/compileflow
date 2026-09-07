@@ -17,12 +17,12 @@ import com.alibaba.compileflow.engine.AliasRoutingOptions;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
 import com.alibaba.compileflow.engine.ProcessExecutionOptions;
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
 import com.alibaba.compileflow.engine.core.assembly.EngineAssembly;
 import com.alibaba.compileflow.engine.core.routing.LocalRoutingState;
 import com.alibaba.compileflow.engine.spi.routing.ProcessAliasRoute;
-import com.alibaba.compileflow.engine.tbbpm.TbbpmProcessEngineProvider;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -79,29 +79,36 @@ public class CompileFlowAliasExecuteBenchmark {
      */
     @Setup
     public void setup() {
-        ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineConfig.builder().discoverPlugins(false).build();
         LocalRoutingState localRoutingState = LocalRoutingState.requiringLocalInstallation();
-        this.engine = new TbbpmProcessEngineProvider()
-            .createEngine(config, EngineAssembly.assemble(config, localRoutingState));
+        this.engine = EngineAssembly.create(config, EngineAssembly.assemble(config, localRoutingState));
+        try {
+            ProcessRef.Version versionOne = ProcessRef.version(CODE, "benchmark-v1");
+            ProcessRef.Version versionTwo = ProcessRef.version(CODE, "benchmark-v2");
+            ProcessDefinition definition = ProcessDefinition.classpath(ProcessModelType.TBBPM, CODE, "flows/hello.bpm");
+            engine.runtime().load(versionOne, definition);
+            engine.runtime().load(versionTwo, definition);
 
-        ProcessRef.Version versionOne = ProcessRef.version(CODE, "benchmark-v1");
-        ProcessRef.Version versionTwo = ProcessRef.version(CODE, "benchmark-v2");
-        ProcessDefinition definition = ProcessDefinition.classpath(CODE, "flows/hello.bpm");
-        engine.runtime().load(versionOne, definition);
-        engine.runtime().load(versionTwo, definition);
+            this.stableAlias = ProcessRef.alias(CODE, "benchmark-stable");
+            this.canaryAlias = ProcessRef.alias(CODE, "benchmark-canary");
+            localRoutingState.applyAliasRoute(ProcessAliasRoute.stable(stableAlias, versionOne.version(), 1L));
+            localRoutingState.applyAliasRoute(ProcessAliasRoute.canary(canaryAlias, versionOne.version(),
+                    versionTwo.version(), 5_000, 1L));
+            this.canaryOptions = ProcessExecutionOptions
+                .builder()
+                .aliasRouting(new AliasRoutingOptions("benchmark-user-42"))
+                .build();
 
-        this.stableAlias = ProcessRef.alias(CODE, "benchmark-stable");
-        this.canaryAlias = ProcessRef.alias(CODE, "benchmark-canary");
-        localRoutingState.applyAliasRoute(ProcessAliasRoute.stable(stableAlias, versionOne.version(), 1L));
-        localRoutingState.applyAliasRoute(ProcessAliasRoute.canary(canaryAlias, versionOne.version(),
-                versionTwo.version(), 5_000, 1L));
-        this.canaryOptions = ProcessExecutionOptions
-            .builder()
-            .aliasRouting(new AliasRoutingOptions("benchmark-user-42"))
-            .build();
-
-        verifyResult(engine.execute(stableAlias, Map.of("value", 40)).orElseThrow());
-        verifyResult(engine.execute(canaryAlias, Map.of("value", 40), canaryOptions).orElseThrow());
+            verifyResult(engine.execute(stableAlias, Map.of("value", 40)).orElseThrow());
+            verifyResult(engine.execute(canaryAlias, Map.of("value", 40), canaryOptions).orElseThrow());
+        } catch (RuntimeException | Error failure) {
+            try {
+                engine.close();
+            } catch (RuntimeException | Error closing) {
+                failure.addSuppressed(closing);
+            }
+            throw failure;
+        }
     }
 
     /**

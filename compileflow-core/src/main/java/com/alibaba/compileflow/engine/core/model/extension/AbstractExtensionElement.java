@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -49,14 +50,6 @@ public abstract class AbstractExtensionElement {
         return extensionElements.get(extensionElementName);
     }
 
-    public ExtensionElement getOnlyExtensionElement(String extensionElementName) {
-        List<ExtensionElement> extensionElements = this.extensionElements.get(extensionElementName);
-        if (extensionElements != null && extensionElements.size() == 1) {
-            return extensionElements.get(0);
-        }
-        throw new IllegalStateException("Expected only one element of type " + extensionElementName);
-    }
-
     public List<ExtensionAttribute> getAttributes() {
         return extensionAttributes.values().stream().flatMap(List::stream).toList();
     }
@@ -65,21 +58,13 @@ public abstract class AbstractExtensionElement {
         return getAttributeValue("", name);
     }
 
-    public String getAttributeValueOrDefault(String name, String defaultValue) {
-        String attributeValue = getAttributeValue("", name);
-        if (StringUtils.isBlank(attributeValue)) {
-            return defaultValue;
-        }
-        return attributeValue;
-    }
-
     public String getAttributeValue(String namespace, String name) {
         List<ExtensionAttribute> attributes = extensionAttributes.get(name);
         if (CollectionUtils.isNotEmpty(attributes)) {
             return attributes
                 .stream()
                 .filter(attribute -> (StringUtils.isEmpty(attribute.getNamespacePrefix())
-                        && StringUtils.isEmpty(namespace)) || attribute.getNamespacePrefix().equals(namespace))
+                        && StringUtils.isEmpty(namespace)) || Objects.equals(attribute.getNamespacePrefix(), namespace))
                 .map(ExtensionAttribute::getValue)
                 .findFirst()
                 .orElse(null);

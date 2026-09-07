@@ -41,11 +41,13 @@ export function useAsyncInvocationDetail(): AsyncInvocationDetailState {
   const [selected, setSelected] = useState<AsyncInvocationResponse | null>(null)
   const [attemptPage, setAttemptPage] = useState<AttemptPage>(EMPTY_ATTEMPT_PAGE)
   const [loadingMore, setLoadingMore] = useState(false)
+  const selectedInvocationId = useRef<string | null>(null)
   const detailGeneration = useRef(0)
   const loadingMoreRef = useRef(false)
 
   useEffect(
     () => () => {
+      selectedInvocationId.current = null
       detailGeneration.current += 1
       loadingMoreRef.current = false
     },
@@ -54,6 +56,7 @@ export function useAsyncInvocationDetail(): AsyncInvocationDetailState {
 
   const loadDetail = useCallback(
     async (invocationId: string): Promise<boolean> => {
+      if (selectedInvocationId.current !== invocationId) return true
       const generation = ++detailGeneration.current
       loadingMoreRef.current = false
       setDetailLoading(true)
@@ -86,6 +89,7 @@ export function useAsyncInvocationDetail(): AsyncInvocationDetailState {
 
   const inspectInvocation = useCallback(
     (invocation: AsyncInvocationResponse) => {
+      selectedInvocationId.current = invocation.invocationId
       setDetailOpen(true)
       setSelected(invocation)
       setAttemptPage(EMPTY_ATTEMPT_PAGE)
@@ -95,9 +99,11 @@ export function useAsyncInvocationDetail(): AsyncInvocationDetailState {
   )
 
   const closeDetail = useCallback(() => {
+    selectedInvocationId.current = null
     detailGeneration.current += 1
     loadingMoreRef.current = false
     setLoadingMore(false)
+    setDetailLoading(false)
     setDetailOpen(false)
   }, [])
 
@@ -141,6 +147,7 @@ export function useAsyncInvocationDetail(): AsyncInvocationDetailState {
   }, [attemptPage.hasMore, attemptPage.nextAfterSequence, message, selected, t])
 
   const replaceSelected = useCallback((invocation: AsyncInvocationResponse) => {
+    if (selectedInvocationId.current !== invocation.invocationId) return
     setSelected(invocation)
   }, [])
 

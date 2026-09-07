@@ -21,7 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import com.alibaba.compileflow.deploy.api.ProcessDeploymentService;
-import com.alibaba.compileflow.deploy.control.routing.RoutingOutboxAdminService;
+import com.alibaba.compileflow.deploy.control.outbox.RoutingOutboxAdminService;
 import com.alibaba.compileflow.workbench.server.config.ServerJacksonConfiguration;
 import com.alibaba.compileflow.workbench.server.deployment.CanaryHealthService;
 import com.alibaba.compileflow.workbench.server.deployment.DeploymentControlController;

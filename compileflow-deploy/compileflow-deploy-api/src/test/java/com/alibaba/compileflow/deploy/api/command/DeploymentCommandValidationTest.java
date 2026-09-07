@@ -30,7 +30,7 @@ class DeploymentCommandValidationTest {
 
     private static PublishProcessVersionCommand publish(Map<String, String> metadata, String actor) {
         return new PublishProcessVersionCommand(ProcessRef.version("default", "order.flow", "v1"),
-                ProcessModelType.TBBPM, ProcessDefinition.inline("order.flow", "<bpm/>"), actor, metadata);
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "order.flow", "<bpm/>"), actor, metadata);
     }
 
     @Test
@@ -38,7 +38,7 @@ class DeploymentCommandValidationTest {
         Map<String, String> metadata = new LinkedHashMap<>();
         metadata.put("ticket", "REL-42");
         PublishProcessVersionCommand command = new PublishProcessVersionCommand(ProcessRef.version("default",
-                        "order.flow", "v1"), ProcessModelType.TBBPM, ProcessDefinition.inline("order.flow", "<bpm/>"),
+                        "order.flow", "v1"), ProcessDefinition.inline(ProcessModelType.TBBPM, "order.flow", "<bpm/>"),
                 "release-service", metadata);
 
         metadata.put("ticket", "changed");
@@ -51,14 +51,14 @@ class DeploymentCommandValidationTest {
     void keepsArtifactDigestPreconditionsSeparateFromMetadata() {
         String expectedDigest = "a".repeat(64);
         PublishProcessVersionCommand command = new PublishProcessVersionCommand(ProcessRef.version("default",
-                        "order.flow", "v1"), ProcessModelType.TBBPM, ProcessDefinition.inline("order.flow", "<bpm/>"),
+                        "order.flow", "v1"), ProcessDefinition.inline(ProcessModelType.TBBPM, "order.flow", "<bpm/>"),
                 expectedDigest, "release-service", Map.of(ReleaseMetadataKeys.CHANGELOG, "Ready"));
 
         assertThat(command.getExpectedArtifactDigest()).isEqualTo(expectedDigest);
         assertThat(command.getMetadata()).containsOnlyKeys(ReleaseMetadataKeys.CHANGELOG);
         assertThatIllegalArgumentException()
             .isThrownBy(() -> new PublishProcessVersionCommand(ProcessRef.version("default", "order.flow", "v1"),
-                    ProcessModelType.TBBPM, ProcessDefinition.inline("order.flow", "<bpm/>"), "not-a-digest",
+                    ProcessDefinition.inline(ProcessModelType.TBBPM, "order.flow", "<bpm/>"), "not-a-digest",
                     "release-service", Map.of()))
             .withMessageContaining("expectedArtifactDigest");
     }

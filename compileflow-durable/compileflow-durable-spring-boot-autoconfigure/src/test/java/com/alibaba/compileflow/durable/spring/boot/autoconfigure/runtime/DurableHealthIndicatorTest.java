@@ -16,9 +16,9 @@ package com.alibaba.compileflow.durable.spring.boot.autoconfigure.runtime;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import com.alibaba.compileflow.durable.runtime.observability.DurableRuntimeMetrics.Operation;
 import com.alibaba.compileflow.durable.runtime.program.InMemoryDurableProcessRuntimeCache;
 import com.alibaba.compileflow.durable.runtime.worker.DurableLeaseRenewer;
+import com.alibaba.compileflow.durable.runtime.worker.DurableWorkerCoordinator;
 import com.alibaba.compileflow.durable.runtime.worker.DurableLeaseRenewer.LaneHealth;
 import com.alibaba.compileflow.durable.runtime.worker.DurableLeaseRenewer.RenewalHealth;
 import com.alibaba.compileflow.durable.spi.store.DurableStore;
@@ -38,6 +38,7 @@ class DurableHealthIndicatorTest {
 
         assertThat(health.getStatus()).isEqualTo(Status.UP);
         assertThat(health.getDetails())
+            .containsEntry("degraded", false)
             .containsEntry("durableAuthority", "up")
             .containsEntry("workerRuntime", "disabled")
             .containsEntry("effectCapability", "process_scoped")
@@ -63,20 +64,20 @@ class DurableHealthIndicatorTest {
 
     @Test
     void persistentWorkerMachineryFaultIsDegradedRatherThanGloballyDown() {
-        DurableWorkerHealth workerHealth = new DurableWorkerHealth(List.of(Operation.TURN));
-        for (int attempt = 0; attempt < 3; attempt++) {
-            workerHealth.fault(Operation.TURN, new IllegalStateException("secret-process-state"));
-        }
         DurableWorkerCoordinator coordinator = mock(DurableWorkerCoordinator.class);
         when(coordinator.isRunning()).thenReturn(true);
-        when(coordinator.workerHealthSnapshot()).thenReturn(workerHealth.snapshot());
+        when(coordinator.workerHealthSnapshot())
+            .thenReturn(
+                    new DurableWorkerCoordinator.HealthSnapshot(true,
+                            java.util.Map.of("turn", java.util.Map.of("state", "faulting", "consecutiveFaults", 3))));
 
         Health health = new DurableHealthIndicator(healthyStore(), new InMemoryDurableProcessRuntimeCache(),
                 () -> coordinator, () -> null, false)
             .health();
 
-        assertThat(health.getStatus()).isEqualTo(new Status("DEGRADED"));
+        assertThat(health.getStatus()).isEqualTo(org.springframework.boot.health.contributor.Status.UP);
         assertThat(health.getDetails())
+            .containsEntry("degraded", true)
             .containsEntry("durableAuthority", "up")
             .containsEntry("workerRuntime", "running")
             .containsEntry("workerMachinery", "degraded")
@@ -95,7 +96,8 @@ class DurableHealthIndicatorTest {
                 () -> renewer, false)
             .health();
 
-        assertThat(health.getStatus()).isEqualTo(new Status("DEGRADED"));
+        assertThat(health.getStatus()).isEqualTo(org.springframework.boot.health.contributor.Status.UP);
+        assertThat(health.getDetails()).containsEntry("degraded", true);
         assertThat(health.getDetails()).containsEntry("durableAuthority", "up").containsEntry("leaseRenewal", "degraded");
         @SuppressWarnings("unchecked")
         Map<String, Map<String, Object>> lanes =

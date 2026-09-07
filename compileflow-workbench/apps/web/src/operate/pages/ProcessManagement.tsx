@@ -36,8 +36,10 @@ import { type FilterParsers, useFilterState } from '@/shared/hooks/useFilterStat
 import { usePageTitle } from '@/shared/hooks/usePageTitle'
 import { usePaginationItemRender } from '@/shared/hooks/usePaginationItemRender'
 import { formatDateTime } from '@/shared/i18n/dateTime'
+import { createUniqueId } from '@/shared/identifiers'
 import { createLogger } from '@/shared/logging/logger'
 import { DEFAULT_BPMN_WITH_EVENTS_XML } from '@/shared/processes/bpmnTemplates'
+import { withProcessXmlIdentity } from '@/shared/processes/processXmlIdentity'
 import { DEFAULT_TBBPM_WITH_NODES_XML } from '@/shared/processes/tbbpmTemplates'
 import {
   getOperateProcessDesignerCapability,
@@ -148,15 +150,13 @@ function useProcessFilters() {
   }
 }
 
-export function useProcessManagementData(t: TFunction, navigate: Navigate): ProcessManagementState {
-  const { message } = App.useApp()
+function useProcessListData(filters: ReturnType<typeof useProcessFilters>) {
   const [processes, setProcesses] = useState<ProcessSummary[]>([])
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState(false)
   const [total, setTotal] = useState(0)
-  const filters = useProcessFilters()
-  const publicationIntents = useRef(new Map<string, string>())
   const loadGeneration = useRef(0)
+  const activeReload = useRef<(() => Promise<void>) | null>(null)
 
   const loadProcesses = useCallback(async () => {
     const generation = ++loadGeneration.current
@@ -183,26 +183,40 @@ export function useProcessManagementData(t: TFunction, navigate: Navigate): Proc
   }, [filters.processType, filters.keyword, filters.page])
 
   useEffect(() => {
+    activeReload.current = loadProcesses
     setProcesses([])
     setTotal(0)
     void loadProcesses()
     return () => {
+      activeReload.current = null
       loadGeneration.current += 1
     }
   }, [loadProcesses])
+
+  return { processes, loading, loadError, total, loadProcesses, activeReload }
+}
+
+export function useProcessManagementData(t: TFunction, navigate: Navigate): ProcessManagementState {
+  const { message } = App.useApp()
+  const filters = useProcessFilters()
+  const { processes, loading, loadError, total, loadProcesses, activeReload } =
+    useProcessListData(filters)
+  const publicationIntents = useRef(new Map<string, string>())
 
   const handleDelete = useCallback(
     async (code: string, revision: number) => {
       try {
         await deleteProcess(code, revision)
+        if (!activeReload.current) return
         message.success(t('process.deleteSuccess'))
-        void loadProcesses()
+        void activeReload.current()
       } catch (error) {
+        if (!activeReload.current) return
         logger.error('Failed to delete process', toError(error), { code })
         message.error(t('process.deleteError'))
       }
     },
-    [loadProcesses, t]
+    [message, t]
   )
 
   const handleDuplicate = useCallback(
@@ -213,14 +227,16 @@ export function useProcessManagementData(t: TFunction, navigate: Navigate): Proc
           `${code}_copy_${Date.now()}`,
           t('process.duplicateName', { name })
         )
+        if (!activeReload.current) return
         message.success(t('process.duplicateSuccess'))
-        void loadProcesses()
+        void activeReload.current()
       } catch (error) {
+        if (!activeReload.current) return
         logger.error('Failed to duplicate process', toError(error), { code })
         message.error(t('process.duplicateError'))
       }
     },
-    [loadProcesses, t]
+    [message, t]
   )
 
   const handleCreateProcess = useCallback(
@@ -232,18 +248,26 @@ export function useProcessManagementData(t: TFunction, navigate: Navigate): Proc
 
       const code = `process-${Date.now()}`
       try {
+        const name = t('process.newProcessDefaultName')
         await createProcess({
           code,
-          name: t('process.newProcessDefaultName'),
+          name,
           type,
-          xml: type === 'TBBPM' ? DEFAULT_TBBPM_WITH_NODES_XML : DEFAULT_BPMN_WITH_EVENTS_XML,
+          xml: withProcessXmlIdentity(
+            type === 'TBBPM' ? DEFAULT_TBBPM_WITH_NODES_XML : DEFAULT_BPMN_WITH_EVENTS_XML,
+            type,
+            code,
+            name
+          ),
           description: '',
         })
+        if (!activeReload.current) return
         openDesignerFromOperateProcessCode(navigate, {
           processCode: code,
           modelType: type.toLowerCase(),
         })
       } catch (error) {
+        if (!activeReload.current) return
         logger.error('Failed to create process', toError(error), { code, type })
         message.error(t('process.createError'))
       }
@@ -254,34 +278,38 @@ export function useProcessManagementData(t: TFunction, navigate: Navigate): Proc
   const handlePublish = useCallback(
     async (code: string, revision: number) => {
       const intent = `${code}\u0000${revision}`
-      const idempotencyKey = publicationIntents.current.get(intent) ?? crypto.randomUUID()
+      const idempotencyKey = publicationIntents.current.get(intent) ?? createUniqueId()
       publicationIntents.current.set(intent, idempotencyKey)
       try {
         await publishProcess(code, revision, idempotencyKey)
         publicationIntents.current.delete(intent)
+        if (!activeReload.current) return
         message.success(t('process.publishSuccess'))
-        void loadProcesses()
+        void activeReload.current()
       } catch (error) {
+        if (!activeReload.current) return
         logger.error('Failed to publish process', toError(error), { code })
         message.error(t('process.publishError'))
       }
     },
-    [loadProcesses, t]
+    [message, t]
   )
 
   const handleImportXml = useCallback(
     async (file: File) => {
       try {
         await importProcessXml(file)
+        if (!activeReload.current) return false
         message.success(t('process.importSuccess'))
-        void loadProcesses()
+        void activeReload.current()
       } catch (error) {
+        if (!activeReload.current) return false
         logger.error('Failed to import process XML', toError(error), { fileName: file.name })
         message.error(t('process.importError'))
       }
       return false
     },
-    [loadProcesses, t]
+    [message, t]
   )
 
   return {

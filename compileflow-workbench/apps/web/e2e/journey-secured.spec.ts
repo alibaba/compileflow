@@ -1,15 +1,10 @@
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import { expect, test } from '@playwright/test'
 
 import { markerProcessXml } from './integration/support/markerProcess'
 import { assertNoPageErrors, shot, TIMEOUT, trackErrors } from './journey-helpers'
 
-const ROOT = path.dirname(fileURLToPath(import.meta.url))
-const SHOT_DIR = path.join(ROOT, '../test-results/journey-review')
-const SERVER = 'http://127.0.0.1:8082'
-const EDGE = 'http://127.0.0.1:4174'
+const SERVER = process.env.COMPILEFLOW_E2E_SERVER_URL ?? 'http://127.0.0.1:8082'
+const EDGE = `http://127.0.0.1:${process.env.COMPILEFLOW_SECURED_EDGE_PORT ?? '4174'}`
 const API_KEY = 'compileflow-e2e-test-api-key-32charsxx'
 
 /**
@@ -71,18 +66,21 @@ test.describe('Secured Vite → edge → API_KEY server', () => {
     ).toBeVisible({
       timeout: TIMEOUT,
     })
-    await page.screenshot({ path: path.join(SHOT_DIR, '190-secured-settings.png'), fullPage: true })
+    await page.screenshot({
+      path: test.info().outputPath('190-secured-settings.png'),
+      fullPage: true,
+    })
 
     await page.goto('/learn/examples')
     await expect(page.getByRole('heading', { name: /示例库|Examples/i })).toBeVisible({
       timeout: TIMEOUT,
     })
     await expect(page.locator('main article').first()).toBeVisible({ timeout: TIMEOUT })
-    await page.screenshot({ path: path.join(SHOT_DIR, '191-secured-learn.png'), fullPage: true })
+    await page.screenshot({ path: test.info().outputPath('191-secured-learn.png'), fullPage: true })
 
     await page.goto('/operate/processes')
     await expect(page.locator('.ant-table, main').first()).toBeVisible({ timeout: TIMEOUT })
-    await page.screenshot({ path: path.join(SHOT_DIR, '192-secured-flows.png'), fullPage: true })
+    await page.screenshot({ path: test.info().outputPath('192-secured-flows.png'), fullPage: true })
 
     expect(apiKeyLeaks).toEqual([])
     expect(apiHits.some((hit) => hit.startsWith('2'))).toBeTruthy()
@@ -161,7 +159,7 @@ test.describe('Secured Vite → edge → API_KEY server', () => {
     const savedText = await saved.text()
     expect(saved.ok(), savedText).toBeTruthy()
     const body = JSON.parse(savedText) as { xml?: string; revision: number }
-    expect((body.xml?.match(/<autoTask\b/g) || []).length).toBeGreaterThanOrEqual(2)
+    expect((body.xml?.match(/<autoTask\b/g) || []).length).toBe(1)
 
     // Direct server still requires the key.
     const denied = await request.get(`${SERVER}/api/processes/${encodeURIComponent(code)}`)

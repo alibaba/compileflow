@@ -44,7 +44,7 @@ import java.util.Optional;
  * @author yusu
  */
 public final class ActionExecutionContext {
-    private static final ThreadLocal<ActionExecutionContext> CURRENT = new ThreadLocal<>();
+    private static final ThreadLocal<Scope> CURRENT = new ThreadLocal<>();
     private final String processInvocationId;
     private final String namespace;
     private final String processCode;
@@ -93,7 +93,7 @@ public final class ActionExecutionContext {
      * @throws IllegalStateException when called outside an action invocation
      */
     public static ActionExecutionContext current() {
-        ActionExecutionContext context = CURRENT.get();
+        ActionExecutionContext context = currentOptional().orElse(null);
         if (context == null) {
             throw new IllegalStateException("No action execution context is available on the current thread");
         }
@@ -106,7 +106,8 @@ public final class ActionExecutionContext {
      * @return optional current action execution context
      */
     public static Optional<ActionExecutionContext> currentOptional() {
-        return Optional.ofNullable(CURRENT.get());
+        Scope scope = CURRENT.get();
+        return Optional.ofNullable(scope == null ? null : scope.installed);
     }
 
     /**
@@ -121,10 +122,7 @@ public final class ActionExecutionContext {
      * @return scope restoring the previous context
      */
     public static Scope open(ActionExecutionContext context) {
-        ActionExecutionContext installed = Objects.requireNonNull(context, "context");
-        ActionExecutionContext previous = CURRENT.get();
-        CURRENT.set(installed);
-        return new Scope(Thread.currentThread(), installed, previous);
+        return new Scope(Objects.requireNonNull(context, "context"));
     }
 
     /**
@@ -133,9 +131,7 @@ public final class ActionExecutionContext {
      * @return scope restoring the previous context
      */
     public static Scope suspend() {
-        ActionExecutionContext previous = CURRENT.get();
-        CURRENT.remove();
-        return new Scope(Thread.currentThread(), null, previous);
+        return new Scope(null);
     }
 
     private static void appendIdentityPart(StringBuilder target, String value) {
@@ -248,24 +244,25 @@ public final class ActionExecutionContext {
     public static final class Scope implements AutoCloseable {
         private final Thread owner;
         private final ActionExecutionContext installed;
-        private final ActionExecutionContext previous;
+        private final Scope previous;
         private boolean closed;
 
-        private Scope(Thread owner, ActionExecutionContext installed, ActionExecutionContext previous) {
-            this.owner = owner;
+        private Scope(ActionExecutionContext installed) {
+            this.owner = Thread.currentThread();
             this.installed = installed;
-            this.previous = previous;
+            this.previous = CURRENT.get();
+            CURRENT.set(this);
         }
 
         @Override
         public void close() {
-            if (closed) {
-                return;
-            }
             if (Thread.currentThread() != owner) {
                 throw new IllegalStateException("Action execution context scope must be closed by its owner thread");
             }
-            if (CURRENT.get() != installed) {
+            if (closed) {
+                return;
+            }
+            if (CURRENT.get() != this) {
                 throw new IllegalStateException("Action execution context scopes must be closed in LIFO order");
             }
             if (previous == null) {

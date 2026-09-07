@@ -18,7 +18,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * Structured deployment failure with a bounded error code and optional process context.
@@ -66,10 +65,18 @@ public final class DeploymentException extends RuntimeException {
             String code, String version, String alias) {
         super(message, cause);
         this.errorCode = Objects.requireNonNull(errorCode, "errorCode");
-        this.namespace = StringUtils.trimToNull(namespace);
-        this.code = StringUtils.trimToNull(code);
-        this.version = StringUtils.trimToNull(version);
-        this.alias = StringUtils.trimToNull(alias);
+        this.namespace = trimToNull(namespace);
+        this.code = trimToNull(code);
+        this.version = trimToNull(version);
+        this.alias = trimToNull(alias);
+    }
+
+    private static String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     /**

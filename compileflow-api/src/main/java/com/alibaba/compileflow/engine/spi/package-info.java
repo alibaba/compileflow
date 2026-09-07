@@ -12,9 +12,9 @@
  * limitations under the License.
  */
 /**
- * Supported service-provider contracts for engine composition and application extensions.
+ * Application extension contracts and the version-coupled engine bootstrap contract.
  *
- * <p>Providers may be discovered with {@link java.util.ServiceLoader}; application plugins are
+ * <p>The engine bootstrap implementation is discovered with {@link java.util.ServiceLoader}; application plugins are
  * assembled into immutable engine configuration snapshots. Implementations must document their
  * thread-safety and lifecycle expectations.
  *

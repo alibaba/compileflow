@@ -22,11 +22,8 @@ import com.alibaba.compileflow.engine.core.model.action.HasAction;
  *
  * @author yusu
  */
-public class ServiceTask extends Task implements HasAction {
+public class ServiceTask extends Activity implements HasAction {
     private Action action;
-
-    public ServiceTask() {
-    }
 
     @Override
     public Action getAction() {

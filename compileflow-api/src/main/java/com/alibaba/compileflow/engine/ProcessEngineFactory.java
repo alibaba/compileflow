@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 
 /**
  * Factory for creating {@link ProcessEngine} instances via SPI.
- * Engine creation allocates resources; prefer a singleton per model type.
+ * Engine creation allocates resources; reuse an engine within its application resource scope.
  *
  * @author yusu
  * @see ProcessEngine
@@ -38,37 +38,21 @@ public final class ProcessEngineFactory {
     /**
      * Create an engine from the given configuration.
      *
-     * @param config engine configuration, including model type and execution settings
-     * @return process engine created by the matching provider
+     * @param config engine resources and execution settings
+     * @return process engine created by the installed implementation
      */
     public static ProcessEngine create(ProcessEngineConfig config) {
-        return createEngine(Objects.requireNonNull(config, "config"));
+        Objects.requireNonNull(config, "config");
+        return createEngine(config, findProvider(config));
     }
 
     /**
-     * Create an engine with default TBBPM configuration.
+     * Creates an engine with production defaults and all installed semantic frontends.
      *
-     * @return TBBPM process engine
+     * @return configured process engine
      */
-    public static ProcessEngine createTbbpm() {
-        return create(ProcessEngineConfig.tbbpm());
-    }
-
-    /**
-     * Create an engine with default BPMN configuration.
-     *
-     * @return BPMN process engine
-     */
-    public static ProcessEngine createBpmn() {
-        return create(ProcessEngineConfig.bpmn());
-    }
-
-    /**
-     * Internal SPI-backed creation.
-     */
-    private static ProcessEngine createEngine(ProcessEngineConfig config) {
-        ProcessEngineProvider provider = findProvider(config);
-        return createEngine(config, provider);
+    public static ProcessEngine create() {
+        return create(ProcessEngineConfig.defaults());
     }
 
     static ProcessEngine createEngine(ProcessEngineConfig config, ProcessEngineProvider provider) {
@@ -81,51 +65,36 @@ public final class ProcessEngineFactory {
     }
 
     /**
-     * Resolve provider for a given model type via ServiceLoader.
+     * Resolves the installed engine implementation via ServiceLoader.
      */
     private static ProcessEngineProvider findProvider(ProcessEngineConfig config) {
         ClassLoader classLoader = config.getClassLoader();
         try {
             ServiceLoader<ProcessEngineProvider> providers =
                     ServiceLoader.load(ProcessEngineProvider.class, classLoader);
-            return selectProvider(config.getModelType(), providers);
+            return selectProvider(providers);
         } catch (ServiceConfigurationError error) {
             throw new CompileFlowException.ConfigurationException(ErrorCode.CF_CONFIG_005,
                     "Failed to discover ProcessEngineProvider implementations using class loader: " + classLoader, error);
         }
     }
 
-    static ProcessEngineProvider selectProvider(ProcessModelType processModelType,
-            Iterable<ProcessEngineProvider> providers) {
-        Objects.requireNonNull(processModelType, "processModelType");
+    static ProcessEngineProvider selectProvider(Iterable<ProcessEngineProvider> providers) {
         Objects.requireNonNull(providers, "providers");
         List<ProcessEngineProvider> matches = new ArrayList<>();
         for (ProcessEngineProvider provider : providers) {
             ProcessEngineProvider candidate = Objects.requireNonNull(provider, "provider must not be null");
-            if (requireModelType(candidate) == processModelType) {
-                matches.add(candidate);
-            }
+            matches.add(candidate);
         }
         if (matches.isEmpty()) {
             throw new CompileFlowException.ConfigurationException(ErrorCode.CF_CONFIG_005,
-                    "No provider found for process model type: " + processModelType
-                    + ". Ensure the corresponding format module is on the classpath.");
+                    "No ProcessEngineProvider found. Ensure compileflow-core is on the classpath.");
         }
         if (matches.size() > 1) {
             throw new CompileFlowException.ConfigurationException(ErrorCode.CF_CONFIG_005,
-                    "Multiple providers found for process model type " + processModelType + ": " + providerNames(
-                            matches));
+                    "Multiple ProcessEngineProvider implementations found: " + providerNames(matches));
         }
         return matches.get(0);
-    }
-
-    private static ProcessModelType requireModelType(ProcessEngineProvider provider) {
-        ProcessModelType modelType = provider.getModelType();
-        if (modelType == null) {
-            throw new CompileFlowException.ConfigurationException(ErrorCode.CF_CONFIG_005,
-                    "ProcessEngineProvider returned null model type: " + provider.getClass().getName());
-        }
-        return modelType;
     }
 
     private static String providerNames(List<ProcessEngineProvider> providers) {

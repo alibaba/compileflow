@@ -18,7 +18,7 @@ import com.alibaba.compileflow.engine.core.model.AbstractFlowElement;
 /**
  * Directed edge connecting two nodes in a TBBPM process graph.
  *
- * <p>{@link #getCondition()} is an optional guard; when blank the transition is unconditional.
+ * <p>{@link #getCondition()} is an optional guard; when absent the transition is unconditional.
  * Sibling outgoing transitions are evaluated in declaration order.
  *
  * @author wuxiang

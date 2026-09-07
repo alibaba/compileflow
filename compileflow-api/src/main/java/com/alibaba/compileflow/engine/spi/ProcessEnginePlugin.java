@@ -87,6 +87,8 @@ public interface ProcessEnginePlugin {
 
     /**
      * Returns the stable plugin identifier used for duplicate detection and explicit replacement.
+     * Identifiers are exact, well-formed Unicode values of at most 256 code points, without
+     * surrounding whitespace, control characters, or Unicode format characters.
      *
      * @return non-blank stable plugin identifier
      */

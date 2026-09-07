@@ -1,39 +1,13 @@
-import { lazy } from 'react'
-
+import CallActivityPropertiesTab from '../components/properties/CallActivityPropertiesTab'
+import ExclusiveGatewayPropertiesTab from '../components/properties/ExclusiveGatewayPropertiesTab'
+import InclusiveGatewayPropertiesTab from '../components/properties/InclusiveGatewayPropertiesTab'
+import ParallelGatewayPropertiesTab from '../components/properties/ParallelGatewayPropertiesTab'
+import ReceiveTaskPropertiesTab from '../components/properties/ReceiveTaskPropertiesTab'
+import ScriptTaskPropertiesTab from '../components/properties/ScriptTaskPropertiesTab'
+import ServiceTaskPropertiesTab from '../components/properties/ServiceTaskPropertiesTab'
+import SubProcessPropertiesTab from '../components/properties/SubProcessPropertiesTab'
 import type { BpmnNodeType } from '../types/flowDefinition'
 import type { BpmnNodePropertyTabConfig } from '../types/propertyTabs'
-
-// ==================== 懒加载属性Tab组件 ====================
-
-// Tasks
-const ServiceTaskPropertiesTab = lazy(
-  () => import('../components/properties/ServiceTaskPropertiesTab')
-)
-const ScriptTaskPropertiesTab = lazy(
-  () => import('../components/properties/ScriptTaskPropertiesTab')
-)
-const ReceiveTaskPropertiesTab = lazy(
-  () => import('../components/properties/ReceiveTaskPropertiesTab')
-)
-
-// Gateways
-const ExclusiveGatewayPropertiesTab = lazy(
-  () => import('../components/properties/ExclusiveGatewayPropertiesTab')
-)
-const ParallelGatewayPropertiesTab = lazy(
-  () => import('../components/properties/ParallelGatewayPropertiesTab')
-)
-const InclusiveGatewayPropertiesTab = lazy(
-  () => import('../components/properties/InclusiveGatewayPropertiesTab')
-)
-
-// Subprocesses
-const CallActivityPropertiesTab = lazy(
-  () => import('../components/properties/CallActivityPropertiesTab')
-)
-const SubProcessPropertiesTab = lazy(
-  () => import('../components/properties/SubProcessPropertiesTab')
-)
 
 const BPMN_NODE_PROPERTY_CONFIGS: Record<BpmnNodeType, BpmnNodePropertyTabConfig | null> = {
   'bpmn:StartEvent': null,

@@ -109,24 +109,4 @@ class RequestValueParserTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessage("limit must be between 1 and 100");
     }
-
-    @Test
-    void optionalDoubleRejectsNonNumericValues() {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("maxCanaryErrorRate", "0.05");
-
-        assertThatThrownBy(() -> RequestValueParser.optionalDouble(body, "maxCanaryErrorRate"))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("maxCanaryErrorRate must be numeric");
-    }
-
-    @Test
-    void optionalBooleanRejectsNonBooleanValues() {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("abortOnFailure", "true");
-
-        assertThatThrownBy(() -> RequestValueParser.optionalBoolean(body, "abortOnFailure", false))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("abortOnFailure must be a boolean");
-    }
 }

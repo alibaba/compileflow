@@ -13,10 +13,10 @@
 
     <artifactId>compileflow-core</artifactId>
     <name>CompileFlow Engine Core</name>
-    <description>Internal process compilation, runtime, routing, and extension implementation.</description>
+    <description>Format-neutral process compilation, runtime, routing, and extension implementation.</description>
 
     <dependencies>
-        <!-- Internal module dependencies -->
+        <!-- CompileFlow module dependencies -->
         <dependency>
             <groupId>com.alibaba.compileflow</groupId>
             <artifactId>compileflow-api</artifactId>

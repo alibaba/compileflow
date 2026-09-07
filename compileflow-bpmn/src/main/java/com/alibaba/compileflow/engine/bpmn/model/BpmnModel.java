@@ -16,13 +16,12 @@ package com.alibaba.compileflow.engine.bpmn.model;
 import com.alibaba.compileflow.engine.CompileFlowException;
 import com.alibaba.compileflow.engine.ErrorCode;
 import com.alibaba.compileflow.engine.core.model.AbstractFlowElement;
-import com.alibaba.compileflow.engine.core.model.AbstractFlowModel;
+import com.alibaba.compileflow.engine.core.model.FlowModel;
 import com.alibaba.compileflow.engine.core.model.Element;
+import com.alibaba.compileflow.engine.core.model.variable.Variable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -30,17 +29,41 @@ import java.util.stream.Stream;
  *
  * <p>Root of the object graph created by
  * {@link com.alibaba.compileflow.engine.bpmn.BpmnModelReader}
- * when parsing a {@code .bpmn} / {@code .bpmn} file.
+ * when parsing a BPMN definition.
  *
  * @author yusu
  */
-public class BpmnModel extends AbstractFlowModel<FlowNode> {
-    private final List<Process> processes = new ArrayList<>(1);
+public class BpmnModel implements FlowModel<FlowNode> {
+    private final Process process;
     private List<Message> messages = new ArrayList<>();
     private String definitionsId;
     private String targetNamespace;
     private String typeLanguage;
     private String expressionLanguage;
+
+    public BpmnModel(Process process) {
+        this.process = Objects.requireNonNull(process, "process");
+    }
+
+    @Override
+    public String getId() {
+        return process.getId();
+    }
+
+    @Override
+    public String getCode() {
+        return process.getId();
+    }
+
+    @Override
+    public String getName() {
+        return process.getName();
+    }
+
+    @Override
+    public List<Variable> getVariables() {
+        return process.getVariables();
+    }
 
     private static Stream<AbstractFlowElement> descendants(List<AbstractFlowElement> elements) {
         return elements.stream().flatMap(element -> {
@@ -83,16 +106,8 @@ public class BpmnModel extends AbstractFlowModel<FlowNode> {
         this.expressionLanguage = expressionLanguage;
     }
 
-    public void addProcess(Process process) {
-        processes.add(process);
-    }
-
     public Process getProcess() {
-        if (processes.isEmpty()) {
-            throw new CompileFlowException(ErrorCode.CF_VALIDATION_002, "BPMN model contains no process definition.",
-                    null);
-        }
-        return processes.get(0);
+        return process;
     }
 
     public List<Message> getMessages() {
@@ -105,9 +120,7 @@ public class BpmnModel extends AbstractFlowModel<FlowNode> {
 
     public Element getFlowElement(String id) {
         return Stream
-            .concat(processes
-                .stream()
-                .flatMap(process -> descendants(process.getFlowElements())), messages.stream())
+            .concat(descendants(process.getFlowElements()), messages.stream())
             .filter(Objects::nonNull)
             .filter(element -> Objects.equals(element.getId(), id))
             .findFirst()
@@ -128,7 +141,7 @@ public class BpmnModel extends AbstractFlowModel<FlowNode> {
 
     @Override
     public List<FlowNode> getAllNodes() {
-        return processes.stream().map(Process::getAllNodes).flatMap(Collection::stream).collect(Collectors.toList());
+        return process.getAllNodes();
     }
 
     @Override

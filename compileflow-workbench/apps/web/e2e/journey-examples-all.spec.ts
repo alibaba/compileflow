@@ -1,12 +1,6 @@
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import { expect, test } from '@playwright/test'
 
 import { assertNoPageErrors, shot, TIMEOUT, trackErrors } from './journey-helpers'
-
-const ROOT = path.dirname(fileURLToPath(import.meta.url))
-const SHOT_DIR = path.join(ROOT, '../test-results/journey-review')
 
 /**
  * Execute every built-in Learn example (mock catalog currently has a small fixed set).
@@ -42,11 +36,11 @@ test.describe('Learn catalog full execute', () => {
       await page.getByRole('tab', { name: /执行|Execute/i }).click()
       await page.locator('.ant-tabs-tabpane-active').getByRole('button', { name: /执行/ }).click()
       await expect(
-        page.locator('.ant-message-notice').or(page.locator('[class*="execResult"]')).first()
+        page.locator('[class*="execResultBlock"]').getByText('执行成功', { exact: true })
       ).toBeVisible({ timeout: TIMEOUT })
 
       await page.screenshot({
-        path: path.join(SHOT_DIR, `70-example-execute-${String(i + 1).padStart(2, '0')}.png`),
+        path: test.info().outputPath(`70-example-execute-${String(i + 1).padStart(2, '0')}.png`),
         fullPage: true,
       })
 
@@ -55,7 +49,7 @@ test.describe('Learn catalog full execute', () => {
       await page.waitForURL(/\/build\/designer/, { timeout: TIMEOUT })
       await page.waitForSelector('.x6-graph', { timeout: TIMEOUT })
       await page.screenshot({
-        path: path.join(SHOT_DIR, `71-example-designer-${String(i + 1).padStart(2, '0')}.png`),
+        path: test.info().outputPath(`71-example-designer-${String(i + 1).padStart(2, '0')}.png`),
         fullPage: true,
       })
     }

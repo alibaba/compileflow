@@ -1,6 +1,4 @@
 import fs from 'node:fs'
-import os from 'node:os'
-import path from 'node:path'
 
 import { expect, type Page, test } from '@playwright/test'
 
@@ -21,10 +19,9 @@ async function exportXmlText(page: Page): Promise<string> {
   await page.locator('.header-more-btn').click()
   await page.getByText('导出 XML').click()
   const download = await downloadPromise
-  const tempPath = path.join(os.tmpdir(), `tbbpm-export-${Date.now()}.xml`)
+  const tempPath = test.info().outputPath(`tbbpm-export-${Date.now()}.xml`)
   await download.saveAs(tempPath)
   const xml = fs.readFileSync(tempPath, 'utf-8')
-  fs.unlinkSync(tempPath)
   return xml
 }
 

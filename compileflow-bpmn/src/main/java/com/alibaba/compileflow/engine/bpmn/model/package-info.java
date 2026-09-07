@@ -34,21 +34,21 @@
  * </ul>
  *
  * <p>See {@code docs/en/node-support.md} for the user-facing supported subset
- * and {@code docs/architecture/07-PROCESS_MODEL.en.md} for the BPMN 2.0 protocol
+ * and {@code docs/en/architecture/process-model.md} for the BPMN 2.0 protocol
  * specification.
  *
- * <h2>Removed elements</h2>
+ * <h2>Unsupported elements</h2>
  *
  * <p>Elements that CompileFlow cannot execute (userTask, manualTask,
  * businessRuleTask, sendTask, boundaryEvent, unsupported intermediate events, signal,
  * choreography, collaboration, conversation, global task family, data
- * stores, resource roles, etc.) have been removed from this package. They
+ * stores, resource roles, etc.) are outside this package's executable subset. They
  * require semantics that are not defined by the current shared Process profile. Unsupported
  * collaboration, compensation, and event constructs are rejected because their Process
  * meaning and recovery contract have not been proven, not because an implementation lacks
  * persistence infrastructure; the optional Durable product defines a separate recovery profile.
  *
- * <p>Unknown or removed elements fail parsing because the parser registry has
+ * <p>Unknown or unsupported elements fail parsing because the parser registry has
  * no implementation for them. The only ignored elements are the standard
  * {@code incoming} and {@code outgoing} reference text nodes; executable
  * transitions are built from {@link SequenceFlow} definitions.
@@ -57,7 +57,7 @@
  * <p>
  * Classes in this package are an internal implementation detail of the
  * {@code compileflow-bpmn} module. They are not part of the public
- * CompileFlow API surface (see {@code docs/architecture/06-SUPPORTED_SURFACES.en.md}).
+ * CompileFlow API surface (see {@code docs/en/architecture/supported-surfaces.md}).
  *
  * @author yusu
  */

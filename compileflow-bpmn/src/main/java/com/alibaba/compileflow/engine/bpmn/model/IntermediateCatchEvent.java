@@ -13,12 +13,14 @@
  */
 package com.alibaba.compileflow.engine.bpmn.model;
 
+import com.alibaba.compileflow.engine.core.model.TriggerEntryElement;
+
 /**
  * Executable BPMN intermediate catch event with one supported event definition.
  *
  * @author yusu
  */
-public final class IntermediateCatchEvent extends TriggerEntryNode {
+public final class IntermediateCatchEvent extends FlowNode implements TriggerEntryElement {
     private MessageEventDefinition messageEventDefinition;
     private TimerEventDefinition timerEventDefinition;
 

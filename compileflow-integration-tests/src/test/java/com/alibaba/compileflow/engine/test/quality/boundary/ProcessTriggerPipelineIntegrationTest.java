@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.quality.boundary;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
@@ -22,6 +23,7 @@ import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.ProcessResult;
 import com.alibaba.compileflow.engine.ProcessTrigger;
 import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
+import com.alibaba.compileflow.engine.config.ProcessObservabilityConfig;
 import com.alibaba.compileflow.engine.spi.event.ProcessEvent;
 import com.alibaba.compileflow.engine.test.support.helpers.ProcessEngineTestFactory;
 import java.util.List;
@@ -33,10 +35,15 @@ class ProcessTriggerPipelineIntegrationTest {
     @Test
     void exactVersionTriggerUsesTheNormalRuntimeResultAndEventPipeline() {
         List<ProcessEvent> events = new CopyOnWriteArrayList<>();
-        ProcessEngineConfig config =
-                ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).eventListener(events::add).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory
+            .builder()
+            .discoverPlugins(false)
+            .observability(ProcessObservabilityConfig.builder().eventsAsync(false).build())
+            .eventListener(events::add)
+            .build();
         ProcessRef.Version ref = ProcessRef.version("default", "bpm.stateful.waitTaskProcess", "v1");
-        ProcessDefinition definition = ProcessDefinition.classpath(ref.code(), "bpm/stateful/waitTaskProcess.bpm");
+        ProcessDefinition definition =
+                ProcessDefinition.classpath(ProcessModelType.TBBPM, ref.code(), "bpm/stateful/waitTaskProcess.bpm");
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
             engine.runtime().load(ref, definition);
@@ -58,9 +65,10 @@ class ProcessTriggerPipelineIntegrationTest {
 
     @Test
     void repeatedTriggersAreIndependentNewInvocations() {
-        ProcessEngineConfig config = ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory.builder().discoverPlugins(false).build();
         ProcessRef.Version ref = ProcessRef.version("default", "bpm.stateful.waitTaskProcess", "v1");
-        ProcessDefinition definition = ProcessDefinition.classpath(ref.code(), "bpm/stateful/waitTaskProcess.bpm");
+        ProcessDefinition definition =
+                ProcessDefinition.classpath(ProcessModelType.TBBPM, ref.code(), "bpm/stateful/waitTaskProcess.bpm");
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
             engine.runtime().load(ref, definition);

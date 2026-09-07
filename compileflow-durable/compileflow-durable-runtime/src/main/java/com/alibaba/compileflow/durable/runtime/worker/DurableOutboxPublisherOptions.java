@@ -27,17 +27,13 @@ public record DurableOutboxPublisherOptions(String workerId, Duration initialRet
         int maxAttempts) {
     public DurableOutboxPublisherOptions {
         workerId = DurableIdentifiers.requireIdentity(workerId, "workerId", 128);
-        initialRetryDelay = WorkerDurationConstraints.requirePositive(initialRetryDelay, "initialRetryDelay",
-                Duration.ofHours(1));
-        maxRetryDelay = WorkerDurationConstraints.requirePositive(maxRetryDelay, "maxRetryDelay", Duration.ofHours(1));
+        initialRetryDelay = DurableNumbers.requirePositiveDurationMillis(initialRetryDelay, Duration.ofHours(1),
+                "initialRetryDelay");
+        maxRetryDelay = DurableNumbers.requirePositiveDurationMillis(maxRetryDelay, Duration.ofHours(1), "maxRetryDelay");
         if (maxRetryDelay.compareTo(initialRetryDelay) < 0) {
             throw new IllegalArgumentException("maxRetryDelay must be greater than or equal to initialRetryDelay");
         }
         maxAttempts = DurableNumbers.requireRange(maxAttempts, 1, 10_000, "maxAttempts");
-    }
-
-    public static DurableOutboxPublisherOptions defaults(String workerId) {
-        return new DurableOutboxPublisherOptions(workerId, Duration.ofSeconds(1), Duration.ofMinutes(1), 100);
     }
 
     /**

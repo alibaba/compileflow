@@ -14,11 +14,10 @@
 package com.alibaba.compileflow.engine;
 
 /**
- * An enumeration of the process definition standards supported by the CompileFlow engine.
- * <p>
- * This enum is used to identify the type of a process model, which determines which
- * parser and validator implementation should be used by the engine. It is a key
- * parameter in the {@link com.alibaba.compileflow.engine.ProcessEngineFactory}.
+ * Semantic format of a process definition.
+ *
+ * <p>The format belongs to {@link ProcessDefinition}, not to engine configuration. One
+ * {@link ProcessEngine} dispatches typed definitions to all installed semantic frontends.
  *
  * @author yusu
  */

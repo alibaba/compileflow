@@ -17,6 +17,7 @@ import com.alibaba.compileflow.durable.runtime.action.DurableActionInvoker;
 import com.alibaba.compileflow.durable.runtime.codec.DurableValueSerializer;
 import com.alibaba.compileflow.durable.runtime.kernel.ContinuationSnapshot;
 import com.alibaba.compileflow.durable.runtime.kernel.MachineTurnResult;
+import com.alibaba.compileflow.durable.runtime.kernel.FrontierStepResult;
 import com.alibaba.compileflow.durable.runtime.kernel.TurnBudget;
 import com.alibaba.compileflow.durable.runtime.machine.DurableProcessCompiler;
 import com.alibaba.compileflow.durable.runtime.program.DurableExecutionContext;
@@ -68,7 +69,6 @@ public class DurableMachineAdvanceBenchmark {
     private static final int LOOP_ITERATIONS = 64;
     private static final int GATEWAY_BRANCHES = 8;
     private static final int MAX_TURNS = GATEWAY_BRANCHES * 4 + 8;
-    private static final TurnBudget TURN_BUDGET = TurnBudget.defaults();
     @Param({"SEQUENCE_64", "LOOP_64", "PARALLEL_8", "INCLUSIVE_8"})
     private String scenario;
     private DurableProgram program;
@@ -101,8 +101,11 @@ public class DurableMachineAdvanceBenchmark {
     public MachineTurnResult advanceToCompletion() throws Exception {
         ContinuationSnapshot continuation = ContinuationSnapshot.start(input);
         for (int turn = 0; turn < MAX_TURNS; turn++) {
-            MachineTurnResult result = program.advance(continuation, List.of(), TURN_BUDGET, context);
+            MachineTurnResult result = program.advance(continuation, List.of(), TurnBudget.defaults(), context);
             if (result.continuation() == null) {
+                if (!(result.outcome() instanceof FrontierStepResult.Completed)) {
+                    throw new IllegalStateException("Durable Machine benchmark failed: " + result.outcome());
+                }
                 return result;
             }
             continuation = result.continuation();

@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.core.stateful;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ErrorCode;
@@ -65,7 +66,7 @@ public class StatefulGatewayTriggerTest {
 
     @BeforeEach
     void setUp() {
-        engine = ProcessEngineTestFactory.createTbbpm();
+        engine = ProcessEngineTestFactory.create();
     }
 
     @AfterEach
@@ -80,7 +81,7 @@ public class StatefulGatewayTriggerTest {
     void shouldOmitEmptyPauseGuardAfterSuspendingGateway() {
         String source = engine
             .tooling()
-            .generateJavaCode(ProcessDefinition.classpath("bpm.stateful.complexExclusiveGateway",
+            .generateJavaCode(ProcessDefinition.classpath(ProcessModelType.TBBPM, "bpm.stateful.complexExclusiveGateway",
                     "bpm/stateful/complexExclusiveGateway.bpm"));
 
         assertThat(source)
@@ -112,8 +113,9 @@ public class StatefulGatewayTriggerTest {
             triggerContext.put(extraKey, extraValue);
         }
 
-        ProcessResult<Map<String, Object>> result = engine.trigger(ProcessDefinition.classpath(code,
-                        code.replace(".", "/") + ".bpm"), ProcessTrigger.on(triggerNodeId, triggerEvent), triggerContext);
+        ProcessResult<Map<String, Object>> result = engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                        code, code.replace(".", "/") + ".bpm"), ProcessTrigger.on(triggerNodeId, triggerEvent),
+                triggerContext);
         // Assert (unified interface): success + return var key exists + value determined
         com.alibaba.compileflow.engine.test.support.helpers.TriggerAssertions.assertSuccessAndHasKey(result,
                 "finalResult", caseName + " should succeed");
@@ -135,8 +137,8 @@ public class StatefulGatewayTriggerTest {
     }
 
     private void assertUnsupportedConcurrentWait(String code, Map<String, Object> context) {
-        ProcessResult<Map<String, Object>> result =
-                engine.execute(ProcessDefinition.classpath(code, code.replace(".", "/") + ".bpm"), context);
+        ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                        code, code.replace(".", "/") + ".bpm"), context);
 
         assertThat(result.isFailure()).isTrue();
         assertThat(result.getError().getCode()).isEqualTo(ErrorCode.CF_VALIDATION_005.getCode());

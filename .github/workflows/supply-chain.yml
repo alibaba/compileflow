@@ -54,8 +54,10 @@ jobs:
     name: Maven aggregate SBOM
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    outputs:
-      base64-subjects: ${{ steps.subjects.outputs.base64-subjects }}
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -70,6 +72,9 @@ jobs:
 
       - name: Generate Maven aggregate SBOM
         run: |
+          # Resolve this checkout's artifacts, not stale dependencies from the Maven cache.
+          ./mvnw install -DskipTests \
+            -B -V --no-transfer-progress
           ./mvnw org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom \
             -Dcyclonedx.skipAttach=true \
             -B -V --no-transfer-progress
@@ -80,10 +85,15 @@ jobs:
           python3 scripts/verify_maven_sbom.py target/compileflow-bom.json
 
       - name: Generate SBOM checksum subject
-        id: subjects
         run: |
-          sha256sum target/compileflow-bom.json > target/compileflow-bom.sha256
-          echo "base64-subjects=$(base64 < target/compileflow-bom.sha256 | tr -d '\n')" >> "$GITHUB_OUTPUT"
+          cd target
+          sha256sum compileflow-bom.json > compileflow-bom.sha256
+
+      - name: Attest Maven SBOM build provenance
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
+        with:
+          subject-checksums: target/compileflow-bom.sha256
 
       - name: Upload Maven SBOM
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -93,18 +103,3 @@ jobs:
             target/compileflow-bom.json
             target/compileflow-bom.sha256
           retention-days: 14
-
-  sbom-provenance:
-    name: SLSA provenance for Maven SBOM
-    if: github.event_name != 'pull_request'
-    needs: maven-sbom
-    permissions:
-      contents: read
-      id-token: write
-      actions: read
-    # SLSA verifier requires trusted generator reusable workflows to use a
-    # complete vX.Y.Z tag rather than a commit digest.
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
-    with:
-      base64-subjects: ${{ needs.maven-sbom.outputs.base64-subjects }}
-      provenance-name: compileflow-maven-sbom.intoto.jsonl

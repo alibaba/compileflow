@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.quality.boundary;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ErrorCode;
@@ -24,6 +25,7 @@ import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.ProcessResult;
 import com.alibaba.compileflow.engine.ProcessTrigger;
 import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
+import com.alibaba.compileflow.engine.config.ProcessObservabilityConfig;
 import com.alibaba.compileflow.engine.spi.event.ProcessEvent;
 import com.alibaba.compileflow.engine.test.support.helpers.ProcessEngineTestFactory;
 import java.util.List;
@@ -48,12 +50,13 @@ class ProcessDataMapperIntegrationTest {
             }
         };
         ProcessEngineConfig config = ProcessEngineTestFactory
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .dataMapper(mapper)
+            .observability(ProcessObservabilityConfig.builder().eventsAsync(false).build())
             .eventListener(events::add)
             .build();
-        ProcessDefinition ref = ProcessDefinition.classpath("bpm.java-code.javaCodeSum",
+        ProcessDefinition ref = ProcessDefinition.classpath(ProcessModelType.TBBPM, "bpm.java-code.javaCodeSum",
                 "bpm.java-code.javaCodeSum".replace(".", "/") + ".bpm");
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
@@ -84,16 +87,17 @@ class ProcessDataMapperIntegrationTest {
             }
         };
         ProcessEngineConfig config = ProcessEngineTestFactory
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .dataMapper(mapper)
+            .observability(ProcessObservabilityConfig.builder().eventsAsync(false).build())
             .eventListener(events::add)
             .build();
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
-            ProcessResult<String> result = engine.execute(ProcessDefinition.classpath("bpm.java-code.javaCodeSum",
-                            "bpm.java-code.javaCodeSum".replace(".", "/") + ".bpm"), new Object(), String.class,
-                    ProcessExecutionOptions.defaults());
+            ProcessResult<String> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            "bpm.java-code.javaCodeSum", "bpm.java-code.javaCodeSum".replace(".", "/") + ".bpm"),
+                    new Object(), String.class, ProcessExecutionOptions.defaults());
 
             assertThat(result.isFailure()).isTrue();
             assertThat(result.getError().getCode()).isEqualTo(ErrorCode.CF_EXEC_009.getCode());
@@ -125,9 +129,10 @@ class ProcessDataMapperIntegrationTest {
             }
         };
         ProcessEngineConfig config =
-                ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).dataMapper(mapper).build();
+                ProcessEngineTestFactory.builder().discoverPlugins(false).dataMapper(mapper).build();
         ProcessRef.Version ref = ProcessRef.version("default", "bpm.stateful.waitTaskProcess", "v1");
-        ProcessDefinition definition = ProcessDefinition.classpath(ref.code(), "bpm/stateful/waitTaskProcess.bpm");
+        ProcessDefinition definition =
+                ProcessDefinition.classpath(ProcessModelType.TBBPM, ref.code(), "bpm/stateful/waitTaskProcess.bpm");
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
             engine.runtime().load(ref, definition);

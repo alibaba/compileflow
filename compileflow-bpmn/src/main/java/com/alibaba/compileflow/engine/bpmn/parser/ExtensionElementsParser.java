@@ -17,7 +17,6 @@ import com.alibaba.compileflow.engine.bpmn.model.BpmnModelConstants;
 import com.alibaba.compileflow.engine.bpmn.model.ExtensionElements;
 import com.alibaba.compileflow.engine.core.xml.parser.ParseContext;
 import com.alibaba.compileflow.engine.core.xml.parser.XmlSource;
-import com.alibaba.compileflow.engine.core.xml.parser.XmlStreamReaderSource;
 import com.alibaba.compileflow.engine.core.model.Element;
 import com.alibaba.compileflow.engine.core.model.extension.AbstractExtensionElement;
 import com.alibaba.compileflow.engine.core.model.extension.ExtensionAttribute;
@@ -32,25 +31,14 @@ public class ExtensionElementsParser extends AbstractBpmnElementParser<Extension
     @Override
     protected ExtensionElements doParse(XmlSource xmlSource, ParseContext parseContext) throws Exception {
         ExtensionElements extensionElements = new ExtensionElements();
-        if (xmlSource instanceof XmlStreamReaderSource) {
-            XmlStreamReaderSource reader = (XmlStreamReaderSource) xmlSource;
-            String parentName = BpmnModelConstants.BPMN_ELEMENT_EXTENSION_ELEMENTS;
-            for (
-                    String child = reader.nextDirectChildElementName(parentName);
-                    child != null;
-                    child = reader.nextDirectChildElementName(parentName)) {
-                ExtensionElement extensionElement = parseExtensionElement(xmlSource);
-                attachToParentIfSupported(parseContext, extensionElement);
-                extensionElements.addExtensionElements(extensionElement);
-            }
-        } else {
-            while (!xmlSource.endWith(BpmnModelConstants.BPMN_ELEMENT_EXTENSION_ELEMENTS)) {
-                if (xmlSource.hasNext()) {
-                    ExtensionElement extensionElement = parseExtensionElement(xmlSource);
-                    attachToParentIfSupported(parseContext, extensionElement);
-                    extensionElements.addExtensionElements(extensionElement);
-                }
-            }
+        String parentName = BpmnModelConstants.BPMN_ELEMENT_EXTENSION_ELEMENTS;
+        for (
+                String child = xmlSource.nextDirectChildElementName(parentName);
+                child != null;
+                child = xmlSource.nextDirectChildElementName(parentName)) {
+            ExtensionElement extensionElement = parseExtensionElement(xmlSource);
+            attachToParentIfSupported(parseContext, extensionElement);
+            extensionElements.addExtensionElements(extensionElement);
         }
         return extensionElements;
     }
@@ -81,21 +69,13 @@ public class ExtensionElementsParser extends AbstractBpmnElementParser<Extension
             return extensionElement;
         }
 
-        if (xmlSource instanceof XmlStreamReaderSource) {
-            XmlStreamReaderSource reader = (XmlStreamReaderSource) xmlSource;
-            String currentName = extensionElement.getName();
-            for (
-                    String child = reader.nextDirectChildElementName(currentName);
-                    child != null;
-                    child = reader.nextDirectChildElementName(currentName)) {
-                ExtensionElement childExtensionElement = parseExtensionElement(xmlSource);
-                extensionElement.addChildElement(childExtensionElement);
-            }
-        } else {
-            while (xmlSource.hasNext()) {
-                ExtensionElement childExtensionElement = parseExtensionElement(xmlSource);
-                extensionElement.addChildElement(childExtensionElement);
-            }
+        String currentName = extensionElement.getName();
+        for (
+                String child = xmlSource.nextDirectChildElementName(currentName);
+                child != null;
+                child = xmlSource.nextDirectChildElementName(currentName)) {
+            ExtensionElement childExtensionElement = parseExtensionElement(xmlSource);
+            extensionElement.addChildElement(childExtensionElement);
         }
 
         return extensionElement;

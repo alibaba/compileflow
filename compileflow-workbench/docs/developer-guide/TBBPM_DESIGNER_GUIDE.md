@@ -1,7 +1,6 @@
 # TBBPM Designer Developer Guide
 
-The current TBBPM designer implementation in CompileFlow Workbench follows the boundaries below. This is a developer
-reference, not a release report or roadmap.
+This guide covers the CompileFlow Workbench TBBPM editor, including validation, persistence, and extension points.
 
 ## Scope
 
@@ -53,6 +52,9 @@ Workbench uses Redux Toolkit for shared designer state. The editor state lives u
 `apps/web/src/authoring/designer/store/`, while flow persistence uses IndexedDB through the storage APIs in
 `apps/web/src/authoring/designer/api/`.
 
+When opened from Operate, the editor instead retains a Server draft binding and saves through the process API with
+`expectedRevision`. That save does not create an IndexedDB copy or publish a Version.
+
 The TBBPM designer should keep the in-memory graph model and generated XML synchronized through structured model
 updates. Avoid ad hoc XML string edits in UI components.
 
@@ -77,7 +79,7 @@ expression interpreter; it does not execute user-provided JavaScript. Keep the s
 comparisons, boolean operators, arithmetic, parentheses, string literals, `null`/boolean literals, simple
 variable/member lookup, and the helper functions exposed by the expression builder.
 
-Do not reintroduce `eval`, `new Function`, dynamic import, or DOM/global-object access for client-side simulation. If
+Do not use `eval`, `new Function`, dynamic import, or DOM/global-object access for client-side simulation. If
 the expression builder gains new operators or functions, extend the interpreter and its unit tests in the same change.
 
 ## Keyboard Shortcuts
@@ -114,7 +116,7 @@ pnpm --filter @compileflow/workbench-web test
 pnpm --filter @compileflow/workbench-web test:e2e:smoke
 ```
 
-For release-like local verification, use:
+For the Workbench delivery gate, use:
 
 ```bash
 pnpm verify:delivery
@@ -126,6 +128,4 @@ Production deployment is documented in [`../../DEPLOYMENT.md`](../../DEPLOYMENT.
 
 - Keep `TbbpmNodeType`, palette entries, X6 registration, property tabs, XML mapping, validation, and tests consistent.
 - Do not introduce npm or yarn lockfiles; this is a pnpm workspace.
-- Do not document performance numbers unless they come from a reproducible command and committed report.
-- Do not add roadmap promises to this guide. Track planned work in issues instead.
 - Keep examples and screenshots aligned with the current `/build` workflow.

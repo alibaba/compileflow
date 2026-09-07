@@ -1,6 +1,6 @@
 import { UnorderedListOutlined } from '@ant-design/icons'
 import { Anchor } from 'antd'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import styles from './TableOfContents.module.css'
@@ -13,12 +13,15 @@ interface TocItem {
   id: string
   title: string
   level: number
+  element: Element
 }
 
 const TableOfContents: React.FC<TableOfContentsProps> = ({ contentRef }) => {
   const { t } = useTranslation()
   const [tocItems, setTocItems] = useState<TocItem[]>([])
   const [activeId, setActiveId] = useState<string>('')
+  const idPrefix = useId()
+  const nextHeadingId = useRef(0)
 
   useEffect(() => {
     if (!contentRef.current) return
@@ -30,16 +33,18 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({ contentRef }) => {
       headingObserver?.disconnect()
       const activePanel = content.querySelector('[role="tabpanel"][aria-hidden="false"]')
       const headings = activePanel?.querySelectorAll('h1, h2, h3, h4') ?? []
-      const items = Array.from(headings, (heading, index) => {
-        const id = heading.id || `heading-${index}`
+      const items = Array.from(headings, (heading) => {
+        const id = heading.id || `${idPrefix}-heading-${nextHeadingId.current++}`
         if (!heading.id) heading.id = id
         return {
           id,
           title: heading.textContent || '',
           level: Number(heading.tagName.substring(1)),
+          element: heading,
         }
       })
       setTocItems(items)
+      setActiveId((current) => (items.some((item) => item.id === current) ? current : ''))
 
       headingObserver = new IntersectionObserver(
         (entries) => {
@@ -65,7 +70,7 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({ contentRef }) => {
       contentObserver.disconnect()
       headingObserver?.disconnect()
     }
-  }, [contentRef])
+  }, [contentRef, idPrefix])
 
   if (tocItems.length === 0) {
     return null
@@ -92,8 +97,12 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({ contentRef }) => {
         items={anchorItems}
         onClick={(e, link) => {
           e.preventDefault()
-          const element = document.querySelector(link.href)
-          if (element) {
+          const element = tocItems.find((item) => `#${item.id}` === link.href)?.element
+          if (
+            element &&
+            contentRef.current?.contains(element) &&
+            element.closest('[role="tabpanel"]')?.getAttribute('aria-hidden') === 'false'
+          ) {
             element.scrollIntoView({
               behavior: 'smooth',
               block: 'start',

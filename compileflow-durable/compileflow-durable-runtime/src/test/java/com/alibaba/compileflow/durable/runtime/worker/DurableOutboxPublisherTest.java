@@ -14,6 +14,7 @@
 package com.alibaba.compileflow.durable.runtime.worker;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import com.alibaba.compileflow.durable.api.model.ProcessRunId;
 import com.alibaba.compileflow.durable.runtime.observability.DurableRuntimeMetrics;
 import com.alibaba.compileflow.durable.runtime.observability.DurableRuntimeMetrics.Operation;
@@ -29,8 +30,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.function.Executable;
 
 class DurableOutboxPublisherTest {
     private static final com.alibaba.compileflow.engine.ProcessRef.Version PROCESS =
@@ -42,6 +46,16 @@ class DurableOutboxPublisherTest {
     private static final ProcessRunId RUN_ID = new ProcessRunId("00000000-0000-0000-0000-000000000001");
     private static final UUID EVENT_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
     private static final UUID LEASE_TOKEN = UUID.fromString("00000000-0000-0000-0000-000000000003");
+    private final List<DurableLeaseRenewer> borrowedRenewers = new ArrayList<>();
+    private final ConcurrentLinkedQueue<Throwable> backgroundFailures = new ConcurrentLinkedQueue<>();
+
+    @AfterEach
+    void closesBorrowedRenewersAndVerifiesBackgroundWork() {
+        List<Executable> cleanup = new ArrayList<>();
+        borrowedRenewers.forEach(renewer -> cleanup.add(renewer::close));
+        cleanup.add(() -> assertThat(backgroundFailures).as("unexpected Outbox Store callback failures").isEmpty());
+        assertAll(cleanup);
+    }
 
     @Test
     void emptyQueueDoesNoWork() {
@@ -122,15 +136,17 @@ class DurableOutboxPublisherTest {
         assertThat(recovered.terminalCall.get()).isEqualTo("complete");
     }
 
-    private static DurableOutboxPublisher publisher(CapturingStore store, DurableOutboxSink sink, int maxAttempts) {
+    private DurableOutboxPublisher publisher(CapturingStore store, DurableOutboxSink sink, int maxAttempts) {
         return publisher(store, sink, maxAttempts, new DurableRuntimeMetrics());
     }
 
-    private static DurableOutboxPublisher publisher(CapturingStore store, DurableOutboxSink sink, int maxAttempts,
+    private DurableOutboxPublisher publisher(CapturingStore store, DurableOutboxSink sink, int maxAttempts,
             DurableRuntimeMetrics metrics) {
+        DurableLeaseRenewer renewer = new DurableLeaseRenewer(store.proxy(), Duration.ofSeconds(30));
+        borrowedRenewers.add(renewer);
         return new DurableOutboxPublisher(store.proxy(), sink,
                 new DurableOutboxPublisherOptions("publisher", Duration.ofSeconds(5), Duration.ofSeconds(20),
-                        maxAttempts), new DurableLeaseRenewer(store.proxy(), Duration.ofSeconds(30)), metrics);
+                        maxAttempts), renewer, metrics);
     }
 
     private static DurableStore.OutboxClaim claim(int attempt) {
@@ -144,7 +160,7 @@ class DurableOutboxPublisherTest {
                 NOW.plusSeconds(30));
     }
 
-    private static final class CapturingStore {
+    private final class CapturingStore {
         private final Optional<DurableStore.OutboxClaim> claim;
         private final AtomicReference<String> terminalCall = new AtomicReference<>();
         private final AtomicReference<DurableStore.OutboxLease> lease = new AtomicReference<>();
@@ -173,8 +189,17 @@ class DurableOutboxPublisherTest {
                 case "toString" -> "CapturingDurableStore";
                 default -> throw new AssertionError("Unexpected Store call: " + method.getName());
             };
+            InvocationHandler capturing =
+                    (instance, method, arguments) -> {
+                try {
+                    return handler.invoke(instance, method, arguments);
+                } catch (Throwable failure) {
+                    backgroundFailures.add(failure);
+                    throw failure;
+                }
+            };
             return (DurableStore) Proxy.newProxyInstance(DurableStore.class.getClassLoader(),
-                    new Class<?>[] {DurableStore.class}, handler);
+                    new Class<?>[] {DurableStore.class}, capturing);
         }
 
         private boolean terminal(String operation, Object[] arguments) {

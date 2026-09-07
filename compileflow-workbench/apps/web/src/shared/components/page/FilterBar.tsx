@@ -1,5 +1,6 @@
 import { Tag } from 'antd'
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import styles from './page.module.css'
 
@@ -23,18 +24,21 @@ export function FilterBar({
   activeFilters = [],
   onRemoveFilter,
   onClearAll,
-  activeLabel = 'Active filters',
-  clearLabel = 'Clear all',
+  activeLabel,
+  clearLabel,
   className,
 }: FilterBarProps) {
+  const { t } = useTranslation()
   const hasActive = activeFilters.length > 0
+  const resolvedActiveLabel = activeLabel ?? t('filters.active')
+  const resolvedClearLabel = clearLabel ?? t('filters.clear')
 
   return (
     <div className={[styles.filterBar, className].filter(Boolean).join(' ')}>
       <div className={styles.filterBarRow}>{children}</div>
       {hasActive && (
         <div className={styles.filterBarActive}>
-          <span className={styles.filterBarLabel}>{activeLabel}</span>
+          <span className={styles.filterBarLabel}>{resolvedActiveLabel}</span>
           {activeFilters.map((filter) => (
             <Tag
               key={filter.key}
@@ -46,7 +50,7 @@ export function FilterBar({
           ))}
           {onClearAll && (
             <Tag style={{ cursor: 'pointer' }} onClick={onClearAll}>
-              {clearLabel}
+              {resolvedClearLabel}
             </Tag>
           )}
         </div>

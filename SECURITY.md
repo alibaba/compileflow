@@ -2,16 +2,11 @@
 
 ## Supported Versions
 
-CompileFlow currently accepts vulnerability reports for:
+Security fixes are provided for the current `2.x` line:
 
-| Line                  | Status                                                     |
-|-----------------------|------------------------------------------------------------|
-| Default branch        | Supported for fixes that have not shipped in a release yet |
-| Latest stable release | Supported once a stable release is tagged                  |
-| Older release lines   | Not supported unless explicitly listed here                |
-
-Snapshot builds and unreleased changelog entries are development artifacts. Do not treat them as security-supported
-stable releases until a GitHub Release is published.
+| Line | Supported |
+| ---- | --------- |
+| 2.x  | Yes       |
 
 ## Reporting a Vulnerability
 
@@ -37,24 +32,12 @@ We aim to:
 
 ## Security Automation
 
-The repository runs OpenSSF Scorecard through
-`.github/workflows/security-scorecard.yml` and uploads SARIF results to GitHub code scanning. Dependabot tracks Maven,
-pnpm, GitHub Actions, Dockerfile, and Docker Compose dependencies.
+Automated security checks include CodeQL, SpotBugs, dependency review, OWASP Dependency-Check, pnpm audit, Dependabot,
+and OpenSSF Scorecard. They cover Java, JavaScript/TypeScript, GitHub Actions, container definitions, and the dependency
+lockfiles used to build release artifacts.
 
-`.github/workflows/codeql.yml` analyzes Java and JavaScript/TypeScript on pull requests, default-branch changes, and a
-weekly schedule. Java SpotBugs remains the faster implementation-level static-analysis gate.
-
-`.github/workflows/dependency-review.yml` rejects pull requests that introduce high-severity vulnerabilities into
-runtime dependency scopes. Workbench CI also audits the complete pnpm lockfile at high severity, including build-time
-dependencies that execute while producing browser and development-tool artifacts.
-
-`.github/workflows/supply-chain.yml` runs OWASP Dependency-Check on a weekly schedule and rejects Java runtime
-dependencies with CVSS 7.0 or higher. Maintainers must configure the repository Actions secret `NVD_API_KEY`; the Maven
-profile retrieves it through the environment rather than exposing the value as a command line property.
-
-`.github/workflows/supply-chain.yml` generates a CycloneDX Maven aggregate SBOM for dependency inventory, release
-review, and vulnerability impact analysis. The tag release workflow regenerates that SBOM from the tagged source and
-attaches it with the release checksum and provenance set.
+Release artifacts include a CycloneDX SBOM, checksums, and provenance. Security findings are evaluated against the
+source revision and dependency inventory that produced the affected artifacts.
 
 ## Finding And Exception Policy
 
@@ -66,8 +49,8 @@ The following findings block merge or release until fixed or covered by an appro
 - an unsuppressed CodeQL high or critical security alert, or a SpotBugs finding at Medium confidence/severity or higher;
 - a dependency license that has not been shown compatible with Apache-2.0 distribution.
 
-Lower-severity findings are triaged for reachability, affected support surface, and compensating controls before a
-stable release. A suppression or risk acceptance must name an owner, rationale, affected versions, mitigation, and
+Lower-severity findings are triaged for reachability, affected support surface, and compensating controls. A
+suppression or risk acceptance must name an owner, rationale, affected versions, mitigation, and
 expiry in a private advisory or reviewable issue. A dependency vulnerability judged non-exploitable must also be
 represented by a CycloneDX VEX statement tied to the affected SBOM; a comment or scanner ignore entry alone is not
 sufficient. Expired exceptions are release-blocking.
@@ -83,4 +66,5 @@ Maintainers review credential owners, consumers, and unused entries whenever acc
 preparation. Rotate a credential immediately after suspected disclosure, maintainer or service-account removal,
 unexpected use, or a provider-mandated event; otherwise follow the credential provider's rotation lifetime. Revoke
 unused credentials instead of retaining fallback access. Repository administration must require MFA, least privilege,
-and a non-candidate review before collaborator permissions are elevated, as described in `MAINTAINERS.md`.
+and approval from an existing maintainer or organization owner other than the access candidate before collaborator
+permissions are elevated, as described in `MAINTAINERS.md`.

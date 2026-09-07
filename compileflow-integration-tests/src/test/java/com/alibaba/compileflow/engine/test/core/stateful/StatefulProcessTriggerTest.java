@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.core.stateful;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ErrorCode;
@@ -46,7 +47,7 @@ public class StatefulProcessTriggerTest {
 
     @BeforeEach
     void setUp() {
-        engine = ProcessEngineTestFactory.createTbbpm();
+        engine = ProcessEngineTestFactory.create();
     }
 
     @AfterEach
@@ -71,8 +72,8 @@ public class StatefulProcessTriggerTest {
             Map<String, Object> level1Context = new HashMap<>(context);
             level1Context.put("level1_trigger_data", "level1_result");
 
-            ProcessResult<Map<String, Object>> level1Result = engine.trigger(ProcessDefinition.classpath(code,
-                            code.replace(".", "/") + ".bpm"),
+            ProcessResult<Map<String, Object>> level1Result = engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            code, code.replace(".", "/") + ".bpm"),
                     ProcessTrigger.on("waitLevel1Event", "level1EventComplete"), level1Context);
 
             assertThat(level1Result.isSuccess()).as("Level 1 trigger should succeed").isTrue();
@@ -80,8 +81,8 @@ public class StatefulProcessTriggerTest {
             Map<String, Object> level2Context = new HashMap<>(context);
             level2Context.put("level2_trigger_data", "level2_result");
 
-            ProcessResult<Map<String, Object>> level2Result = engine.trigger(ProcessDefinition.classpath(code,
-                            code.replace(".", "/") + ".bpm"),
+            ProcessResult<Map<String, Object>> level2Result = engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            code, code.replace(".", "/") + ".bpm"),
                     ProcessTrigger.on("waitLevel2Event", "level2EventComplete"), level2Context);
 
             assertThat(level2Result.isSuccess()).as("Level 2 trigger should succeed").isTrue();
@@ -89,8 +90,8 @@ public class StatefulProcessTriggerTest {
             Map<String, Object> level3Context = new HashMap<>(context);
             level3Context.put("level3_trigger_data", "level3_result");
 
-            ProcessResult<Map<String, Object>> level3Result = engine.trigger(ProcessDefinition.classpath(code,
-                            code.replace(".", "/") + ".bpm"),
+            ProcessResult<Map<String, Object>> level3Result = engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            code, code.replace(".", "/") + ".bpm"),
                     ProcessTrigger.on("waitLevel3Event", "level3EventComplete"), level3Context);
 
             assertThat(level3Result.isSuccess()).as("Level 3 trigger should succeed").isTrue();
@@ -112,8 +113,8 @@ public class StatefulProcessTriggerTest {
             statefulContext.put("statelessResult", "stateless_result");
             statefulContext.put("statefulResult", "stateful_result");
 
-            ProcessResult<Map<String, Object>> statefulResult = engine.trigger(ProcessDefinition.classpath(code,
-                            code.replace(".", "/") + ".bpm"),
+            ProcessResult<Map<String, Object>> statefulResult = engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            code, code.replace(".", "/") + ".bpm"),
                     ProcessTrigger.on("waitStatefulEvent", "statefulEventComplete"), statefulContext);
 
             assertThat(statefulResult.isSuccess()).as("Stateful trigger should succeed").isTrue();
@@ -135,8 +136,9 @@ public class StatefulProcessTriggerTest {
             Map<String, Object> context = new HashMap<>();
             context.put("requestType", "loan_application");
             // When: Try to trigger with the unknown node id
-            ProcessResult<Map<String, Object>> invalidTagResult = engine.trigger(ProcessDefinition.classpath(code,
-                            code.replace(".", "/") + ".bpm"), ProcessTrigger.on("invalidTag", "someEvent"), context);
+            ProcessResult<Map<String, Object>> invalidTagResult = engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            code, code.replace(".", "/") + ".bpm"), ProcessTrigger.on("invalidTag", "someEvent"),
+                    context);
             // Then: Verify failure and error information
             assertThat(invalidTagResult.isSuccess()).as("Unknown stateful node id should fail gracefully").isFalse();
             assertThat(invalidTagResult.getError().getMessage()).as("Error message should be present").isNotNull().isNotEmpty();
@@ -151,10 +153,11 @@ public class StatefulProcessTriggerTest {
             Map<String, Object> context = new HashMap<>();
             context.put("testData", "test_value");
             // When: Try to trigger on stateless process
-            ProcessResult<Map<String, Object>> result = engine.trigger(ProcessDefinition.classpath(code,
-                            code.replace(".", "/") + ".bpm"), ProcessTrigger.on("someTag", "someEvent"), context);
+            ProcessResult<Map<String, Object>> result = engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            code, code.replace(".", "/") + ".bpm"), ProcessTrigger.on("someTag", "someEvent"), context);
             // Then: Verify failure and error information
             assertThat(result.isSuccess()).as("Trigger on non-stateful process should fail").isFalse();
+            assertThat(result.getError().getCode()).isEqualTo(ErrorCode.CF_EXEC_008.getCode());
             assertThat(result.getError().getMessage()).as("Error message should be present").isNotNull().isNotEmpty();
         }
 
@@ -162,8 +165,9 @@ public class StatefulProcessTriggerTest {
         @DisplayName("should reject parallel waits without durable token correlation")
         void shouldRejectParallelWaitsWithoutDurableTokenCorrelation() {
             String code = "bpm.stateful.complexParallelGateway";
-            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(code,
-                            code.replace(".", "/") + ".bpm"), Map.of("orderId", "order_1", "customerId", "customer_1"));
+            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            code, code.replace(".", "/") + ".bpm"),
+                    Map.of("orderId", "order_1", "customerId", "customer_1"));
 
             assertThat(result.isFailure()).isTrue();
             assertThat(result.getError().getCode()).isEqualTo(ErrorCode.CF_VALIDATION_005.getCode());
@@ -176,7 +180,7 @@ public class StatefulProcessTriggerTest {
         @Test
         @DisplayName("should handle BPMN stateful receive task with complex trigger patterns")
         void completesSequentialBpmnReceiveTaskTriggers() {
-            try (ProcessEngine bpmnEngine = ProcessEngineTestFactory.createBpmn()) {
+            try (ProcessEngine engine = ProcessEngineTestFactory.create()) {
                 String code = "bpmn20.stateful.complex_stateful_receive_task";
                 Map<String, Object> context = new HashMap<>();
                 context.put("taskData", "complex_bpmn_task_data");
@@ -189,8 +193,9 @@ public class StatefulProcessTriggerTest {
                     Map<String, Object> triggerContext = new HashMap<>(context);
                     triggerContext.put("approval" + (i + 1) + "_result", "approved");
 
-                    finalResult = bpmnEngine.trigger(ProcessDefinition.classpath(code, code.replace(".", "/") + ".bpmn"),
-                            ProcessTrigger.on(nodeIds[i], events[i]), triggerContext);
+                    finalResult = engine.trigger(ProcessDefinition.classpath(ProcessModelType.BPMN, code,
+                                    code.replace(".", "/") + ".bpmn"), ProcessTrigger.on(nodeIds[i], events[i]),
+                            triggerContext);
 
                     assertThat(finalResult.isSuccess()).as("BPMN trigger %d should succeed", i + 1).isTrue();
                 }
@@ -203,10 +208,10 @@ public class StatefulProcessTriggerTest {
         @Test
         @DisplayName("should reject BPMN parallel waits without durable token correlation")
         void shouldRejectBpmnParallelWaitsWithoutDurableTokenCorrelation() {
-            try (ProcessEngine bpmnEngine = ProcessEngineTestFactory.createBpmn()) {
+            try (ProcessEngine engine = ProcessEngineTestFactory.create()) {
                 String code = "bpmn20.stateful.complex_stateful_parallel_gateway";
-                ProcessResult<Map<String, Object>> result = bpmnEngine.execute(ProcessDefinition.classpath(code,
-                                code.replace(".", "/") + ".bpmn"),
+                ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                                code, code.replace(".", "/") + ".bpmn"),
                         Map.of("processData", "complex_parallel_process_data"));
 
                 assertThat(result.isFailure()).isTrue();

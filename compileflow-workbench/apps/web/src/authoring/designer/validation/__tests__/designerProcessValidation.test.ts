@@ -32,6 +32,45 @@ function flow(variables: ProcessVariable[]): UnifiedProcessDefinition {
 }
 
 describe('designer process-variable validation', () => {
+  test.each(['rename', 'delete'])(
+    'reports dangling output references after variable %s without rewriting source text',
+    (operation) => {
+      const definition = flow([{ name: 'result', type: 'java.lang.String', inOutType: 'return' }])
+      if (definition.type !== 'TBBPM') throw new Error('Expected TBBPM fixture')
+      definition.nodes.push({
+        id: 'task',
+        type: 'autoTask',
+        position: { x: 0, y: 0 },
+        properties: {
+          action: {
+            actionType: 'java',
+            className: 'example.Service',
+            method: 'run',
+            mappings: [{ direction: 'output', target: 'result', dataType: 'java.lang.String' }],
+          },
+        },
+      })
+      definition.variables =
+        operation === 'rename'
+          ? [{ name: 'renamed', type: 'java.lang.String', inOutType: 'return' }]
+          : []
+      expect(validateDesignerProcess(definition).issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: 'tbbpm.mapping.unknownOutputTarget', nodeIds: ['task'] }),
+        ])
+      )
+      expect(definition.nodes[2].properties.action?.mappings?.[0].target).toBe('result')
+    }
+  )
+  test('connection issues identify actual canvas edges', () => {
+    const definition = flow([])
+    definition.connections = [{ id: 'real-edge', sourceId: 'start', targetId: 'start' }]
+    const issues = validateDesignerProcess(definition).issues.filter(
+      (issue) => issue.type === 'property' && issue.code.endsWith('conn.selfLoop')
+    )
+    expect(issues).toHaveLength(1)
+    expect(issues[0].connectionIds).toEqual(['real-edge'])
+  })
   test('accepts executable Java variable declarations', () => {
     const result = validateDesignerProcess(
       flow([

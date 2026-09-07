@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.system;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
@@ -51,7 +52,7 @@ class OrderManagementFlowIntegrationTest {
     @BeforeEach
     void setUp() {
         engine = ProcessEngineFactory.create(ProcessEngineTestFactory
-            .tbbpmBuilder()
+            .builder()
             .componentResolver(applicationContext::getBean)
             .build());
     }
@@ -158,23 +159,23 @@ class OrderManagementFlowIntegrationTest {
         assertThat(source.lines().mapToInt(String::length).max().orElseThrow()).isLessThanOrEqualTo(120);
 
         engine.runtime().warmUp(definition);
-        ProcessResult<Map<String, Object>> started =
-                engine.execute(ProcessDefinition.classpath(code, code.replace(".", "/") + ".bpm"), context);
+        ProcessResult<Map<String, Object>> started = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                        code, code.replace(".", "/") + ".bpm"), context);
         assertSuccessful(started, "start");
         context.putAll(started.getOutput());
 
-        ProcessResult<Map<String, Object>> paymentPending = engine.trigger(ProcessDefinition.classpath(code,
-                        code.replace(".", "/") + ".bpm"), ProcessTrigger.at("29"), context);
+        ProcessResult<Map<String, Object>> paymentPending = engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                        code, code.replace(".", "/") + ".bpm"), ProcessTrigger.at("29"), context);
         assertSuccessful(paymentPending, "payment pending");
         context.putAll(paymentPending.getOutput());
 
-        ProcessResult<Map<String, Object>> paymentSucceeded = engine.trigger(ProcessDefinition.classpath(code,
-                        code.replace(".", "/") + ".bpm"), ProcessTrigger.at("38"), context);
+        ProcessResult<Map<String, Object>> paymentSucceeded = engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                        code, code.replace(".", "/") + ".bpm"), ProcessTrigger.at("38"), context);
         assertSuccessful(paymentSucceeded, "payment success");
         context.putAll(paymentSucceeded.getOutput());
 
-        ProcessResult<Map<String, Object>> delivered = engine.trigger(ProcessDefinition.classpath(code,
-                        code.replace(".", "/") + ".bpm"), ProcessTrigger.at("33"), context);
+        ProcessResult<Map<String, Object>> delivered = engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                        code, code.replace(".", "/") + ".bpm"), ProcessTrigger.at("33"), context);
         assertSuccessful(delivered, "delivery callback");
 
         assertThat(business.getAdditionalData())
@@ -191,6 +192,7 @@ class OrderManagementFlowIntegrationTest {
     }
 
     private static ProcessDefinition definition(String name) {
-        return ProcessDefinition.classpath(PREFIX + name, "bpm/order-management/" + name + ".bpm");
+        return ProcessDefinition.classpath(ProcessModelType.TBBPM, PREFIX + name,
+                "bpm/order-management/" + name + ".bpm");
     }
 }

@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.tbbpm.parser;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
@@ -27,10 +28,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class TriggerEntryContractTest {
-    private static final ProcessEngineConfig CONFIG = ProcessEngineConfig
-        .tbbpmBuilder()
-        .discoverPlugins(false)
-        .build();
+    private static final ProcessEngineConfig CONFIG = ProcessEngineConfig.builder().discoverPlugins(false).build();
 
     private static String singleWaitFlow(String code, String nodeId) {
         return """
@@ -125,7 +123,8 @@ class TriggerEntryContractTest {
     @Test
     void usesTriggerEntryIdsForExternalEntriesAndInternalControlFlow() {
         String code = "test.stateful.trigger.entry";
-        ProcessDefinition definition = ProcessDefinition.inline(code, singleWaitFlow(code, "approval&quot;entry"));
+        ProcessDefinition definition =
+                ProcessDefinition.inline(ProcessModelType.TBBPM, code, singleWaitFlow(code, "approval&quot;entry"));
         ProcessRef.Version ref = ProcessRef.version(ProcessRef.DEFAULT_NAMESPACE, code, "v1");
 
         try (ProcessEngine engine = ProcessEngineFactory.create(CONFIG)) {
@@ -152,7 +151,7 @@ class TriggerEntryContractTest {
     @Test
     void fastPreflightRejectsRemovedTagAttribute() {
         String code = "test.stateful.trigger.removed-tag";
-        ProcessDefinition definition = ProcessDefinition.inline(code,
+        ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.TBBPM, code,
                 singleWaitFlow(code, "wait").replace("name=\"Wait\"", "name=\"Wait\" tag=\"legacy\""));
 
         try (ProcessEngine engine = ProcessEngineFactory.create(CONFIG)) {
@@ -168,7 +167,8 @@ class TriggerEntryContractTest {
     @Test
     void fastPreflightRejectsIncompleteLoopSemantics() {
         String code = "test.loop.invalid.foreach";
-        ProcessDefinition definition = ProcessDefinition.inline(code, incompleteForeachFlow(code));
+        ProcessDefinition definition =
+                ProcessDefinition.inline(ProcessModelType.TBBPM, code, incompleteForeachFlow(code));
 
         try (ProcessEngine engine = ProcessEngineFactory.create(CONFIG)) {
             ProcessPreflightReport report = engine.tooling().preflight(definition, ProcessPreflightOptions.fast());
@@ -181,7 +181,8 @@ class TriggerEntryContractTest {
     @Test
     void fastPreflightRejectsNestedNodeIdsThatCollideWithTopLevelNodes() {
         String code = "test.loop.duplicate.nested.id";
-        ProcessDefinition definition = ProcessDefinition.inline(code, duplicateNestedNodeIdFlow(code));
+        ProcessDefinition definition =
+                ProcessDefinition.inline(ProcessModelType.TBBPM, code, duplicateNestedNodeIdFlow(code));
 
         try (ProcessEngine engine = ProcessEngineFactory.create(CONFIG)) {
             ProcessPreflightReport report = engine.tooling().preflight(definition, ProcessPreflightOptions.fast());
@@ -198,7 +199,7 @@ class TriggerEntryContractTest {
     @Test
     void fastPreflightRejectsTransitionsToDiagramOnlyNotes() {
         String code = "test.note.transition.target";
-        ProcessDefinition definition = ProcessDefinition.inline(code, noteTargetFlow(code));
+        ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.TBBPM, code, noteTargetFlow(code));
 
         try (ProcessEngine engine = ProcessEngineFactory.create(CONFIG)) {
             ProcessPreflightReport report = engine.tooling().preflight(definition, ProcessPreflightOptions.fast());
@@ -211,7 +212,8 @@ class TriggerEntryContractTest {
     @Test
     void fastPreflightRejectsAnEmbeddedProcessCodeThatDiffersFromItsDefinition() {
         String code = "test.identity.expected";
-        ProcessDefinition definition = ProcessDefinition.inline(code, singleWaitFlow("test.identity.other", "approval"));
+        ProcessDefinition definition =
+                ProcessDefinition.inline(ProcessModelType.TBBPM, code, singleWaitFlow("test.identity.other", "approval"));
 
         try (ProcessEngine engine = ProcessEngineFactory.create(CONFIG)) {
             ProcessPreflightReport report = engine.tooling().preflight(definition, ProcessPreflightOptions.fast());
@@ -224,7 +226,7 @@ class TriggerEntryContractTest {
     @Test
     void fastPreflightRejectsUnreachableExecutableNodes() {
         String code = "test.unreachable";
-        ProcessDefinition definition = ProcessDefinition.inline(code, unreachableNodeFlow(code));
+        ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.TBBPM, code, unreachableNodeFlow(code));
 
         try (ProcessEngine engine = ProcessEngineFactory.create(CONFIG)) {
             ProcessPreflightReport report = engine.tooling().preflight(definition, ProcessPreflightOptions.fast());

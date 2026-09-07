@@ -88,7 +88,8 @@ public sealed interface FrontierStepResult
             waitRequest = Objects.requireNonNull(waitRequest, "waitRequest");
             checkpoint = Objects.requireNonNull(checkpoint, "checkpoint");
             state = DurableValueSnapshots.immutableMap(Objects.requireNonNull(state, "state"));
-            if (!waitRequest.boundaryId().equals(checkpoint.resumePoint().elementId())) {
+            if (!checkpoint.resumePoint().isAfterElement()
+                    || !waitRequest.boundaryId().equals(checkpoint.resumePoint().elementId())) {
                 throw new IllegalArgumentException("Wait request and SemanticCheckpoint must match");
             }
         }
@@ -105,7 +106,8 @@ public sealed interface FrontierStepResult
             timerRequest = Objects.requireNonNull(timerRequest, "timerRequest");
             checkpoint = Objects.requireNonNull(checkpoint, "checkpoint");
             state = DurableValueSnapshots.immutableMap(Objects.requireNonNull(state, "state"));
-            if (!timerRequest.boundaryId().equals(checkpoint.resumePoint().elementId())) {
+            if (!checkpoint.resumePoint().isAfterElement()
+                    || !timerRequest.boundaryId().equals(checkpoint.resumePoint().elementId())) {
                 throw new IllegalArgumentException("Timer request and SemanticCheckpoint must match");
             }
         }
@@ -122,7 +124,8 @@ public sealed interface FrontierStepResult
             effectRequest = Objects.requireNonNull(effectRequest, "effectRequest");
             checkpoint = Objects.requireNonNull(checkpoint, "checkpoint");
             state = DurableValueSnapshots.immutableMap(Objects.requireNonNull(state, "state"));
-            if (!effectRequest.elementId().equals(checkpoint.resumePoint().elementId())) {
+            if (!checkpoint.resumePoint().isAfterElement()
+                    || !effectRequest.elementId().equals(checkpoint.resumePoint().elementId())) {
                 throw new IllegalArgumentException("Effect request and SemanticCheckpoint must match");
             }
         }
@@ -139,7 +142,8 @@ public sealed interface FrontierStepResult
             request = Objects.requireNonNull(request, "request");
             checkpoint = Objects.requireNonNull(checkpoint, "checkpoint");
             state = DurableValueSnapshots.immutableMap(Objects.requireNonNull(state, "state"));
-            if (!request.elementId().equals(checkpoint.resumePoint().elementId())) {
+            if (!checkpoint.resumePoint().isAfterElement()
+                    || !request.elementId().equals(checkpoint.resumePoint().elementId())) {
                 throw new IllegalArgumentException("Process call request and SemanticCheckpoint must match");
             }
         }

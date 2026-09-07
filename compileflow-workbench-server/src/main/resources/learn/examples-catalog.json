@@ -27,7 +27,7 @@
     "overview": "This is the smallest useful TBBPM definition: one start node, one executable task, and one end node. It has no application-specific class dependency, so the built-in QL Script can be preflighted and executed as-is.",
     "explanation": "The missing `name` input uses the declared `World` default. The QL Script evaluates a string and the action output maps that value to the root `message` variable.",
     "nextSteps": "Add a string input variable with a default value, map it into the action, and build a personalized greeting.",
-    "documentation": "See the [TBBPM specification](https://github.com/alibaba/compileflow/blob/master/docs/specs/tbbpm-specification.en.md) and the [node support matrix](https://github.com/alibaba/compileflow/blob/master/docs/en/node-support.md)."
+    "documentation": "See the [TBBPM specification](https://github.com/alibaba/compileflow/blob/master/docs/en/specifications/tbbpm.md) and the [node support matrix](https://github.com/alibaba/compileflow/blob/master/docs/en/node-support.md)."
   },
   {
     "id": "learn.bpmn.routing",
@@ -57,7 +57,7 @@
     "overview": "This example uses only the CompileFlow-supported BPMN subset. It models a synchronous decision, not a durable human task: an external task system must own human-task state and lifecycle.",
     "explanation": "The default amount is 150, so an empty input selects `manual-review`. Supplying an amount below 100 selects `automatic`. Both branches converge on the same end event.",
     "nextSteps": "Run the flow with `{\"amount\": 50}` and compare the returned `route`, then add a third policy through an explicit default sequence flow.",
-    "documentation": "See the [Process model](https://github.com/alibaba/compileflow/blob/master/docs/architecture/07-PROCESS_MODEL.en.md) for BPMN extension placement and supported-node rules."
+    "documentation": "See the [Process model](https://github.com/alibaba/compileflow/blob/master/docs/en/architecture/process-model.md) for BPMN extension placement and supported-node rules."
   },
   {
     "id": "learn.tbbpm.parallel",

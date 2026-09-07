@@ -19,8 +19,8 @@ import com.alibaba.compileflow.engine.core.model.LoopControlElement;
 /**
  * Skips the remainder of the current loop iteration when an optional guard expression evaluates to {@code true}.
  *
- * <p>If {@link #getCondition()} is blank, the skip is unconditional.
- * Maps to a {@code continue} statement in the generated Java bytecode.
+ * <p>If {@link #getCondition()} is {@code null}, the skip is unconditional.
+ * A declared condition must not be blank.
  *
  * @author wuxiang
  * @author yusu

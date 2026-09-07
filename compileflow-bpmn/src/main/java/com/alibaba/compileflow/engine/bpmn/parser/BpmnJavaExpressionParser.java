@@ -43,13 +43,28 @@ final class BpmnJavaExpressionParser {
                 break;
             }
         }
-        return new ExpressionContract(source.getLocalName(),
-                source.getString(BpmnModelConstants.BPMN_ATTRIBUTE_LANGUAGE), formalExpressionType,
-                inheritsJavaLanguage(context));
+        String elementName = source.getLocalName();
+        String language = source.getString(BpmnModelConstants.BPMN_ATTRIBUTE_LANGUAGE);
+        if (language != null && !"java".equals(language)) {
+            throw unsupported("BPMN " + elementName + " language must be 'java': " + language);
+        }
+        if (formalExpressionType != null && !isFormalExpressionType(source, formalExpressionType)) {
+            throw unsupported(
+                    "BPMN " + elementName + " xsi:type must resolve to BPMN tFormalExpression: " + formalExpressionType);
+        }
+        if (language != null && formalExpressionType == null) {
+            throw unsupported("BPMN " + elementName + " language requires xsi:type=\"tFormalExpression\"");
+        }
+        return new ExpressionContract(elementName, language, inheritsJavaLanguage(context));
     }
 
     static String validateExpression(ExpressionContract contract, String value) {
-        validate(contract);
+        if (contract.language() == null && !contract.inheritsJavaLanguage()) {
+            throw unsupported(
+                    "BPMN " + contract.elementName()
+                    + " must declare language=\"java\" or definitions expressionLanguage=\""
+                    + BpmnModelConstants.COMPILEFLOW_JAVA_EXPRESSION_LANGUAGE + "\"; expressions are compiled as Java");
+        }
         if (value == null) {
             return null;
         }
@@ -61,39 +76,23 @@ final class BpmnJavaExpressionParser {
         return expression;
     }
 
-    private static void validate(ExpressionContract contract) {
-        String elementName = contract.elementName();
-        String language = contract.language();
-        if (language != null && !"java".equals(language)) {
-            throw unsupported("BPMN " + elementName + " language must be 'java': " + language);
-        }
-        if (language == null && !contract.inheritsJavaLanguage()) {
-            throw unsupported(
-                    "BPMN " + elementName + " must declare language=\"java\" or definitions expressionLanguage=\""
-                    + BpmnModelConstants.COMPILEFLOW_JAVA_EXPRESSION_LANGUAGE + "\"; expressions are compiled as Java");
-        }
-        if (contract.formalExpressionType() != null && !isFormalExpressionType(contract.formalExpressionType())) {
-            throw unsupported(
-                    "BPMN " + elementName + " xsi:type must be 'tFormalExpression': " + contract.formalExpressionType());
-        }
-        if (language != null && contract.formalExpressionType() == null) {
-            throw unsupported("BPMN " + elementName + " language requires xsi:type=\"tFormalExpression\"");
-        }
-    }
-
     private static boolean inheritsJavaLanguage(ParseContext context) {
         return context.getTop() instanceof Definitions definitions
                 && BpmnModelConstants.COMPILEFLOW_JAVA_EXPRESSION_LANGUAGE.equals(definitions.getExpressionLanguage());
     }
 
-    private static boolean isFormalExpressionType(String type) {
-        return "tFormalExpression".equals(type) || type != null && type.endsWith(":tFormalExpression");
+    private static boolean isFormalExpressionType(XmlSource source, String value) {
+        String type = value.trim();
+        int separator = type.indexOf(':');
+        String prefix = separator < 0 ? "" : type.substring(0, separator);
+        String localName = type.substring(separator + 1);
+        return separator != 0 && "tFormalExpression".equals(localName)
+                && BpmnModelConstants.BPMN20_NS.equals(source.getNamespaceURI(prefix));
     }
 
     private static CompileFlowException unsupported(String message) {
         return new CompileFlowException(ErrorCode.CF_VALIDATION_002, message, null);
     }
 
-    record ExpressionContract(String elementName, String language, String formalExpressionType,
-            boolean inheritsJavaLanguage) {}
+    record ExpressionContract(String elementName, String language, boolean inheritsJavaLanguage) {}
 }

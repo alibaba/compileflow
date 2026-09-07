@@ -61,7 +61,8 @@ function detectConflicts(shortcuts: ShortcutConfig[]): Map<string, ShortcutConfi
 function isEditableShortcutTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
   return (
-    target.matches('input, textarea, [contenteditable="true"]') ||
+    target.matches('input, textarea, select') ||
+    Boolean(target.closest('[contenteditable]:not([contenteditable="false"])')) ||
     Boolean(target.closest('.monaco-editor, .ant-input, .ant-select, .ant-input-number'))
   )
 }
@@ -113,7 +114,7 @@ export function useKeyboardShortcuts(
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      if (isEditableShortcutTarget(event.target)) return
+      if (event.isComposing || isEditableShortcutTarget(event.target)) return
 
       const currentShortcuts = shortcutsRef.current
 

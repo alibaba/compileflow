@@ -18,4 +18,18 @@
         <Method name="deleteRunRows"/>
         <Bug pattern="SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING"/>
     </Match>
+
+    <!-- Query shape is composed only from fixed SQL fragments and placeholders. -->
+    <Match>
+        <Class name="com.alibaba.compileflow.durable.mysql.MySqlDurableStore"/>
+        <Method name="~(listRuns|listOutbox)"/>
+        <Bug pattern="SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING"/>
+    </Match>
+
+    <!-- The relation is selected from an exhaustive allowlist; run IDs remain bound parameters. -->
+    <Match>
+        <Class name="com.alibaba.compileflow.durable.mysql.MySqlDurableStore"/>
+        <Method name="deleteRunRows"/>
+        <Bug pattern="SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING"/>
+    </Match>
 </FindBugsFilter>

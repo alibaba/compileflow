@@ -278,10 +278,8 @@ public class BpmnXmlWriter extends AbstractFlowStreamWriter<BpmnModel> {
         if (timer.expression()) {
             writeFormalExpressionType(xsw);
             writeAttribute(xsw, BpmnModelConstants.BPMN_ATTRIBUTE_LANGUAGE, "java");
-            xsw.writeCharacters(timer.value());
-        } else {
-            xsw.writeCharacters(timer.value());
         }
+        xsw.writeCharacters(timer.value());
         xsw.writeEndElement();
         // timerEventDefinition
         xsw.writeEndElement();
@@ -334,10 +332,7 @@ public class BpmnXmlWriter extends AbstractFlowStreamWriter<BpmnModel> {
         writeAttribute(xsw, BpmnModelConstants.BPMN_ATTRIBUTE_ID, gateway.getId());
         writeAttribute(xsw, BpmnModelConstants.BPMN_ATTRIBUTE_NAME, gateway.getName());
         writeGatewayDirection(xsw, gateway);
-        SequenceFlow defaultTransition = gateway.getDefaultTransition();
-        if (defaultTransition != null) {
-            writeAttribute(xsw, BpmnModelConstants.BPMN_ATTRIBUTE_DEFAULT, defaultTransition.getId());
-        }
+        writeAttribute(xsw, BpmnModelConstants.BPMN_ATTRIBUTE_DEFAULT, gateway.getDefaultFlowId());
 
         writeExtensionElementsIfPresent(xsw, gateway);
         writeIncomingFlows(xsw, gateway);
@@ -364,10 +359,7 @@ public class BpmnXmlWriter extends AbstractFlowStreamWriter<BpmnModel> {
         writeAttribute(xsw, BpmnModelConstants.BPMN_ATTRIBUTE_ID, gateway.getId());
         writeAttribute(xsw, BpmnModelConstants.BPMN_ATTRIBUTE_NAME, gateway.getName());
         writeGatewayDirection(xsw, gateway);
-        SequenceFlow defaultTransition = gateway.getDefaultTransition();
-        if (defaultTransition != null) {
-            writeAttribute(xsw, BpmnModelConstants.BPMN_ATTRIBUTE_DEFAULT, defaultTransition.getId());
-        }
+        writeAttribute(xsw, BpmnModelConstants.BPMN_ATTRIBUTE_DEFAULT, gateway.getDefaultFlowId());
 
         writeExtensionElementsIfPresent(xsw, gateway);
         writeIncomingFlows(xsw, gateway);
@@ -531,10 +523,6 @@ public class BpmnXmlWriter extends AbstractFlowStreamWriter<BpmnModel> {
     }
 
     private void writeExtensionAction(XMLStreamWriter xsw, Action action) throws Exception {
-        writeExtensionAction(xsw, action, BpmnModelConstants.BPMN_EXT_ATTRIBUTE_ACTION);
-    }
-
-    private void writeExtensionAction(XMLStreamWriter xsw, Action action, String elementName) throws Exception {
         if (action == null) {
             return;
         }
@@ -542,9 +530,9 @@ public class BpmnXmlWriter extends AbstractFlowStreamWriter<BpmnModel> {
             throw new CompileFlowException(ErrorCode.CF_VALIDATION_002, "Cannot serialize a BPMN action without a type",
                     null);
         }
-        xsw.writeStartElement(BpmnModelConstants.CF_NS, elementName);
+        xsw.writeStartElement(BpmnModelConstants.CF_NS, BpmnModelConstants.BPMN_EXT_ATTRIBUTE_ACTION);
         writeAttribute(xsw, "type", action.getType().getValue());
-        if (BpmnModelConstants.BPMN_EXT_ATTRIBUTE_ACTION.equals(elementName) && action.getExecution() != null) {
+        if (action.getExecution() != null) {
             writeAttribute(xsw, "execution", action.getExecution().getValue());
         }
 
@@ -565,10 +553,8 @@ public class BpmnXmlWriter extends AbstractFlowStreamWriter<BpmnModel> {
         if (action.getType() == ActionType.SCRIPT) {
             writeCodeElement(xsw, action.getSource());
         }
-        if (BpmnModelConstants.BPMN_EXT_ATTRIBUTE_ACTION.equals(elementName)) {
-            writeInvocationPolicyElement(xsw, action.getInvocationPolicy());
-            writeEffectPolicy(xsw, action.getEffectPolicy());
-        }
+        writeInvocationPolicyElement(xsw, action.getInvocationPolicy());
+        writeEffectPolicy(xsw, action.getEffectPolicy());
         // cf:action
         xsw.writeEndElement();
     }
@@ -680,9 +666,6 @@ public class BpmnXmlWriter extends AbstractFlowStreamWriter<BpmnModel> {
 
     private void writeMultiInstanceLoopCharacteristics(XMLStreamWriter xsw, MultiInstanceLoopCharacteristics loopChar)
             throws Exception {
-        if (loopChar == null) {
-            return;
-        }
         BpmnLoopContract.validate(loopChar);
 
         xsw.writeStartElement(BpmnModelConstants.BPMN20_NS, "multiInstanceLoopCharacteristics");

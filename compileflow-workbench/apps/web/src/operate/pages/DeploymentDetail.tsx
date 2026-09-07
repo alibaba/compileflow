@@ -33,12 +33,11 @@ import { usePageTitle } from '@/shared/hooks/usePageTitle'
 import { formatDateTime } from '@/shared/i18n/dateTime'
 
 const STATUS_KIND: Record<
-  string,
+  Deployment['status'],
   'status-success' | 'status-error' | 'status-warning' | 'default'
 > = {
   completed: 'status-success',
   in_progress: 'default',
-  failed: 'status-error',
   aborted: 'status-warning',
 }
 
@@ -68,7 +67,7 @@ function DeploymentSummary({ deployment, t }: { deployment: Deployment; t: TFunc
         {t(`deployment.strategy.${deployment.strategy}`)}
       </Descriptions.Item>
       <Descriptions.Item label={t('deployment.status')}>
-        <SemanticTag kind={STATUS_KIND[deployment.status] ?? 'default'}>
+        <SemanticTag kind={STATUS_KIND[deployment.status]}>
           {t(`deployment.status.${deployment.status}`)}
         </SemanticTag>
       </Descriptions.Item>
@@ -178,8 +177,8 @@ function CanaryControl({
         disabled={busy || !routeOwned}
         onChange={setCanaryValue}
         marks={{ 100: '1%', 5_000: '50%', 9_900: '99%' }}
-        aria-label={t('deployment.canaryWeightBps')}
-        aria-valuetext={`${canaryValue} bps (${canaryValue / 100}%)`}
+        ariaLabelForHandle={t('deployment.canaryWeightBps')}
+        ariaValueTextFormatterForHandle={(value) => `${value} bps (${value / 100}%)`}
       />
       <Space className={styles.actions} wrap>
         <Button

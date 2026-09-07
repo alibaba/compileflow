@@ -142,7 +142,7 @@ test.describe('BPMN 2. 节点工具箱', () => {
 
   test('2.5 搜索网关过滤', async ({ page }) => {
     const palette = page.locator('.bpmn-designer-left-sider')
-    const searchInput = palette.getByPlaceholder('搜索节点...')
+    const searchInput = palette.getByPlaceholder('搜索节点…')
     await searchInput.fill('网关')
     await page.waitForTimeout(400)
     await expect(
@@ -163,7 +163,7 @@ test.describe('BPMN 3. 调试面板', () => {
   test('3.1 打开调试面板并切换引擎模式', async ({ page }) => {
     await page.locator('.designer-header button .anticon-bug').first().click()
     await expect(page.locator('.flow-debugger-panel')).toBeVisible()
-    await page.locator('.flow-debugger-mode-switch').getByText('引擎执行').click()
+    await page.locator('.flow-debugger-mode-switch').getByText('服务器执行').click()
     await expect(page.locator('.engine-debug-section')).toBeVisible()
   })
 })

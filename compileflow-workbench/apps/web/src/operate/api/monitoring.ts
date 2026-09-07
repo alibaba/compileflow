@@ -2,10 +2,11 @@
 // TopProcessStats, and ErrorSummary are now imported from the contract layer — the single
 // source of truth in runtimeContract.ts.
 
+import { resolveTrendInterval, type TrendInterval } from '@/operate/monitoring/trendInterval'
 import apiClient from '@/shared/api/client'
 import { isOperateMockMode } from '@/shared/config/buildConfig'
 import type {
-  DeployRuntimeDiagnostics,
+  DeploymentRuntimeDiagnostics,
   ErrorSummary,
   ExecutionTrend,
   MonitoringMetrics,
@@ -38,13 +39,20 @@ function getMockMetrics(timeRange: MonitoringTimeRange): MonitoringMetrics {
   }
 }
 
-function getMockTrends(): ExecutionTrend[] {
-  return Array.from({ length: 12 }, (_, i) => ({
-    time: new Date(Date.now() - (11 - i) * 3600_000).toISOString(),
-    executions: 80 + ((i * 3) % 40),
-    success: 75 + ((i * 2) % 35),
-    failed: 1 + (i % 6),
-  }))
+function getMockTrends(timeRange: MonitoringTimeRange, interval: TrendInterval): ExecutionTrend[] {
+  const intervalMs = { '1m': 60_000, '5m': 300_000, '1h': 3600_000, '1d': 86400_000 }[interval]
+  const count = Math.ceil(MONITORING_RANGE_MS[timeRange] / intervalMs)
+  const end = Math.floor(Date.now() / intervalMs) * intervalMs
+  return Array.from({ length: count }, (_, i) => {
+    const success = 75 + ((i * 2) % 35)
+    const failed = 1 + (i % 6)
+    return {
+      time: new Date(end - (count - 1 - i) * intervalMs).toISOString(),
+      executions: success + failed,
+      success,
+      failed,
+    }
+  })
 }
 
 function getMockTopProcesses(): TopProcessStats[] {
@@ -103,7 +111,7 @@ function getMockVersionDistribution(): VersionDistributionStats[] {
   ]
 }
 
-function getMockDeployRuntimeDiagnostics(): DeployRuntimeDiagnostics {
+function getMockDeploymentRuntimeDiagnostics(): DeploymentRuntimeDiagnostics {
   const now = new Date().toISOString()
   return {
     timestamp: now,
@@ -196,7 +204,10 @@ export async function getExecutionTrends(params: {
   timeRange: MonitoringTimeRange
   interval?: '1m' | '5m' | '1h' | '1d'
 }): Promise<ExecutionTrend[]> {
-  if (isOperateMockMode()) return Promise.resolve(getMockTrends())
+  if (isOperateMockMode())
+    return Promise.resolve(
+      getMockTrends(params.timeRange, params.interval ?? resolveTrendInterval(params.timeRange))
+    )
   return apiClient.get<ExecutionTrend[]>('/api/monitoring/trends', { params })
 }
 
@@ -233,13 +244,17 @@ export async function getVersionDistribution(
     limit: params.limit ?? 20,
   }
   if (isOperateMockMode())
-    return Promise.resolve(getMockVersionDistribution().slice(0, resolvedParams.limit))
+    return Promise.resolve(
+      getMockVersionDistribution()
+        .filter((item) => !params.processCode || item.processCode === params.processCode)
+        .slice(0, resolvedParams.limit)
+    )
   return apiClient.get<VersionDistributionStats[]>('/api/monitoring/version-distribution', {
     params: resolvedParams,
   })
 }
 
-export async function getDeployRuntimeDiagnostics(): Promise<DeployRuntimeDiagnostics> {
-  if (isOperateMockMode()) return Promise.resolve(getMockDeployRuntimeDiagnostics())
-  return apiClient.get<DeployRuntimeDiagnostics>('/api/monitoring/deploy-runtime')
+export async function getDeploymentRuntimeDiagnostics(): Promise<DeploymentRuntimeDiagnostics> {
+  if (isOperateMockMode()) return Promise.resolve(getMockDeploymentRuntimeDiagnostics())
+  return apiClient.get<DeploymentRuntimeDiagnostics>('/api/monitoring/deploy-runtime')
 }

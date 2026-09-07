@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import re
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from scripts.check_internal_links import (
+    JAVA_COMMENT_RE,
     STALE_API_DOC_RE,
     STALE_DURABLE_RECOVERY_DOC_RE,
     extract_micrometer_metric_names,
@@ -16,9 +19,71 @@ from scripts.check_internal_links import (
     find_java_security_release_gate_errors,
     find_java_build_output_bins,
     find_maven_project_identity_errors,
+    find_missing_workflow_tests,
+    find_release_attestation_permission_errors,
+    find_unknown_documented_pnpm_scripts,
     markdown_heading_anchors,
     markdown_structure_errors,
+    workflow_fragment_present,
 )
+
+
+class JavadocLanguageBoundaryTest(unittest.TestCase):
+    def test_javadoc_regex_checks_allow_localized_application_data(self) -> None:
+        config = Path(__file__).resolve().parents[2] / "checkstyle-javadoc.xml"
+        source = 'private final String label = "\u4e2d\u6587";'
+        for check in ET.parse(config).findall(".//module[@name='RegexpSinglelineJava']"):
+            pattern = check.find("property[@name='format']").get("value")
+            with self.subTest(pattern=pattern):
+                self.assertIsNone(re.search(pattern, source))
+
+    def test_comment_language_gate_does_not_reject_application_data(self) -> None:
+        self.assertIsNone(JAVA_COMMENT_RE.search('String label = "\u4e2d\u6587";'))
+        self.assertIsNotNone(JAVA_COMMENT_RE.search('// \u4e2d\u6587'))
+        self.assertIsNotNone(JAVA_COMMENT_RE.search(' * \u4e2d\u6587'))
+
+
+class WorkflowFragmentTest(unittest.TestCase):
+    def test_accepts_literal_and_regular_expression_contracts(self) -> None:
+        workflow = "FROM node:24.20.0-alpine3.24@sha256:" + "a" * 64 + " AS build\n"
+
+        self.assertTrue(workflow_fragment_present(workflow, "AS build"))
+        self.assertTrue(
+            workflow_fragment_present(
+                workflow,
+                re.compile(r"FROM node:\d+\.\d+\.\d+-alpine3\.24@sha256:[0-9a-f]{64}"),
+            )
+        )
+        self.assertFalse(workflow_fragment_present(workflow, re.compile(r"FROM node:22\.")))
+
+
+class WorkflowTestSelectorsTest(unittest.TestCase):
+    def check_selectors(self, selectors: str) -> list[str]:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "module/src/test/java/example/ExistingTest.java"
+            source.parent.mkdir(parents=True)
+            source.write_text("class ExistingTest {}", encoding="utf-8")
+            stale = root / "module/target/generated/src/test/java/example/RemovedTest.java"
+            stale.parent.mkdir(parents=True)
+            stale.write_text("class RemovedTest {}", encoding="utf-8")
+            workflow = root / ".github/workflows/test.yml"
+            workflow.parent.mkdir(parents=True)
+            workflow.write_text(f"run: ./mvnw test -Dtest={selectors}\n", encoding="utf-8")
+            return find_missing_workflow_tests(root)
+
+    def test_accepts_existing_class_and_quoted_globs(self) -> None:
+        for selector in ("ExistingTest", "'Existing*Test'", '"ExistingTest"'):
+            with self.subTest(selector=selector):
+                self.assertEqual([], self.check_selectors(selector))
+
+    def test_rejects_one_missing_selector_even_when_another_matches(self) -> None:
+        errors = self.check_selectors("ExistingTest,RemovedTest")
+        self.assertEqual(1, len(errors))
+        self.assertIn("matches no source: RemovedTest", errors[0])
+
+    def test_rejects_empty_glob(self) -> None:
+        self.assertIn("matches no source: Missing*Test", self.check_selectors("'Missing*Test'")[0])
 
 
 class DocumentationDriftPatternTest(unittest.TestCase):
@@ -28,10 +93,24 @@ class DocumentationDriftPatternTest(unittest.TestCase):
             STALE_API_DOC_RE.search("An integration may adapt the current `SpanContext`")
         )
 
+    def test_rejects_format_modules_described_as_engine_providers(self) -> None:
+        self.assertIsNotNone(
+            STALE_API_DOC_RE.search("Core consumes their provider boundary.")
+        )
+        self.assertIsNotNone(
+            STALE_API_DOC_RE.search("CF_CONFIG_005 means no matching format provider.")
+        )
+
     def test_accepts_current_storage_and_host_tracing_terms(self) -> None:
         current = "`ProcessStorage` persists drafts and may read the host application's span context."
 
         self.assertIsNone(STALE_API_DOC_RE.search(current))
+        self.assertIsNone(STALE_API_DOC_RE.search("ProcessEngineConfig.builder()"))
+        self.assertIsNone(
+            STALE_API_DOC_RE.search("Core consumes the semantic-compiler provider boundary.")
+        )
+        self.assertIsNotNone(STALE_API_DOC_RE.search("ProcessEngineConfig.tbbpmBuilder()"))
+        self.assertIsNotNone(STALE_API_DOC_RE.search("ProcessEngineFactory.createBpmn()"))
 
 
 class DurableRecoveryDocumentationTest(unittest.TestCase):
@@ -74,13 +153,18 @@ class ActiveDocumentationRetiredSemanticsTest(unittest.TestCase):
                 "Persisted Run state contains leases, child Runs, and Outbox records.\n",
                 encoding="utf-8",
             )
+            (docs / "wait.md").write_text(
+                "Wait tokens are random capabilities and only their digests are persisted.\n",
+                encoding="utf-8",
+            )
 
             errors = find_active_documentation_retired_semantics(root)
 
-            self.assertEqual(3, len(errors))
+            self.assertEqual(4, len(errors))
             self.assertTrue(any("ProcessDefinition.File" in error for error in errors))
             self.assertTrue(any("ProcessExecution" in error for error in errors))
             self.assertTrue(any("Child Run" in error for error in errors))
+            self.assertTrue(any("Wait-token persistence" in error for error in errors))
 
     def test_checks_all_public_documentation(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -91,7 +175,8 @@ class ActiveDocumentationRetiredSemanticsTest(unittest.TestCase):
             (docs / "current.md").write_text(
                 "`ProcessDefinition` supports `Inline` and `Classpath`. "
                 "`ProcessExecution` contains trace and invocation IDs. "
-                "`ProcessEvent.ExecutionAttribution` contains call depth.\n",
+                "`ProcessEvent.ExecutionAttribution` contains call depth. "
+                "The Wait authority row stores only a digest; an active Outbox record may temporarily retain the raw token.\n",
                 encoding="utf-8",
             )
             (architecture / "legacy.md").write_text(
@@ -156,6 +241,35 @@ class JavaSecurityReleaseGateTest(unittest.TestCase):
 
             self.assertEqual(1, len(errors))
             self.assertIn("blocking build dependency", errors[0])
+
+
+class ReleaseAttestationPermissionTest(unittest.TestCase):
+    def test_requires_permissions_in_caller_and_reusable_workflow(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            workflows = root / ".github" / "workflows"
+            workflows.mkdir(parents=True)
+            permissions = "attestations: write\nid-token: write\n"
+            (workflows / "release.yml").write_text(permissions, encoding="utf-8")
+            (workflows / "release-build.yml").write_text(permissions, encoding="utf-8")
+
+            self.assertEqual([], find_release_attestation_permission_errors(root))
+
+    def test_rejects_permission_present_only_in_caller(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            workflows = root / ".github" / "workflows"
+            workflows.mkdir(parents=True)
+            permissions = "attestations: write\nid-token: write\n"
+            (workflows / "release.yml").write_text(permissions, encoding="utf-8")
+            (workflows / "release-build.yml").write_text(
+                "permissions:\n  contents: read\n", encoding="utf-8"
+            )
+
+            errors = find_release_attestation_permission_errors(root)
+
+            self.assertEqual(2, len(errors))
+            self.assertTrue(all("release-build.yml" in error for error in errors))
 
 
 class MicrometerMetricExtractionTest(unittest.TestCase):
@@ -286,6 +400,27 @@ class MarkdownStructureTest(unittest.TestCase):
 
         self.assertTrue(any("found 1, 3" in error for error in errors))
         self.assertIn("file must end with a newline", errors)
+
+
+class DocumentedPnpmScriptTest(unittest.TestCase):
+    def test_rejects_unknown_script_and_allows_declared_scripts_and_builtins(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            workspace = root / "compileflow-workbench"
+            workspace.mkdir()
+            (workspace / "package.json").write_text(
+                '{"scripts":{"type-check":"pnpm --recursive type-check"}}\n',
+                encoding="utf-8",
+            )
+            (root / "README.md").write_text(
+                "# Commands\n\n```bash\npnpm install\npnpm type-check\npnpm typecheck\n```\n",
+                encoding="utf-8",
+            )
+
+            errors = find_unknown_documented_pnpm_scripts(root)
+
+            self.assertEqual(1, len(errors))
+            self.assertIn("unknown root pnpm script 'typecheck'", errors[0])
 
 
 class InternalIdentifierCasingTest(unittest.TestCase):

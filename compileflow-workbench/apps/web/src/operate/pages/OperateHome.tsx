@@ -294,7 +294,7 @@ function RecentDeploymentsPanel({
                     title={item.processCode}
                     description={
                       <span className={styles.deployMeta}>
-                        {item.alias} · {formatDateTime(item.deployedAt)}
+                        {item.alias} · {formatDateTime(item.deployedAt ?? item.createdAt)}
                       </span>
                     }
                   />

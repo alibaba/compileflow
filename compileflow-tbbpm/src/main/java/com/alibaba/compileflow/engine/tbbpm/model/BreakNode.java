@@ -19,8 +19,8 @@ import com.alibaba.compileflow.engine.core.model.LoopControlElement;
 /**
  * Terminates the enclosing loop when an optional guard expression evaluates to {@code true}.
  *
- * <p>If {@link #getCondition()} is blank, the break is unconditional.
- * Maps to a {@code break} statement in the generated Java bytecode.
+ * <p>If {@link #getCondition()} is {@code null}, the break is unconditional.
+ * A declared condition must not be blank.
  *
  * @author wuxiang
  * @author yusu

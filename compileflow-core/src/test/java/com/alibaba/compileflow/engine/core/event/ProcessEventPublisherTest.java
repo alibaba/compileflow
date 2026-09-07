@@ -22,7 +22,6 @@ import com.alibaba.compileflow.engine.ProcessExecution;
 import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.ProcessTrigger;
-import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
 import com.alibaba.compileflow.engine.config.ProcessExecutorConfig;
 import com.alibaba.compileflow.engine.config.ProcessObservabilityConfig;
 import com.alibaba.compileflow.engine.core.concurrent.ProcessEngineExecutors;
@@ -288,7 +287,7 @@ class ProcessEventPublisherTest {
             .processCallInvoker(rejectingProcessCallInvoker())
             .executors(executors)
             .componentResolver(ProcessComponentResolver.disabled())
-            .scriptExecutors(ScriptExecutorRegistry.builtIns(ProcessEngineConfig.tbbpm()))
+            .scriptExecutors(ScriptExecutorRegistry.from(List.of()))
             .contextPropagator(propagator)
             .build();
     }

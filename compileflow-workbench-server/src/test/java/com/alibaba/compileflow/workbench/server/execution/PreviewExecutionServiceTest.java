@@ -26,7 +26,6 @@ import com.alibaba.compileflow.engine.ProcessExecution;
 import com.alibaba.compileflow.engine.ProcessExecutionOptions;
 import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessResult;
-import com.alibaba.compileflow.engine.spring.boot.autoconfigure.ProcessEngineRegistry;
 import java.time.Instant;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -47,16 +46,14 @@ class PreviewExecutionServiceTest {
     }
 
     @Test
-    void executesInlineDefinitionThroughTheFormatBoundEngine() {
-        ProcessEngineRegistry registry = mock(ProcessEngineRegistry.class);
+    void executesTypedDefinitionThroughTheEngine() {
         ProcessEngine engine = mock(ProcessEngine.class);
-        when(registry.get(ProcessModelType.BPMN)).thenReturn(engine);
         when(engine.execute(any(ProcessDefinition.class), anyMap(), any(ProcessExecutionOptions.class)))
             .thenAnswer(invocation -> {
                 ProcessExecutionOptions options = invocation.getArgument(2);
                 return ProcessResult.success(Map.of("approved", true), execution(options.getInvocationId()));
             });
-        PreviewExecutionService service = new PreviewExecutionService(registry);
+        PreviewExecutionService service = new PreviewExecutionService(engine);
 
         ProcessExecutionResponse response =
                 service.execute("draft.payment", ProcessModelType.BPMN, "<definitions/>", null, Map.of("amount", 100));
@@ -69,7 +66,8 @@ class PreviewExecutionServiceTest {
         ArgumentCaptor<ProcessDefinition> definition = ArgumentCaptor.forClass(ProcessDefinition.class);
         ArgumentCaptor<ProcessExecutionOptions> options = ArgumentCaptor.forClass(ProcessExecutionOptions.class);
         verify(engine).execute(definition.capture(), anyMap(), options.capture());
-        assertThat(definition.getValue()).isEqualTo(ProcessDefinition.inline("draft.payment", "<definitions/>"));
+        assertThat(definition.getValue())
+            .isEqualTo(ProcessDefinition.inline(ProcessModelType.BPMN, "draft.payment", "<definitions/>"));
         assertThat(options.getValue().getInvocationId()).isEqualTo(response.invocationId());
         assertThat(options.getValue().getAliasRouting()).isEqualTo(AliasRoutingOptions.defaults());
     }

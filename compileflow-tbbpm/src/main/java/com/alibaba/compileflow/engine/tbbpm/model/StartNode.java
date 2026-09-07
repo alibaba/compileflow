@@ -19,7 +19,7 @@ import com.alibaba.compileflow.engine.core.model.StartElement;
  * Marks the entry point of a TBBPM process.
  *
  * <p>Each process must have exactly one start node. Execution begins here
- * when {@link com.alibaba.compileflow.engine.ProcessEngine#trigger} is called.
+ * for a new process execution; trigger invocations resume at the selected wait entry.
  *
  * @author wuxiang
  * @author yusu

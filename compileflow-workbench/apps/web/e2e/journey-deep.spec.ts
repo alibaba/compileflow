@@ -1,6 +1,4 @@
 import fs from 'node:fs'
-import os from 'node:os'
-import path from 'node:path'
 
 import { expect, test } from '@playwright/test'
 
@@ -60,14 +58,13 @@ test.describe('Deep Learn coverage', () => {
     }
 
     const download = page.getByRole('button', { name: /下载|Download/i })
-    if (await download.count()) {
+    await expect(download.first()).toBeVisible()
+    {
       const [downloadEvent] = await Promise.all([
-        page.waitForEvent('download', { timeout: 8000 }).catch(() => null),
+        page.waitForEvent('download', { timeout: 8000 }),
         download.first().click(),
       ])
-      if (downloadEvent) {
-        expect(downloadEvent.suggestedFilename()).toMatch(/\.(bpmn|bpm|xml)$/i)
-      }
+      expect(downloadEvent.suggestedFilename()).toMatch(/\.(bpmn|bpm|xml)$/i)
       await shot(page, '32-learn-download')
     }
 
@@ -130,7 +127,7 @@ test.describe('Deep Shell coverage', () => {
 
     // Language toggle (AppBar EN / 中).
     const langBtn = page.getByRole('button', {
-      name: /切换到英文|切换到中文|切换为英文|切换为中文|Switch to English|Switch to Chinese/i,
+      name: /切换到英文|切换到中文|Switch to English|Switch to Chinese/i,
     })
     await expect(langBtn).toBeVisible({ timeout: TIMEOUT })
     const initialLanguage = await page.locator('html').getAttribute('lang')
@@ -164,7 +161,7 @@ test.describe('Deep Shell coverage', () => {
 })
 
 test.describe('Deep Build coverage', () => {
-  test('workspace export/import, template, designer views & tools', async ({ page }) => {
+  test('workspace export and import', async ({ page }) => {
     const errors = trackErrors(page)
     await page.goto('/build')
     await expect(page.getByRole('banner', { name: '主导航' })).toBeVisible({ timeout: TIMEOUT })
@@ -175,7 +172,7 @@ test.describe('Deep Build coverage', () => {
       page.getByRole('button', { name: /全部导出|导出所有数据|Export all/i }).click(),
     ])
     expect(download.suggestedFilename()).toMatch(/compileflow-workbench-.*\.json/)
-    const exportPath = path.join(os.tmpdir(), download.suggestedFilename())
+    const exportPath = test.info().outputPath(download.suggestedFilename())
     await download.saveAs(exportPath)
     const exported = JSON.parse(fs.readFileSync(exportPath, 'utf8')) as { flows?: unknown[] }
     expect(exported).toBeTruthy()
@@ -197,6 +194,14 @@ test.describe('Deep Build coverage', () => {
       timeout: TIMEOUT,
     })
     await shot(page, '41-workspace-import')
+
+    await assertNoPageErrors(errors)
+  })
+
+  test('template, designer views & tools', async ({ page }) => {
+    const errors = trackErrors(page)
+    await page.goto('/build')
+    await expect(page.getByRole('banner', { name: '主导航' })).toBeVisible({ timeout: TIMEOUT })
 
     // Use a seeded template if listed.
     const useTemplate = page.getByRole('button', { name: /使用|Use/i }).first()
@@ -251,7 +256,7 @@ test.describe('Deep Operate canary & rollback', () => {
     })
     await shot(page, '47-canary-detail')
 
-    await page.getByRole('button', { name: /评估健康度|Evaluate Health/i }).click()
+    await page.getByRole('button', { name: /健康评估|Evaluate Health/i }).click()
     await expect(page.getByText(/灰度版本健康|healthy|样本/i).first()).toBeVisible({
       timeout: TIMEOUT,
     })
@@ -261,9 +266,7 @@ test.describe('Deep Operate canary & rollback', () => {
     await slider.focus()
     await page.keyboard.press('ArrowRight')
     await page.keyboard.press('ArrowRight')
-    await page
-      .getByRole('button', { name: /更新灰度比例|更新权重|Update (Canary|weight)/i })
-      .click()
+    await page.getByRole('button', { name: /调整权重|Update (Canary|weight)/i }).click()
     await expect(
       page
         .locator('.ant-message-notice')
@@ -272,14 +275,14 @@ test.describe('Deep Operate canary & rollback', () => {
       timeout: TIMEOUT,
     })
     await expect(
-      page.getByRole('button', { name: /全量放量|提升至全量|Promote to 100%|Promote/i })
+      page.getByRole('button', { name: /全量发布|Promote to 100%|Promote/i })
     ).toBeEnabled()
     await shot(page, '49-canary-updated')
 
-    await page.getByRole('button', { name: /全量放量|提升至全量|Promote to 100%|Promote/i }).click()
-    await confirmModalOk(page, /全量放量|提升至全量|Promote to 100%|Promote/i)
+    await page.getByRole('button', { name: /全量发布|Promote/i }).click()
+    await confirmModalOk(page, /确认全量发布|Confirm promotion/i)
     await expect(
-      page.locator('.ant-message-notice').filter({ hasText: /提升|promoted/i })
+      page.locator('.ant-message-notice').filter({ hasText: /承接全部流量|promoted/i })
     ).toBeVisible({
       timeout: TIMEOUT,
     })
@@ -409,7 +412,7 @@ test.describe('Deep Operate flows / monitoring / logs', () => {
     await shot(page, '58-monitoring-deep')
 
     const requeueDeploy = page.getByRole('button', {
-      name: /重新入队部署死信|Requeue deployment dead/i,
+      name: /重新入队部署死信任务|Requeue deployment dead/i,
     })
     await expect(requeueDeploy.first()).toBeVisible({ timeout: TIMEOUT })
     await requeueDeploy.first().click()
@@ -445,12 +448,13 @@ test.describe('Deep Operate flows / monitoring / logs', () => {
     }
 
     const exportBtn = page.getByRole('button', { name: /导出|Export/i })
-    if (await exportBtn.count()) {
+    await expect(exportBtn.first()).toBeVisible()
+    {
       const [dl] = await Promise.all([
-        page.waitForEvent('download', { timeout: 8000 }).catch(() => null),
+        page.waitForEvent('download', { timeout: 8000 }),
         exportBtn.first().click(),
       ])
-      if (dl) expect(dl.suggestedFilename().length).toBeGreaterThan(0)
+      expect(dl.suggestedFilename()).toMatch(/\.csv$/i)
       await shot(page, '62-logs-export')
     }
 
@@ -495,7 +499,7 @@ test.describe('Deep designer node authoring smoke', () => {
         palette.locator('.ant-collapse-header').filter({ hasText: label }).first()
       ).toBeVisible()
     }
-    const searchInput = palette.getByPlaceholder('搜索节点...')
+    const searchInput = palette.getByPlaceholder('搜索节点…')
     await searchInput.fill('网关')
     await page.waitForTimeout(400)
     await expect(

@@ -13,6 +13,7 @@ on:
       - 'compileflow-core/**'
       - 'compileflow-tbbpm/**'
       - 'compileflow-bpmn/**'
+      - 'examples/spring-boot-deployment/**'
       - 'docs/specs/openapi/**'
       - '.github/workflows/workbench-server-ci.yml'
       - '.mvn/**'
@@ -25,9 +26,12 @@ on:
       - 'scripts/run_server_targeted_tests.sh'
       - 'scripts/tests/test_verify_workbench_postgres_evidence.py'
       - 'scripts/verify_workbench_postgres_evidence.py'
+      - 'scripts/verify_database_contract_evidence.py'
+      - 'scripts/tests/test_verify_database_contract_evidence.py'
       - 'scripts/verify_spotbugs_reports.py'
       - 'scripts/smoke_test_workbench_server_executable_jar.py'
       - 'scripts/fixtures/executable-jar-flow.tbbpm.xml'
+      - 'release-baselines.json'
       - 'pom.xml'
   pull_request:
     branches: [ master ]
@@ -40,6 +44,7 @@ on:
       - 'compileflow-core/**'
       - 'compileflow-tbbpm/**'
       - 'compileflow-bpmn/**'
+      - 'examples/spring-boot-deployment/**'
       - 'docs/specs/openapi/**'
       - '.github/workflows/workbench-server-ci.yml'
       - '.mvn/**'
@@ -52,9 +57,12 @@ on:
       - 'scripts/run_server_targeted_tests.sh'
       - 'scripts/tests/test_verify_workbench_postgres_evidence.py'
       - 'scripts/verify_workbench_postgres_evidence.py'
+      - 'scripts/verify_database_contract_evidence.py'
+      - 'scripts/tests/test_verify_database_contract_evidence.py'
       - 'scripts/verify_spotbugs_reports.py'
       - 'scripts/smoke_test_workbench_server_executable_jar.py'
       - 'scripts/fixtures/executable-jar-flow.tbbpm.xml'
+      - 'release-baselines.json'
       - 'pom.xml'
 
 permissions:
@@ -94,7 +102,9 @@ jobs:
         run: python3 scripts/check_architecture_boundaries.py
 
       - name: Test PostgreSQL evidence verifier
-        run: python3 -m unittest scripts.tests.test_verify_workbench_postgres_evidence
+        run: |
+          python3 -m unittest scripts.tests.test_verify_workbench_postgres_evidence
+          python3 -m unittest scripts.tests.test_verify_database_contract_evidence
 
       - name: Build compileflow-workbench-server dependencies
         run: |
@@ -114,7 +124,7 @@ jobs:
       - name: Run public API Javadoc style
         run: |
           ./mvnw checkstyle:check \
-            -pl compileflow-api,compileflow-deploy/compileflow-deploy-api \
+            -pl compileflow-api,compileflow-deploy/compileflow-deploy-api,compileflow-deploy/compileflow-deploy-protocol \
             -Dcheckstyle.config.location=checkstyle-javadoc.xml \
             -B -V --no-transfer-progress
 
@@ -128,21 +138,24 @@ jobs:
             compileflow-tbbpm \
             compileflow-bpmn \
             compileflow-deploy/compileflow-deploy-api \
+            compileflow-deploy/compileflow-deploy-protocol \
             compileflow-deploy/compileflow-deploy-control-plane \
             compileflow-deploy/compileflow-deploy-runtime \
+            compileflow-deploy/compileflow-deploy-spring-boot-autoconfigure \
             compileflow-spring-boot-autoconfigure \
             compileflow-workbench-server
 
       - name: Generate public API Javadocs
         run: |
           ./mvnw javadoc:javadoc \
-            -pl compileflow-api,compileflow-deploy/compileflow-deploy-api \
+            -pl compileflow-api,compileflow-deploy/compileflow-deploy-api,compileflow-deploy/compileflow-deploy-protocol \
             -B -V --no-transfer-progress
 
       - name: Run deployment unit and H2 repository tests
         run: |
           ./mvnw test \
-            -pl compileflow-deploy/compileflow-deploy-api,compileflow-deploy/compileflow-deploy-control-plane,compileflow-deploy/compileflow-deploy-runtime \
+            -pl compileflow-deploy/compileflow-deploy-api,compileflow-deploy/compileflow-deploy-protocol,compileflow-deploy/compileflow-deploy-control-plane,compileflow-deploy/compileflow-deploy-runtime,compileflow-deploy/compileflow-deploy-spring-boot-autoconfigure,compileflow-deploy/compileflow-deploy-spring-boot-autoconfigure-postgresql,compileflow-deploy/compileflow-deploy-spring-boot-autoconfigure-mysql \
+            -am \
             -B -V --no-transfer-progress
 
       - name: Run targeted compileflow-workbench-server tests
@@ -202,27 +215,44 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: Validate Workbench, Deploy, and runtime-chain contracts
+      - name: Validate Workbench, Deploy, and embedded execution contracts
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/compileflow_test
           SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
           SPRING_DATASOURCE_USERNAME: compileflow
           SPRING_DATASOURCE_PASSWORD: compileflow_test_password
-          SPRING_FLYWAY_LOCATIONS: classpath:db/compileflow-deploy/migration,classpath:db/compileflow-workbench-server/migration
+          COMPILEFLOW_WORKBENCH_SERVER_CONFIG_DATABASE_PROVIDER: POSTGRESQL
           COMPILEFLOW_WORKBENCH_TEST_POSTGRES_URL: jdbc:postgresql://localhost:5432/compileflow_test
           COMPILEFLOW_WORKBENCH_TEST_POSTGRES_USERNAME: compileflow
           COMPILEFLOW_WORKBENCH_TEST_POSTGRES_PASSWORD: compileflow_test_password
         run: |
           ./mvnw test \
-            -pl compileflow-workbench-server,compileflow-integration-tests \
+            -pl compileflow-workbench-server \
             -am \
-            -Dtest=ProcessDraftServicePersistenceTest,ProcessOptimisticLockPersistenceTest,ExecutionLogAggregationPersistenceTest,AsyncInvocationRepositoryStateMachineTest,WorkbenchExternalSchemaAdmissionTest,PostgreSqlDeployRepositoryContractTest,DeploymentRuntimeChainIntegrationTest \
-            -Dcompileflow.test.deploy.postgres.required=true \
+            -Dtest=ProcessDraftServicePersistenceTest,ProcessOptimisticLockPersistenceTest,ExecutionLogAggregationPersistenceTest,AsyncInvocationStoreContractTest,WorkbenchExternalSchemaAdmissionTest,PostgreSqlDeployRepositoryContractTest,EmbeddedDeploymentExecutionIntegrationTest \
             -Dsurefire.failIfNoSpecifiedTests=false \
             -B -V --no-transfer-progress
 
       - name: Reject missing, failed, or skipped PostgreSQL evidence
         run: python3 scripts/verify_workbench_postgres_evidence.py .
+
+      - name: Execute the production release lifecycle example
+        if: matrix.postgres == '18.6'
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/compileflow_test
+          SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+          SPRING_DATASOURCE_USERNAME: compileflow
+          SPRING_DATASOURCE_PASSWORD: compileflow_test_password
+        run: |
+          ./mvnw test \
+            -pl examples/spring-boot-deployment \
+            -Pexamples -am \
+            -Dtest=DeploymentExampleApplicationTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -B -V --no-transfer-progress
+          python3 scripts/verify_database_contract_evidence.py \
+            --database PostgreSQL \
+            --require DeploymentExampleApplicationTest
 
       - name: Verify tested source identity
         env:
@@ -251,12 +281,107 @@ jobs:
         with:
           name: compileflow-workbench-postgres-${{ matrix.postgres }}
           path: |
-            compileflow-deploy/compileflow-deploy-control-plane/target/surefire-reports/TEST-*PostgreSqlDeployRepositoryContractTest.xml
-            compileflow-integration-tests/target/surefire-reports/TEST-*DeploymentRuntimeChainIntegrationTest.xml
+            compileflow-deploy/compileflow-deploy-postgresql/target/surefire-reports/TEST-*PostgreSqlDeployRepositoryContractTest.xml
+            compileflow-workbench-server/target/surefire-reports/TEST-*EmbeddedDeploymentExecutionIntegrationTest.xml
             compileflow-workbench-server/target/surefire-reports/TEST-*PersistenceTest.xml
-            compileflow-workbench-server/target/surefire-reports/TEST-*RepositoryStateMachineTest.xml
+            compileflow-workbench-server/target/surefire-reports/TEST-*AsyncInvocationStoreContractTest.xml
             compileflow-workbench-server/target/surefire-reports/TEST-*ExternalSchemaAdmissionTest.xml
+            examples/spring-boot-deployment/target/surefire-reports/TEST-*DeploymentExampleApplicationTest.xml
             compileflow-workbench-server/target/release-evidence/postgres-environment.txt
+          retention-days: 30
+
+  mysql-contract:
+    name: Workbench and Deploy MySQL 8.4.7
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      mysql:
+        image: mysql:8.4.7@sha256:0426ec38c7a10aa45ba383887df7878f74ee70e2fd589c7b69207f3577901903
+        env:
+          MYSQL_DATABASE: compileflow_test
+          MYSQL_USER: compileflow
+          MYSQL_PASSWORD: compileflow_test_password
+          MYSQL_ROOT_PASSWORD: compileflow_root_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -u root -pcompileflow_root_password"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+
+      - name: Initialize MySQL schemas with the DDL administrator
+        env:
+          SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/compileflow_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+          SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+          SPRING_DATASOURCE_USERNAME: root
+          SPRING_DATASOURCE_PASSWORD: compileflow_root_password
+          COMPILEFLOW_WORKBENCH_SERVER_CONFIG_DATABASE_PROVIDER: MYSQL
+        run: |
+          ./mvnw test -pl compileflow-workbench-server -am \
+            -Dtest=WorkbenchExternalSchemaAdmissionTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -B -V --no-transfer-progress
+
+      - name: Restrict the application account to DML
+        env:
+          MYSQL_CONTAINER: ${{ job.services.mysql.id }}
+        run: |
+          docker exec "$MYSQL_CONTAINER" mysql -uroot -pcompileflow_root_password -e "
+            REVOKE ALL PRIVILEGES ON compileflow_test.* FROM 'compileflow'@'%';
+            GRANT SELECT, INSERT, UPDATE, DELETE ON compileflow_test.* TO 'compileflow'@'%';
+          "
+
+      - name: Validate MySQL Deploy and Workbench semantic Store contracts
+        env:
+          COMPILEFLOW_MYSQL_JDBC_URL: jdbc:mysql://localhost:3306?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+          COMPILEFLOW_MYSQL_JDBC_USERNAME: root
+          COMPILEFLOW_MYSQL_JDBC_PASSWORD: compileflow_root_password
+          SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/compileflow_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+          SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+          SPRING_DATASOURCE_USERNAME: compileflow
+          SPRING_DATASOURCE_PASSWORD: compileflow_test_password
+          COMPILEFLOW_WORKBENCH_SERVER_CONFIG_DATABASE_PROVIDER: MYSQL
+          COMPILEFLOW_WORKBENCH_SERVER_CONFIG_DATABASE_MIGRATE: 'false'
+        run: |
+          ./mvnw test \
+            -pl compileflow-deploy/compileflow-deploy-mysql,compileflow-workbench-server \
+            -am \
+            -Dtest=MySqlDeployRepositoryContractTest,AsyncInvocationStoreContractTest,WorkbenchExternalSchemaAdmissionTest,ProcessDraftServicePersistenceTest,ExecutionLogAggregationPersistenceTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -B -V --no-transfer-progress
+
+      - name: Reject skipped or failed MySQL contracts
+        run: |
+          python3 scripts/verify_database_contract_evidence.py \
+            --database MySQL \
+            --require MySqlDeployRepositoryContractTest \
+            --require AsyncInvocationStoreContractTest \
+            --require WorkbenchExternalSchemaAdmissionTest \
+            --require ProcessDraftServicePersistenceTest \
+            --require ExecutionLogAggregationPersistenceTest
+
+      - name: Upload MySQL contract evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: compileflow-workbench-mysql-8.4.7
+          path: |
+            compileflow-deploy/compileflow-deploy-mysql/target/surefire-reports/TEST-*MySqlDeployRepositoryContractTest.xml
+            compileflow-workbench-server/target/surefire-reports/TEST-*AsyncInvocationStoreContractTest.xml
+            compileflow-workbench-server/target/surefire-reports/TEST-*ExternalSchemaAdmissionTest.xml
+            compileflow-workbench-server/target/surefire-reports/TEST-*ProcessDraftServicePersistenceTest.xml
+            compileflow-workbench-server/target/surefire-reports/TEST-*ExecutionLogAggregationPersistenceTest.xml
           retention-days: 30
 
   runtime-compatibility:

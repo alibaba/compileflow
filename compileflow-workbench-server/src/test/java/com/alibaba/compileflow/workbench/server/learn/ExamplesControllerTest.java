@@ -19,14 +19,13 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
-import tools.jackson.databind.ObjectMapper;
 
 class ExamplesControllerTest {
     private ExamplesController controller;
 
     @BeforeEach
     void setUp() throws Exception {
-        ExampleCatalogService catalog = new ExampleCatalogService(new ObjectMapper());
+        ExampleCatalogService catalog = new ExampleCatalogService();
         catalog.loadCatalog();
         controller = new ExamplesController(catalog);
     }

@@ -283,7 +283,7 @@ public class CompileFlowException extends RuntimeException {
     }
 
     /**
-     * Represents a failure to access or load an external resource, such as a process definition file.
+     * Represents a failure to access or load an external resource, such as a classpath process definition.
      */
     public static class ResourceException extends CompileFlowException {
         private static final long serialVersionUID = 1L;

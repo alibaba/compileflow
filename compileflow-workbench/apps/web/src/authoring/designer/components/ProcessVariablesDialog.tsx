@@ -2,7 +2,7 @@ import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import type { FormInstance } from 'antd'
 import { App, Button, Form, Input, Popconfirm, Select, Space, Table } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { selectCurrentProcess, updateProcessInfo } from '../store/editorSlice'
@@ -238,9 +238,21 @@ function ProcessVariablesDialog({ open, onClose }: ProcessVariablesDialogProps) 
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const currentProcess = useAppSelector(selectCurrentProcess)
+  const documentId = useAppSelector((state) => state.editor.present.documentRequestId)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number>(-1)
   const [form] = Form.useForm<ProcessVariable>()
+  const editGeneration = useRef(0)
+  const cancelEdit = useCallback(() => {
+    editGeneration.current += 1
+    setShowEditModal(false)
+  }, [])
+  useLayoutEffect(() => {
+    cancelEdit()
+    return () => {
+      editGeneration.current += 1
+    }
+  }, [documentId, open, cancelEdit])
   useEscapeToClose(open && !showEditModal, onClose)
   const vars = currentProcess?.variables ?? []
   const rows = useMemo(
@@ -250,12 +262,23 @@ function ProcessVariablesDialog({ open, onClose }: ProcessVariablesDialogProps) 
 
   const saveVars = useCallback(
     (newVars: ProcessVariable[]) => {
-      dispatch(updateProcessInfo({ variables: newVars }))
+      return dispatch((currentDispatch, getState) => {
+        const editor = getState().editor.present
+        if (
+          editor.documentRequestId !== documentId ||
+          editor.isLoading ||
+          editor.currentProcess?.variables !== currentProcess?.variables
+        )
+          return false
+        currentDispatch(updateProcessInfo({ variables: newVars }))
+        return true
+      })
     },
-    [dispatch]
+    [dispatch, documentId, currentProcess?.variables]
   )
 
   const handleAdd = useCallback(() => {
+    editGeneration.current += 1
     setEditingIndex(-1)
     form.resetFields()
     form.setFieldsValue({ inOutType: 'param' })
@@ -264,6 +287,7 @@ function ProcessVariablesDialog({ open, onClose }: ProcessVariablesDialogProps) 
 
   const handleEdit = useCallback(
     (variable: ProcessVariable, index: number) => {
+      editGeneration.current += 1
       setEditingIndex(index)
       form.resetFields()
       form.setFieldsValue(variable)
@@ -274,15 +298,17 @@ function ProcessVariablesDialog({ open, onClose }: ProcessVariablesDialogProps) 
 
   const handleDelete = useCallback(
     (index: number) => {
-      saveVars(vars.filter((_, itemIndex) => itemIndex !== index))
+      if (!saveVars(vars.filter((_, itemIndex) => itemIndex !== index))) return
       message.success(t('designer.variableManager.deleted'))
     },
     [saveVars, t, vars]
   )
 
   const handleSave = useCallback(async () => {
+    const generation = ++editGeneration.current
     try {
       const values = await form.validateFields()
+      if (generation !== editGeneration.current) return
       const normalizedValues = {
         ...values,
         name: values.name.trim(),
@@ -305,7 +331,7 @@ function ProcessVariablesDialog({ open, onClose }: ProcessVariablesDialogProps) 
           ? vars.map((variable, index) => (index === editingIndex ? normalizedValues : variable))
           : [...vars, normalizedValues]
 
-      saveVars(newVars)
+      if (!saveVars(newVars)) return
       setShowEditModal(false)
       message.success(
         editingIndex >= 0
@@ -343,7 +369,7 @@ function ProcessVariablesDialog({ open, onClose }: ProcessVariablesDialogProps) 
         editingIndex={editingIndex}
         form={form}
         open={showEditModal}
-        onCancel={() => setShowEditModal(false)}
+        onCancel={cancelEdit}
         onSave={() => void handleSave()}
       />
     </>

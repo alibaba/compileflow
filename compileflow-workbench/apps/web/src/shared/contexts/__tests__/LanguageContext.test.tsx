@@ -1,5 +1,5 @@
 import { render, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { LanguageProvider } from '../LanguageContext'
 
@@ -7,7 +7,21 @@ import i18n from '@/shared/i18n'
 
 describe('LanguageProvider', () => {
   afterEach(async () => {
+    vi.restoreAllMocks()
     await i18n.changeLanguage('zh')
+  })
+
+  it('keeps the app usable when browser storage access is denied', () => {
+    vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+      throw new DOMException('Storage is blocked', 'SecurityError')
+    })
+    expect(() =>
+      render(
+        <LanguageProvider>
+          <span>content</span>
+        </LanguageProvider>
+      )
+    ).not.toThrow()
   })
 
   it('keeps the document language synchronized with the selected locale', async () => {

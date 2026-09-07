@@ -1,6 +1,11 @@
 import axios from 'axios'
 
 import { getMockDeployments, mockDeployments } from './mockDeploymentData'
+import {
+  appendMockDeploymentCreation,
+  appendMockDeploymentEvent,
+  getMockDeploymentEvents,
+} from './mockDeploymentHistory'
 
 import apiClient from '@/shared/api/client'
 import { isOperateMockMode } from '@/shared/config/buildConfig'
@@ -16,6 +21,54 @@ import type {
   DeploymentRoute,
   RequeueDeploymentDeadLettersResponse,
 } from '@/shared/contracts'
+import { createUniqueId } from '@/shared/identifiers'
+
+const mockDeploymentIntents = new Map<string, { fingerprint: string; deployment: Deployment }>()
+
+function mockDeploymentFingerprint(request: DeploymentRequest): string {
+  const parameters = request.targetingParameters ?? {}
+  return JSON.stringify([
+    request.version,
+    request.strategy ?? 'all_at_once',
+    request.canaryWeightBps,
+    request.expectedRouteRevision,
+    request.notes,
+    request.targetingPolicy,
+    Object.keys(parameters)
+      .sort()
+      .map((key) => [key, parameters[key]]),
+  ])
+}
+
+function latestMockDeployment(processCode: string, alias: string): Deployment | undefined {
+  return mockDeployments
+    .filter((item) => item.processCode === processCode && item.alias === alias)
+    .sort((left, right) => right.routeRevision - left.routeRevision)[0]
+}
+
+function requireMockRouteRevision(processCode: string, alias: string, expectedRevision: number) {
+  const revision = latestMockDeployment(processCode, alias)?.routeRevision ?? 0
+  if (revision !== expectedRevision)
+    throw new Error(`Route revision mismatch: expected=${expectedRevision}, current=${revision}`)
+}
+
+function replayMockIntent(key: string, fingerprint: string): Deployment | undefined {
+  const existing = mockDeploymentIntents.get(key)
+  if (!existing) return undefined
+  if (existing.fingerprint !== fingerprint)
+    throw new Error('Idempotency key reused with different content')
+  return { ...existing.deployment }
+}
+
+function requireMockCanary(id: string, expectedRevision: number): Deployment {
+  const found = mockDeployments.find((item) => item.id === id)
+  if (!found) throw new Error(`Deployment ${id} not found`)
+  if (found.revision !== expectedRevision) throw new Error('Deployment revision mismatch')
+  requireMockRouteRevision(found.processCode, found.alias, found.routeRevision)
+  if (found.strategy !== 'canary' || found.status !== 'in_progress')
+    throw new Error('Deployment is not an active canary')
+  return found
+}
 
 export async function getDeployments(
   params?: DeploymentListParams
@@ -39,15 +92,13 @@ export async function getDeploymentRoute(
   alias: Deployment['alias']
 ): Promise<DeploymentRoute | undefined> {
   if (isOperateMockMode()) {
-    const latest = mockDeployments
-      .filter((item) => item.processCode === processCode && item.alias === alias)
-      .sort((left, right) => right.routeRevision - left.routeRevision)[0]
+    const latest = latestMockDeployment(processCode, alias)
     if (!latest) return undefined
     return {
       processCode,
       alias,
       stableVersion:
-        latest.status === 'in_progress'
+        latest.status === 'in_progress' || latest.status === 'aborted'
           ? (latest.baselineVersion ?? latest.version)
           : latest.version,
       candidateVersion: latest.status === 'in_progress' ? latest.version : undefined,
@@ -69,15 +120,23 @@ export async function getDeploymentRoute(
 
 export async function createDeployment(request: DeploymentRequest): Promise<Deployment> {
   if (isOperateMockMode()) {
-    const prior = mockDeployments
-      .filter((item) => item.processCode === request.processCode && item.alias === request.alias)
-      .sort((left, right) => right.routeRevision - left.routeRevision)[0]
+    const intentKey = JSON.stringify([
+      'deploy',
+      request.processCode,
+      request.alias,
+      request.idempotencyKey,
+    ])
+    const strategy = request.strategy ?? 'all_at_once'
+    const fingerprint = mockDeploymentFingerprint(request)
+    const replay = replayMockIntent(intentKey, fingerprint)
+    if (replay) return replay
+    requireMockRouteRevision(request.processCode, request.alias, request.expectedRouteRevision)
+    const prior = latestMockDeployment(request.processCode, request.alias)
     const isCanary = request.strategy === 'canary'
-    const baselineVersion = isCanary
-      ? prior?.status === 'in_progress'
+    const baselineVersion =
+      prior?.status === 'in_progress' || prior?.status === 'aborted'
         ? (prior.baselineVersion ?? prior.version)
         : prior?.version
-      : undefined
     if (isCanary && !baselineVersion) {
       return Promise.reject(
         new Error(
@@ -86,14 +145,14 @@ export async function createDeployment(request: DeploymentRequest): Promise<Depl
       )
     }
     const mock: Deployment = {
-      id: `deploy-mock-${Date.now()}`,
+      id: `deploy-mock-${createUniqueId()}`,
       processCode: request.processCode,
       version: request.version,
       baselineVersion,
       alias: request.alias,
       operation: 'deploy',
       status: isCanary ? 'in_progress' : 'completed',
-      strategy: request.strategy ?? 'all_at_once',
+      strategy,
       canaryWeightBps: isCanary ? (request.canaryWeightBps ?? 1_000) : undefined,
       createdAt: new Date().toISOString(),
       deployedAt: new Date().toISOString(),
@@ -104,7 +163,9 @@ export async function createDeployment(request: DeploymentRequest): Promise<Depl
       routeRevision: request.expectedRouteRevision + 1,
     }
     mockDeployments.unshift(mock)
-    return Promise.resolve(mock)
+    appendMockDeploymentCreation(mock)
+    mockDeploymentIntents.set(intentKey, { fingerprint, deployment: { ...mock } })
+    return Promise.resolve({ ...mock })
   }
   const { idempotencyKey, ...body } = request
   return apiClient.post<Deployment>('/api/deployments', body, {
@@ -120,13 +181,18 @@ export async function rollbackDeployment(
   if (isOperateMockMode()) {
     const found = mockDeployments.find((d) => d.id === id)
     if (!found) return Promise.reject(new Error(`Deployment ${id} not found`))
+    const intentKey = JSON.stringify(['rollback', found.processCode, found.alias, idempotencyKey])
+    const fingerprint = JSON.stringify([id, found.baselineVersion, expectedRouteRevision])
+    const replay = replayMockIntent(intentKey, fingerprint)
+    if (replay) return replay
+    requireMockRouteRevision(found.processCode, found.alias, expectedRouteRevision)
     if (!found.baselineVersion) {
       return Promise.reject(new Error(`Deployment ${id} has no rollback baseline`))
     }
     const now = new Date().toISOString()
     const rollback: Deployment = {
       ...found,
-      id: `rollback-mock-${Date.now()}`,
+      id: `rollback-mock-${createUniqueId()}`,
       version: found.baselineVersion,
       baselineVersion: found.version,
       operation: 'rollback',
@@ -142,7 +208,9 @@ export async function rollbackDeployment(
     }
     // Persist so subsequent route/list reads stay consistent with detail mutations.
     mockDeployments.unshift(rollback)
-    return Promise.resolve(rollback)
+    appendMockDeploymentCreation(rollback)
+    mockDeploymentIntents.set(intentKey, { fingerprint, deployment: { ...rollback } })
+    return Promise.resolve({ ...rollback })
   }
   return apiClient.post<Deployment>(
     `/api/deployments/${id}/rollback`,
@@ -157,13 +225,13 @@ export async function abortCanary(
   reason?: string
 ): Promise<Deployment> {
   if (isOperateMockMode()) {
-    const found = mockDeployments.find((d) => d.id === id)
-    if (!found) return Promise.reject(new Error(`Deployment ${id} not found`))
+    const found = requireMockCanary(id, expectedRevision)
     found.status = 'aborted'
     found.canaryWeightBps = undefined
     found.revision = found.revision + 1
     found.routeRevision = found.routeRevision + 1
     found.deployedAt = new Date().toISOString()
+    appendMockDeploymentEvent(found, 'ABORTED', 'in_progress', reason ?? null)
     return Promise.resolve({ ...found })
   }
   return apiClient.post<Deployment>(`/api/deployments/${id}/abort`, {
@@ -178,11 +246,11 @@ export async function updateCanaryWeightBps(
   expectedRevision: number
 ): Promise<Deployment> {
   if (isOperateMockMode()) {
-    const found = mockDeployments.find((d) => d.id === id)
-    if (!found) return Promise.reject(new Error(`Deployment ${id} not found`))
+    const found = requireMockCanary(id, expectedRevision)
     found.canaryWeightBps = weightBps
     found.revision = found.revision + 1
     found.routeRevision = found.routeRevision + 1
+    appendMockDeploymentEvent(found, 'CANARY_WEIGHT_UPDATED', 'in_progress')
     return Promise.resolve({ ...found })
   }
   return apiClient.put<Deployment>(`/api/deployments/${id}/canary`, {
@@ -193,12 +261,12 @@ export async function updateCanaryWeightBps(
 
 export async function promoteCanary(id: string, expectedRevision: number): Promise<Deployment> {
   if (isOperateMockMode()) {
-    const found = mockDeployments.find((d) => d.id === id)
-    if (!found) return Promise.reject(new Error(`Deployment ${id} not found`))
+    const found = requireMockCanary(id, expectedRevision)
     found.status = 'completed'
     found.canaryWeightBps = undefined
     found.revision = found.revision + 1
     found.routeRevision = found.routeRevision + 1
+    appendMockDeploymentEvent(found, 'PROMOTED', 'in_progress')
     return Promise.resolve({ ...found })
   }
   return apiClient.post<Deployment>(`/api/deployments/${id}/promote`, { expectedRevision })
@@ -266,20 +334,7 @@ export async function requeueDeploymentDeadLetters(): Promise<RequeueDeploymentD
 
 export async function getDeploymentEvents(id: string): Promise<DeploymentEvent[]> {
   if (isOperateMockMode()) {
-    const deployment = mockDeployments.find((item) => item.id === id)
-    if (!deployment) return Promise.resolve([])
-    return Promise.resolve([
-      {
-        id: 1,
-        sequence: 1,
-        type: 'COMPLETED',
-        fromPhase: null,
-        toPhase: 'completed',
-        actor: 'mock-user',
-        reason: null,
-        timestamp: deployment.deployedAt ?? deployment.createdAt,
-      },
-    ])
+    return Promise.resolve(getMockDeploymentEvents(id))
   }
   return apiClient.get<DeploymentEvent[]>(`/api/deployments/${id}/events`)
 }

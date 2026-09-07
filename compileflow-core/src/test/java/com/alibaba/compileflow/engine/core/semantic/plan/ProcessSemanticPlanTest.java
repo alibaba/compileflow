@@ -27,6 +27,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class ProcessSemanticPlanTest {
     @Test
@@ -449,7 +451,7 @@ class ProcessSemanticPlanTest {
         assertThatIllegalArgumentException()
             .isThrownBy(() -> forEachPlan("java.util.List<java.lang.String>", "java.lang.String",
                     "java.util.Set<java.lang.String>", "java.lang.String", ProcessSemanticPlan.VariableRole.INNER))
-            .withMessageContaining("java.util.List-compatible");
+            .withMessageContaining("must declare java.util.List");
         assertThatIllegalArgumentException()
             .isThrownBy(() -> forEachPlan("java.util.List<java.lang.String>", "java.lang.String",
                     "java.util.List<java.lang.Integer>", "java.lang.String", ProcessSemanticPlan.VariableRole.INNER))
@@ -477,6 +479,15 @@ class ProcessSemanticPlanTest {
                 forEachPlan("java.util.List<java.lang.String>", "java.lang.String", "java.util.List", "java.lang.String",
                         ProcessSemanticPlan.VariableRole.INNER))
             .isNotNull();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"java.util.ArrayList<java.lang.String>", "java.util.LinkedList<java.lang.String>"})
+    void aggregationDoesNotPromiseAConcreteListImplementation(String targetType) {
+        assertThatIllegalArgumentException()
+            .isThrownBy(() -> forEachPlan("java.util.List<java.lang.String>", "java.lang.String", targetType,
+                    "java.lang.String", ProcessSemanticPlan.VariableRole.INNER))
+            .withMessageContaining("must declare java.util.List");
     }
 
     private static ProcessSemanticPlan forEachPlan(String collectionType, String itemType, String outputTargetType,

@@ -40,7 +40,7 @@ public record ActiveWorkSummary(int waits, int timers, int effects, int runningE
         runningEffects = nonNegative(runningEffects, "runningEffects");
         unknownEffects = nonNegative(unknownEffects, "unknownEffects");
         reviewRequiredEffects = nonNegative(reviewRequiredEffects, "reviewRequiredEffects");
-        if (runningEffects > effects || unknownEffects > effects || reviewRequiredEffects > unknownEffects) {
+        if ((long) runningEffects + unknownEffects > effects || reviewRequiredEffects > unknownEffects) {
             throw new IllegalArgumentException("Effect work summary is inconsistent");
         }
     }

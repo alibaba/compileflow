@@ -12,12 +12,9 @@ const ALIAS_COLOR_MAP: Record<string, string> = {
   production: 'error',
 }
 
-const STATUS_COLOR_MAP: Record<string, string> = {
-  pending: 'default',
-  deploying: 'processing',
+const STATUS_COLOR_MAP: Record<Deployment['status'], string> = {
   in_progress: 'processing',
   completed: 'success',
-  failed: 'error',
   aborted: 'warning',
 }
 
@@ -74,14 +71,15 @@ export function createDeploymentColumns({
       dataIndex: 'strategy',
       key: 'strategy',
       width: 120,
+      render: (strategy: Deployment['strategy']) => t(`deployment.strategy.${strategy}`),
     },
     {
       title: t('deployment.status'),
       dataIndex: 'status',
       key: 'status',
       width: 120,
-      render: (status: string) => (
-        <Tag color={STATUS_COLOR_MAP[status] ?? 'default'}>{t(`deployment.status.${status}`)}</Tag>
+      render: (status: Deployment['status']) => (
+        <Tag color={STATUS_COLOR_MAP[status]}>{t(`deployment.status.${status}`)}</Tag>
       ),
     },
     {

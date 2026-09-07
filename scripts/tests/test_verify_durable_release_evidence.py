@@ -6,6 +6,8 @@ import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from scripts.verify_durable_test_evidence import normalize_required_testcases
+
 from scripts.verify_durable_release_evidence import (
     REQUIRED_TEST_CASES,
     SUITE_POLICIES,
@@ -170,6 +172,21 @@ def manifest(
             + "\n",
             encoding="utf-8",
         )
+    if suite == "mysql-contract":
+        declared_image = metadata["declared-image"]
+        image_digest = declared_image.rsplit("@sha256:", 1)[1]
+        (root / "mysql-environment.txt").write_text(
+            "\n".join(
+                (
+                    f"commit={COMMIT}",
+                    f"declared_mysql={metadata['mysql']}",
+                    f"declared_image={declared_image}",
+                    f"resolved_image=mysql@sha256:{image_digest}",
+                )
+            )
+            + "\n",
+            encoding="utf-8",
+        )
     return path
 
 
@@ -224,6 +241,14 @@ def complete_matrix(root: Path) -> list[Path]:
 
 class VerifyDurableReleaseEvidenceTest(unittest.TestCase):
 
+    def test_postgres_report_policy_covers_the_selected_contract_classes(self) -> None:
+        repository = Path(__file__).resolve().parents[2]
+        sources = repository / "compileflow-durable/compileflow-durable-postgresql/src/test/java"
+        self.assertEqual(
+            len(list(sources.rglob("LocalPostgresDurable*Test.java"))),
+            SUITE_POLICIES["postgres-contract"][0],
+        )
+
     def test_release_policy_matches_the_executable_ci_gates(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         workflow = (repository / ".github/workflows/durable-ci.yml").read_text(
@@ -241,6 +266,11 @@ class VerifyDurableReleaseEvidenceTest(unittest.TestCase):
                 "Record PostgreSQL image identity",
             ),
             (
+                "mysql-contract",
+                "Reject missing or skipped MySQL evidence",
+                "Record MySQL image identity",
+            ),
+            (
                 "durable-postgres-example",
                 "Verify executable example evidence",
                 "Upload example report",
@@ -256,12 +286,12 @@ class VerifyDurableReleaseEvidenceTest(unittest.TestCase):
                 )
                 self.assertIsNotNone(match)
                 body = match.group("body")
-                configured = set(
+                configured = set(normalize_required_testcases(
                     re.findall(
                         r"--require-testcase '([^']+)'",
                         body,
                     )
-                )
+                ))
                 self.assertSetEqual(
                     set(REQUIRED_TEST_CASES[suite]),
                     configured,
@@ -371,6 +401,76 @@ class VerifyDurableReleaseEvidenceTest(unittest.TestCase):
             },
             {subject["subjectId"] for subject in evidence["subjects"]},
         )
+
+    def test_builds_and_binds_mysql_contract_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            paths = complete_matrix(root)
+            paths.append(
+                manifest(
+                    root / "mysql84",
+                    "mysql84",
+                    "mysql-contract",
+                    {
+                        "java": "17",
+                        "mysql": "8.4.7",
+                        "declared-image": "mysql:8.4.7@sha256:" + DIGEST,
+                    },
+                )
+            )
+
+            evidence = build_release_evidence(
+                paths=paths,
+                commit=COMMIT,
+                expected_java=["17", "21"],
+                expected_postgres=["17.11", "18.6"],
+                expected_mysql=["8.4.7"],
+            )
+
+        mysql = next(
+            subject
+            for subject in evidence["subjects"]
+            if subject["subjectId"] == "mysql-8.4.7"
+        )
+        self.assertEqual("mysql:8.4.7@sha256:" + DIGEST, mysql["declaredImage"])
+        self.assertIn("environmentSha256", mysql)
+        self.assertEqual(["8.4.7"], evidence["matrix"]["mysql"])
+
+    def test_rejects_resolved_mysql_digest_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            paths = complete_matrix(root)
+            mysql_manifest = manifest(
+                root / "mysql84",
+                "mysql84",
+                "mysql-contract",
+                {
+                    "java": "17",
+                    "mysql": "8.4.7",
+                    "declared-image": "mysql:8.4.7@sha256:" + DIGEST,
+                },
+            )
+            paths.append(mysql_manifest)
+            environment = mysql_manifest.parent / "mysql-environment.txt"
+            environment.write_text(
+                environment.read_text(encoding="utf-8").replace(
+                    f"resolved_image=mysql@sha256:{DIGEST}",
+                    "resolved_image=mysql@sha256:" + "c" * 64,
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                ReleaseEvidenceError,
+                "resolved MySQL image digest does not match",
+            ):
+                build_release_evidence(
+                    paths=paths,
+                    commit=COMMIT,
+                    expected_java=["17", "21"],
+                    expected_postgres=["17.11", "18.6"],
+                    expected_mysql=["8.4.7"],
+                )
 
     def test_discovers_nested_inputs_and_writes_aggregate(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

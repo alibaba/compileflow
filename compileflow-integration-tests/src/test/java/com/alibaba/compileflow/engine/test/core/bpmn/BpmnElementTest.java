@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.core.bpmn;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ErrorCode;
@@ -51,12 +52,12 @@ public class BpmnElementTest {
     private ProcessToolingService toolingService;
 
     private static ProcessDefinition.Classpath classpathDefinition(String code) {
-        return ProcessDefinition.classpath(code, code.replace('.', '/') + ".bpmn");
+        return ProcessDefinition.classpath(ProcessModelType.BPMN, code, code.replace('.', '/') + ".bpmn");
     }
 
     @BeforeEach
     void setUp() {
-        engine = ProcessEngineTestFactory.createBpmn();
+        engine = ProcessEngineTestFactory.create();
         runtimeManager = engine.runtime();
         toolingService = engine.tooling();
     }
@@ -82,8 +83,8 @@ public class BpmnElementTest {
             .as("Code generation should succeed")
             .isNotNull();
         // When: Execute the flow
-        ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(simpleServiceFlowCode,
-                        simpleServiceFlowCode.replace(".", "/") + ".bpmn"), calculationContext);
+        ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        simpleServiceFlowCode, simpleServiceFlowCode.replace(".", "/") + ".bpmn"), calculationContext);
         // Then: Verify execution success and result
         assertThat(executionResult.isSuccess()).as("Simple service task should execute successfully").isTrue();
         assertThat(executionResult.getOutput())
@@ -102,9 +103,9 @@ public class BpmnElementTest {
         input.a = 1;
         input.b = 2;
         // When: Execute the flow with DTO input/output
-        ProcessResult<SimpleOutput> executionResult = engine.execute(ProcessDefinition.classpath(simpleServiceFlowCode,
-                        simpleServiceFlowCode.replace(".", "/") + ".bpmn"), input, SimpleOutput.class,
-                ProcessExecutionOptions.defaults());
+        ProcessResult<SimpleOutput> executionResult = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        simpleServiceFlowCode, simpleServiceFlowCode.replace(".", "/") + ".bpmn"), input,
+                SimpleOutput.class, ProcessExecutionOptions.defaults());
         // Then: Verify execution success, invocation attribution, and result
         assertThat(executionResult.isSuccess()).as("DTO execution should succeed").isTrue();
         assertThat(executionResult.getExecution().getInvocationId())
@@ -125,9 +126,9 @@ public class BpmnElementTest {
         input.a = 1;
         input.b = 2;
 
-        ProcessResult<Integer> result = engine.execute(ProcessDefinition.classpath("bpmn20.compat.simple_service",
-                        "bpmn20.compat.simple_service".replace(".", "/") + ".bpmn"), input, Integer.class,
-                ProcessExecutionOptions.defaults());
+        ProcessResult<Integer> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        "bpmn20.compat.simple_service", "bpmn20.compat.simple_service".replace(".", "/") + ".bpmn"),
+                input, Integer.class, ProcessExecutionOptions.defaults());
 
         assertThat(result.isFailure()).isTrue();
         assertThat(result.getError().getCode()).isEqualTo(ErrorCode.CF_EXEC_009.getCode());
@@ -147,8 +148,9 @@ public class BpmnElementTest {
         subprocessContext.put("a", 11);
         subprocessContext.put("b", 22);
         // When: Execute the flow
-        ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(synchronousSubprocessFlowCode,
-                        synchronousSubprocessFlowCode.replace(".", "/") + ".bpmn"), subprocessContext);
+        ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        synchronousSubprocessFlowCode, synchronousSubprocessFlowCode.replace(".", "/") + ".bpmn"),
+                subprocessContext);
         // Then: Verify execution success and subprocess result
         assertThat(executionResult.isSuccess()).as("Synchronous subprocess should execute successfully").isTrue();
         assertThat(executionResult.getOutput())
@@ -177,8 +179,8 @@ public class BpmnElementTest {
             .as("Generated code should contain CallActivity logic")
             .contains("CallActivity");
         // When: Execute the flow
-        ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(callActivityFlowCode,
-                        callActivityFlowCode.replace(".", "/") + ".bpmn"), callActivityContext);
+        ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        callActivityFlowCode, callActivityFlowCode.replace(".", "/") + ".bpmn"), callActivityContext);
         // Then: Verify execution success and result
         assertThat(executionResult.isSuccess()).as("CallActivity flow should execute successfully").isTrue();
         assertThat(executionResult.getOutput())
@@ -196,8 +198,8 @@ public class BpmnElementTest {
         context.put("a", 7);
         context.put("b", 8);
 
-        ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpmn20.compat.call_"
-                        + "activity_numeric_conversion",
+        ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        "bpmn20.compat.call_" + "activity_numeric_conversion",
                         "bpmn20.compat.call_activity_numeric_conversion".replace(".", "/") + ".bpmn"), context);
 
         assertThat(result.isSuccess())
@@ -230,8 +232,9 @@ public class BpmnElementTest {
             Map<String, Object> gatewayContext = new HashMap<>();
             gatewayContext.put("flag", true);
             // When: Execute the flow
-            ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(exclusiveGatewayFlowCode,
-                            exclusiveGatewayFlowCode.replace(".", "/") + ".bpmn"), gatewayContext);
+            ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                            exclusiveGatewayFlowCode, exclusiveGatewayFlowCode.replace(".", "/") + ".bpmn"),
+                    gatewayContext);
             // Then: Verify execution success and semantic result
             assertThat(executionResult.isSuccess())
                 .as("Exclusive gateway with true condition should execute successfully")
@@ -249,8 +252,9 @@ public class BpmnElementTest {
             Map<String, Object> gatewayContext = new HashMap<>();
             gatewayContext.put("flag", false);
             // When: Execute the flow
-            ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(exclusiveGatewayFlowCode,
-                            exclusiveGatewayFlowCode.replace(".", "/") + ".bpmn"), gatewayContext);
+            ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                            exclusiveGatewayFlowCode, exclusiveGatewayFlowCode.replace(".", "/") + ".bpmn"),
+                    gatewayContext);
             // Then: Verify execution success and semantic result
             assertThat(executionResult.isSuccess())
                 .as("Exclusive gateway with false condition should execute successfully")
@@ -269,8 +273,9 @@ public class BpmnElementTest {
             parallelGatewayContext.put("a", 10);
             parallelGatewayContext.put("b", 200);
             // When: Execute the flow
-            ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(parallelGatewayFlowCode,
-                            parallelGatewayFlowCode.replace(".", "/") + ".bpmn"), parallelGatewayContext);
+            ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                            parallelGatewayFlowCode, parallelGatewayFlowCode.replace(".", "/") + ".bpmn"),
+                    parallelGatewayContext);
             // Then: Verify execution success and results from both parallel branches
             assertThat(executionResult.isSuccess()).as("Parallel gateway should execute successfully").isTrue();
             assertThat(executionResult.getOutput())
@@ -293,8 +298,9 @@ public class BpmnElementTest {
             bothConditionsTrueContext.put("branch2", "Branch 2");
             bothConditionsTrueContext.put("branch3", "Default Branch");
 
-            ProcessResult<Map<String, Object>> bothConditionsResult = engine.execute(ProcessDefinition.classpath(inclusiveGatewayFlowCode,
-                            inclusiveGatewayFlowCode.replace(".", "/") + ".bpmn"), bothConditionsTrueContext);
+            ProcessResult<Map<String, Object>> bothConditionsResult = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                            inclusiveGatewayFlowCode, inclusiveGatewayFlowCode.replace(".", "/") + ".bpmn"),
+                    bothConditionsTrueContext);
             assertThat(bothConditionsResult.isSuccess()).as("InclusiveGateway with both conditions should succeed").isTrue();
             assertThat(bothConditionsResult.getOutput())
                 .containsEntry("result1", "processed_Branch 1")
@@ -307,8 +313,9 @@ public class BpmnElementTest {
             condition1OnlyContext.put("branch2", "Branch 2");
             condition1OnlyContext.put("branch3", "Default Branch");
 
-            ProcessResult<Map<String, Object>> condition1OnlyResult = engine.execute(ProcessDefinition.classpath(inclusiveGatewayFlowCode,
-                            inclusiveGatewayFlowCode.replace(".", "/") + ".bpmn"), condition1OnlyContext);
+            ProcessResult<Map<String, Object>> condition1OnlyResult = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                            inclusiveGatewayFlowCode, inclusiveGatewayFlowCode.replace(".", "/") + ".bpmn"),
+                    condition1OnlyContext);
             assertThat(condition1OnlyResult.isSuccess()).as("InclusiveGateway with condition1 only should succeed").isTrue();
             assertThat(condition1OnlyResult.getOutput()).containsEntry("result1", "processed_Branch 1");
             // Test case 3: No conditions true - should execute default branch
@@ -319,8 +326,9 @@ public class BpmnElementTest {
             defaultBranchContext.put("branch2", "Branch 2");
             defaultBranchContext.put("branch3", "Default Branch");
 
-            ProcessResult<Map<String, Object>> defaultBranchResult = engine.execute(ProcessDefinition.classpath(inclusiveGatewayFlowCode,
-                            inclusiveGatewayFlowCode.replace(".", "/") + ".bpmn"), defaultBranchContext);
+            ProcessResult<Map<String, Object>> defaultBranchResult = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                            inclusiveGatewayFlowCode, inclusiveGatewayFlowCode.replace(".", "/") + ".bpmn"),
+                    defaultBranchContext);
             assertThat(defaultBranchResult.isSuccess()).as("InclusiveGateway with default branch should succeed").isTrue();
             assertThat(defaultBranchResult.getOutput()).containsEntry("result3", "processed_Default Branch");
             // Verify code generation
@@ -334,9 +342,9 @@ public class BpmnElementTest {
             Map<String, Object> context =
                     Map.of("branch1", "Branch 1", "branch2", "Branch 2", "branch3", "Default Branch");
 
-            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpmn20.gateway."
-                            + "inclusive_gateway", "bpmn20.gateway.inclusive_gateway".replace(".", "/") + ".bpmn"),
-                    context);
+            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                            "bpmn20.gateway." + "inclusive_gateway",
+                            "bpmn20.gateway.inclusive_gateway".replace(".", "/") + ".bpmn"), context);
 
             assertThat(result.isSuccess()).isTrue();
             assertThat(result.getOutput()).containsEntry("result3", "processed_Default Branch");

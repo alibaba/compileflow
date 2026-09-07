@@ -37,6 +37,7 @@ import type {
 } from '@/shared/contracts'
 import { useDebounce } from '@/shared/hooks/useDebounce'
 import { usePageTitle } from '@/shared/hooks/usePageTitle'
+import { createUniqueId } from '@/shared/identifiers'
 
 const { Option } = Select
 const { TextArea } = Input
@@ -269,7 +270,8 @@ function useDeploymentSubmission(
   const { message } = App.useApp()
   const [deployStatus, setDeployStatus] = useState<DeployStatus>('idle')
   const [createdDeploymentId, setCreatedDeploymentId] = useState<string>()
-  const idempotencyKeyRef = useRef(crypto.randomUUID())
+  const submission = useRef<{ fingerprint: string; request: DeploymentRequest } | null>(null)
+  const submitting = useRef(false)
   const active = useRef(true)
 
   useEffect(() => {
@@ -280,21 +282,26 @@ function useDeploymentSubmission(
   }, [])
 
   const handleDeploy = useCallback(async () => {
+    if (submitting.current) return
+    submitting.current = true
     setDeployStatus('deploying')
     try {
-      const processCode = selectedProcess?.code ?? formData.processCode ?? ''
-      const alias = formData.alias
-      if (!alias) throw new Error('Deployment alias is required')
-      const route = await getDeploymentRoute(processCode, alias)
-      if (!active.current) return
-      const deployment = await createDeployment(
-        createDeploymentRequest(
-          formData,
-          selectedProcess,
-          route?.revision ?? 0,
-          idempotencyKeyRef.current
-        )
-      )
+      const fields = createDeploymentRequest(formData, selectedProcess, 0, '')
+      const fingerprint = JSON.stringify(fields)
+      if (submission.current?.fingerprint !== fingerprint) {
+        const route = await getDeploymentRoute(fields.processCode, fields.alias)
+        if (!active.current) return
+        submission.current = {
+          fingerprint,
+          request: {
+            ...fields,
+            expectedRouteRevision: route?.revision ?? 0,
+            idempotencyKey: createUniqueId(),
+          },
+        }
+      }
+      // An uncertain response must replay the exact body, including the original CAS revision.
+      const deployment = await createDeployment(submission.current.request)
       if (!active.current) return
       setCreatedDeploymentId(deployment.id)
       setDeployStatus('success')
@@ -302,13 +309,15 @@ function useDeploymentSubmission(
       if (!active.current) return
       setDeployStatus('failed')
       message.error(t('deployment.wizard.deployFailed'))
+    } finally {
+      submitting.current = false
     }
   }, [formData, message, selectedProcess, t])
 
   const resetDeployment = useCallback(() => {
     setCreatedDeploymentId(undefined)
     setDeployStatus('idle')
-    idempotencyKeyRef.current = crypto.randomUUID()
+    submission.current = null
   }, [])
 
   return { createdDeploymentId, deployStatus, handleDeploy, resetDeployment }

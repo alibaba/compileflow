@@ -27,19 +27,18 @@ import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.ProcessResult;
 import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
-import com.alibaba.compileflow.engine.core.assembly.AssembledProcessEngineFactory;
 import com.alibaba.compileflow.engine.core.assembly.EngineAssembly;
 import com.alibaba.compileflow.engine.core.routing.LocalRoutingState;
 import com.alibaba.compileflow.engine.core.routing.AliasAdmission;
-import com.alibaba.compileflow.deploy.api.protocol.routing.RoutingStateKeys;
-import com.alibaba.compileflow.deploy.api.protocol.routing.RoutingStatePayloads;
-import com.alibaba.compileflow.deploy.api.sync.inmemory.InMemoryDeploymentSyncChannel;
-import com.alibaba.compileflow.deploy.control.repository.InMemoryProcessVersionRepository;
-import com.alibaba.compileflow.deploy.control.repository.ProcessVersionRecord;
-import com.alibaba.compileflow.deploy.runtime.DeployRuntime;
+import com.alibaba.compileflow.deploy.protocol.RoutingStateKeys;
+import com.alibaba.compileflow.deploy.protocol.RoutingStateCodec;
+import com.alibaba.compileflow.deploy.testkit.InMemoryDeploymentProjectionStore;
+import com.alibaba.compileflow.deploy.testkit.InMemoryProcessVersionStore;
+import com.alibaba.compileflow.deploy.spi.store.ProcessVersionRecord;
+import com.alibaba.compileflow.deploy.runtime.DeploymentRuntime;
 import com.alibaba.compileflow.engine.test.support.config.ProcessEngineTestConfiguration;
 import com.alibaba.compileflow.engine.test.support.helpers.Awaiter;
-import com.alibaba.compileflow.engine.test.support.helpers.DeployRuntimeTestSupport;
+import com.alibaba.compileflow.engine.test.support.helpers.DeploymentRuntimeTestSupport;
 import com.alibaba.compileflow.engine.test.support.helpers.ProcessEngineTestFactory;
 import java.time.Duration;
 import java.util.Collections;
@@ -70,15 +69,14 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 class AliasWeightedRoutingIntegrationTest {
     private static final String STATE_PREFIX = "compileflow.test.routing.";
     private static final String DEFAULT_NAMESPACE = "default";
-    private static final int ASYNC_WAIT_MS = 1000;
-    private static final Duration CHANNEL_TIMEOUT = Duration.ofSeconds(2);
+    private static final Duration OPERATION_TIMEOUT = Duration.ofSeconds(2);
     private static final Duration ASYNC_WAIT_TIMEOUT = Duration.ofSeconds(5);
     private static final Duration ASYNC_POLL_INTERVAL = Duration.ofMillis(50);
-    private InMemoryProcessVersionRepository versionRepository;
+    private InMemoryProcessVersionStore versionRepository;
     private ProcessEngine engine;
     private LocalRoutingState localRoutingState;
-    private InMemoryDeploymentSyncChannel channel;
-    private DeployRuntime deployRuntime;
+    private InMemoryDeploymentProjectionStore projectionStore;
+    private DeploymentRuntime deployRuntime;
     private ExecutorService executor;
     private AliasAdmission aliasAdmission;
 
@@ -89,14 +87,13 @@ class AliasWeightedRoutingIntegrationTest {
     @BeforeEach
     void setUp() {
         // Constructs minimal dependencies: memory repository, engine, snapshots, router, and sync
-        // channel.
-        versionRepository = new InMemoryProcessVersionRepository();
+        // projection store.
+        versionRepository = new InMemoryProcessVersionStore();
         localRoutingState = new LocalRoutingState();
         aliasAdmission = AliasAdmission.forLocalState(localRoutingState.getAliasRouteState());
-        ProcessEngineConfig config = ProcessEngineTestFactory.tbbpmConfig();
-        engine = AssembledProcessEngineFactory.create(config,
-                EngineAssembly.assemble(config, localRoutingState, aliasAdmission));
-        channel = new InMemoryDeploymentSyncChannel();
+        ProcessEngineConfig config = ProcessEngineTestFactory.config();
+        engine = EngineAssembly.create(config, EngineAssembly.assemble(config, localRoutingState, aliasAdmission));
+        projectionStore = new InMemoryDeploymentProjectionStore();
         executor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "test-deploy-runtime");
             t.setDaemon(true);
@@ -118,10 +115,8 @@ class AliasWeightedRoutingIntegrationTest {
                 }
             } finally {
                 if (executor != null) {
-                    executor.shutdown();
-                }
-                if (localRoutingState != null) {
-                    localRoutingState.clear();
+                    executor.shutdownNow();
+                    assertThat(executor.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
                 }
             }
         }
@@ -133,27 +128,28 @@ class AliasWeightedRoutingIntegrationTest {
             .namespace(DEFAULT_NAMESPACE)
             .code(code)
             .version(version)
-            .modelType(ProcessModelType.TBBPM)
-            .processDefinition(ProcessDefinition.inline(code, content))
-            .artifactDigest(ProcessArtifactDigest.compute(ProcessModelType.TBBPM,
-                    ProcessDefinition.inline(code, content), Map.of()))
+            .processDefinition(ProcessDefinition.inline(ProcessModelType.TBBPM, code, content))
+            .artifactDigest(ProcessArtifactDigest.compute(ProcessDefinition.inline(ProcessModelType.TBBPM, code, content),
+                    Map.of()))
             .actor("test")
             .createdAt(System.currentTimeMillis())
             .build();
 
         versionRepository.save(record);
         // Deploy to engine
-        engine.runtime().load(ProcessRef.version(DEFAULT_NAMESPACE, code, version),
-                ProcessDefinition.inline(code, content));
+        engine
+            .runtime()
+            .load(ProcessRef.version(DEFAULT_NAMESPACE, code, version),
+                    ProcessDefinition.inline(ProcessModelType.TBBPM, code, content));
     }
 
     private void publishAliasState(String code, String alias, String stableVersion, String candidateVersion,
             Integer candidateWeightBps, long revision) {
-        String payload = RoutingStatePayloads.aliasStateJson(DEFAULT_NAMESPACE, code, alias, stableVersion,
+        String payload = RoutingStateCodec.aliasStateJson(DEFAULT_NAMESPACE, code, alias, stableVersion,
                 candidateVersion, candidateWeightBps, revision, "test", System.currentTimeMillis());
         String key = RoutingStateKeys.aliasState(STATE_PREFIX, DEFAULT_NAMESPACE, code, alias);
-        String current = channel.read(key, CHANNEL_TIMEOUT);
-        assertThat(channel.compareAndSet(key, current, payload, "json", CHANNEL_TIMEOUT)).isTrue();
+        String current = projectionStore.read(key, OPERATION_TIMEOUT);
+        assertThat(projectionStore.compareAndSet(key, current, payload, "json", OPERATION_TIMEOUT)).isTrue();
     }
 
     // ========== Helper Methods ==========
@@ -250,11 +246,11 @@ class AliasWeightedRoutingIntegrationTest {
             String code = "routing.baseline.single";
             deployVersion(code, "v1", createFlowContent(code, "v1"));
             deployVersion(code, "v2", createFlowContent(code, "v2"));
-            // Setup DeployRuntime with routing state keys
+            // Setup DeploymentRuntime with routing state keys
             List<String> stateKeys =
                     Collections.singletonList(RoutingStateKeys.aliasState(STATE_PREFIX, DEFAULT_NAMESPACE, code, "prod"));
-            deployRuntime = DeployRuntimeTestSupport.dbRuntime(channel, stateKeys, engine, ProcessModelType.TBBPM,
-                    versionRepository, CHANNEL_TIMEOUT, executor, localRoutingState);
+            deployRuntime = DeploymentRuntimeTestSupport.sourceRuntime(projectionStore, stateKeys, engine,
+                    versionRepository, OPERATION_TIMEOUT, executor, localRoutingState);
             deployRuntime.start();
 
             publishAliasState(code, "prod", "v1", null, null, 1L);
@@ -311,11 +307,11 @@ class AliasWeightedRoutingIntegrationTest {
             String code = "routing.weighted.split";
             deployVersion(code, "v1", createFlowContent(code, "v1"));
             deployVersion(code, "v2", createFlowContent(code, "v2"));
-            // Setup DeployRuntime
+            // Setup DeploymentRuntime
             List<String> stateKeys =
                     Collections.singletonList(RoutingStateKeys.aliasState(STATE_PREFIX, DEFAULT_NAMESPACE, code, "prod"));
-            deployRuntime = DeployRuntimeTestSupport.dbRuntime(channel, stateKeys, engine, ProcessModelType.TBBPM,
-                    versionRepository, CHANNEL_TIMEOUT, executor, localRoutingState);
+            deployRuntime = DeploymentRuntimeTestSupport.sourceRuntime(projectionStore, stateKeys, engine,
+                    versionRepository, OPERATION_TIMEOUT, executor, localRoutingState);
             deployRuntime.start();
 
             publishAliasState(code, "prod", "v1", "v2", 5_000, 1L);
@@ -369,8 +365,8 @@ class AliasWeightedRoutingIntegrationTest {
             deployVersion(code, "v2", createFlowContent(code, "v2"));
             List<String> stateKeys =
                     Collections.singletonList(RoutingStateKeys.aliasState(STATE_PREFIX, DEFAULT_NAMESPACE, code, "prod"));
-            deployRuntime = DeployRuntimeTestSupport.dbRuntime(channel, stateKeys, engine, ProcessModelType.TBBPM,
-                    versionRepository, CHANNEL_TIMEOUT, executor, localRoutingState);
+            deployRuntime = DeploymentRuntimeTestSupport.sourceRuntime(projectionStore, stateKeys, engine,
+                    versionRepository, OPERATION_TIMEOUT, executor, localRoutingState);
             deployRuntime.start();
 
             publishAliasState(code, "prod", "v1", "v2", 5_000, 1L);
@@ -410,21 +406,19 @@ class AliasWeightedRoutingIntegrationTest {
             String code = "routing.gray.gradual";
             deployVersion(code, "v1", createFlowContent(code, "v1"));
             deployVersion(code, "v2", createFlowContent(code, "v2"));
-            // Setup DeployRuntime
+            // Setup DeploymentRuntime
             List<String> stateKeys =
                     Collections.singletonList(RoutingStateKeys.aliasState(STATE_PREFIX, DEFAULT_NAMESPACE, code, "prod"));
-            deployRuntime = DeployRuntimeTestSupport.dbRuntime(channel, stateKeys, engine, ProcessModelType.TBBPM,
-                    versionRepository, CHANNEL_TIMEOUT, executor, localRoutingState);
+            deployRuntime = DeploymentRuntimeTestSupport.sourceRuntime(projectionStore, stateKeys, engine,
+                    versionRepository, OPERATION_TIMEOUT, executor, localRoutingState);
             deployRuntime.start();
             // Phase 1: 10% canary with deterministic routing-key cohorts.
             publishAliasState(code, "prod", "v1", "v2", 1_000, 1L);
-            String probeUser = "probe-user";
-            Awaiter.await("phase1 alias state becomes effective for code=" + code + ", alias=prod", ASYNC_WAIT_TIMEOUT,
-                    ASYNC_POLL_INTERVAL,
-                    () -> {
-                        String selected = routeVersion(code, "prod", probeUser);
-                        return "v1".equals(selected) || "v2".equals(selected);
-                    }, () -> dumpRoutingState(code));
+            Awaiter.await("Alias prod revision 1 visible: " + code, ASYNC_WAIT_TIMEOUT, ASYNC_POLL_INTERVAL, () -> localRoutingState
+                .getAliasRouteState()
+                .resolve(DEFAULT_NAMESPACE, code, "prod")
+                .filter(route -> route.revision() == 1L)
+                .isPresent(), () -> dumpRoutingState(code));
             awaitVersionExecutable(code, "v1");
             awaitVersionExecutable(code, "v2");
 
@@ -440,12 +434,11 @@ class AliasWeightedRoutingIntegrationTest {
             assertThat(executeAndGetMarker(code, "prod", userV1)).isEqualTo("v1");
             // Phase 2: 50% rollout with deterministic routing-key cohorts.
             publishAliasState(code, "prod", "v1", "v2", 5_000, 2L);
-            Awaiter.await("phase2 alias state becomes effective for code=" + code + ", alias=prod", ASYNC_WAIT_TIMEOUT,
-                    ASYNC_POLL_INTERVAL,
-                    () -> {
-                        String selected = routeVersion(code, "prod", "probe-user");
-                        return "v1".equals(selected) || "v2".equals(selected);
-                    }, () -> dumpRoutingState(code));
+            Awaiter.await("Alias prod revision 2 visible: " + code, ASYNC_WAIT_TIMEOUT, ASYNC_POLL_INTERVAL, () -> localRoutingState
+                .getAliasRouteState()
+                .resolve(DEFAULT_NAMESPACE, code, "prod")
+                .filter(route -> route.revision() == 2L)
+                .isPresent(), () -> dumpRoutingState(code));
 
             String userV2_5050 = findRoutingKeyForVersion(code, "prod", "v2");
             String userV1_5050 = findRoutingKeyForVersion(code, "prod", "v1");
@@ -457,31 +450,22 @@ class AliasWeightedRoutingIntegrationTest {
                     "v1");
 
             assertThat(executeAndGetMarker(code, "prod", userV2_5050)).isEqualTo("v2");
-            // 50% ± 5%
             assertThat(executeAndGetMarker(code, "prod", userV1_5050)).isEqualTo("v1");
             // Phase 3: 100% rollout.
             publishAliasState(code, "prod", "v2", null, null, 3L);
             String description = "phase3 alias state becomes effective for code=" + code + ", alias=prod";
-            Callable<Boolean> aliasEffective = () -> routeVersion(code, "prod", "probe-user").equals("v2");
+            Callable<Boolean> aliasEffective =
+                    () -> localRoutingState
+                .getAliasRouteState()
+                .resolve(DEFAULT_NAMESPACE, code, "prod")
+                .filter(route -> route.revision() == 3L)
+                .isPresent();
             Awaiter.await(description, ASYNC_WAIT_TIMEOUT, ASYNC_POLL_INTERVAL, aliasEffective, () -> dumpRoutingState(
                     code));
 
             String anyUser = "probe-user";
             assertThat(routeVersion(code, "prod", anyUser)).as("100% should always route to v2").isEqualTo("v2");
             assertThat(executeAndGetMarker(code, "prod", anyUser)).isEqualTo("v2");
-        }
-
-        private int countV2Traffic(String code, int iterations) {
-            int count = 0;
-            for (int i = 0; i < iterations; i++) {
-                ProcessResult<Map<String, Object>> result =
-                        engine.execute(ProcessRef.alias(DEFAULT_NAMESPACE, code, "prod"), Map.of(),
-                                routingOptions("user_" + i));
-                if (isVersion("v2", result)) {
-                    count++;
-                }
-            }
-            return count;
         }
     }
 }

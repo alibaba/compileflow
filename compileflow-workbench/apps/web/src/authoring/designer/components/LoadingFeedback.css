@@ -3,7 +3,7 @@
   align-items: center;
   justify-content: center;
   min-height: 200px;
-  padding: var(--spacing-xl);
+  padding: var(--spacing-8);
 }
 
 .suspense-fallback .ant-spin {
@@ -13,7 +13,7 @@
 .suspense-fallback .ant-spin-text {
   color: var(--color-text-secondary);
   font-size: var(--font-size-base);
-  margin-top: var(--spacing-md);
+  margin-top: var(--spacing-3);
 }
 
 .ant-spin-dot-item {

@@ -14,7 +14,6 @@
 package com.alibaba.compileflow.engine.spring.boot.autoconfigure.properties;
 
 import com.alibaba.compileflow.spring.boot.autoconfigure.properties.DurationPropertyConstraints;
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
 import com.alibaba.compileflow.engine.config.ProcessRuntimeMode;
 import jakarta.validation.Valid;
@@ -39,11 +38,6 @@ public final class ProcessEngineProperties {
      * Whether to create a process engine through auto-configuration.
      */
     private final boolean enabled;
-    /**
-     * Process model implementation owned by the engine instance.
-     */
-    @NotNull
-    private final ProcessModelType modelType;
     /**
      * Runtime realization used by ProcessEngine executions.
      *
@@ -91,7 +85,7 @@ public final class ProcessEngineProperties {
     @NestedConfigurationProperty
     private final EngineJavaDiagnosticsProperties javaDiagnostics;
     /**
-     * Process-definition size limit and optional file-system trust roots.
+     * Process-definition size limit.
      */
     @Valid
     @NotNull
@@ -123,7 +117,6 @@ public final class ProcessEngineProperties {
      * Creates an immutable engine binding snapshot.
      *
      * @param enabled       whether engine auto-configuration is enabled
-     * @param modelType     process model implementation
      * @param runtimeMode   ProcessEngine runtime realization
      * @param maxResidentRuntimes hard resident runtime limit
      * @param executor      engine-owned executor settings
@@ -131,20 +124,19 @@ public final class ProcessEngineProperties {
      * @param call          synchronous process-call limits
      * @param runtimeLoadTimeout maximum synchronous runtime-load wait
      * @param javaDiagnostics generated-Java diagnostic settings
-     * @param definition    process-definition loading limits and file trust roots
+     * @param definition    process-definition loading limit
      * @param components    application-component exposure policy
      * @param observability event and context propagation settings
      * @param plugins       static engine plugin discovery settings
      */
     public ProcessEngineProperties(@DefaultValue("true") boolean enabled,
-            @DefaultValue("TBBPM") ProcessModelType modelType, @DefaultValue("COMPILED") ProcessRuntimeMode runtimeMode,
-            @DefaultValue("10s") Duration runtimeLoadTimeout, @DefaultValue("2048") int maxResidentRuntimes,
-            @DefaultValue EngineExecutorProperties executor, @DefaultValue EngineShutdownProperties shutdown,
-            @DefaultValue EngineCallProperties call, @DefaultValue EngineJavaDiagnosticsProperties javaDiagnostics,
+            @DefaultValue("COMPILED") ProcessRuntimeMode runtimeMode, @DefaultValue("10s") Duration runtimeLoadTimeout,
+            @DefaultValue("2048") int maxResidentRuntimes, @DefaultValue EngineExecutorProperties executor,
+            @DefaultValue EngineShutdownProperties shutdown, @DefaultValue EngineCallProperties call,
+            @DefaultValue EngineJavaDiagnosticsProperties javaDiagnostics,
             @DefaultValue EngineDefinitionProperties definition, @DefaultValue EngineComponentProperties components,
             @DefaultValue EngineObservabilityProperties observability, @DefaultValue EnginePluginProperties plugins) {
         this.enabled = enabled;
-        this.modelType = modelType;
         this.runtimeMode = runtimeMode;
         this.runtimeLoadTimeout = runtimeLoadTimeout;
         this.maxResidentRuntimes = maxResidentRuntimes;
@@ -159,19 +151,18 @@ public final class ProcessEngineProperties {
     }
 
     /**
-     * Converts the shared scalar properties into a builder for one format-bound engine.
+     * Converts scalar properties into an engine configuration builder.
      *
      * <p>The returned builder deliberately excludes collaborators that must be resolved from the
      * Spring container, including listeners, component resolvers, data mappers, script executors,
      * retry policies, failure handlers, and plugin beans. Application code should obtain the
      * configured engine from Spring instead of building this partial snapshot directly.
      *
-     * @param requestedModelType model format owned by the engine
      * @return configuration builder seeded with bound scalar settings
      */
-    public ProcessEngineConfig.Builder toProcessEngineConfigBuilder(ProcessModelType requestedModelType) {
+    public ProcessEngineConfig.Builder toProcessEngineConfigBuilder() {
         return ProcessEngineConfig
-            .builder(requestedModelType)
+            .builder()
             .runtimeMode(runtimeMode)
             .runtimeLoadTimeout(runtimeLoadTimeout)
             .shutdownTimeout(shutdown.getTimeout())
@@ -186,10 +177,6 @@ public final class ProcessEngineProperties {
 
     public boolean isEnabled() {
         return enabled;
-    }
-
-    public ProcessModelType getModelType() {
-        return modelType;
     }
 
     public ProcessRuntimeMode getRuntimeMode() {

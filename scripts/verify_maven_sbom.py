@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the aggregate Maven CycloneDX BOM and Durable release surface."""
+"""Verify the aggregate Maven CycloneDX BOM and published product surfaces."""
 
 from __future__ import annotations
 
@@ -12,17 +12,77 @@ from typing import Any
 
 GROUP = "com.alibaba.compileflow"
 ROOT_ARTIFACT = "compileflow"
+ENGINE_ARTIFACTS = (
+    "compileflow-api",
+    "compileflow-core",
+    "compileflow-tbbpm",
+    "compileflow-bpmn",
+    "compileflow-spring-boot-autoconfigure",
+    "compileflow-spring-boot-starter",
+    "compileflow-spring-boot-starter-tbbpm",
+    "compileflow-spring-boot-starter-bpmn",
+)
 DURABLE_AGGREGATOR = "compileflow-durable"
 DURABLE_ARTIFACTS = (
     "compileflow-durable-api",
     "compileflow-durable-spi",
     "compileflow-durable-testkit",
     "compileflow-durable-runtime",
-    "compileflow-durable-postgres",
+    "compileflow-durable-postgresql",
+    "compileflow-durable-mysql",
     "compileflow-durable-spring-boot-autoconfigure",
+    "compileflow-durable-spring-boot-autoconfigure-postgresql",
+    "compileflow-durable-spring-boot-autoconfigure-mysql",
     "compileflow-durable-spring-boot-starter",
-    "compileflow-durable-spring-boot-starter-postgres",
+    "compileflow-durable-spring-boot-starter-postgresql",
+    "compileflow-durable-spring-boot-starter-mysql",
 )
+DEPLOY_AGGREGATOR = "compileflow-deploy"
+DEPLOY_ARTIFACTS = (
+    "compileflow-deploy-api",
+    "compileflow-deploy-protocol",
+    "compileflow-deploy-spi",
+    "compileflow-deploy-testkit",
+    "compileflow-deploy-control-plane",
+    "compileflow-deploy-runtime",
+    "compileflow-deploy-jdbc",
+    "compileflow-deploy-postgresql",
+    "compileflow-deploy-mysql",
+    "compileflow-deploy-spring-boot-autoconfigure",
+    "compileflow-deploy-spring-boot-autoconfigure-postgresql",
+    "compileflow-deploy-spring-boot-autoconfigure-mysql",
+    "compileflow-deploy-spring-boot-starter",
+    "compileflow-deploy-spring-boot-starter-postgresql",
+    "compileflow-deploy-spring-boot-starter-mysql",
+)
+PRODUCT_SURFACES = {
+    DURABLE_AGGREGATOR: DURABLE_ARTIFACTS,
+    DEPLOY_AGGREGATOR: DEPLOY_ARTIFACTS,
+}
+COMPOSITION_EDGES = {
+    "compileflow-spring-boot-starter": {
+        "compileflow-spring-boot-autoconfigure",
+    },
+    "compileflow-spring-boot-starter-tbbpm": {
+        "compileflow-spring-boot-starter",
+        "compileflow-tbbpm",
+    },
+    "compileflow-spring-boot-starter-bpmn": {
+        "compileflow-spring-boot-starter",
+        "compileflow-bpmn",
+    },
+    "compileflow-durable-spring-boot-starter": {
+        "compileflow-durable-spring-boot-autoconfigure",
+    },
+    "compileflow-durable-spring-boot-starter-postgresql": {
+        "compileflow-durable-spring-boot-starter",
+        "compileflow-durable-spring-boot-autoconfigure-postgresql",
+    },
+    "compileflow-durable-spring-boot-starter-mysql": {
+        "compileflow-durable-spring-boot-starter",
+        "compileflow-durable-spring-boot-autoconfigure-mysql",
+    },
+}
 MAX_BOM_BYTES = 32 * 1024 * 1024
 
 
@@ -116,7 +176,7 @@ def _dependency_index(dependencies: Any) -> dict[str, frozenset[str]]:
 
 
 def verify_bom(data: dict[str, Any], expected_version: str | None = None) -> str:
-    """Verify root identity, seven Durable components, and their graph edges."""
+    """Verify root identity and every published product component and edge."""
     require(data.get("bomFormat") == "CycloneDX", "BOM format must be CycloneDX")
     require(data.get("specVersion") == "1.6", "CycloneDX specVersion must be 1.6")
 
@@ -144,27 +204,15 @@ def verify_bom(data: dict[str, Any], expected_version: str | None = None) -> str
 
     components = _component_index(data.get("components"))
     dependencies = _dependency_index(data.get("dependencies"))
-    aggregator_ref = maven_ref(DURABLE_AGGREGATOR, version, "pom")
-    required_refs = {
-        maven_ref(artifact, version, "jar") for artifact in DURABLE_ARTIFACTS
-    }
-
-    require(
-        aggregator_ref in dependencies.get(root_ref, frozenset()),
-        "CompileFlow root must depend on the Durable aggregator in the BOM graph",
-    )
-    require(
-        dependencies.get(aggregator_ref) == required_refs,
-        "Durable aggregator must depend on exactly the seven kernel modules",
-    )
-
-    expected_components = ((DURABLE_AGGREGATOR, "pom"),) + tuple(
-        (artifact, "jar") for artifact in DURABLE_ARTIFACTS
-    )
-    for artifact, packaging in expected_components:
-        reference = maven_ref(artifact, version, packaging)
+    root_dependencies = dependencies.get(root_ref, frozenset())
+    for artifact in ENGINE_ARTIFACTS:
+        reference = maven_ref(artifact, version, "jar")
+        require(
+            reference in root_dependencies,
+            f"CompileFlow root must depend on engine component {artifact}",
+        )
         component = components.get(reference)
-        require(component is not None, f"BOM misses Durable component {artifact}")
+        require(component is not None, f"BOM misses engine component {artifact}")
         for field, expected in (
             ("type", "library"),
             ("group", GROUP),
@@ -175,11 +223,62 @@ def verify_bom(data: dict[str, Any], expected_version: str | None = None) -> str
         ):
             require(
                 component.get(field) == expected,
-                f"Durable component {artifact} has invalid {field}",
+                f"engine component {artifact} has invalid {field}",
             )
+        require(reference in dependencies, f"BOM dependency graph misses engine component {artifact}")
+
+    for aggregator, artifacts in PRODUCT_SURFACES.items():
+        product_name = aggregator.removeprefix("compileflow-").capitalize()
+        aggregator_ref = maven_ref(aggregator, version, "pom")
+        required_refs = {
+            maven_ref(artifact, version, "jar") for artifact in artifacts
+        }
         require(
-            reference in dependencies,
-            f"BOM dependency graph misses Durable component {artifact}",
+            aggregator_ref in root_dependencies,
+            f"CompileFlow root must depend on the {product_name} aggregator in the BOM graph",
+        )
+        require(
+            dependencies.get(aggregator_ref) == required_refs,
+            f"{product_name} aggregator must depend on exactly {len(artifacts)} product modules",
+        )
+
+        expected_components = ((aggregator, "pom"),) + tuple(
+            (artifact, "jar") for artifact in artifacts
+        )
+        for artifact, packaging in expected_components:
+            reference = maven_ref(artifact, version, packaging)
+            component = components.get(reference)
+            require(component is not None, f"BOM misses {product_name} component {artifact}")
+            for field, expected in (
+                ("type", "library"),
+                ("group", GROUP),
+                ("name", artifact),
+                ("version", version),
+                ("bom-ref", reference),
+                ("purl", reference),
+            ):
+                require(
+                    component.get(field) == expected,
+                    f"{product_name} component {artifact} has invalid {field}",
+                )
+            require(
+                reference in dependencies,
+                f"BOM dependency graph misses {product_name} component {artifact}",
+            )
+
+    for artifact, expected_artifacts in COMPOSITION_EDGES.items():
+        reference = maven_ref(artifact, version, "jar")
+        local_dependencies = {
+            dependency
+            for dependency in dependencies.get(reference, frozenset())
+            if dependency.startswith(f"pkg:maven/{GROUP}/")
+        }
+        expected_dependencies = {
+            maven_ref(dependency, version, "jar") for dependency in expected_artifacts
+        }
+        require(
+            local_dependencies == expected_dependencies,
+            f"{artifact} must have exactly the expected CompileFlow composition edges",
         )
 
     return version
@@ -204,7 +303,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     print(
         "Maven SBOM verification passed: "
-        f"version={version}, durableModules={len(DURABLE_ARTIFACTS)}"
+        f"version={version}, engineModules={len(ENGINE_ARTIFACTS)}, "
+        f"durableModules={len(DURABLE_ARTIFACTS)}, "
+        f"deployModules={len(DEPLOY_ARTIFACTS)}"
     )
     return 0
 

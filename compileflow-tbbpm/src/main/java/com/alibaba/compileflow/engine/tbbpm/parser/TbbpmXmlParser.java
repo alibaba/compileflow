@@ -21,7 +21,6 @@ import com.alibaba.compileflow.engine.core.model.Element;
 import com.alibaba.compileflow.engine.core.model.Node;
 import com.alibaba.compileflow.engine.core.model.NodeContainer;
 import com.alibaba.compileflow.engine.tbbpm.model.FlowNode;
-import com.alibaba.compileflow.engine.tbbpm.model.TbbpmDocument;
 import com.alibaba.compileflow.engine.tbbpm.model.TbbpmModel;
 import com.alibaba.compileflow.engine.tbbpm.model.Transition;
 import java.util.LinkedHashMap;
@@ -49,33 +48,19 @@ public class TbbpmXmlParser extends AbstractFlowStreamParser<TbbpmModel> {
 
     @Override
     protected TbbpmModel convertToFlowModel(Element top) {
-        if (!(top instanceof TbbpmDocument document)) {
+        if (!(top instanceof TbbpmModel model)) {
             throw new CompileFlowException(ErrorCode.CF_VALIDATION_002, "TBBPM document root is missing");
         }
-        if (document.getAllNodes().isEmpty()) {
+        if (model.getAllNodes().isEmpty()) {
             throw new CompileFlowException(ErrorCode.CF_VALIDATION_002, "TBBPM document contains no flow nodes");
         }
-        return buildFlowModel(document);
-    }
-
-    private TbbpmModel buildFlowModel(TbbpmDocument document) {
-        TbbpmModel tbbpmModel = new TbbpmModel();
-        String id = document.getId();
-        String code = document.getCode();
-        id = StringUtils.isEmpty(id) ? String.valueOf(Integer.toUnsignedLong(code.hashCode())) : id;
-        tbbpmModel.setId(id);
-        tbbpmModel.setName(document.getName());
-        tbbpmModel.setDescription(document.getDescription());
-        tbbpmModel.setCode(code);
-
-        if (!document.getVariables().isEmpty()) {
-            tbbpmModel.setVars(document.getVariables());
+        String code = model.getCode();
+        if (StringUtils.isBlank(code)) {
+            throw new CompileFlowException(ErrorCode.CF_VALIDATION_002, "TBBPM process code must not be blank");
         }
-
-        List<FlowNode> allNodes = document.getAllNodes();
-        tbbpmModel.setAllNodes(allNodes);
-        buildFlowTransition(tbbpmModel);
-        return tbbpmModel;
+        model.setId(String.valueOf(Integer.toUnsignedLong(code.hashCode())));
+        buildFlowTransition(model);
+        return model;
     }
 
     private void buildFlowTransition(NodeContainer<?> nodeContainer) {

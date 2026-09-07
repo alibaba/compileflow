@@ -22,8 +22,6 @@ import com.alibaba.compileflow.engine.core.model.action.ActionType;
 import com.alibaba.compileflow.engine.core.model.action.EffectPolicy;
 import com.alibaba.compileflow.engine.core.model.action.InvocationPolicy;
 import com.alibaba.compileflow.engine.core.model.action.ScriptSource;
-import com.alibaba.compileflow.engine.core.model.mapping.InputMapping;
-import com.alibaba.compileflow.engine.core.model.mapping.OutputMapping;
 import com.alibaba.compileflow.engine.tbbpm.parser.AbstractTbbpmElementParser;
 import com.alibaba.compileflow.engine.tbbpm.model.TbbpmModelConstants;
 
@@ -46,11 +44,7 @@ public class ActionParser extends AbstractTbbpmElementParser<Action> {
 
     @Override
     protected void attachChildElement(Element childElement, Action element, ParseContext parseContext) {
-        if (childElement instanceof InputMapping input) {
-            element.addInputMapping(input);
-        } else if (childElement instanceof OutputMapping output) {
-            element.addOutputMapping(output);
-        } else if (childElement instanceof ScriptSource source && element.getType() == ActionType.SCRIPT) {
+        if (childElement instanceof ScriptSource source && element.getType() == ActionType.SCRIPT) {
             if (element.getSource() != null) {
                 throw ActionParsing.duplicateChild(TbbpmModelConstants.CODE, element.getType());
             }

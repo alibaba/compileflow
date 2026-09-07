@@ -16,6 +16,7 @@ package com.alibaba.compileflow.benchmarks;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
 import com.alibaba.compileflow.engine.ProcessEngineFactory;
+import com.alibaba.compileflow.engine.ProcessModelType;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -59,11 +60,20 @@ public class StructuredGatewayCodeGenerationBenchmark {
      */
     @Setup
     public void setup() {
-        engine = ProcessEngineFactory.createTbbpm();
-        String code = "benchmark.gateway." + shape.name().toLowerCase(Locale.ROOT) + size;
-        definition = ProcessDefinition.inline(code, model(code, shape, size));
-        if (engine.tooling().generateJavaCode(definition).isBlank()) {
-            throw new IllegalStateException("Gateway benchmark produced empty Java source");
+        engine = ProcessEngineFactory.create();
+        try {
+            String code = "benchmark.gateway." + shape.name().toLowerCase(Locale.ROOT) + size;
+            definition = ProcessDefinition.inline(ProcessModelType.TBBPM, code, model(code, shape, size));
+            if (engine.tooling().generateJavaCode(definition).isBlank()) {
+                throw new IllegalStateException("Gateway benchmark produced empty Java source");
+            }
+        } catch (RuntimeException | Error failure) {
+            try {
+                engine.close();
+            } catch (RuntimeException | Error closing) {
+                failure.addSuppressed(closing);
+            }
+            throw failure;
         }
     }
 

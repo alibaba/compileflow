@@ -37,13 +37,4 @@ public final class TriggerAssertions {
         assertSuccessAndDataNotNull(result, message);
         assertThat(result.getOutput()).as("result data should contain key '%s'", key).containsKey(key);
     }
-
-    public static void assertHasKeyAndOptionalEquals(ProcessResult<Map<String, Object>> result, String key,
-            Object expected, String message) {
-        assertSuccessAndHasKey(result, key, message);
-        Object val = result.getOutput().get(key);
-        if (val != null) {
-            assertThat(String.valueOf(val)).as("%s.%s", message, key).isEqualTo(String.valueOf(expected));
-        }
-    }
 }

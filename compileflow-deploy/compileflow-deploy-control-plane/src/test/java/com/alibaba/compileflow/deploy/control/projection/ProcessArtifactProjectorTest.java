@@ -22,11 +22,10 @@ import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.deploy.api.artifact.ProcessArtifact;
 import com.alibaba.compileflow.deploy.api.error.DeploymentErrorCode;
 import com.alibaba.compileflow.deploy.api.error.DeploymentException;
-import com.alibaba.compileflow.deploy.api.protocol.artifact.ProcessArtifactKeys;
-import com.alibaba.compileflow.deploy.api.protocol.artifact.ProcessArtifactParser;
-import com.alibaba.compileflow.deploy.api.protocol.artifact.ProcessArtifactPayloads;
-import com.alibaba.compileflow.deploy.api.sync.DeploymentSyncChannel;
-import com.alibaba.compileflow.deploy.api.sync.inmemory.InMemoryDeploymentSyncChannel;
+import com.alibaba.compileflow.deploy.protocol.ProcessArtifactKeys;
+import com.alibaba.compileflow.deploy.protocol.ProcessArtifactCodec;
+import com.alibaba.compileflow.deploy.spi.projection.DeploymentProjectionStore;
+import com.alibaba.compileflow.deploy.testkit.InMemoryDeploymentProjectionStore;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -42,81 +41,77 @@ class ProcessArtifactProjectorTest {
     }
 
     private static ProcessDefinition.Inline definition(String content) {
-        return ProcessDefinition.inline("order.rule", content);
+        return ProcessDefinition.inline(ProcessModelType.BPMN, "order.rule", content);
     }
 
     private static String key() {
         return ProcessArtifactKeys.versioned(PREFIX, "default", "order.rule", "v1");
     }
 
-    private static String digest(ProcessModelType modelType, ProcessDefinition.Inline definition) {
-        return ProcessArtifactDigest.compute(modelType, definition, Map.of());
+    private static String digest(ProcessDefinition.Inline definition) {
+        return ProcessArtifactDigest.compute(definition, Map.of());
     }
 
     private static String artifactPayload(ProcessDefinition.Inline definition, String digest) throws Exception {
-        return ProcessArtifactPayloads.artifactJson(ref().namespace(), ref().code(), ref().version(),
-                ProcessModelType.BPMN, definition.content(), digest);
+        return ProcessArtifactCodec.artifactJson(ref().namespace(), ref().code(), ref().version(), ProcessModelType.BPMN,
+                definition.content(), digest);
     }
 
     @Test
     void writesExplicitImmutableArtifactIdentity() throws Exception {
-        InMemoryDeploymentSyncChannel channel = new InMemoryDeploymentSyncChannel();
-        ProcessArtifactProjector projector = new ProcessArtifactProjector(channel, PREFIX, TIMEOUT);
+        InMemoryDeploymentProjectionStore projectionStore = new InMemoryDeploymentProjectionStore();
+        ProcessArtifactProjector projector = new ProcessArtifactProjector(projectionStore, PREFIX, TIMEOUT);
         ProcessRef.Version ref = ref();
         ProcessDefinition.Inline definition = definition("<definitions/>");
-        String digest = digest(ProcessModelType.BPMN, definition);
+        String digest = digest(definition);
 
-        assertThat(projector.repair(ref, ProcessModelType.BPMN, definition, digest))
-            .isEqualTo(ArtifactProjectionStatus.REPAIRED);
+        assertThat(projector.repair(ref, definition, digest)).isEqualTo(ArtifactProjectionStatus.REPAIRED);
 
-        ProcessArtifact artifact = ProcessArtifactParser.parse(channel.read(key(), TIMEOUT));
+        ProcessArtifact artifact = ProcessArtifactCodec.parse(projectionStore.read(key(), TIMEOUT));
         assertThat(artifact.getRef()).isEqualTo(ref);
-        assertThat(artifact.getModelType()).isEqualTo(ProcessModelType.BPMN);
+        assertThat(artifact.getDefinition().modelType()).isEqualTo(ProcessModelType.BPMN);
         assertThat(artifact.getDefinition()).isEqualTo(definition);
         assertThat(artifact.getArtifactDigest()).isEqualTo(digest);
     }
 
     @Test
     void samePersistedWinnerIsIdempotent() throws Exception {
-        InMemoryDeploymentSyncChannel channel = new InMemoryDeploymentSyncChannel();
-        ProcessArtifactProjector projector = new ProcessArtifactProjector(channel, PREFIX, TIMEOUT);
+        InMemoryDeploymentProjectionStore projectionStore = new InMemoryDeploymentProjectionStore();
+        ProcessArtifactProjector projector = new ProcessArtifactProjector(projectionStore, PREFIX, TIMEOUT);
         ProcessDefinition.Inline definition = definition("<definitions/>");
-        String digest = digest(ProcessModelType.BPMN, definition);
+        String digest = digest(definition);
 
-        assertThat(projector.repair(ref(), ProcessModelType.BPMN, definition, digest))
-            .isEqualTo(ArtifactProjectionStatus.REPAIRED);
-        assertThat(projector.repair(ref(), ProcessModelType.BPMN, definition, digest))
-            .isEqualTo(ArtifactProjectionStatus.PRESENT);
+        assertThat(projector.repair(ref(), definition, digest)).isEqualTo(ArtifactProjectionStatus.REPAIRED);
+        assertThat(projector.repair(ref(), definition, digest)).isEqualTo(ArtifactProjectionStatus.PRESENT);
     }
 
     @Test
     void concurrentIdenticalCreateIsIdempotent() throws Exception {
         ProcessDefinition.Inline definition = definition("<definitions/>");
-        String digest = digest(ProcessModelType.BPMN, definition);
+        String digest = digest(definition);
         String payload = artifactPayload(definition, digest);
-        ConcurrentWinnerChannel channel = new ConcurrentWinnerChannel(payload);
-        ProcessArtifactProjector projector = new ProcessArtifactProjector(channel, PREFIX, TIMEOUT);
+        ConcurrentWinnerProjectionStore projectionStore = new ConcurrentWinnerProjectionStore(payload);
+        ProcessArtifactProjector projector = new ProcessArtifactProjector(projectionStore, PREFIX, TIMEOUT);
 
-        assertThat(projector.repair(ref(), ProcessModelType.BPMN, definition, digest))
-            .isEqualTo(ArtifactProjectionStatus.PRESENT);
+        assertThat(projector.repair(ref(), definition, digest)).isEqualTo(ArtifactProjectionStatus.PRESENT);
 
-        assertThat(channel.read(key(), TIMEOUT)).isEqualTo(payload);
+        assertThat(projectionStore.read(key(), TIMEOUT)).isEqualTo(payload);
     }
 
     @Test
     void existingKeyCannotBeReboundToDifferentContentOrModelType() throws Exception {
-        InMemoryDeploymentSyncChannel channel = new InMemoryDeploymentSyncChannel();
-        ProcessArtifactProjector projector = new ProcessArtifactProjector(channel, PREFIX, TIMEOUT);
+        InMemoryDeploymentProjectionStore projectionStore = new InMemoryDeploymentProjectionStore();
+        ProcessArtifactProjector projector = new ProcessArtifactProjector(projectionStore, PREFIX, TIMEOUT);
         ProcessDefinition.Inline first = definition("<definitions/>");
-        projector.repair(ref(), ProcessModelType.BPMN, first, digest(ProcessModelType.BPMN, first));
+        projector.repair(ref(), first, digest(first));
 
         ProcessDefinition.Inline changed = definition("<definitions><process/></definitions>");
-        assertThatThrownBy(() -> projector.repair(ref(), ProcessModelType.BPMN, changed,
-                digest(ProcessModelType.BPMN, changed)))
+        assertThatThrownBy(() -> projector.repair(ref(), changed, digest(changed)))
             .isInstanceOfSatisfying(DeploymentException.class, failure -> assertThat(failure.getErrorCode())
                 .isEqualTo(DeploymentErrorCode.ARTIFACT_IDENTITY_MISMATCH));
-        assertThatThrownBy(() -> projector.repair(ref(), ProcessModelType.TBBPM, first,
-                digest(ProcessModelType.TBBPM, first)))
+        ProcessDefinition.Inline retyped =
+                ProcessDefinition.inline(ProcessModelType.TBBPM, first.code(), first.content());
+        assertThatThrownBy(() -> projector.repair(ref(), retyped, digest(retyped)))
             .isInstanceOfSatisfying(DeploymentException.class, failure -> assertThat(failure.getErrorCode())
                 .isEqualTo(DeploymentErrorCode.ARTIFACT_IDENTITY_MISMATCH));
     }
@@ -124,7 +119,7 @@ class ProcessArtifactProjectorTest {
     @Test
     void channelReadFailureDoesNotDegradeIntoAnOverwrite() {
         AtomicInteger writes = new AtomicInteger();
-        DeploymentSyncChannel channel = new DeploymentSyncChannel() {
+        DeploymentProjectionStore projectionStore = new DeploymentProjectionStore() {
             @Override
             public String read(String key, Duration timeout) throws Exception {
                 throw new Exception("unavailable");
@@ -142,39 +137,36 @@ class ProcessArtifactProjectorTest {
                 throw new UnsupportedOperationException();
             }
         };
-        ProcessArtifactProjector projector = new ProcessArtifactProjector(channel, PREFIX, TIMEOUT);
+        ProcessArtifactProjector projector = new ProcessArtifactProjector(projectionStore, PREFIX, TIMEOUT);
         ProcessDefinition.Inline definition = definition("<definitions/>");
 
-        assertThatThrownBy(() -> projector.repair(ref(), ProcessModelType.BPMN, definition,
-                digest(ProcessModelType.BPMN, definition)))
-            .hasMessage("unavailable");
+        assertThatThrownBy(() -> projector.repair(ref(), definition, digest(definition))).hasMessage("unavailable");
         assertThat(writes).hasValue(0);
     }
 
     @Test
     void corruptExistingPayloadFailsClosed() throws Exception {
-        InMemoryDeploymentSyncChannel channel = new InMemoryDeploymentSyncChannel();
+        InMemoryDeploymentProjectionStore projectionStore = new InMemoryDeploymentProjectionStore();
         ProcessDefinition.Inline definition = definition("<definitions/>");
-        String actualDigest = digest(ProcessModelType.BPMN, definition);
-        String payload = ProcessArtifactPayloads
+        String actualDigest = digest(definition);
+        String payload = ProcessArtifactCodec
             .artifactJson(ref().namespace(), ref().code(), ref().version(), ProcessModelType.BPMN, definition.content(),
                     actualDigest)
             .replace(actualDigest, "0".repeat(64));
-        assertThat(channel.compareAndSet(key(), null, payload, "application/json", TIMEOUT)).isTrue();
-        ProcessArtifactProjector projector = new ProcessArtifactProjector(channel, PREFIX, TIMEOUT);
+        assertThat(projectionStore.compareAndSet(key(), null, payload, "application/json", TIMEOUT)).isTrue();
+        ProcessArtifactProjector projector = new ProcessArtifactProjector(projectionStore, PREFIX, TIMEOUT);
 
-        assertThatThrownBy(() -> projector.repair(ref(), ProcessModelType.BPMN, definition,
-                digest(ProcessModelType.BPMN, definition)))
+        assertThatThrownBy(() -> projector.repair(ref(), definition, digest(definition)))
             .isInstanceOfSatisfying(DeploymentException.class, failure -> assertThat(failure.getErrorCode())
                 .isEqualTo(DeploymentErrorCode.ARTIFACT_DIGEST_MISMATCH));
     }
 
-    private static final class ConcurrentWinnerChannel implements DeploymentSyncChannel {
-        private final InMemoryDeploymentSyncChannel delegate = new InMemoryDeploymentSyncChannel();
+    private static final class ConcurrentWinnerProjectionStore implements DeploymentProjectionStore {
+        private final InMemoryDeploymentProjectionStore delegate = new InMemoryDeploymentProjectionStore();
         private final String winnerPayload;
         private final AtomicBoolean winnerInjected = new AtomicBoolean();
 
-        private ConcurrentWinnerChannel(String winnerPayload) {
+        private ConcurrentWinnerProjectionStore(String winnerPayload) {
             this.winnerPayload = winnerPayload;
         }
 

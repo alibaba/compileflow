@@ -125,8 +125,10 @@ public final class ProcessEventPublisher {
 
     private static void recordDropped(ProcessEvent event, String reason, RuntimeException failure) {
         ProcessEventDeliveryMetrics.global().recordDropped();
-        LOGGER.warn("Dropping best-effort async {} event: reason={}, failureType={}", event.getType(), reason,
-                failure.getClass().getName());
+        if (!(failure instanceof RejectedExecutionException)) {
+            LOGGER.warn("Dropping best-effort async {} event: reason={}, failureType={}", event.getType(), reason,
+                    failure.getClass().getName());
+        }
         LOGGER.debug("Async process event delivery failure: type={}, reason={}", event.getType(), reason, failure);
     }
 

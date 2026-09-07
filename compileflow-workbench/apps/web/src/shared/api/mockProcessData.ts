@@ -9,14 +9,21 @@ import type {
   ProcessVersionListParams,
   ProcessVersionListResponse,
 } from '@/shared/contracts'
+import { createUniqueId } from '@/shared/identifiers'
 import { DEFAULT_BPMN_WITH_EVENTS_XML } from '@/shared/processes/bpmnTemplates'
+import { withProcessXmlIdentity } from '@/shared/processes/processXmlIdentity'
 import { DEFAULT_TBBPM_WITH_NODES_XML } from '@/shared/processes/tbbpmTemplates'
 
 function resolveMockProcessXml(flow: ProcessDefinition): string {
   if (flow.xml && !flow.xml.endsWith('...')) {
     return flow.xml
   }
-  return flow.type === 'TBBPM' ? DEFAULT_TBBPM_WITH_NODES_XML : DEFAULT_BPMN_WITH_EVENTS_XML
+  return withProcessXmlIdentity(
+    flow.type === 'TBBPM' ? DEFAULT_TBBPM_WITH_NODES_XML : DEFAULT_BPMN_WITH_EVENTS_XML,
+    flow.type,
+    flow.code,
+    flow.name
+  )
 }
 
 const initialMockProcesses: Array<Omit<ProcessDefinition, 'revision'>> = [
@@ -40,7 +47,7 @@ const initialMockProcesses: Array<Omit<ProcessDefinition, 'revision'>> = [
     tags: [],
     createdAt: '2026-01-20T09:00:00Z',
     updatedAt: '2026-02-09T16:45:00Z',
-    createdBy: 'kangzhiqiang',
+    createdBy: 'yusu',
   },
   {
     code: 'user-registration-bpmn',
@@ -73,7 +80,7 @@ const initialMockProcesses: Array<Omit<ProcessDefinition, 'revision'>> = [
     tags: [],
     createdAt: '2026-01-08T08:00:00Z',
     updatedAt: '2026-02-07T14:00:00Z',
-    createdBy: 'kangzhiqiang',
+    createdBy: 'yusu',
   },
   {
     code: 'notification-flow-tbbpm',
@@ -106,7 +113,7 @@ const initialMockProcesses: Array<Omit<ProcessDefinition, 'revision'>> = [
     tags: [],
     createdAt: '2026-01-12T14:00:00Z',
     updatedAt: '2026-02-06T15:45:00Z',
-    createdBy: 'kangzhiqiang',
+    createdBy: 'yusu',
   },
   {
     code: 'order-cancel-bpmn',
@@ -289,7 +296,7 @@ export function publishMockProcess(
   }
   const version: ProcessVersion = {
     processCode: code,
-    version: `r-${crypto.randomUUID().replace(/-/g, '')}`,
+    version: `r-${createUniqueId()}`,
     modelType: flow.type,
     changelog: changelog ?? '',
     createdAt: new Date().toISOString(),
@@ -334,7 +341,7 @@ export function duplicateMockProcess(
     code: newCode,
     name: newName,
     type: source.type,
-    xml: source.xml,
+    xml: withProcessXmlIdentity(source.xml, source.type, newCode, newName),
     description: source.description,
     tags: source.tags,
   })

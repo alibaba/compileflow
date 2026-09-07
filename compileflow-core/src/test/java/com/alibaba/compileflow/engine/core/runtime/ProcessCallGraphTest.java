@@ -13,8 +13,8 @@
  */
 package com.alibaba.compileflow.engine.core.runtime;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessModelType;
+import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.core.source.ProcessDefinitionSnapshot;
 import java.nio.charset.StandardCharsets;
@@ -41,10 +41,9 @@ class ProcessCallGraphTest {
     }
 
     private static ProcessRuntimeEntry runtimeEntry(String code, String version) {
-        ProcessDefinitionSnapshot definition =
-                ProcessDefinitionSnapshot.of("shop", code, version, "<process/>".getBytes(StandardCharsets.UTF_8),
-                        "test");
-        ProcessRuntimeIdentity identity = ProcessRuntimeIdentity.of(definition, ProcessModelType.TBBPM,
+        ProcessDefinitionSnapshot definition = ProcessDefinitionSnapshot.of(ProcessModelType.TBBPM, "shop", code,
+                version, "<process/>".getBytes(StandardCharsets.UTF_8), "test");
+        ProcessRuntimeIdentity identity = ProcessRuntimeIdentity.of(definition,
                 ProcessRuntimeIdentity.newPipelineIdentity(), ProcessCallGraphTest.class.getClassLoader());
         return new ProcessRuntimeEntry(NoOpProcessRuntime.INSTANCE, identity);
     }

@@ -9,9 +9,14 @@ import { mockLogs } from '@/operate/api/mockLogData'
 import { useLogsPageState } from '@/operate/pages/Logs'
 import { useProcessManagementData } from '@/operate/pages/ProcessManagement'
 import { getMockProcesses } from '@/shared/api/mockProcessData'
-import { getProcesses } from '@/shared/api/processes'
+import { createProcess, deleteProcess, getProcesses } from '@/shared/api/processes'
 import type { ExecutionLog, LogListResponse, ProcessListResponse } from '@/shared/contracts'
 import i18n from '@/shared/i18n'
+
+vi.mock('@/shared/config/buildConfig', async (original) => ({
+  ...(await original<typeof import('@/shared/config/buildConfig')>()),
+  isOperateMockMode: () => false,
+}))
 
 vi.mock('@/operate/api/logs', () => ({
   exportLogs: vi.fn(),
@@ -62,6 +67,81 @@ describe('latest request ordering', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
+
+  it.each(['BPMN', 'TBBPM'] as const)(
+    'creates %s XML with the requested process identity',
+    async (type) => {
+      vi.mocked(getProcesses).mockResolvedValue(getMockProcesses())
+      const { result } = renderHook(() => useProcessManagementData(translate, vi.fn()), {
+        wrapper: routerWrapper,
+      })
+      await act(async () => result.current.handleCreateProcess(type))
+      const calls = vi.mocked(createProcess).mock.calls
+      const request = calls[calls.length - 1][0]
+      const xml = new DOMParser().parseFromString(request.xml!, 'application/xml')
+      const process =
+        type === 'BPMN'
+          ? xml.getElementsByTagNameNS('http://www.omg.org/spec/BPMN/20100524/MODEL', 'process')[0]
+          : xml.documentElement
+      expect(process.getAttribute(type === 'BPMN' ? 'id' : 'code')).toBe(request.code)
+      expect(process.getAttribute('name')).toBe(request.name)
+    }
+  )
+
+  it('does not navigate back into a late creation after unmount', async () => {
+    vi.mocked(getProcesses).mockResolvedValue(getMockProcesses())
+    const creation = deferred<Awaited<ReturnType<typeof createProcess>>>()
+    vi.mocked(createProcess).mockReturnValueOnce(creation.promise)
+    const navigate = vi.fn()
+    const { result, unmount } = renderHook(() => useProcessManagementData(translate, navigate), {
+      wrapper: routerWrapper,
+    })
+    let creating!: Promise<void>
+    act(() => {
+      creating = result.current.handleCreateProcess('TBBPM')
+    })
+    unmount()
+    await act(async () => {
+      creation.resolve({ ...getMockProcesses().data[0], xml: '<bpm/>' })
+      await creating
+    })
+    expect(navigate).not.toHaveBeenCalled()
+    expect(message.error).not.toHaveBeenCalled()
+  })
+
+  it.each(['page change', 'unmount'] as const)(
+    'does not reload an obsolete query after a mutation and %s',
+    async (change) => {
+      const deletion = deferred<void>()
+      vi.mocked(deleteProcess).mockReturnValueOnce(deletion.promise)
+      vi.mocked(getProcesses).mockImplementation(async (params) => getMockProcesses(params))
+      const { result, unmount } = renderHook(() => useProcessManagementData(translate, vi.fn()), {
+        wrapper: routerWrapper,
+      })
+      await waitFor(() => expect(result.current.loading).toBe(false))
+      let deleting!: Promise<void>
+      act(() => {
+        deleting = result.current.handleDelete('old-row', 1)
+      })
+      if (change === 'page change') {
+        act(() => result.current.setPage(2))
+        await waitFor(() =>
+          expect(getProcesses).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }))
+        )
+      } else unmount()
+      vi.mocked(getProcesses).mockClear()
+      await act(async () => {
+        deletion.resolve()
+        await deleting
+      })
+      if (change === 'page change') {
+        expect(getProcesses).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }))
+      } else {
+        expect(getProcesses).not.toHaveBeenCalled()
+        expect(message.success).not.toHaveBeenCalled()
+      }
+    }
+  )
 
   it('keeps the newest log list when an older page responds last', async () => {
     const first = deferred<LogListResponse>()

@@ -67,7 +67,7 @@ class ScriptExecutorRegistryTest {
 
     @Test
     void getScriptExecutorRejectsBlankLookupName() {
-        ScriptExecutorRegistry registry = ScriptExecutorRegistry.builtIns(ProcessEngineConfig.tbbpm());
+        ScriptExecutorRegistry registry = ScriptExecutorRegistry.from(List.of());
 
         assertThatThrownBy(() -> registry.getScriptExecutor("\t"))
             .isInstanceOf(CompileFlowException.ConfigurationException.class)
@@ -84,7 +84,7 @@ class ScriptExecutorRegistryTest {
     @Test
     void configuredRegistryRejectsNullExecutorCollection() {
         assertThatNullPointerException()
-            .isThrownBy(() -> ScriptExecutorRegistry.configured(ProcessEngineConfig.tbbpm(), null))
+            .isThrownBy(() -> ScriptExecutorRegistry.configured(ProcessEngineConfig.defaults().getClassLoader(), null))
             .withMessage("script executors must not be null");
     }
 
@@ -116,46 +116,40 @@ class ScriptExecutorRegistryTest {
         NamedExecutor duplicate = new NamedExecutor("qlexpress");
 
         assertThatThrownBy(() -> ScriptExecutorRegistry.configured(ProcessEngineConfig
-                    .tbbpmBuilder()
+                    .builder()
                     .discoverPlugins(false)
-                    .build(), List.of(duplicate)))
+                    .build()
+                    .getClassLoader(), List.of(duplicate)))
             .isInstanceOf(CompileFlowException.ConfigurationException.class)
             .hasMessageContaining("Duplicate script executors for language 'qlexpress'");
         assertThat(duplicate.closed).isFalse();
     }
 
     @Test
-    void configuredRegistryAlwaysRejectsCustomQlBecauseQlIsABuiltInLanguage() {
-        NamedExecutor customQl = new NamedExecutor("qlexpress");
-        assertThatThrownBy(() -> ScriptExecutorRegistry.configured(ProcessEngineConfig.tbbpm(), List.of(customQl)))
-            .isInstanceOf(CompileFlowException.ConfigurationException.class)
-            .hasMessageContaining("Duplicate script executors for language 'qlexpress'");
-        assertThat(customQl.closed).isFalse();
-    }
-
-    @Test
     void configuredRegistryRejectsReplacementOfBuiltInJava() {
         NamedExecutor java = new NamedExecutor("java");
 
-        assertThatThrownBy(() -> ScriptExecutorRegistry.configured(ProcessEngineConfig.tbbpm(), List.of(java)))
+        assertThatThrownBy(() -> ScriptExecutorRegistry.configured(ProcessEngineConfig.defaults().getClassLoader(),
+                List.of(java)))
             .isInstanceOf(CompileFlowException.ConfigurationException.class)
             .hasMessageContaining("Duplicate script executors for language 'java'");
     }
 
     @Test
     void builtInRegistriesDoNotShareStatefulExecutors() {
-        ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder().build();
+        ProcessEngineConfig config = ProcessEngineConfig.builder().build();
 
-        ScriptExecutorRegistry first = ScriptExecutorRegistry.builtIns(config);
-        ScriptExecutorRegistry second = ScriptExecutorRegistry.builtIns(config);
-
-        assertThat(first.getScriptExecutor("qlexpress")).isNotSameAs(second.getScriptExecutor("qlexpress"));
+        try (ScriptExecutorRegistry first = ScriptExecutorRegistry.builtIns(config.getClassLoader());
+                ScriptExecutorRegistry second = ScriptExecutorRegistry.builtIns(config.getClassLoader())) {
+            assertThat(first.getScriptExecutor("qlexpress")).isNotSameAs(second.getScriptExecutor("qlexpress"));
+        }
     }
 
     @Test
     void builtInLanguagesAreAlwaysRegistered() {
-        assertThat(ScriptExecutorRegistry.builtIns(ProcessEngineConfig.tbbpm()).getLanguageNames())
-            .containsExactly("qlexpress", "java");
+        try (ScriptExecutorRegistry registry = ScriptExecutorRegistry.builtIns(getClass().getClassLoader())) {
+            assertThat(registry.getLanguageNames()).containsExactly("qlexpress", "java");
+        }
     }
 
     @Test
@@ -236,7 +230,6 @@ class ScriptExecutorRegistryTest {
     private static final class CountingExecutor extends NamedExecutor {
         private int prepareCalls;
         private int validateCalls;
-        private int evaluateCalls;
 
         private CountingExecutor(String name) {
             super(name);
@@ -251,12 +244,6 @@ class ScriptExecutorRegistryTest {
         @Override
         public void validate(ScriptProgramSpec spec) {
             validateCalls++;
-        }
-
-        @Override
-        public Object evaluate(ScriptProgram script, Map<String, Object> context) {
-            evaluateCalls++;
-            return super.evaluate(script, context);
         }
     }
 }

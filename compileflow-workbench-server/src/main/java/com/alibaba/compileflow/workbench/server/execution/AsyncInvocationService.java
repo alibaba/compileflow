@@ -15,7 +15,7 @@ package com.alibaba.compileflow.workbench.server.execution;
 
 import com.alibaba.compileflow.engine.AliasRoutingOptions;
 import com.alibaba.compileflow.engine.ProcessRef;
-import com.alibaba.compileflow.deploy.runtime.install.RuntimeInstaller;
+import com.alibaba.compileflow.deploy.runtime.version.VersionRuntimeManager;
 import com.alibaba.compileflow.workbench.server.config.CompileFlowWorkbenchServerProperties;
 import java.time.Duration;
 import java.time.Instant;
@@ -34,7 +34,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * Application facade for persisted whole-process asynchronous invocations.
@@ -58,38 +57,36 @@ public class AsyncInvocationService {
             Sort.by(Sort.Order.asc("availableAt"), Sort.Order.asc("createdAt"), Sort.Order.asc("invocationId"));
     private static final Sort LIST_ORDER = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.asc("invocationId"));
     private final AsyncInvocationRepository repository;
-    private final AsyncInvocationStateMachine stateMachine;
+    private final AsyncInvocationStore store;
     private final AsyncInvocationPayloadCodec payloadCodec;
     private final AsyncInvocationWorker worker;
     private final PublishedProcessExecutionService executionService;
 
     @Autowired
-    public AsyncInvocationService(AsyncInvocationRepository repository, AsyncInvocationStateMachine stateMachine,
-            ObjectMapper objectMapper, AsyncInvocationWorker worker,
-            PublishedProcessExecutionService executionService) {
+    public AsyncInvocationService(AsyncInvocationRepository repository, AsyncInvocationStore store,
+            AsyncInvocationWorker worker, PublishedProcessExecutionService executionService) {
         this.repository = Objects.requireNonNull(repository, "repository");
-        this.stateMachine = Objects.requireNonNull(stateMachine, "stateMachine");
-        this.payloadCodec = new AsyncInvocationPayloadCodec(objectMapper);
+        this.store = Objects.requireNonNull(store, "store");
+        this.payloadCodec = new AsyncInvocationPayloadCodec();
         this.worker = Objects.requireNonNull(worker, "worker");
         this.executionService = Objects.requireNonNull(executionService, "executionService");
     }
 
-    AsyncInvocationService(AsyncInvocationRepository repository, AsyncInvocationStateMachine stateMachine,
-            PublishedProcessExecutionService executionService, RuntimeInstaller runtimeInstaller,
-            ObjectMapper objectMapper, Executor executor, int dispatchBatchSize, Duration leaseDuration) {
-        this(repository, stateMachine, objectMapper,
-                new AsyncInvocationWorker(repository, stateMachine, executionService, runtimeInstaller, objectMapper,
-                        executor, dispatchBatchSize, leaseDuration), executionService);
+    AsyncInvocationService(AsyncInvocationRepository repository, AsyncInvocationStore store,
+            PublishedProcessExecutionService executionService, VersionRuntimeManager versionRuntimeManager,
+            Executor executor, int concurrency, Duration leaseDuration) {
+        this(repository, store,
+                new AsyncInvocationWorker(repository, store, executionService, versionRuntimeManager, executor,
+                        concurrency, leaseDuration), executionService);
     }
 
-    AsyncInvocationService(AsyncInvocationRepository repository, AsyncInvocationStateMachine stateMachine,
-            PublishedProcessExecutionService executionService, RuntimeInstaller runtimeInstaller,
+    AsyncInvocationService(AsyncInvocationRepository repository, AsyncInvocationStore store,
+            PublishedProcessExecutionService executionService, VersionRuntimeManager versionRuntimeManager,
             CompileFlowWorkbenchServerProperties properties,
-            org.springframework.boot.autoconfigure.context.LifecycleProperties lifecycleProperties,
-            ObjectMapper objectMapper) {
-        this(repository, stateMachine, objectMapper,
-                new AsyncInvocationWorker(repository, stateMachine, executionService, runtimeInstaller, properties,
-                        lifecycleProperties, objectMapper), executionService);
+            org.springframework.boot.autoconfigure.context.LifecycleProperties lifecycleProperties) {
+        this(repository, store,
+                new AsyncInvocationWorker(repository, store, executionService, versionRuntimeManager, properties,
+                        lifecycleProperties), executionService);
     }
 
     public AsyncInvocationResponse submit(String processCode, AsyncInvocationSubmitRequest request) {
@@ -102,15 +99,17 @@ public class AsyncInvocationService {
         PersistedInvocationRouting requestedRouting;
         int maxAttempts;
         long retryDelayMs;
+        String paramsJson;
+        String requestedRoutingJson;
         try {
             requestedRouting = requestedRouting(processCode, request.routing());
             maxAttempts = effectiveMaxAttempts(request.maxAttempts());
             retryDelayMs = effectiveRetryDelayMs(request.retryDelayMs());
+            paramsJson = payloadCodec.write(request.params());
+            requestedRoutingJson = payloadCodec.write(requestedRouting.asMap());
         } catch (IllegalArgumentException failure) {
             throw new InvalidAsyncInvocationRequestException(failure.getMessage(), failure);
         }
-        String paramsJson = payloadCodec.write(request.params());
-        String requestedRoutingJson = payloadCodec.write(requestedRouting.asMap());
         AsyncInvocationEntity existing = repository.findById(invocationId).orElse(null);
         if (existing != null) {
             return existingSubmission(existing, processCode, maxAttempts, retryDelayMs, paramsJson, requestedRoutingJson);
@@ -119,7 +118,7 @@ public class AsyncInvocationService {
                 pinAliasRouting(processCode, request.routing(), invocationId, requestedRouting);
         String routingJson = payloadCodec.write(routing.asMap());
 
-        long now = repository.currentTimeMillis();
+        long now = store.currentTimeMillis();
         AsyncInvocationEntity invocation = new AsyncInvocationEntity();
         invocation.setInvocationId(invocationId);
         invocation.setProcessCode(processCode);
@@ -135,7 +134,7 @@ public class AsyncInvocationService {
         invocation.setCreatedAt(now);
         invocation.setUpdatedAt(now);
         try {
-            repository.save(invocation);
+            store.insert(invocation);
         } catch (DataIntegrityViolationException failure) {
             AsyncInvocationEntity racedExisting = repository.findById(invocationId).orElse(null);
             if (racedExisting != null) {
@@ -159,7 +158,7 @@ public class AsyncInvocationService {
         if (limit < 1 || limit > MAX_ATTEMPT_PAGE_SIZE) {
             throw new IllegalArgumentException("limit must be between 1 and " + MAX_ATTEMPT_PAGE_SIZE);
         }
-        return stateMachine
+        return store
             .listAttempts(invocationId, afterSequence, limit)
             .map(page -> new AsyncInvocationAttemptListResponse(page
                         .data()
@@ -203,8 +202,7 @@ public class AsyncInvocationService {
         if (!STATUS_DEAD_LETTER.equals(invocation.getStatus())) {
             throw new AsyncInvocationConflictException("Only dead-letter invocations can be requeued: " + invocationId);
         }
-        long now = repository.currentTimeMillis();
-        int requeued = stateMachine.requeueDeadLetter(invocationId, now);
+        int requeued = store.requeueDeadLetter(invocationId);
         if (requeued == 0) {
             throw new AsyncInvocationConflictException(
                     "Async invocation state changed before it could be requeued: " + invocationId);
@@ -215,7 +213,7 @@ public class AsyncInvocationService {
     }
 
     public AsyncInvocationHealthResponse health() {
-        long now = repository.currentTimeMillis();
+        long now = store.currentTimeMillis();
         long queuedCount = repository.countByStatus(STATUS_QUEUED);
         Page<AsyncInvocationEntity> oldestReadyQueue =
                 repository.findByStatusAndAvailableAtLessThanEqual(STATUS_QUEUED, now,
@@ -231,7 +229,7 @@ public class AsyncInvocationService {
                 queuedCount, readyQueuedCount, oldestReadyAgeMs, Math.max(0L, queuedCount - readyQueuedCount),
                 repository.countByStatus(STATUS_RUNNING), repository.countByStatus(STATUS_SUCCEEDED), deadLetterCount,
                 expiredRunningCount, worker.localRunningCount(), worker.dispatchedCount(), worker.workerId(),
-                worker.leaseDurationMs(), worker.dispatchBatchSize(), Instant.ofEpochMilli(now).toString());
+                worker.leaseDurationMs(), worker.concurrency(), Instant.ofEpochMilli(now).toString());
     }
 
     public AsyncInvocationDeadLetterRequeueResponse requeueDeadLetters(String processCode, int limit) {
@@ -243,10 +241,10 @@ public class AsyncInvocationService {
         Page<AsyncInvocationEntity> invocations = normalizedProcessCode == null
                 ? repository.findByStatus(STATUS_DEAD_LETTER, pageRequest)
                 : repository.findByProcessCodeAndStatus(normalizedProcessCode, STATUS_DEAD_LETTER, pageRequest);
-        long now = repository.currentTimeMillis();
+        long now = store.currentTimeMillis();
         List<String> invocationIds = new ArrayList<>();
         for (AsyncInvocationEntity entity : invocations.getContent()) {
-            if (stateMachine.requeueDeadLetter(entity.getInvocationId(), now) > 0) {
+            if (store.requeueDeadLetter(entity.getInvocationId()) > 0) {
                 invocationIds.add(entity.getInvocationId());
             }
         }

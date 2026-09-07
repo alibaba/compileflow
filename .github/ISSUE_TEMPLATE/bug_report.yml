@@ -65,9 +65,11 @@ body:
       description: If applicable, provide a minimal code sample that reproduces the issue
       render: java
       placeholder: |
-        ProcessEngine engine = ProcessEngineFactory.createBpmn();
+        ProcessEngine engine = ProcessEngineFactory.create(ProcessEngineConfig.defaults());
         ProcessResult<Map<String, Object>> result =
-            engine.execute(ProcessRef.code("example.flow"), variables);
+            engine.execute(
+                ProcessDefinition.classpath(ProcessModelType.BPMN, "example.flow", "flows/example.bpmn"),
+                variables);
 
   - type: textarea
     id: logs
@@ -82,7 +84,7 @@ body:
     attributes:
       label: CompileFlow Version
       description: Which version of CompileFlow are you using?
-      placeholder: "e.g., 2.0.0-SNAPSHOT, commit SHA, or release tag"
+      placeholder: "e.g., 2.0.0, commit SHA, or release tag"
     validations:
       required: true
 
@@ -91,7 +93,7 @@ body:
     attributes:
       label: Last Known Good Version
       description: If this is a regression, which version or commit worked?
-      placeholder: "e.g., 1.3.0, commit SHA, or not a regression"
+      placeholder: "e.g., a version, commit SHA, or not a regression"
 
   - type: dropdown
     id: module
@@ -105,6 +107,8 @@ body:
         - compileflow-tbbpm
         - compileflow-deploy
         - compileflow-spring-boot-starter
+        - compileflow-spring-boot-starter-tbbpm
+        - compileflow-spring-boot-starter-bpmn
         - compileflow-workbench-server
         - compileflow-workbench
         - Documentation

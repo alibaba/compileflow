@@ -16,6 +16,7 @@ package com.alibaba.compileflow.engine.core.type;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.math.BigDecimal;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class TypeRegistryTest {
@@ -25,9 +26,18 @@ class TypeRegistryTest {
 
     @Test
     void resolvesOnlyExactBuiltInJavaTypeNames() {
-        assertThat(TypeRegistry.getJavaClass("Integer")).isEqualTo(Integer.class);
-        assertThat(TypeRegistry.getJavaClass("java.lang.Integer")).isEqualTo(Integer.class);
-        assertThat(TypeRegistry.getJavaClass("int")).isEqualTo(int.class);
+        Map
+            .of(short.class, Short.class, int.class, Integer.class, long.class, Long.class, double.class, Double.class,
+                    float.class, Float.class, byte.class, Byte.class, char.class, Character.class, boolean.class,
+                    Boolean.class)
+            .forEach((primitive, wrapper) -> {
+                assertThat(TypeRegistry.getJavaClass(primitive.getName())).isEqualTo(primitive);
+                assertThat(TypeRegistry.getJavaClass(wrapper.getSimpleName())).isEqualTo(wrapper);
+                assertThat(TypeRegistry.getJavaClass(wrapper.getName())).isEqualTo(wrapper);
+            });
+        assertThat(TypeRegistry.getJavaClass("String")).isEqualTo(String.class);
+        assertThat(TypeRegistry.getJavaClass("Object")).isEqualTo(Object.class);
+        assertThat(TypeRegistry.getJavaClass("void")).isNull();
 
         assertThat(TypeRegistry.getJavaClass("integer")).isNull();
         assertThat(TypeRegistry.getJavaClass("datetime")).isNull();
@@ -45,6 +55,8 @@ class TypeRegistryTest {
         assertThat(DataTypes.normalizeToObjectTypeName("int")).isEqualTo("java.lang.Integer");
         assertThat(DataTypes.normalizeToObjectTypeName("Integer")).isEqualTo("java.lang.Integer");
         assertThat(DataTypes.normalizeToObjectTypeName(" int ")).isEqualTo(" int ");
+        assertThat(DataTypes.normalizeToObjectTypeName("String")).isEqualTo("String");
+        assertThat(DataTypes.normalizeToObjectTypeName("Object")).isEqualTo("Object");
     }
 
     @Test
@@ -62,8 +74,8 @@ class TypeRegistryTest {
     @Test
     void defaultValuesAreParsedBeforeGeneratingJavaLiterals() {
         assertThat(defaultExpression(long.class, "42")).isEqualTo("42L");
-        assertThat(defaultExpression(Float.class, "1.5")).isEqualTo("Float.valueOf(1.5F)");
-        assertThat(defaultExpression(BigDecimal.class, "1.50")).isEqualTo("new BigDecimal(\"1.50\")");
+        assertThat(defaultExpression(Float.class, "1.5")).isEqualTo("java.lang.Float.valueOf(1.5F)");
+        assertThat(defaultExpression(BigDecimal.class, "1.50")).isEqualTo("new java.math.BigDecimal(\"1.50\")");
         assertThat(defaultExpression(String.class, "@constants.DEFAULT_LIMIT")).isEqualTo(
                 "\"@constants.DEFAULT_LIMIT\"");
         assertThat(defaultExpression(String.class, "")).isEqualTo("\"\"");

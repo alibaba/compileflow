@@ -20,9 +20,9 @@ import org.junit.jupiter.api.Test;
 class ProcessRuntimeModeTest {
     @Test
     void compiledIsTheDefaultAndInterpretedCanBeSelected() {
-        assertThat(ProcessEngineConfig.tbbpm().getRuntimeMode()).isEqualTo(ProcessRuntimeMode.COMPILED);
+        assertThat(ProcessEngineConfig.defaults().getRuntimeMode()).isEqualTo(ProcessRuntimeMode.COMPILED);
         assertThat(ProcessEngineConfig
-            .bpmnBuilder()
+            .builder()
             .runtimeMode(ProcessRuntimeMode.INTERPRETED)
             .build()
             .getRuntimeMode())
@@ -32,7 +32,7 @@ class ProcessRuntimeModeTest {
     @Test
     void runtimeModeCannotBeNull() {
         assertThatNullPointerException()
-            .isThrownBy(() -> ProcessEngineConfig.tbbpmBuilder().runtimeMode(null))
+            .isThrownBy(() -> ProcessEngineConfig.builder().runtimeMode(null))
             .withMessage("runtimeMode");
     }
 }

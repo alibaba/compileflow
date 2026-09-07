@@ -27,8 +27,8 @@ import { useTheme } from '@/shared/contexts/ThemeContext'
 import type {
   AsyncInvocationHealth,
   DeploymentControlHealth,
-  DeployRuntimeAvailableDiagnostics,
-  DeployRuntimeDiagnostics,
+  DeploymentRuntimeAvailableDiagnostics,
+  DeploymentRuntimeDiagnostics,
   ErrorSummary,
   ExecutionTrend,
   MonitoringMetrics,
@@ -157,7 +157,7 @@ function metricItems(metrics: MonitoringMetrics | null, t: TFunction) {
   ]
 }
 
-function deployRuntimeStatus(deployRuntime: DeployRuntimeDiagnostics): RuntimeStatus {
+function deployRuntimeStatus(deployRuntime: DeploymentRuntimeDiagnostics): RuntimeStatus {
   if (!deployRuntime.available) return 'unavailable'
   if (deployRuntime.failedAliasCount > 0 || deployRuntime.backedOffVersions.length > 0) {
     return 'degraded'
@@ -304,7 +304,7 @@ function DeploymentOutboxCard({
         />
         <RuntimeStat
           label={t('monitoring.dispatcherRunning')}
-          value={routingOutboxControl.dispatcherRunning ? 'on' : 'off'}
+          value={t(routingOutboxControl.dispatcherRunning ? 'common.yes' : 'common.no')}
         />
       </div>
 
@@ -377,7 +377,7 @@ function AsyncQueueCard({
           {t('monitoring.asyncLease')}: {asyncHealth.leaseDurationMs}ms
         </span>
         <span>
-          {t('monitoring.asyncBatch')}: {asyncHealth.dispatchBatchSize}
+          {t('monitoring.asyncConcurrency')}: {asyncHealth.concurrency}
         </span>
       </div>
 
@@ -420,12 +420,12 @@ function UnavailableOpsCard({ eyebrow, t }: { eyebrow: string; t: TFunction }) {
   )
 }
 
-function DeployRuntimePanel({
+function DeploymentRuntimePanel({
   deployRuntime,
   stale,
   t,
 }: {
-  deployRuntime: DeployRuntimeDiagnostics | null
+  deployRuntime: DeploymentRuntimeDiagnostics | null
   stale: boolean
   t: TFunction
 }) {
@@ -523,7 +523,7 @@ function RuntimeLists({
   deployRuntime,
   t,
 }: {
-  deployRuntime: DeployRuntimeAvailableDiagnostics
+  deployRuntime: DeploymentRuntimeAvailableDiagnostics
   t: TFunction
 }) {
   return (
@@ -843,7 +843,7 @@ const Monitoring: React.FC = () => {
           onQueueChanged={reloadOpsData}
           refreshToken={asyncLedgerRevision}
         />
-        <DeployRuntimePanel
+        <DeploymentRuntimePanel
           deployRuntime={data.deployRuntime}
           stale={failedSources.includes('deployRuntime')}
           t={t}

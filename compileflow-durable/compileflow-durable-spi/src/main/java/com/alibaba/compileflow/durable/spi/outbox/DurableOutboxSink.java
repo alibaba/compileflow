@@ -89,7 +89,7 @@ public interface DurableOutboxSink {
             }
             eventType = DurableIdentifiers.requireOutboxEventType(eventType);
             boolean occurrenceEvent = "WAIT_COMMITTED".equals(eventType) || "EFFECT_REVIEW_REQUIRED".equals(eventType);
-            if (occurrenceEvent != (occurrenceId != null)) {
+            if (occurrenceEvent == (occurrenceId == null)) {
                 throw new IllegalArgumentException("occurrenceId is present exactly for occurrence events");
             }
             payload = DurablePayload.immutablePayload(Objects.requireNonNull(payload, "payload"), "payload");

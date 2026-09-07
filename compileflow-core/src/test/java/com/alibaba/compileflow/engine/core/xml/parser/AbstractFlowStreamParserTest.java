@@ -27,6 +27,80 @@ import org.junit.jupiter.api.Test;
 
 class AbstractFlowStreamParserTest {
     @Test
+    void unqualifiedAttributeLookupDoesNotFallBackToAnotherNamespace() throws Exception {
+        String xml = "<flow xmlns=\"urn:flow\" xmlns:ext=\"urn:extension\" ext:name=\"extension\"/>";
+        XMLStreamReader reader = XMLInputFactory.newFactory().createXMLStreamReader(new StringReader(xml));
+        try {
+            reader.nextTag();
+            XmlStreamReaderSource source = XmlStreamReaderSource.of(reader);
+            assertThat(source.getString("name")).isNull();
+            assertThat(source.getString("urn:extension", "name")).isEqualTo("extension");
+        } finally {
+            reader.close();
+        }
+    }
+
+    @Test
+    void sameLocalAttributeNamesRemainDistinctRegardlessOfPrefixOrOrder() throws Exception {
+        String xml =
+                "<flow xmlns=\"urn:flow\" xmlns:other=\"http://www.compileflow.org\""
+                + " other:name=\"extension\" name=\"standard\"/>";
+        XMLStreamReader reader = XMLInputFactory.newFactory().createXMLStreamReader(new StringReader(xml));
+        try {
+            reader.nextTag();
+            XmlStreamReaderSource source = XmlStreamReaderSource.of(reader);
+            assertThat(source.getString("name")).isEqualTo("standard");
+            assertThat(source.getString("", "name")).isEqualTo("standard");
+            assertThat(source.getCfString("name")).isEqualTo("extension");
+        } finally {
+            reader.close();
+        }
+    }
+
+    @Test
+    void schemaValidationEnforcesTheSameNestingBudget() {
+        TraversingParser parser = new TraversingParser() {
+            @Override
+            protected String getXSD() {
+                return "xsd/nesting-test.xsd";
+            }
+        };
+        String xml = "<flow>".repeat(5000) + "</flow>".repeat(5000);
+        assertThatExceptionOfType(CompileFlowException.class)
+            .isThrownBy(() -> parser.parse(FlowSource.of("deep", xml.getBytes(StandardCharsets.UTF_8))))
+            .satisfies(failure -> assertThat(failure.getErrorCode()).isEqualTo(ErrorCode.CF_VALIDATION_002))
+            .withMessageContaining("128");
+        String accepted = "<flow>".repeat(128) + "</flow>".repeat(128);
+        assertThat(parser.parse(FlowSource.of("bounded", accepted.getBytes(StandardCharsets.UTF_8)))).isEqualTo(
+                "parsed");
+    }
+
+    @Test
+    void rejectsDeepXmlBeforeRecursiveModelParsingEvenWithoutSchemaValidation() {
+        String xml = "<flow>".repeat(5000) + "</flow>".repeat(5000);
+        assertThatExceptionOfType(CompileFlowException.class)
+            .isThrownBy(() -> new TraversingParser()
+                .parse(FlowSource.of("deep", xml.getBytes(StandardCharsets.UTF_8)), SchemaValidation.DISABLED))
+            .satisfies(failure -> assertThat(failure.getErrorCode()).isEqualTo(ErrorCode.CF_VALIDATION_002))
+            .withMessageContaining("128");
+    }
+
+    @Test
+    void permitsWideDocumentsWithinTheNestingBudget() {
+        String xml = "<flow>" + "<task/>".repeat(5000) + "</flow>";
+        TraversingParser parser = new TraversingParser() {
+            @Override
+            protected String parseFlowModel(XmlSource source) throws Exception {
+                source.hasNext();
+                source.skipCurrentElement();
+                return "parsed";
+            }
+        };
+        assertThat(parser.parse(FlowSource.of("wide", xml.getBytes(StandardCharsets.UTF_8)), SchemaValidation.DISABLED))
+            .isEqualTo("parsed");
+    }
+
+    @Test
     void flowSourceRequiresACanonicalProcessCode() {
         assertThatIllegalArgumentException()
             .isThrownBy(() -> FlowSource.of("order code", new byte[0]))

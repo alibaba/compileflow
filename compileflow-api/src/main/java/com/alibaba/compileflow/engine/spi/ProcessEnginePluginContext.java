@@ -13,7 +13,6 @@
  */
 package com.alibaba.compileflow.engine.spi;
 
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.spi.event.ProcessEventListener;
 import com.alibaba.compileflow.engine.spi.execution.FailureHandler;
 import com.alibaba.compileflow.engine.spi.execution.RetryPolicy;
@@ -36,13 +35,6 @@ import com.alibaba.compileflow.engine.spi.script.ScriptExecutor;
  */
 public interface ProcessEnginePluginContext {
     /**
-     * Returns the model type of the engine being configured.
-     *
-     * @return target process model type
-     */
-    ProcessModelType getModelType();
-
-    /**
      * Appends an event listener to the plugin contribution.
      *
      * @param listener thread-safe event listener
@@ -51,7 +43,7 @@ public interface ProcessEnginePluginContext {
     ProcessEnginePluginContext eventListener(ProcessEventListener listener);
 
     /**
-     * Registers a script executor by its case-insensitive language name.
+     * Registers a script executor by its exact lowercase kebab-case language name.
      *
      * <p>Language names are globally unique across discovered plugins, explicit plugins, direct
      * registrations, and enabled bundled providers. Priority never replaces an executor with the

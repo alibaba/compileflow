@@ -14,7 +14,6 @@
 package com.alibaba.compileflow.deploy.control.validation;
 
 import com.alibaba.compileflow.engine.ProcessDefinition;
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 
 /**
@@ -32,10 +31,8 @@ public interface ProcessPublicationValidator {
      * Validates one exact definition without creating or installing runtime state.
      *
      * @param ref        exact published version identity
-     * @param modelType  process definition format
      * @param definition exact inline definition to validate
      * @return non-null report describing the completed validation
      */
-    ProcessPublicationValidation validate(ProcessRef.Version ref, ProcessModelType modelType,
-            ProcessDefinition.Inline definition);
+    ProcessPublicationValidation validate(ProcessRef.Version ref, ProcessDefinition.Inline definition);
 }

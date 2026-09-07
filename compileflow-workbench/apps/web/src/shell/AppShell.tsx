@@ -69,7 +69,7 @@ function AppShell({ loadExamples, loadProcesses }: AppBarProps) {
           tabIndex={-1}
           className={`${styles.content} ${isDesignerPage ? styles.contentDesigner : styles.contentStandard} ${isSidebarVisible && !isDesignerPage ? styles.contentWithSidebar : ''}`}
           style={{
-            marginLeft: isSidebarVisible ? sidebarWidth : 0,
+            marginLeft: isSidebarVisible && !isDesignerPage ? sidebarWidth : 0,
           }}
         >
           {isDesignerPage ? (

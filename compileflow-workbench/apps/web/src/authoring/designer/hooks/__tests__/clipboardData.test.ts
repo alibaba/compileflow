@@ -7,6 +7,9 @@ import {
 } from '../clipboardData'
 
 const validData = {
+  modelType: 'TBBPM' as const,
+  connections: [],
+  messages: [],
   nodes: [
     {
       id: 'task-1',
@@ -19,7 +22,6 @@ const validData = {
     },
   ],
   timestamp: 1_000,
-  source: 'order-flow',
 }
 
 describe('clipboard data boundary', () => {
@@ -31,10 +33,34 @@ describe('clipboard data boundary', () => {
     null,
     '{',
     JSON.stringify({ ...validData, nodes: 'invalid' }),
+    JSON.stringify({ ...validData, nodes: [] }),
     JSON.stringify({ ...validData, nodes: [{ id: 'task-1' }] }),
     JSON.stringify({ ...validData, timestamp: Number.NaN }),
+    JSON.stringify({ ...validData, modelType: 'BPMN' }),
+    JSON.stringify({ ...validData, nodes: [...validData.nodes, ...validData.nodes] }),
+    JSON.stringify({ ...validData, nodes: [{ ...validData.nodes[0], parentId: 'missing' }] }),
+    JSON.stringify({ ...validData, nodes: [{ ...validData.nodes[0], parentId: 'task-1' }] }),
+    JSON.stringify({
+      ...validData,
+      connections: [{ id: 'edge', sourceId: 'task-1', targetId: 'missing' }],
+    }),
+    JSON.stringify({ ...validData, messages: [{ id: 'task-1', name: 'Conflicting' }] }),
   ])('rejects malformed clipboard payloads', (raw) => {
     expect(parseClipboardData(raw)).toBeNull()
+  })
+
+  it('rejects cycles between distinct container nodes', () => {
+    expect(
+      parseClipboardData(
+        JSON.stringify({
+          ...validData,
+          nodes: [
+            { ...validData.nodes[0], id: 'a', parentId: 'b' },
+            { ...validData.nodes[0], id: 'b', parentId: 'a' },
+          ],
+        })
+      )
+    ).toBeNull()
   })
 
   it('accepts only current, non-future clipboard data within the TTL', () => {

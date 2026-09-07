@@ -1,11 +1,19 @@
 .tbbpm-node {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
   background: var(--color-bg-container);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-base);
+  box-shadow: var(--shadow-sm);
   transition: var(--transition-fast);
   overflow: hidden;
   cursor: pointer;
   user-select: none;
+}
+
+.tbbpm-node > .node-header:only-child {
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .tbbpm-node:hover {
@@ -30,8 +38,8 @@
 .node-header {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md);
+  gap: var(--spacing-2);
+  padding: var(--spacing-3);
   border-bottom: 1px solid var(--color-fill-primary);
 }
 
@@ -45,10 +53,10 @@
 }
 
 .node-metadata {
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-2) var(--spacing-3);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-1);
 }
 
 .metadata-item {
@@ -66,8 +74,8 @@
 .metadata-value {
   color: var(--color-text-secondary);
   background: var(--color-fill-secondary);
-  padding: 2px var(--spacing-sm);
-  border-radius: var(--radius-base);
+  padding: 2px var(--spacing-2);
+  border-radius: var(--radius-sm);
   font-family: var(--font-family-code);
   font-size: 11px;
 }
@@ -243,7 +251,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-1);
   background: linear-gradient(135deg, var(--color-success-bg) 0%, var(--color-success-border) 100%);
 }
 
@@ -265,7 +273,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-1);
   background: linear-gradient(135deg, var(--color-error-bg) 0%, var(--color-error-border) 100%);
 }
 
@@ -283,7 +291,7 @@
   width: 180px;
   min-height: 120px;
   border: 2px dashed var(--color-border);
-  padding: var(--spacing-md);
+  padding: var(--spacing-3);
   background: var(--color-bg-layout);
 }
 
@@ -294,14 +302,14 @@
 
 .tbbpm-node-note .node-label {
   color: var(--color-node-note);
-  margin-top: var(--spacing-sm);
+  margin-top: var(--spacing-2);
 }
 
 .node-comment {
-  margin-top: var(--spacing-sm);
+  margin-top: var(--spacing-2);
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
-  line-height: var(--line-height-base);
+  line-height: var(--line-height-normal);
 }
 
 /* Dark theme — soft slate cards instead of pastel paper */

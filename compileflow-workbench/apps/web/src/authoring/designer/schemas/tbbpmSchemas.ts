@@ -75,10 +75,63 @@ const VariableMappingSchema = z.discriminatedUnion('direction', [
     .strict(),
 ])
 
+const ReconcileInputsSchema = z
+  .array(
+    z
+      .object({
+        source: ExactNonBlankStringSchema,
+        target: ExactNonBlankStringSchema,
+        dataType: ExactNonBlankStringSchema,
+      })
+      .strict()
+  )
+  .optional()
+
+const ReconcileActionSchema = z.discriminatedUnion('actionType', [
+  z
+    .object({
+      actionType: z.literal('java'),
+      className: z.string().optional(),
+      method: z.string().optional(),
+      inputs: ReconcileInputsSchema,
+    })
+    .strict(),
+  z
+    .object({
+      actionType: z.literal('spring-bean'),
+      bean: z.string().optional(),
+      className: z.string().optional(),
+      method: z.string().optional(),
+      inputs: ReconcileInputsSchema,
+    })
+    .strict(),
+  z
+    .object({
+      actionType: z.literal('script'),
+      language: z.string().optional(),
+      source: z.string().optional(),
+      inputs: ReconcileInputsSchema,
+    })
+    .strict(),
+])
+
+const EffectPolicySchema = z
+  .object({
+    recovery: z.enum(['manual', 'retry', 'reconcile']).optional(),
+    recoveryPlanVariable: ExactNonBlankStringSchema.optional(),
+    maxAttempts: z.number().optional(),
+    maxReconcileAttempts: z.number().optional(),
+    recoveryDelay: z.string().optional(),
+    maxRecoveryDuration: z.string().optional(),
+    reconcileAction: ReconcileActionSchema.optional(),
+  })
+  .strict()
+
 const ActionCommonShape = {
   execution: ActionExecutionSchema.optional(),
   mappings: z.array(VariableMappingSchema).optional(),
   invocationPolicy: InvocationPolicySchema.optional(),
+  effectPolicy: EffectPolicySchema.optional(),
 }
 
 const ActionDefinitionSchema = z.discriminatedUnion('actionType', [

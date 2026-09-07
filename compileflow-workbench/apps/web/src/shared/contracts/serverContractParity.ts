@@ -16,7 +16,7 @@ import type {
   AsyncInvocationHealth,
   AsyncInvocationListResponse,
   AsyncInvocationResponse,
-  DeployRuntimeAvailableDiagnostics,
+  DeploymentRuntimeAvailableDiagnostics,
   ExecutionLog,
   LogListResponse,
   MonitoringMetrics,
@@ -24,7 +24,7 @@ import type {
 
 type Schemas = components['schemas']
 type Operations = paths
-type DeployRuntimeAliasState = DeployRuntimeAvailableDiagnostics['aliases'][number]
+type DeploymentRuntimeAliasState = DeploymentRuntimeAvailableDiagnostics['aliases'][number]
 type PreviewOperation = Operations['/api/executions/preview']['post']
 type PreviewResponseSchema = PreviewOperation['responses'][200]['content']['application/json']
 
@@ -96,8 +96,8 @@ export type ServerContractParity = [
     >
   >,
   Assert<SameKeys<DeploymentEvent, Schemas['DeploymentEventView']>>,
-  Assert<SameKeys<DeployRuntimeAliasState, Schemas['DeployRuntimeAliasResponse']>>,
-  Assert<Compatible<DeployRuntimeAliasState, Schemas['DeployRuntimeAliasResponse']>>,
+  Assert<SameKeys<DeploymentRuntimeAliasState, Schemas['DeploymentRuntimeAliasResponse']>>,
+  Assert<Compatible<DeploymentRuntimeAliasState, Schemas['DeploymentRuntimeAliasResponse']>>,
   Assert<SameKeys<MonitoringMetrics, Schemas['MonitoringMetricsResponse']>>,
   Assert<Compatible<MonitoringMetrics, Schemas['MonitoringMetricsResponse']>>,
   Assert<SameKeys<ExecutionLog, Schemas['ExecutionLogResponse']>>,

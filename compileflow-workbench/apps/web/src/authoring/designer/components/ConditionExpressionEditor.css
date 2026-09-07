@@ -7,12 +7,12 @@
  */
 
 .condition-expression-editor-modal .ant-modal-body {
-  padding: var(--spacing-base) var(--spacing-lg) var(--spacing-lg); /* 16px 24px 24px */
+  padding: var(--spacing-4) var(--spacing-6) var(--spacing-6); /* 16px 24px 24px */
 }
 
 /* ===== 编辑器内容区 ===== */
 .expression-editor-content {
-  padding: var(--spacing-base) 0; /* 16px 0 */
+  padding: var(--spacing-4) 0; /* 16px 0 */
 }
 
 .expression-input-area textarea {
@@ -27,14 +27,14 @@
 }
 
 .expression-quick-insert {
-  margin-top: var(--spacing-base); /* 16px */
-  padding-top: var(--spacing-base); /* 16px */
+  margin-top: var(--spacing-4); /* 16px */
+  padding-top: var(--spacing-4); /* 16px */
   border-top: 1px solid var(--color-border-light);
 }
 
 /* ===== 模板列表 ===== */
 .expression-templates {
-  padding: var(--spacing-base) 0; /* 16px 0 */
+  padding: var(--spacing-4) 0; /* 16px 0 */
   max-height: 400px;
   overflow-y: auto;
 }
@@ -45,7 +45,7 @@
   color: inherit;
   font: inherit;
   text-align: left;
-  padding: var(--spacing-md); /* 12px */
+  padding: var(--spacing-3); /* 12px */
   background: var(--color-bg-layout);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md); /* 6px */
@@ -63,7 +63,7 @@
   display: block;
   font-size: 13px; /* 特殊尺寸,介于12-14之间 */
   color: var(--color-text-primary);
-  margin-bottom: var(--spacing-xs); /* 4px */
+  margin-bottom: var(--spacing-1); /* 4px */
 }
 
 .template-value {
@@ -72,8 +72,8 @@
   font-size: var(--font-size-sm); /* 12px */
   color: var(--color-warning);
   background: var(--color-bg-container);
-  padding: var(--spacing-xs) var(--spacing-sm); /* 4px 8px */
-  border-radius: var(--radius-base); /* 4px */
+  padding: var(--spacing-1) var(--spacing-2); /* 4px 8px */
+  border-radius: var(--radius-sm); /* 4px */
   border: 1px solid var(--color-warning-border);
 }
 
@@ -82,24 +82,24 @@
   font-size: var(--font-size-base); /* 14px */
   font-weight: var(--font-weight-semibold); /* 600 */
   color: var(--color-text-primary);
-  margin-bottom: var(--spacing-sm); /* 8px */
+  margin-bottom: var(--spacing-2); /* 8px */
 }
 
 .expression-help ul {
   margin: 0;
-  padding-left: var(--spacing-base); /* 16px → 20px保留,列表缩进 */
+  padding-left: var(--spacing-4); /* 16px → 20px保留,列表缩进 */
   padding-left: 20px;
 }
 
 .expression-help li {
-  margin-bottom: var(--spacing-xs); /* 4px */
+  margin-bottom: var(--spacing-1); /* 4px */
   font-size: 13px; /* 特殊尺寸 */
   color: var(--color-text-secondary);
 }
 
 .expression-help code {
   background: var(--color-fill-secondary);
-  padding: 2px var(--spacing-sm); /* 2px 6px → 8px */
+  padding: 2px var(--spacing-2); /* 2px 6px → 8px */
   border-radius: var(--radius-sm); /* 3px → 2px */
   font-family: var(--font-family-code);
   font-size: var(--font-size-sm); /* 12px */
@@ -108,7 +108,7 @@
 
 .help-code {
   background: var(--color-fill-secondary);
-  padding: var(--spacing-md); /* 12px */
+  padding: var(--spacing-3); /* 12px */
   border-radius: var(--radius-md); /* 6px */
   border: 1px solid var(--color-border);
   font-family: var(--font-family-code);
@@ -144,7 +144,7 @@
 }
 
 .expression-textarea {
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-code);
   font-size: 13px;
 }
 

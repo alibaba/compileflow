@@ -29,7 +29,6 @@ public final class JavaTypeName {
     private final String rawName;
     private final String simpleName;
     private final String shortName;
-    private final String shortRawName;
     private final String packageName;
     private final List<JavaTypeName> referencedTypes;
 
@@ -50,7 +49,6 @@ public final class JavaTypeName {
         simpleName = packageSeparator < 0 ? rawName : rawName.substring(packageSeparator + 1);
         packageName = packageSeparator < 0 ? null : rawName.substring(0, packageSeparator);
         shortName = shortenTypeNames(name, typeTokens);
-        shortRawName = simpleName + arraySuffix(name);
         referencedTypes = collectReferencedTypes ? referencedTypes(typeTokens) : List.of();
     }
 
@@ -160,42 +158,12 @@ public final class JavaTypeName {
             .toList();
     }
 
-    private static String arraySuffix(String sourceName) {
-        int dimensions = 0;
-        int cursor = sourceName.length() - 1;
-        while (true) {
-            cursor = skipWhitespaceBackward(sourceName, cursor);
-            if (cursor < 0 || sourceName.charAt(cursor) != ']') {
-                break;
-            }
-            cursor = skipWhitespaceBackward(sourceName, cursor - 1);
-            if (cursor < 0 || sourceName.charAt(cursor) != '[') {
-                break;
-            }
-            dimensions++;
-            cursor--;
-        }
-        return "[]".repeat(dimensions);
-    }
-
-    private static int skipWhitespaceBackward(String value, int cursor) {
-        int current = cursor;
-        while (current >= 0 && Character.isWhitespace(value.charAt(current))) {
-            current--;
-        }
-        return current;
-    }
-
     public String getName() {
         return name;
     }
 
     public String getShortName() {
         return shortName;
-    }
-
-    public String getShortRawName() {
-        return shortRawName;
     }
 
     public String getPackageName() {

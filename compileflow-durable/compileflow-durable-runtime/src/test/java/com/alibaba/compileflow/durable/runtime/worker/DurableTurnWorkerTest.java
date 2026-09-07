@@ -44,7 +44,7 @@ import com.alibaba.compileflow.engine.ProcessDefinitionDigest;
 import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.config.JavaDiagnosticsConfig;
-import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
+import com.alibaba.compileflow.engine.config.ProcessDefinitionConfig;
 import com.alibaba.compileflow.engine.core.xml.parser.FlowSource;
 import com.alibaba.compileflow.engine.tbbpm.parser.TbbpmXmlParser;
 import java.lang.reflect.InvocationHandler;
@@ -296,6 +296,61 @@ class DurableTurnWorkerTest {
     }
 
     @Test
+    void consumedWaitIsNotOfferedAgainWhenTheResumedParentCallsAChild() {
+        String parentXml =
+                """
+            <bpm code="turn.waitCall">
+              <start id="start"><transition to="approval"/></start>
+              <waitEventTask id="approval" event="approved"><transition to="call"/></waitEventTask>
+              <bpmCall id="call" code="child.flow" version="v1"><transition to="end"/></bpmCall>
+              <end id="end"/>
+            </bpm>
+            """;
+        DurableProcessRuntime parent = loadProgram("turn.waitCall", parentXml);
+        DurableProcessRuntime child = loadProgram("child.flow", childWaitFlow());
+        InMemoryDurableProcessRuntimeCache programs = cache(parent, child);
+        CapturingStore first = new CapturingStore(Optional.of(
+                        startClaim(parent, false,
+                                Map.of(new RunContinuation.ProcessCallSite(parent.processId(), "call"),
+                                        child.processId()))), true);
+        assertThat(run(first, programs, new DurableRuntimeMetrics())).isTrue();
+        DurableStore.TurnCommit firstTurn = (DurableStore.TurnCommit) first.value;
+        DurableStore.WaitCommit wait = (DurableStore.WaitCommit) firstTurn.issuedOccurrences().get(0);
+        DurableStore.WaitingTurn waiting = (DurableStore.WaitingTurn) firstTurn.state();
+        DurableStore.WaitResult result = new DurableStore.WaitResult(wait.occurrence(), 1L, parent.processId(), 0L,
+                wait.frontierId(), "approval", "approved", DurableStore.WaitResolution.COMPLETED,
+                new DurableStore.Envelope(parent.valueSerializer().encodeWaitPayload(Map.of())), null, NOW);
+        CapturingStore resumed = new CapturingStore(Optional.of(
+                        new DurableStore.RunClaim(lease(), runProcess(parent), waiting.continuation(), 1L,
+                                List.of(result), false, NOW.plus(LEASE_DURATION))), true);
+
+        assertThat(run(resumed, programs, new DurableRuntimeMetrics())).isTrue();
+
+        assertThat(resumed.mutation).isEqualTo("commitTurn");
+        DurableStore.TurnCommit turn = (DurableStore.TurnCommit) resumed.value;
+        assertThat(turn.consumedOccurrences()).containsExactly(wait.occurrence());
+        assertThat(turn.issuedOccurrences())
+            .singleElement()
+            .extracting(DurableStore.OccurrenceCommit::processId)
+            .isEqualTo(child.processId());
+        assertThat(turn.state()).isInstanceOf(DurableStore.WaitingTurn.class);
+    }
+
+    @Test
+    void rejectsAContinuationBelongingToAnotherRootProcess() {
+        DurableProcessRuntime claimed = loadProgram("turn.claimed", completedFlow("turn.claimed"));
+        DurableProcessRuntime other = loadProgram("turn.other", completedFlow("turn.other"));
+        DurableStore.RunClaim swapped = new DurableStore.RunClaim(lease(), runProcess(claimed),
+                startClaim(other, false).continuation(), 0L, List.of(), false, NOW.plus(LEASE_DURATION));
+        CapturingStore store = new CapturingStore(Optional.of(swapped), true);
+
+        assertThat(run(store, cache(claimed, other), new DurableRuntimeMetrics())).isTrue();
+
+        assertThat(store.mutation).isEqualTo("releaseRunFault");
+        assertThat(store.reason).isEqualTo(RunRetryCode.TURN_EXECUTION_FAULT);
+    }
+
+    @Test
     void consumedPersistedOccurrencesMustHaveExactlyOneStoreResult() {
         UUID occurrenceId = UUID.fromString("00000000-0000-0000-0000-000000000103");
         OccurrenceKey consumed = new OccurrenceKey(BoundaryKind.WAIT, occurrenceId);
@@ -339,6 +394,9 @@ class DurableTurnWorkerTest {
         CapturingStore evicted = new CapturingStore(Optional.of(startClaim(program, false)), true);
         DurableProcessRuntimeCache disappearing = new DurableProcessRuntimeCache() {
             @Override
+            public void clear() {}
+
+            @Override
             public DurableProcessRuntime put(DurableProcessRuntime program) {
                 throw new UnsupportedOperationException();
             }
@@ -377,9 +435,8 @@ class DurableTurnWorkerTest {
             int turnMaxSteps) {
         DurableStore proxy = store.proxy();
         DurableProcessRuntimeManager processManager = new DurableProcessRuntimeManager(proxy, cache,
-                new DurableJavaProgramCompiler(JavaDiagnosticsConfig.defaults()),
-                ProcessEngineConfig.tbbpmBuilder().classLoader(getClass().getClassLoader()).discoverPlugins(false).build(),
-                DurableVersionDefinitionSource.empty());
+                new DurableJavaProgramCompiler(JavaDiagnosticsConfig.defaults()), ProcessDefinitionConfig.defaults(),
+                getClass().getClassLoader(), 32, DurableVersionDefinitionSource.empty());
         try (DurableLeaseRenewer renewer = new DurableLeaseRenewer(proxy, LEASE_DURATION, metrics)) {
             return new DurableTurnWorker(proxy, processManager, cache, DurableActionInvoker.unavailable(),
                     DurableWaitDescriptionProvider.defaults(),

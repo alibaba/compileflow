@@ -4,9 +4,9 @@
 >
 > Wire contract: [`compileflow-workbench-server.openapi.json`](../../../../../docs/specs/openapi/compileflow-workbench-server.openapi.json)
 
-The OpenAPI document owns endpoint paths, methods, request and response schemas, required fields, and wire-level enums.
-This companion documents behavior that is difficult to express in OpenAPI: trust boundaries, identity, optimistic
-concurrency, idempotency, routing, retry, and data-exposure rules. It is not a second endpoint inventory.
+The OpenAPI document defines endpoint paths, methods, request and response schemas, required fields, and wire-level
+enums. This document covers behavior that is difficult to express in OpenAPI: trust boundaries, identity, optimistic
+concurrency, idempotency, routing, retries, and data-exposure rules. Endpoint and schema inventories remain in OpenAPI.
 
 The generated TypeScript projection is
 [`workbenchServerOpenApi.ts`](../shared/contracts/generated/workbenchServerOpenApi.ts). Domain contracts may narrow wire
@@ -25,7 +25,8 @@ only on the protected upstream hop. That key identifies the gateway service prin
 
 ## Common Rules
 
-- Page-number pagination is 1-based. Cursor values are opaque and must not be parsed or constructed by clients.
+- Page-number pagination is 1-based. Version and deployment list cursors are opaque and must not be parsed or
+  constructed by clients. Attempt history uses the numeric `afterSequence` cursor described below.
 - JSON fields documented as integers must be JSON integers; the Server rejects fractional values instead of truncating
   them.
 - Process resources use `code`; deployment, execution, log, and metric references use `processCode`.
@@ -54,8 +55,9 @@ plane and are not duplicated as draft status fields.
 - Tags are stored as a JSON string array. Blank tags are removed and duplicates are collapsed in encounter order;
   commas inside a tag are preserved.
 - Import accepts one TBBPM `<bpm>` document or one BPMN 2.0 `<definitions>` document containing exactly one top-level
-  process. The process code and display name come from the XML, not the filename. DTDs, external entities, ambiguous
-  definitions, and unsupported formats are rejected.
+  process. The process code and display name come from the XML, not the filename. DTD processing and external resource
+  resolution are disabled; malformed XML, ambiguous definitions, and unsupported root formats are rejected.
+  Import creates a draft; executable validation and compilation preflight occur on publication.
 - Publish freezes one draft revision, runs strict lint and compilation preflight, and then creates an immutable Version.
   It requires `Idempotency-Key`. Retrying the same key and content returns the same Version; reusing the key for
   different content is a conflict. Publish does not change an Alias route or install a runtime.
@@ -74,42 +76,41 @@ optional candidate Version and candidate weight, plus the revision used for comp
   began. Rollback creates a new all-at-once deployment from a completed deployment's baseline; it never rewrites
   history.
 - Canary evaluation is read-only. Its response identifies `metricsScope=workbench_server` and
-  `metricsSource=execution_logs`; these samples cover only executions observed by the current Workbench Server and are
-  not global production telemetry.
+  `metricsSource=execution_logs`; these samples come from the shared Workbench execution-log database, including other
+  Server instances writing to that database. They do not include external engine executions that never enter those logs.
 - Deployment events are an ordered, append-only control-plane history. They are not application logs.
 - Deployment dead-letter requeue accepts no request fields. A non-empty body is invalid.
 
 ## Synchronous and Persisted Execution
 
-Synchronous execution returns in the request. Persisted asynchronous execution returns a durable acceptance snapshot
+Synchronous execution completes within the request. Persisted asynchronous execution returns a stored acceptance record
 and is processed by leased workers.
 
-Both forms require exactly one of `version` or `alias`. Alias routing may also carry `routingKey` and bounded targeting
+Both forms require exactly one of `version` or `alias`. Alias routing may also carry `routingKey` and a limited set of targeting
 attributes.
-Responses expose bounded routing attribution—requested reference, exact effective Version, Alias revision, and selected
-target—but never echo the routing key or targeting attributes.
+Responses include the requested reference, exact effective Version, Alias revision, and selected target, but never echo
+the routing key or targeting attributes.
 
 Persisted asynchronous routing excludes `routingKey` and targeting attributes from its stored envelope, not from the
 admission request. The Server evaluates Alias routing before persistence, stores the selected exact Version and bounded
 attribution, and uses the invocation ID as the cohort key when the caller did not supply a key. Retries remain pinned to
 that Version even after the Alias moves.
 
-Async invocation list pagination defaults to `page=1` and `pageSize=20`. Attempt history uses a lifetime-monotonic
-`sequence` and an `afterSequence` cursor. The first request omits the cursor; subsequent requests use the previous
-response's `nextAfterSequence`.
+Async invocation list pagination defaults to `page=1` and `pageSize=20`. Attempt history uses a `sequence` that increases
+throughout the invocation lifetime and an `afterSequence` cursor. The first request omits the cursor; subsequent requests
+use the previous response's `nextAfterSequence`.
 
 An accepted `invocationId` is permanently reserved. Repeating the same ID with the same process, parameters, original
 route, and retry policy returns the existing invocation; using it for a different request returns `409 Conflict`.
-Compaction may remove payloads and detailed history only after retaining a tombstone with the ID, request fingerprint,
-and terminal outcome.
+Invocation records and attempt history are retained; the API does not provide a compaction endpoint.
 
 Workers persist retry deadlines and never sleep between attempts. Claim, completion, retry, dead-letter transition, and
 expired-lease recovery update the logical invocation and physical attempt record transactionally. Completion and lease
 renewal require the current fencing token and an unexpired lease; late results from former owners are discarded.
 
-Malformed persisted `paramsJson` or `routingJson` is permanent invocation corruption and moves the request to
+Malformed persisted `paramsJson` or `routingJson` is treated as permanent invocation corruption and moves the request to
 `dead_letter` without consuming transient retry budget. Read and list responses remain available when persisted routing
-or result JSON is unreadable and report bounded `payloadErrors` for affected fields.
+or result JSON is unreadable; `payloadErrors` identifies the affected fields without exposing their contents.
 
 Operator requeue starts a new redrive generation and resets only the current retry budget. `totalAttemptCount`,
 `redriveCount`, and prior attempt records remain monotonic. External effects remain at-least-once, so side-effecting
@@ -119,11 +120,12 @@ actions must deduplicate with stable business keys from process parameters.
 
 Execution aggregates use one of `1h`, `6h`, `24h`, `7d`, or `30d`; the default is `24h`. They include only published
 execution routed by exact Version or Alias. Preview execution is excluded. The response scope is
-`workbench_server`, not a cluster-wide aggregation promise, and retaining or purging logs changes the available history.
+`workbench_server`: aggregates cover retained records in the shared execution-log database, so log retention and purge
+operations determine the available history. Nodes that do not write to this database are outside the metrics scope.
 
 Deploy runtime diagnostics returns `available=false` when neither an embedded local-ready pipeline nor a distributed
 runtime is configured. When available, diagnostics describe the current Server node, not an aggregate cluster view.
-They expose bounded Alias convergence state and failure reasons, never internal runtime owner keys.
+They expose Alias convergence state and safe failure reasons, never internal runtime owner keys.
 
 Log list and export filters accept `processCode`, `status`, `keyword`, `startTime`, `endTime`, `invocationId`,
 `parentInvocationId`, `traceId`, `callDepth`, `namespace`, `requestedVersion`, `effectiveVersion`, `routingSource`,
@@ -132,7 +134,7 @@ Execution-log status is `success`, `failed`, or `all`. Queue lifecycle state bel
 not synthesized as an execution-log status.
 
 CSV export is UTF-8 and applies RFC 4180 quoting. String cells that spreadsheet software could interpret as formulas
-are prefixed with an apostrophe. Purge requires an ISO-8601 `before` timestamp, deletes one bounded batch, and returns
+are prefixed with an apostrophe. Purge requires an ISO-8601 `before` timestamp, deletes one size-limited batch, and returns
 `hasMore`; callers repeat it while more eligible rows remain.
 
 ## Changing the Contract
@@ -147,5 +149,4 @@ pnpm generate:workbench-server-contract
 pnpm check:workbench-server-contract
 ```
 
-Update this file only when one of the behavioral rules above changes. Do not copy new endpoint or schema inventories
-from OpenAPI into prose.
+Update this file when a behavioral rule above changes. Keep endpoint and schema inventories in OpenAPI.

@@ -27,14 +27,13 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import tools.jackson.databind.ObjectMapper;
 
 class ExampleCatalogServiceTest {
     private ExampleCatalogService catalog;
 
     @BeforeEach
     void setUp() throws Exception {
-        catalog = new ExampleCatalogService(new ObjectMapper());
+        catalog = new ExampleCatalogService();
         catalog.loadCatalog();
     }
 
@@ -70,13 +69,11 @@ class ExampleCatalogServiceTest {
 
     @Test
     void bundledExamplesPassStrictPreflightAndExecute() {
-        try (ProcessEngine bpmn = ProcessEngineFactory.createBpmn();
-                ProcessEngine tbbpm = ProcessEngineFactory.createTbbpm()) {
+        try (ProcessEngine engine = ProcessEngineFactory.create()) {
             for (ExampleResponse example : catalog.listAll()) {
                 String id = example.id();
                 String code = example.code();
-                ProcessDefinition definition = ProcessDefinition.inline(id, code);
-                ProcessEngine engine = example.modelType() == ProcessModelType.BPMN ? bpmn : tbbpm;
+                ProcessDefinition definition = ProcessDefinition.inline(example.modelType(), id, code);
 
                 ProcessPreflightReport report = engine
                     .tooling()

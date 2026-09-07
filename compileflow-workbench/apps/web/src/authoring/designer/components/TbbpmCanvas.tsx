@@ -61,8 +61,8 @@ function tbbpmNodeToX6Cell(node: TbbpmNode): Record<string, unknown> {
     shape: `tbbpm-${camelToKebab(node.type)}`,
     x: node.position.x,
     y: node.position.y,
-    width: nodeConfig?.width || 100,
-    height: nodeConfig?.height || 80,
+    width: node.size?.width ?? nodeConfig?.width ?? 100,
+    height: node.size?.height ?? nodeConfig?.height ?? 80,
     data: {
       ...node.properties,
       label: node.name,
@@ -76,6 +76,7 @@ function tbbpmConnectionToX6Edge(connection: TbbpmConnection): Record<string, un
     id: connection.id,
     source: connection.sourceId,
     target: connection.targetId,
+    vertices: connection.waypoints ?? [],
     labels: connection.name ? [{ attrs: { label: { text: connection.name } } }] : undefined,
     data: { condition: connection.condition },
     // Wider transparent interaction area so edge:click fires reliably.
@@ -127,7 +128,13 @@ function registerTbbpmMutationEvents(
     if (!sourceId || !targetId) return
 
     runGraphMutation(isSyncingRef, () => {
-      dispatch(addConnection({ id: edge.id, sourceId, targetId, name: '' }))
+      const vertices = edge.getVertices() ?? []
+      const updates = { sourceId, targetId, waypoints: vertices.length > 0 ? vertices : undefined }
+      if (connectionsRef.current.some((connection) => connection.id === edge.id)) {
+        dispatch(updateConnection({ id: edge.id, updates }))
+      } else {
+        dispatch(addConnection({ id: edge.id, ...updates, name: '' }))
+      }
     })
   })
 
@@ -234,19 +241,30 @@ const TbbpmCanvas = memo(function TbbpmCanvas({ onGraphReady }: TbbpmCanvasProps
     connectionToX6Edge: tbbpmConnectionToX6Edge,
     checkNodeChanged: (cell, node) => {
       const currentPos = cell.position()
+      const currentSize = cell.getSize()
+      const nodeConfig = getNodeConfig(node.type)
       const currentData = cell.getData() as {
         label?: string
+        comment?: string
         [PARENT_ID_DATA_KEY]?: string
       }
       return (
         Math.abs(currentPos.x - node.position.x) > POS_TOLERANCE ||
         Math.abs(currentPos.y - node.position.y) > POS_TOLERANCE ||
+        currentSize.width !== (node.size?.width ?? nodeConfig?.width ?? 100) ||
+        currentSize.height !== (node.size?.height ?? nodeConfig?.height ?? 80) ||
         currentData.label !== node.name ||
+        currentData.comment !== node.properties.comment ||
         currentData[PARENT_ID_DATA_KEY] !== node.parentId
       )
     },
     syncNodeToCell: (cell, node) => {
       cell.position(node.position.x, node.position.y)
+      const nodeConfig = getNodeConfig(node.type)
+      cell.resize(
+        node.size?.width ?? nodeConfig?.width ?? 100,
+        node.size?.height ?? nodeConfig?.height ?? 80
+      )
       cell.setData({
         ...node.properties,
         label: node.name,
@@ -256,12 +274,21 @@ const TbbpmCanvas = memo(function TbbpmCanvas({ onGraphReady }: TbbpmCanvasProps
     checkEdgeChanged: (edge, conn) => {
       const currentData = (edge.getData() ?? {}) as Record<string, unknown>
       const currentLabel = (edge.getLabels() || [])[0]?.attrs?.label?.text
-      return currentData.condition !== conn.condition || currentLabel !== conn.name
+      return (
+        currentData.condition !== conn.condition ||
+        currentLabel !== conn.name ||
+        edge.getSourceCellId() !== conn.sourceId ||
+        edge.getTargetCellId() !== conn.targetId ||
+        JSON.stringify(edge.getVertices()) !== JSON.stringify(conn.waypoints ?? [])
+      )
     },
     syncEdgeToCell: (edge, conn) => {
       const currentData = (edge.getData() ?? {}) as Record<string, unknown>
       edge.setData({ ...currentData, condition: conn.condition })
       edge.setLabels(conn.name ? [{ attrs: { label: { text: conn.name } } }] : [])
+      edge.setSource({ cell: conn.sourceId })
+      edge.setTarget({ cell: conn.targetId })
+      edge.setVertices(conn.waypoints ?? [])
     },
   })
 

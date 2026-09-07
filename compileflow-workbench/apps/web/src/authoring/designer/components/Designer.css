@@ -278,7 +278,7 @@
 .tbbpm-designer-empty-panel-hint,
 .bpmn-designer-empty-panel-hint {
   font-size: var(--font-size-xs);
-  color: var(--text-quaternary);
+  color: var(--text-tertiary);
   margin-top: 8px;
   line-height: 1.5;
 }

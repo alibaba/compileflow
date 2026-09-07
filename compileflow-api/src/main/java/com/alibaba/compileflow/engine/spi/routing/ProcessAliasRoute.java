@@ -59,7 +59,6 @@ public record ProcessAliasRoute(ProcessRef.Alias alias, ProcessRef.Version stabl
      */
     public static ProcessAliasRoute canary(ProcessRef.Alias alias, String stableVersion, String candidateVersion,
             int candidateWeightBps, long revision) {
-        ProcessRef.Alias ref = Objects.requireNonNull(alias, "alias");
         return canary(alias, stableVersion, candidateVersion, candidateWeightBps, null, revision);
     }
 

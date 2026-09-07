@@ -17,6 +17,7 @@ import com.alibaba.compileflow.durable.api.effect.EffectRecoveryPlan;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -151,6 +152,59 @@ class FrontierExecutionOperationsTest {
         assertThatIllegalArgumentException()
             .isThrownBy(() -> new FrontierStepResult.Waiting(wait, otherCheckpoint, Map.of()))
             .withMessageContaining("SemanticCheckpoint");
+    }
+
+    @Test
+    void boundaryRequestsCannotLeaveTheirFrontierRunnable() {
+        SemanticCheckpoint before = SemanticCheckpoint.beforeElement("boundary", List.of());
+
+        assertAll(() -> assertThatIllegalArgumentException()
+            .isThrownBy(() -> new FrontierStepResult.Waiting(new WaitRequest("boundary", null, Map.of()), before,
+                    Map.of())), () -> assertThatIllegalArgumentException()
+            .isThrownBy(() -> new FrontierStepResult.TimerWaiting(TimerRequest.at("boundary", Instant.EPOCH), before,
+                    Map.of())), () -> assertThatIllegalArgumentException()
+            .isThrownBy(() -> new FrontierStepResult.EffectWaiting(new EffectRequest("boundary",
+                            EffectRecoveryPlan.manual(), Map.of()), before, Map.of())), () -> assertThatIllegalArgumentException()
+            .isThrownBy(() -> new FrontierStepResult.ProcessCallRequested(new ProcessCallRequest("boundary", Map.of()),
+                    before, Map.of())));
+    }
+
+    @Test
+    void parallelIterationFrameOwnsItsNestedCollectionSnapshot() {
+        List<String> values = new ArrayList<>(List.of("original"));
+        ParallelForEachFrame frame = new ParallelForEachFrame("loop", 0, Map.of("items", values));
+
+        values.add("late-mutation");
+
+        assertThat(frame.currentValue()).isEqualTo(Map.of("items", List.of("original")));
+    }
+
+    @Test
+    void parallelIterationFrameExposesReadOnlyCollections() {
+        ParallelForEachFrame frame = new ParallelForEachFrame("loop", 0, new ArrayList<>(List.of("original")));
+
+        assertThatThrownBy(() -> ((List<?>) frame.currentValue()).clear()).isInstanceOf(
+                UnsupportedOperationException.class);
+    }
+
+    @Test
+    void recoveredParallelResultsOwnTheirNestedCollectionSnapshot() {
+        List<String> result = new ArrayList<>(List.of("original"));
+        MultiInstanceState recovered = new MultiInstanceState("loop", 1, List.of(result), Set.of(), Set.of(0), 1);
+
+        result.add("late-mutation");
+
+        assertThat(recovered.orderedResults()).isEqualTo(List.of(List.of("original")));
+    }
+
+    @Test
+    void recordedParallelResultsOwnTheirNestedCollectionSnapshot() {
+        List<String> result = new ArrayList<>(List.of("original"));
+        MultiInstanceState completed = new MultiInstanceState("loop", 1).issueNext(1).recordResult(0, result);
+
+        result.add("late-mutation");
+
+        assertThat(completed.orderedResults()).isEqualTo(List.of(List.of("original")));
     }
 
     @Test

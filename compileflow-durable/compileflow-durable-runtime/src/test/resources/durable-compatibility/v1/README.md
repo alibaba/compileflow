@@ -1,14 +1,11 @@
-# Durable compatibility corpus V1
+# Durable Compatibility Corpus V1
 
-These files freeze the CompileFlow 2.0 release-candidate TBBPM and BPMN definitions, Machine resume coordinates and versioned
-persisted envelopes. They become immutable when 2.0 is released; until then, a deliberate Developer Preview Kernel
-protocol correction must update the corpus and its semantic assertions together. Later compatible releases must read
-and resume the released bytes with current parser/compiler/runtime code. Add a new directory only when a real
-incompatible authoritative representation needs its own immutable fixtures. The directory name is test-fixture
-organization, not Runtime routing or Machine identity.
+These fixtures preserve TBBPM and BPMN definitions, Machine resume coordinates, and versioned persisted envelopes for
+Durable recovery tests. The parser, compiler, and runtime must read and resume the stored bytes without rewriting them.
+Fixture directories are immutable; put any incompatible persisted representation in a separate directory. `v1`
+identifies the fixture format, not a CompileFlow release or Machine identity.
 
 The persisted TBBPM corpus covers Start, Wait, Timer, Effect, loop scope state and one committed Kernel fact. BPMN
-fixtures freeze representative Wait, Timer, Effect, and structured-scope source profiles. Every recovery test enters
-through production semantic-compiler discovery before current code resumes the frozen facts. The companion
-`tbbpm-durable-v1/all-constructs.bpm` fixture is also compiled by the compatibility test to freeze the representative
-Parallel, Inclusive, nested-scope and Child definition surface without inventing placeholder continuation bytes.
+fixtures cover representative Wait, Timer, Effect, and structured-scope definitions. Recovery tests use the production
+semantic compiler before resuming the stored state. The companion `tbbpm-durable-v1/all-constructs.bpm` fixture also
+covers Parallel, Inclusive, nested-scope, and child-definition semantics without synthetic continuation bytes.

@@ -22,7 +22,9 @@ function useExpressionVariables() {
 }
 
 function isExpressionGateway(nodeType: string | undefined): boolean {
-  return ['exclusive', 'bpmn:ExclusiveGateway', 'bpmn:InclusiveGateway'].includes(nodeType || '')
+  return ['exclusive', 'inclusive', 'bpmn:ExclusiveGateway', 'bpmn:InclusiveGateway'].includes(
+    nodeType || ''
+  )
 }
 
 function resolveDefaultConnectionId(

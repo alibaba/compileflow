@@ -239,6 +239,9 @@ export function getMockLogs(params: LogFilterParams = {}): LogListResponse {
 }
 
 function matchesFilters(log: ExecutionLog, params: LogFilterParams): boolean {
+  const startedAt = Date.parse(log.startTime)
+  if (params.startTime && startedAt < Date.parse(params.startTime)) return false
+  if (params.endTime && startedAt > Date.parse(params.endTime)) return false
   const exactMatches: Array<[unknown, unknown]> = [
     [params.processCode, log.processCode],
     [params.invocationId, log.invocationId],

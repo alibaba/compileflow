@@ -27,7 +27,7 @@ import java.util.List;
  * @author wuxiang
  * @author yusu
  */
-public class TbbpmModel extends AbstractFlowModel<FlowNode> {
+public class TbbpmModel extends AbstractFlowModel<FlowNode> implements TbbpmNodeContainer {
     /**
      * A human-readable description of the process.
      */

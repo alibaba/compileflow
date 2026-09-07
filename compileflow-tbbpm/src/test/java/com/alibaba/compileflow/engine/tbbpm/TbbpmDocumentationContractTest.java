@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.tbbpm;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
@@ -20,9 +21,12 @@ import com.alibaba.compileflow.engine.ProcessEngineFactory;
 import com.alibaba.compileflow.engine.ProcessResult;
 import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
 import com.alibaba.compileflow.engine.config.ProcessRuntimeMode;
+import com.alibaba.compileflow.engine.core.xml.parser.FlowSource;
+import com.alibaba.compileflow.engine.tbbpm.parser.TbbpmXmlParser;
 import com.alibaba.compileflow.engine.preflight.ProcessPreflightOptions;
 import com.alibaba.compileflow.engine.preflight.ProcessPreflightReport;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashSet;
@@ -39,7 +43,7 @@ class TbbpmDocumentationContractTest {
     @Test
     void canonicalExamplesPassTheExecutableContractInBothRuntimeModes() throws IOException {
         Set<String> specificationExamples =
-                examples("docs/specs/tbbpm-specification.en.md", "docs/specs/tbbpm-specification.zh.md");
+                examples("docs/en/specifications/tbbpm.md", "docs/zh/specifications/tbbpm.md");
         Set<String> quickStartExamples = examples("docs/en/quick-start.md", "docs/zh/quick-start.md");
 
         assertThat(specificationExamples).hasSize(1);
@@ -56,13 +60,16 @@ class TbbpmDocumentationContractTest {
         for (String path : paths) {
             String markdown = Files.readString(PROJECT_ROOT.resolve(path));
             Matcher blocks = XML_BLOCK.matcher(markdown);
+            String example = null;
             while (blocks.find()) {
                 String xml = blocks.group(1).strip();
                 if (xml.contains("<bpm ")) {
-                    examples.add(xml);
+                    example = xml;
                     break;
                 }
             }
+            assertThat(example).as("TBBPM example in %s", path).isNotNull();
+            examples.add(example);
         }
         return examples;
     }
@@ -80,9 +87,12 @@ class TbbpmDocumentationContractTest {
 
     private static void assertExecutable(String xml, Map<String, Object> input, String outputName, Object expectedOutput,
             ProcessRuntimeMode mode) {
-        String code = xml.substring(xml.indexOf("code=\"") + 6, xml.indexOf('"', xml.indexOf("code=\"") + 6));
-        ProcessDefinition definition = ProcessDefinition.inline(code, xml);
-        ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder().runtimeMode(mode).build();
+        String code = TbbpmXmlParser
+            .getInstance()
+            .parse(FlowSource.of("documentation", xml.getBytes(StandardCharsets.UTF_8)))
+            .getCode();
+        ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.TBBPM, code, xml);
+        ProcessEngineConfig config = ProcessEngineConfig.builder().runtimeMode(mode).build();
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
             ProcessPreflightReport preflight = engine

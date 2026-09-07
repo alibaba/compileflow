@@ -308,27 +308,6 @@ class TbbpmActionValidationTest {
     }
 
     @Test
-    void acceptsManagedReplayForScriptAction() {
-        TbbpmModel model = parse(
-                """
-            <bpm code="test.pure.retry">
-                <start id="start" g="0,0,32,32">
-                    <transition to="task"/>
-                </start>
-                <scriptTask id="task" g="60,0,100,40">
-                    <action type="script" language="qlexpress"><code>1</code>
-                        <invocationPolicy maxAttempts="1"/>
-                    </action>
-                    <transition to="end"/>
-                </scriptTask>
-                <end id="end" g="200,0,32,32"/>
-            </bpm>
-            """);
-
-        assertThat(validator.validate(model).isEmpty()).isTrue();
-    }
-
-    @Test
     void rejectsLegacyScriptImportsAtSchemaBoundary() {
         assertThatThrownBy(() -> parse(
                 flowWithAction("script", "language=\"java\"",
@@ -807,15 +786,20 @@ class TbbpmActionValidationTest {
                         <transition to="right"/>
                     </parallel>
                     <autoTask id="left" g="140,0,80,40">
+                        <action type="java" class="java.lang.System" method="currentTimeMillis"/>
                         <transition to="join"/>
                     </autoTask>
                     <autoTask id="right" g="140,80,80,40">
+                        <action type="java" class="java.lang.System" method="currentTimeMillis"/>
                         <transition to="join"/>
                     </autoTask>
                     <parallel id="join" g="240,40,40,40">
                         <transition to="bodyEnd"/>
                     </parallel>
-                    <autoTask id="bodyEnd" g="300,40,80,40"><transition to="loopEnd"/></autoTask>
+                    <autoTask id="bodyEnd" g="300,40,80,40">
+                        <action type="java" class="java.lang.System" method="currentTimeMillis"/>
+                        <transition to="loopEnd"/>
+                    </autoTask>
                     <end id="loopEnd"/>
                     <transition to="end"/>
                 </while>
@@ -823,9 +807,7 @@ class TbbpmActionValidationTest {
             </bpm>
             """));
 
-        assertThat(failures)
-            .extracting(ValidationFailure::message)
-            .noneMatch(message -> message.contains("Parallel and inclusive splits inside a loop"));
+        assertThat(failures).isEmpty();
     }
 
     @Test

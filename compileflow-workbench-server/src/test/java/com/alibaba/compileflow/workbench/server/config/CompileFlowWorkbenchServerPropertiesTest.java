@@ -15,6 +15,7 @@ package com.alibaba.compileflow.workbench.server.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -41,11 +42,24 @@ class CompileFlowWorkbenchServerPropertiesTest {
                 assertThat(properties.getAuthentication().getApiKey()).isEqualTo(VALID_API_KEY);
                 assertThat(properties.getAuthentication().getServicePrincipal()).isEqualTo("local-test");
                 assertThat(properties.getHttp().getMaxRequestSize().toMegabytes()).isEqualTo(10);
+                assertThat(properties.getDatabase().getProvider())
+                    .isEqualTo(CompileFlowWorkbenchServerProperties.Database.Provider.POSTGRESQL);
                 assertThat(properties.getDatabase().isMigrate()).isFalse();
                 assertThat(properties.getPreviewExecution().isEnabled()).isFalse();
                 assertThat(properties.getExecutionLog().getMaxQueryRows()).isEqualTo(10_000);
                 assertThat(properties.getAsyncInvocation().getLeaseDuration()).isEqualTo(Duration.ofSeconds(30));
             });
+    }
+
+    @Test
+    void shouldBindTheMySqlProviderExplicitly() {
+        contextRunner
+            .withPropertyValues("compileflow.workbench.server.database.provider=MYSQL")
+            .run(context -> assertThat(context
+                .getBean(CompileFlowWorkbenchServerProperties.class)
+                .getDatabase()
+                .getProvider())
+                .isEqualTo(CompileFlowWorkbenchServerProperties.Database.Provider.MYSQL));
     }
 
     @Test
@@ -172,19 +186,15 @@ class CompileFlowWorkbenchServerPropertiesTest {
     void shouldRejectUnsafeAsyncWorkerCapacity() {
         assertFailure("compileflow.workbench.server.async-invocation.concurrency=257",
                 "concurrency must be between 1 and 256");
-        assertFailure("compileflow.workbench.server.async-invocation.queue-capacity=10001",
-                "queue-capacity must be between 1 and 10000");
-        assertFailure("compileflow.workbench.server.async-invocation.dispatch-batch-size=1001",
-                "dispatch-batch-size must be between 1 and 1000");
-        contextRunner
-            .withPropertyValues("compileflow.workbench.server.async-invocation.concurrency=2",
-                    "compileflow.workbench.server.async-invocation.queue-capacity=3",
-                    "compileflow.workbench.server.async-invocation.dispatch-batch-size=6")
-            .run(context -> {
-                assertThat(context).hasFailed();
-                assertThat(context.getStartupFailure())
-                    .hasStackTraceContaining("dispatch-batch-size must not exceed" + " concurrency plus queue-capacity");
-            });
+    }
+
+    @Test
+    void shouldRejectRemovedAsyncPrefetchConfiguration() {
+        for (String key : List.of("queue-capacity", "dispatch-batch-size")) {
+            contextRunner
+                .withPropertyValues("compileflow.workbench.server.async-invocation." + key + "=1")
+                .run(context -> assertThat(context).hasFailed());
+        }
     }
 
     @Test

@@ -161,7 +161,13 @@ public final class ProcessActionInvoker {
         if (!constructor.canAccess(null)) {
             throw new IllegalAccessException("Java Action constructor is not accessible: " + className);
         }
-        return invokeMethod(invocation, declaredTypes, constructor.newInstance(), declaredType, arguments);
+        Object target;
+        try {
+            target = constructor.newInstance();
+        } catch (InvocationTargetException failure) {
+            throw invocationFailure(failure);
+        }
+        return invokeMethod(invocation, declaredTypes, target, declaredType, arguments);
     }
 
     private Object invokeSpringBean(ActionInvocation invocation, ActionInvocation.SpringBean springBean,
@@ -177,15 +183,19 @@ public final class ProcessActionInvoker {
         try {
             return method.invoke(target, arguments);
         } catch (InvocationTargetException failure) {
-            Throwable cause = failure.getCause();
-            if (cause instanceof Exception exception) {
-                throw exception;
-            }
-            if (cause instanceof Error error) {
-                throw error;
-            }
-            throw new IllegalStateException(cause);
+            throw invocationFailure(failure);
         }
+    }
+
+    private static Exception invocationFailure(InvocationTargetException failure) {
+        Throwable cause = failure.getCause();
+        if (cause instanceof Exception exception) {
+            return exception;
+        }
+        if (cause instanceof Error error) {
+            throw error;
+        }
+        return new IllegalStateException(cause);
     }
 
     private Object invokeScript(ScriptProgramSpec spec, List<String> targets, Object[] values) {

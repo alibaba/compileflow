@@ -78,8 +78,4 @@ public record FrontierSnapshot(FrontierId frontierId, ResumePoint resumePoint, M
         return multiInstanceController == null
                 && (resumePoint.isStart() || resumePoint.isBeforeElement() || resumePoint.isBeforeIterationBody());
     }
-
-    public boolean inConcurrentBranch() {
-        return branchFrames.stream().anyMatch(ConcurrentBranchFrame.class::isInstance);
-    }
 }

@@ -13,8 +13,7 @@ spring:
     open-in-view: false
   flyway:
     locations:
-      - classpath:db/compileflow-deploy-h2/migration
-      - classpath:db/compileflow-workbench-server/migration
+      - classpath:db/compileflow-workbench-server/postgres/migration
   sql:
     init:
       mode: never
@@ -26,10 +25,10 @@ springdoc:
 compileflow:
   engine:
     enabled: true
-    model-type: TBBPM
   workbench:
     server:
       database:
+        provider: POSTGRESQL
         migrate: true
       preview-execution:
         enabled: true
@@ -44,4 +43,4 @@ compileflow:
     outbox:
       retention: 0ms
     artifact:
-      mode: DATABASE
+      mode: SOURCE

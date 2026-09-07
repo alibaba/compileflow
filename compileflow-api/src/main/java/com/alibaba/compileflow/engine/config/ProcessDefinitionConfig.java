@@ -49,15 +49,6 @@ public final class ProcessDefinitionConfig {
     }
 
     /**
-     * Creates a builder initialized from this immutable snapshot.
-     *
-     * @return mutable builder carrying all current values
-     */
-    public Builder toBuilder() {
-        return new Builder().maxBytes(maxBytes);
-    }
-
-    /**
      * Returns the maximum UTF-8 or binary size accepted for one process definition.
      *
      * @return positive maximum definition size in bytes
@@ -66,7 +57,7 @@ public final class ProcessDefinitionConfig {
         return maxBytes;
     }
 
-    ValidationResult validate() {
+    private ValidationResult validate() {
         ValidationResult result = ValidationResult.success();
         if (maxBytes <= 0 || maxBytes > MAX_BYTES) {
             result = result.addError("definition.maxBytes must be between 1 and " + MAX_BYTES);

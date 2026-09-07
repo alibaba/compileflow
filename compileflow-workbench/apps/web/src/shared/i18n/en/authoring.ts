@@ -5,7 +5,7 @@ const enAuthoring = {
 
   'code.copySuccess': 'Copied to clipboard',
 
-  'code.copyFailed': 'Could not copy',
+  'code.copyFailed': 'Copy failed',
 
   'code.downloadSuccess': 'Download started',
 
@@ -14,7 +14,7 @@ const enAuthoring = {
   'exec.title': 'Server execution',
 
   'exec.desc':
-    'Runs this draft on the server. Actions may call external systems and cause irreversible side effects—use safe parameters in an isolated environment.',
+    'Runs the current draft on the server. Actions may call external systems and make irreversible changes. Use safe parameters in an isolated environment.',
 
   'exec.params': 'Parameters (JSON)',
 
@@ -32,15 +32,15 @@ const enAuthoring = {
 
   'exec.error': 'Execution error: {{error}}',
 
-  'exec.paramError': 'Invalid JSON—check the parameter format.',
+  'exec.paramError': 'Enter valid JSON parameters.',
 
-  'exec.noCode': 'Nothing to execute',
+  'exec.noCode': 'No flow to run',
 
   // Theme
 
   'workspace.title': 'Build',
 
-  'workspace.subtitle': 'Author flows in the designer, start from templates, and iterate fast.',
+  'workspace.subtitle': 'Design flows from scratch or start with a template.',
 
   'workspace.newBpmn': 'New BPMN',
 
@@ -50,19 +50,19 @@ const enAuthoring = {
 
   'workspace.newBpmnAction': 'New BPMN flow',
 
-  'workspace.newBpmnDesc': 'Start on a BPMN modeling canvas.',
+  'workspace.newBpmnDesc': 'Create a BPMN flow on a blank canvas.',
 
   'workspace.newTbbpmAction': 'New TBBPM flow',
 
-  'workspace.newTbbpmDesc': 'High-throughput, compiled in-process orchestration.',
+  'workspace.newTbbpmDesc': 'Create a TBBPM flow for compiled, in-process execution.',
 
   'workspace.browseExamplesAction': 'Browse examples',
 
-  'workspace.browseExamplesDesc': 'Learn patterns from curated examples.',
+  'workspace.browseExamplesDesc': 'Explore common flow patterns and configurations.',
 
   'workspace.apiIntegration': 'API',
 
-  'workspace.apiIntegrationDesc': 'Wire CompileFlow into your services.',
+  'workspace.apiIntegrationDesc': 'Integrate CompileFlow with your application.',
 
   'workspace.exportAll': 'Export all',
 
@@ -70,7 +70,7 @@ const enAuthoring = {
 
   'workspace.myProcesses': 'My flows',
 
-  'workspace.availableTemplates': 'Templates',
+  'workspace.availableTemplates': 'Available templates',
 
   'workspace.thisMonth': 'This month',
 
@@ -88,16 +88,15 @@ const enAuthoring = {
 
   'workspace.use': 'Use',
 
-  'workspace.importFileLabel': 'Choose a Workbench JSON file to import',
+  'workspace.importFileLabel': 'Select a Workbench JSON file',
 
   'workspace.template.tpl-1.name': 'BPMN Starter',
 
-  'workspace.template.tpl-1.description': 'Minimal executable start-to-end flow',
+  'workspace.template.tpl-1.description': 'A minimal executable flow from start to end',
 
   'workspace.template.tpl-2.name': 'TBBPM Greeting',
 
-  'workspace.template.tpl-2.description':
-    'Self-contained Java inline action with input and output mapping',
+  'workspace.template.tpl-2.description': 'An inline Java action with input and output mappings',
 
   'workspace.template.tpl-3.name': 'Blank BPMN',
 
@@ -105,7 +104,7 @@ const enAuthoring = {
 
   'workspace.template.tpl-4.name': 'TBBPM Starter',
 
-  'workspace.template.tpl-4.description': 'Minimal executable TBBPM flow',
+  'workspace.template.tpl-4.description': 'A minimal executable TBBPM flow',
 
   // Operate Home Page
 
@@ -115,7 +114,7 @@ const enAuthoring = {
 
   'workspace.importSuccess': 'Imported {{count}} flows',
 
-  'workspace.importFailed': 'Import failed—check the file format.',
+  'workspace.importFailed': 'Import failed. Check the file format.',
 
   // Process management tooltip
 
@@ -133,7 +132,7 @@ const enAuthoring = {
 
   'designer.header.workspace': 'Build',
 
-  'designer.header.editName': 'Rename',
+  'designer.header.editName': 'Rename flow',
 
   'designer.header.unsavedChanges': 'Unsaved changes',
 
@@ -147,11 +146,11 @@ const enAuthoring = {
 
   'designer.status.local': 'Local',
 
-  'designer.xmlEditor.dirtyHint': 'Edits are local until you click Apply to update the canvas.',
+  'designer.xmlEditor.dirtyHint': 'Click Apply to update the canvas with your XML changes.',
 
   'designer.xmlEditor.parseError': 'XML parse error',
 
-  'designer.xmlEditor.applyFailed': 'Could not apply XML',
+  'designer.xmlEditor.applyFailed': 'XML could not be applied',
 
   'designer.xmlEditor.applySuccess': 'XML applied to canvas',
 
@@ -169,19 +168,18 @@ const enAuthoring = {
   'designer.xmlEditor.editorRegion': 'XML code editor',
 
   'designer.debug.simulationBanner':
-    'Browser preview only: conditions use a fail-closed safe Java subset; actions are mocked, and full javac, retry, wait, subprocess, and concurrency semantics require Execution backend.',
+    'Browser simulation supports a restricted set of Java conditions and uses simulated action results. Use server execution to verify retries, waits, subprocesses, and concurrent branches.',
 
   'designer.debug.modeSimulation': 'Simulation',
 
-  'designer.debug.modeEngine': 'Execution backend',
+  'designer.debug.modeEngine': 'Server execution',
 
-  'designer.debug.engineBanner':
-    'Uses the development mock gateway or published Workbench Server execution.',
+  'designer.debug.engineBanner': 'Runs the draft through the configured Workbench Server.',
 
   'designer.debug.engineUnavailable':
-    'The execution backend is unavailable. Check the local development process or same-origin gateway route.',
+    'Server execution is unavailable. Check the Workbench Server connection and try again.',
 
-  'designer.debug.engineTitle': 'Engine execution',
+  'designer.debug.engineTitle': 'Server execution',
 
   'designer.debug.engineOnline': 'Online',
 
@@ -194,7 +192,7 @@ const enAuthoring = {
   'designer.debug.engineExecutionWarningTitle': 'Server execution',
 
   'designer.debug.engineExecutionWarning':
-    'This runs the current draft on the Workbench Server. Scripts, Java actions, and Spring beans may run with server privileges and cause external side effects.',
+    'This runs the current draft on the Workbench Server. Scripts, Java actions, and Spring Beans can access server resources and external systems.',
 
   'designer.debug.engineReset': 'Clear log',
 
@@ -202,23 +200,23 @@ const enAuthoring = {
 
   'designer.debug.engineParams': 'Input parameters (JSON)',
 
-  'designer.debug.engineMissingCode': 'Process code is required for engine execution',
+  'designer.debug.engineMissingCode': 'Enter a process code before running the flow',
 
-  'designer.debug.engineInvalidParams': 'Invalid JSON parameters',
+  'designer.debug.engineInvalidParams': 'Enter valid JSON parameters',
 
-  'designer.debug.engineStart': 'Starting engine execution: {{code}}',
+  'designer.debug.engineStart': 'Running {{code}} on the server',
 
-  'designer.debug.engineSuccess': 'Engine execution completed',
+  'designer.debug.engineSuccess': 'Server execution completed',
 
-  'designer.debug.engineFailed': 'Engine execution failed',
+  'designer.debug.engineFailed': 'Server execution failed',
 
   'designer.save.workspaceSuccess': 'Saved',
 
-  'designer.save.operateSuccess': 'Saved to operations flow library',
+  'designer.save.operateSuccess': 'Saved to flow management',
 
   'designer.save.failed': 'Save failed',
 
-  'designer.delete.operateSuccess': 'Operations flow deleted',
+  'designer.delete.operateSuccess': 'Managed flow deleted',
 
   'designer.autoSave.failed': 'Auto-save failed',
 
@@ -266,7 +264,7 @@ const enAuthoring = {
 
   'designer.toolbar.loadExample': 'Load example',
 
-  'designer.toolbar.loadExampleHint': 'Load order-processing example template',
+  'designer.toolbar.loadExampleHint': 'Load an example flow',
 
   'designer.toolbar.loadExampleSuccess': 'Example flow loaded',
 
@@ -292,7 +290,7 @@ const enAuthoring = {
 
   'designer.layout.emptySub': 'Click an element on the canvas to view its properties',
 
-  'designer.layout.emptyHint': 'Use toolbar Validate and Debug to inspect the flow',
+  'designer.layout.emptyHint': 'Use Validate and Debug in the toolbar to check the flow',
 
   'designer.statusBar.zoomOut': 'Zoom out',
 
@@ -332,11 +330,11 @@ const enAuthoring = {
 
   'designer.palette.searchPlaceholder': 'Search nodes…',
 
-  'designer.palette.dragToAdd': 'Drag to add node: {{label}}',
+  'designer.palette.addNode': 'Click or drag to add node: {{label}}',
 
   'designer.palette.empty': 'No matching nodes',
 
-  'designer.palette.emptyHint': 'Try other keywords, e.g. "start", "gateway"',
+  'designer.palette.emptyHint': 'Try another keyword, such as "start" or "gateway"',
 
   'designer.palette.tbbpmTitle': 'Node toolbox',
 
@@ -364,7 +362,7 @@ const enAuthoring = {
 
   'designer.header.help': 'Help documentation',
 
-  'designer.header.menu.exportGroup': 'Import / Export',
+  'designer.header.menu.exportGroup': 'Import and export',
 
   'designer.header.menu.moreActions': 'More actions',
 
@@ -386,7 +384,7 @@ const enAuthoring = {
 
   'designer.header.menu.deleteProcess': 'Delete flow',
 
-  'designer.header.deleteConfirmTitle': 'Confirm delete',
+  'designer.header.deleteConfirmTitle': 'Delete flow?',
 
   'designer.header.deleteConfirmContent': 'Delete flow "{{name}}"? This cannot be undone.',
 
@@ -427,7 +425,7 @@ const enAuthoring = {
 
   'designer.debug.sim.startTooltip': 'Start execution',
 
-  'designer.debug.sim.stepTooltip': 'Step next',
+  'designer.debug.sim.stepTooltip': 'Run next step',
 
   'designer.debug.sim.continueTooltip': 'Continue execution',
 
@@ -435,7 +433,7 @@ const enAuthoring = {
 
   'designer.debug.sim.initialVars': 'Initial variables (JSON)',
 
-  'designer.debug.sim.currentNode': 'Current node:',
+  'designer.debug.sim.currentNode': 'Current node',
 
   'designer.debug.sim.breakpoints': 'Breakpoints',
 
@@ -457,13 +455,13 @@ const enAuthoring = {
 
   'designer.debug.state.error': 'Error',
 
-  'designer.debug.event.nodeEnter': 'Node enter',
+  'designer.debug.event.nodeEnter': 'Entered node',
 
-  'designer.debug.event.nodeExit': 'Node exit',
+  'designer.debug.event.nodeExit': 'Exited node',
 
-  'designer.debug.event.edgeTraverse': 'Edge traverse',
+  'designer.debug.event.edgeTraverse': 'Traversed connection',
 
-  'designer.debug.event.variableChange': 'Variable change',
+  'designer.debug.event.variableChange': 'Variable changed',
 
   'designer.debug.event.breakpointHit': 'Breakpoint hit',
 
@@ -507,9 +505,9 @@ const enAuthoring = {
 
   'designer.props.nodeType': 'Node type',
 
-  'designer.props.documentation': 'Documentation',
+  'designer.props.documentation': 'Description',
 
-  'designer.props.documentationPlaceholder': 'Enter node description (optional)',
+  'designer.props.documentationPlaceholder': 'Describe this node (optional)',
 
   'designer.palette.tbbpm.cat.flow': 'Process control',
 
@@ -567,7 +565,7 @@ const enAuthoring = {
 
   'designer.palette.tbbpm.node.subBpm': 'Embedded BPM',
 
-  'designer.palette.tbbpm.node.subBpmDesc': 'Define a nested BPM scope',
+  'designer.palette.tbbpm.node.subBpmDesc': 'Group nodes in an embedded BPM',
 
   'designer.palette.tbbpm.node.bpmCall': 'BPM call',
 
@@ -635,11 +633,11 @@ const enAuthoring = {
 
   'designer.palette.bpmn.node.callActivity': 'Call activity',
 
-  'designer.palette.bpmn.node.callActivityDesc': 'Call external flow',
+  'designer.palette.bpmn.node.callActivityDesc': 'Call another process',
 
   'designer.palette.bpmn.node.subProcess': 'Embedded subprocess',
 
-  'designer.palette.bpmn.node.subProcessDesc': 'Structured inline process scope',
+  'designer.palette.bpmn.node.subProcessDesc': 'Group activities in an embedded subprocess',
 
   'designer.props.common.add': 'Add',
 
@@ -657,10 +655,10 @@ const enAuthoring = {
 
   'designer.props.common.actionTypeScript': 'Inline script',
 
-  'designer.props.common.execution': 'Durable execution',
+  'designer.props.common.execution': 'Durable action type',
 
   'designer.props.common.executionHelp':
-    'Replayable actions may run again after recovery; effect actions cross a durable commit boundary before dispatch.',
+    'Replayable actions may run again during recovery. Effect actions are recorded before they are dispatched.',
 
   'designer.props.common.executionReplayable': 'Replayable (default)',
 
@@ -694,7 +692,7 @@ const enAuthoring = {
 
   'designer.props.common.className': 'Class name',
 
-  'designer.props.common.classNameHelp': 'Fully qualified Java class name',
+  'designer.props.common.classNameHelp': 'Fully qualified Java class name, including its package',
 
   'designer.props.common.methodName': 'Method name',
 
@@ -718,7 +716,7 @@ const enAuthoring = {
   'designer.props.common.invocationTimeout': 'Invocation timeout',
 
   'designer.props.common.invocationTimeoutHelp':
-    'Maximum time for the entire invocation, including all attempts and retry delays',
+    'Maximum time for the complete call, including retries and backoff delays',
 
   'designer.props.common.attemptTimeout': 'Attempt timeout',
 
@@ -745,7 +743,7 @@ const enAuthoring = {
   'designer.props.common.jitter': 'Retry jitter',
 
   'designer.props.common.jitterHelp':
-    'Full jitter spreads retries from zero through the computed backoff and is the production default',
+    'Full jitter spreads retries across the calculated backoff interval and is enabled by default',
 
   'designer.props.common.jitterFull': 'Full jitter (recommended)',
 
@@ -765,9 +763,9 @@ const enAuthoring = {
     'Existing outgoing flow used when no condition matches',
 
   'designer.props.common.gatewayJoinNoConfig':
-    'Join gateways are pure synchronization points and have no routing properties.',
+    'Join gateways synchronize incoming branches and require no routing configuration.',
 
-  'designer.props.common.exprBuilderTooltip': 'Visual expression builder',
+  'designer.props.common.exprBuilderTooltip': 'Build an expression visually',
 
   'designer.props.section.basic': 'Basic',
 
@@ -789,7 +787,7 @@ const enAuthoring = {
 
   'designer.props.section.varParams': 'Variable parameters',
 
-  'designer.props.section.varTransfer': 'Variable mapping',
+  'designer.props.section.varTransfer': 'Variable mappings',
 
   'designer.props.col.seq': '#',
 
@@ -811,21 +809,21 @@ const enAuthoring = {
 
   'designer.props.col.description': 'Description',
 
-  'designer.props.table.emptyParams': 'No parameters — click Add',
+  'designer.props.table.emptyParams': 'No parameters. Click Add to create one.',
 
   'designer.props.table.emptySubVars': 'No variable mapping configured',
 
-  'designer.props.alert.noOutgoingEdges': 'No outgoing edges',
+  'designer.props.alert.noOutgoingEdges': 'No outgoing connections',
 
   'designer.props.alert.noOutgoingEdgesExclusiveDesc':
-    'Connect this exclusive gateway to other nodes before configuring conditions',
+    'Connect this exclusive gateway to another node before adding conditions',
 
   'designer.props.alert.noOutgoingEdgesGatewayDesc':
-    'Connect this gateway to other nodes before configuring conditions',
+    'Connect this gateway to another node before adding conditions',
 
   'designer.props.node.note.title': 'Note',
 
-  'designer.props.node.note.desc': 'Design-time annotation; not executed at runtime',
+  'designer.props.node.note.desc': 'Adds context to the diagram and does not affect execution',
 
   'designer.props.node.note.content': 'Note content',
 
@@ -836,7 +834,7 @@ const enAuthoring = {
   'designer.props.node.parallel.desc':
     'Fork activates all outgoing edges; join waits for all incoming edges',
 
-  'designer.props.node.parallel.noConfig': 'No extra configuration needed',
+  'designer.props.node.parallel.noConfig': 'No additional configuration',
 
   'designer.props.node.parallel.noConfigDesc':
     'All outgoing edges are activated in parallel. Join waits for all branches.',
@@ -867,18 +865,18 @@ const enAuthoring = {
 
   'designer.props.node.autoTask.title': 'Auto task',
 
-  'designer.props.node.autoTask.desc': 'Invokes an application-owned Java method or Spring Bean',
+  'designer.props.node.autoTask.desc': 'Calls a Java method or Spring Bean from your application',
 
   'designer.props.node.subBpm.title': 'Embedded BPM',
 
-  'designer.props.node.subBpm.desc': 'A nested scope defined inside this BPM',
+  'designer.props.node.subBpm.desc': 'Groups part of this BPM into an embedded process',
 
   'designer.props.node.subBpm.boundaryHint':
     'An embedded BPM must contain exactly one start and one end node.',
 
   'designer.props.node.subBpm.children': 'Body nodes',
 
-  'designer.props.node.subBpm.childrenHelp': 'Choose the nodes owned by this embedded BPM.',
+  'designer.props.node.subBpm.childrenHelp': 'Select the nodes inside this embedded BPM.',
 
   'designer.props.node.bpmCall.title': 'BPM call',
 
@@ -893,7 +891,7 @@ const enAuthoring = {
   'designer.props.node.waitEventTask.title': 'Wait event task',
 
   'designer.props.node.waitTask.desc':
-    'Start a new execution from this trigger-entry ID when externally triggered',
+    'Wait for an external trigger, then resume from this entry point',
 
   'designer.props.node.waitTask.eventName': 'Event name',
 
@@ -920,17 +918,16 @@ const enAuthoring = {
 
   'designer.props.node.scriptTbbpm.title': 'Script task',
 
-  'designer.props.node.scriptTbbpm.desc':
-    'Execute definition-owned inline code; QLExpress and trusted in-process Java 17 are built in',
+  'designer.props.node.scriptTbbpm.desc': 'Run inline QLExpress or trusted in-process Java 17 code',
 
   'designer.props.node.loop.whileTitle': 'While loop',
 
-  'designer.props.node.loop.whileDesc': 'Repeat a local body while a Java condition is true',
+  'designer.props.node.loop.whileDesc': 'Repeat the loop body while a Java condition is true',
 
   'designer.props.node.loop.forEachTitle': 'Foreach loop',
 
   'designer.props.node.loop.forEachDesc':
-    'Traverse a collection sequentially or as an ordered Durable parallel loop',
+    'Process a collection sequentially or with ordered Durable parallel execution',
 
   'designer.props.node.loop.execution': 'Execution',
 
@@ -950,7 +947,7 @@ const enAuthoring = {
   'designer.props.node.loop.collection': 'Collection variable',
 
   'designer.props.node.loop.collectionHelp':
-    'Declared process variable or enclosing loop variable containing the input collection',
+    'A declared process variable or outer-loop variable that contains the collection',
 
   'designer.props.node.loop.item': 'Element variable',
 
@@ -972,11 +969,11 @@ const enAuthoring = {
     'Declared List process variable that receives results in input order; configure both output fields or neither',
 
   'designer.props.node.loop.outputSourceHelp':
-    'Declared inner process variable reset to its default before each iteration, then appended to the output collection',
+    'An inner process variable that resets before each iteration and is appended to the output collection afterward',
 
   'designer.props.node.loop.bodyNodes': 'Body nodes',
 
-  'designer.props.node.loop.bodyNodesHelp': 'Nodes owned directly by this loop',
+  'designer.props.node.loop.bodyNodesHelp': 'Select the nodes directly inside this loop',
 
   'designer.props.node.loop.bodyNodesPlaceholder': 'Select loop body nodes',
 
@@ -1005,9 +1002,9 @@ const enAuthoring = {
     'Select exactly one start event, one end event, and all nodes owned directly by this subprocess',
 
   'designer.props.subProcess.boundaryHint':
-    'An embedded subprocess is an isolated graph container. Its sequence flows cannot cross the container boundary.',
+    'Sequence flows must remain within the embedded subprocess boundary.',
 
-  'designer.props.node.exclusiveGateway.title': 'XOR gateway (exclusive)',
+  'designer.props.node.exclusiveGateway.title': 'Exclusive gateway (XOR)',
 
   'designer.props.node.exclusiveGateway.desc':
     'Execute one branch when its edge condition is true. Configure conditions on edges.',
@@ -1029,11 +1026,11 @@ const enAuthoring = {
 
   'designer.validation.notRun': 'Not validated',
 
-  'designer.validation.notRunDesc': 'Click Validate in the toolbar to start',
+  'designer.validation.notRunDesc': 'Select Validate in the toolbar to check the flow',
 
   'designer.validation.passed': 'Validation passed',
 
-  'designer.validation.passedDesc': 'No issues found in the flow ✓',
+  'designer.validation.passedDesc': 'No issues found',
 
   'designer.validation.errors': 'Errors',
 
@@ -1041,7 +1038,7 @@ const enAuthoring = {
 
   'designer.validation.infos': 'Info',
 
-  'designer.validation.suggestion': 'Suggestion:',
+  'designer.validation.suggestion': 'Suggested fix:',
 
   'designer.validation.involvedNodes': 'Affected nodes:',
 
@@ -1067,10 +1064,9 @@ const enAuthoring = {
 
   'designer.validation.toast.passed': 'Validation passed — no issues found',
 
-  'designer.validation.toast.errors': 'Validation found {{count}} error(s) — see panel for details',
+  'designer.validation.toast.errors': '{{count}} error(s) found. Open Validation for details.',
 
-  'designer.validation.toast.warnings':
-    'Validation found {{count}} warning(s) — see panel for details',
+  'designer.validation.toast.warnings': '{{count}} warning(s) found. Open Validation for details.',
 
   'designer.validation.property.start.mustHaveOutgoing':
     'Start node must have at least one outgoing edge',
@@ -1088,53 +1084,51 @@ const enAuthoring = {
     'Gateway must be a split (1 incoming, 2+ outgoing) or a join (2+ incoming, 1 outgoing)',
 
   'designer.validation.property.gateway.joinConditionUnsupported':
-    'Join gateway outgoing transitions cannot declare conditions',
+    'Outgoing connections from a join gateway cannot have conditions',
 
   'designer.validation.property.gateway.parallelConditionUnsupported':
-    'Parallel gateway outgoing branches cannot declare conditions',
+    'Outgoing connections from a parallel gateway cannot have conditions',
 
   'designer.validation.property.gateway.parallelJoinConditionUnsupported':
-    'Parallel join incoming transitions cannot declare conditions',
+    'Incoming connections to a parallel join cannot have conditions',
 
   'designer.validation.property.gateway.multipleDefaultBranches':
-    'Inclusive gateway may declare at most one unguarded default branch',
+    'An inclusive gateway can have at most one unconditional default branch',
 
   'designer.validation.property.gateway.nestedConcurrencyUnsupported':
     'Parallel and inclusive splits are not supported inside loops',
 
   'designer.validation.property.node.requiresExplicitGateway':
-    'A non-gateway node cannot branch; add an explicit gateway',
+    'Only gateways can create branches. Add a gateway before branching.',
 
   'designer.validation.property.node.conditionRequiresGateway':
     'Conditions are supported only on outgoing transitions of an exclusive or inclusive split gateway',
 
   'designer.validation.property.node.inapplicableProperty':
-    'Property "{{property}}" does not belong to TBBPM node type "{{nodeType}}"',
+    'Property "{{property}}" is not valid for TBBPM node type "{{nodeType}}"',
 
   'designer.validation.property.condition.directMutation':
     'Conditions must be side-effect free; direct mutation "{{operator}}" is not allowed',
 
   'designer.validation.property.mapping.inapplicableDefault':
-    'defaultValue is valid only for an input mapping without source (conflict: {{reason}})',
+    'defaultValue can be used only for an input mapping without source ({{reason}})',
 
-  'designer.validation.property.action.missingType': 'Action type is required',
+  'designer.validation.property.action.missingType': 'Select an action type',
 
-  'designer.validation.property.action.missingClass': 'Action Java class is required',
+  'designer.validation.property.action.missingClass': 'Enter the Java class for this action',
 
-  'designer.validation.property.action.invalidClass':
-    'Action Java class must use a valid canonical name',
+  'designer.validation.property.action.invalidClass': 'Enter a fully qualified Java class name',
 
-  'designer.validation.property.action.invalidMethod':
-    'Action method must be a valid Java identifier',
+  'designer.validation.property.action.invalidMethod': 'Enter a valid Java method name',
 
-  'designer.validation.property.action.missingBean': 'Action Spring bean name is required',
+  'designer.validation.property.action.missingBean': 'Enter the Spring Bean name for this action',
 
   'designer.validation.property.action.invalidBean':
     'Action Spring bean name must not contain surrounding whitespace or control characters',
 
-  'designer.validation.property.action.missingScriptLanguage': 'Script language is required',
+  'designer.validation.property.action.missingScriptLanguage': 'Select a script language',
 
-  'designer.validation.property.action.missingScriptSource': 'Script source is required',
+  'designer.validation.property.action.missingScriptSource': 'Enter the script',
 
   'designer.validation.property.action.unsupportedType':
     'Action type "{{actionType}}" is not supported',
@@ -1146,56 +1140,56 @@ const enAuthoring = {
     'autoTask action type "{{actionType}}" is not supported; use java or spring-bean',
 
   'designer.validation.property.invocationPolicy.invalid':
-    'Invalid InvocationPolicy configuration: {{message}}',
+    'Invocation policy is invalid: {{message}}',
 
   'designer.validation.property.effectPolicy.invalid':
-    'Invalid effect policy configuration: {{message}}',
+    'Effect recovery policy is invalid: {{message}}',
 
-  'designer.validation.property.waitEventTask.missingEvent': 'Wait event task must configure event',
+  'designer.validation.property.waitEventTask.missingEvent': 'Enter an event name for this task',
 
   'designer.validation.property.timerTask.schedule':
-    'Timer task must configure exactly one of duration, durationExpression, or wakeAtExpression',
+    'Set exactly one timer value: duration, durationExpression, or wakeAtExpression',
 
-  'designer.validation.property.bpmCall.missingCode': 'BPM call must configure code',
+  'designer.validation.property.bpmCall.missingCode': 'Enter the BPM code to call',
 
   'designer.validation.property.processCall.targetRequired':
-    'A process call must declare a classpath location or exact version',
+    'Select a classpath location or an exact version for the called process',
 
   'designer.validation.property.processCall.targetConflict':
-    'A process call cannot declare both classpath and version',
+    'Choose either classpath or version for the called process, not both',
 
   'designer.validation.property.processCall.invalidReference':
-    'Called-process code, classpath, or version is invalid',
+    'The called process has an invalid code, classpath, or version',
 
-  'designer.validation.property.container.unknownParent':
-    'Parent container "{{parentId}}" does not exist',
+  'designer.validation.property.container.unknownParent': 'Parent "{{parentId}}" does not exist',
 
   'designer.validation.property.container.invalidParent':
-    'Parent "{{parentId}}" is not a TBBPM container',
+    'Parent "{{parentId}}" cannot contain TBBPM nodes',
 
   'designer.validation.property.container.invalidChildType':
-    'Node type {{nodeType}} is not allowed in this container',
+    'Node type {{nodeType}} is not allowed here',
 
-  'designer.validation.property.container.parentCycle': 'Container ownership contains a cycle',
+  'designer.validation.property.container.parentCycle':
+    'The parent-child relationship contains a cycle',
 
   'designer.validation.property.container.crossBoundaryTransition':
-    'A transition cannot cross a container boundary',
+    'A connection cannot cross the container boundary',
 
   'designer.validation.property.loop.endHasOutgoing':
     'A loop body end node cannot have outgoing transitions',
 
-  'designer.validation.property.loop.missingBody': 'A loop must contain a body',
+  'designer.validation.property.loop.missingBody': 'Add at least one node to the loop body',
 
-  'designer.validation.property.loop.missingCondition': 'A while loop must declare condition',
+  'designer.validation.property.loop.missingCondition': 'Enter a condition for the while loop',
 
   'designer.validation.property.loop.invalidMaxIterations':
     'maxIterations must be an integer from 1 to 2,147,483,647',
 
-  'designer.validation.property.loop.missingCollection': 'A foreach loop must declare collection',
+  'designer.validation.property.loop.missingCollection': 'Select a collection for the foreach loop',
 
   'designer.validation.property.loop.unknownCollection': 'collection "{{name}}" is not declared',
 
-  'designer.validation.property.loop.missingItem': 'A foreach loop must declare item',
+  'designer.validation.property.loop.missingItem': 'Enter an element variable for the foreach loop',
 
   'designer.validation.property.loop.invalidLocalVariable':
     '{{property}} "{{value}}" is not a valid variable name',
@@ -1208,13 +1202,13 @@ const enAuthoring = {
   'designer.validation.property.loop.invalidItemType': 'itemType must be a valid Java type name',
 
   'designer.validation.property.loop.unknownOutputReference':
-    'Output reference "{{name}}" is not declared',
+    'Output variable "{{name}}" is not declared',
 
   'designer.validation.property.loop.outputReferenceCollision':
-    'Output target and source must differ',
+    'Output target and output source must be different',
 
   'designer.validation.property.loop.outputSourceNotInner':
-    'The output source must be an inner process variable',
+    'Select an internal process variable as the output source',
 
   'designer.validation.property.loop.parallelBreakUnsupported':
     'Parallel foreach loops do not support break',
@@ -1222,16 +1216,14 @@ const enAuthoring = {
   'designer.validation.property.loop.rootOnlyChildType':
     'break/continue must be inside a loop body',
 
-  'designer.validation.property.conn.missingSource':
-    'Connection source node "{{nodeId}}" does not exist',
+  'designer.validation.property.conn.missingSource': 'Source node "{{nodeId}}" does not exist',
 
-  'designer.validation.property.conn.missingTarget':
-    'Connection target node "{{nodeId}}" does not exist',
+  'designer.validation.property.conn.missingTarget': 'Target node "{{nodeId}}" does not exist',
 
   'designer.validation.property.conn.selfLoop': 'A node cannot connect to itself',
 
   'designer.validation.property.note.transitionNotAllowed':
-    'Note nodes cannot participate in execution transitions',
+    'Note nodes cannot be connected to executable nodes',
 
   'designer.validation.property.bpmn.start.mustHaveOutgoing':
     'Start event must have an outgoing sequence flow',
@@ -1246,16 +1238,15 @@ const enAuthoring = {
     'End event should not have outgoing flows',
 
   'designer.validation.property.bpmn.serviceTask.missingAction':
-    'Service task must configure a CompileFlow action',
+    'Configure a CompileFlow action for the service task',
 
   'designer.validation.property.bpmn.serviceTask.unsupportedActionType':
     'Service task only supports Java Method and Spring Bean actions',
 
   'designer.validation.property.bpmn.scriptTask.missingScriptFormat':
-    'Script task must configure scriptFormat',
+    'Select a scriptFormat for the script task',
 
-  'designer.validation.property.bpmn.scriptTask.missingScript':
-    'Script task should configure script body',
+  'designer.validation.property.bpmn.scriptTask.missingScript': 'Enter the script task body',
 
   'designer.validation.property.bpmn.gateway.minTwoOutgoing':
     'Gateway should have at least 2 outgoing branches',
@@ -1264,7 +1255,7 @@ const enAuthoring = {
     'Gateway must be a split (1 incoming, 2+ outgoing) or a join (2+ incoming, 1 outgoing)',
 
   'designer.validation.property.bpmn.node.inapplicableProperty':
-    'Property "{{property}}" does not belong to BPMN node type "{{nodeType}}"',
+    'Property "{{property}}" is not valid for BPMN node type "{{nodeType}}"',
 
   'designer.validation.property.bpmn.gateway.defaultUnsupported':
     'Parallel gateways cannot declare a default flow',
@@ -1297,18 +1288,18 @@ const enAuthoring = {
     'Exclusive gateway outgoing conditions must be unique',
 
   'designer.validation.property.bpmn.node.requiresExplicitGateway':
-    'A non-gateway node cannot branch; add an explicit gateway',
+    'Only gateways can create branches. Add a gateway before branching.',
 
   'designer.validation.property.bpmn.node.conditionRequiresGateway':
     'Conditions are supported only on outgoing flows of an exclusive or inclusive split gateway',
 
   'designer.validation.property.bpmn.receiveTask.missingMessageRef':
-    'Receive task must declare messageRef',
+    'Select a BPMN message for the receive task',
 
   'designer.validation.property.bpmn.receiveTask.unknownMessageRef':
-    'Receive task messageRef "{{messageRef}}" must resolve to exactly one BPMN message',
+    'messageRef "{{messageRef}}" must identify exactly one BPMN message',
 
-  'designer.validation.property.bpmn.message.missingId': 'BPMN message ID is required',
+  'designer.validation.property.bpmn.message.missingId': 'Enter a BPMN message ID',
 
   'designer.validation.property.bpmn.message.duplicateId':
     'BPMN message ID "{{messageId}}" is duplicated',
@@ -1317,10 +1308,10 @@ const enAuthoring = {
     'BPMN message ID "{{messageId}}" conflicts with a node or sequence-flow ID',
 
   'designer.validation.property.bpmn.message.missingName':
-    'BPMN message "{{messageId}}" must declare a runtime event name',
+    'Enter a runtime event name for BPMN message "{{messageId}}"',
 
   'designer.validation.property.bpmn.callActivity.missingCalledElement':
-    'Call activity must configure calledElement',
+    'Enter calledElement for the call activity',
 
   'designer.validation.property.bpmn.subProcess.unknownParent':
     'Node references unknown subprocess parent "{{parentId}}"',
@@ -1343,7 +1334,7 @@ const enAuthoring = {
   'designer.validation.property.bpmn.loop.unsupportedNode':
     'Loop characteristics are supported only on synchronous service, script, call, and embedded subprocess activities',
 
-  'designer.validation.property.bpmn.loop.invalid': 'Invalid loop configuration: {{message}}',
+  'designer.validation.property.bpmn.loop.invalid': 'Loop configuration is invalid: {{message}}',
 
   'designer.validation.property.bpmn.loop.unknownCollection':
     'Multi-instance collection "{{name}}" is not a declared process variable',
@@ -1361,7 +1352,7 @@ const enAuthoring = {
     'InvocationPolicy is supported only on service and script tasks',
 
   'designer.validation.property.bpmn.invocationPolicy.invalid':
-    'Invalid InvocationPolicy configuration: {{message}}',
+    'Invocation policy is invalid: {{message}}',
 
   'designer.validation.property.bpmn.mapping.incomplete':
     'Variable mapping is missing a required field',
@@ -1418,7 +1409,7 @@ const enAuthoring = {
   'designer.validation.property.process.variable.invalidDirection':
     'Process variable "{{name}}" must use param, return, or inner direction',
 
-  'designer.validation.summary.passed': '✓ Process validation passed',
+  'designer.validation.summary.passed': '✓ Validation passed',
 
   'designer.validation.summary.failed': '✗ {{details}}',
 
@@ -1428,21 +1419,20 @@ const enAuthoring = {
 
   'designer.validation.summary.infos': '{{count}} info items',
 
-  'designer.validation.issue.multiStart.missing': 'Process has no start node',
+  'designer.validation.issue.multiStart.missing': 'Flow has no start node',
 
-  'designer.validation.issue.multiStart.missingSuggestion':
-    'Add a Start node as the flow entry point',
+  'designer.validation.issue.multiStart.missingSuggestion': 'Add a Start node',
 
-  'designer.validation.issue.multiStart.multiple': 'Process has {{count}} start nodes',
+  'designer.validation.issue.multiStart.multiple': 'Flow has {{count}} start nodes',
 
   'designer.validation.issue.multiStart.multipleSuggestion':
     'A flow should usually have only one start node',
 
-  'designer.validation.issue.noEnd.message': 'Process has no end node',
+  'designer.validation.issue.noEnd.message': 'Flow has no end node',
 
   'designer.validation.issue.noEnd.suggestion': 'Add at least one End node',
 
-  'designer.validation.issue.multiEnd.message': 'Process has {{count}} end nodes',
+  'designer.validation.issue.multiEnd.message': 'Flow has {{count}} end nodes',
 
   'designer.validation.issue.multiEnd.suggestion': 'Keep exactly one End node',
 
@@ -1451,7 +1441,7 @@ const enAuthoring = {
   'designer.validation.issue.cycle.suggestion':
     'Remove a connection in the cycle or add a termination condition',
 
-  'designer.validation.issue.isolated.message': '{{count}} isolated node(s) with no connections',
+  'designer.validation.issue.isolated.message': '{{count}} node(s) have no connections',
 
   'designer.validation.issue.isolated.suggestion': 'Connect these nodes to the flow or delete them',
 
@@ -1461,21 +1451,21 @@ const enAuthoring = {
     'Add paths from the start or remove these nodes',
 
   'designer.validation.issue.orphanEdge.message':
-    '{{count}} orphan edge(s) with missing source or target',
+    '{{count}} connection(s) have a missing source or target node',
 
   'designer.validation.issue.orphanEdge.suggestion': 'Delete these orphan edges',
 
   'designer.validation.issue.deadlock.ambiguous':
-    'Parallel gateway "{{name}}" has ambiguous wiring (in={{inDegree}}, out={{outDegree}})',
+    'Parallel gateway "{{name}}" has an invalid connection pattern (in={{inDegree}}, out={{outDegree}})',
 
   'designer.validation.issue.deadlock.ambiguousSuggestion':
-    'Fork gateways need 1 input and multiple outputs; Join gateways need multiple inputs and 1 output',
+    'A split needs one incoming and multiple outgoing connections; a join needs multiple incoming and one outgoing connection',
 
   'designer.validation.issue.deadlock.missingJoin':
-    'Parallel fork gateway "{{name}}" has no matching join gateway',
+    'Parallel split gateway "{{name}}" has no matching join gateway',
 
   'designer.validation.issue.deadlock.missingJoinSuggestion':
-    'Add a join gateway where parallel branches merge',
+    'Add a join gateway where the parallel branches merge',
 
   'designer.clipboard.nothingToCopy': 'Nothing to copy',
 
@@ -1543,15 +1533,15 @@ const enAuthoring = {
 
   'designer.properties.tab.subProcess': 'Embedded subprocess',
 
-  'designer.xmlEditor.generationFailed': 'Could not generate XML from this flow',
+  'designer.xmlEditor.generationFailed': 'XML generation failed',
 
   'designer.scriptEditor.placeholder': '// Enter script code…',
 
   'designer.localSnapshots.title': 'Local snapshots',
 
-  'designer.localSnapshots.empty': 'No snapshots yet. Save the process to create one.',
+  'designer.localSnapshots.empty': 'No snapshots yet. Save the flow to create one.',
 
-  'designer.localSnapshots.loadFailed': 'Could not load local snapshots',
+  'designer.localSnapshots.loadFailed': 'Local snapshots could not be loaded',
 
   'designer.localSnapshots.restore': 'Restore',
 
@@ -1570,30 +1560,34 @@ const enAuthoring = {
   'designer.debug.sim.errorNodeNotFound': 'Node not found: {{nodeId}}',
 
   'designer.debug.sim.errorConcurrentGatewayUnsupported':
-    'Browser preview cannot execute parallel or inclusive splits. Use Execution backend for real branch isolation and concurrency.',
+    'Browser simulation does not support parallel or inclusive branches. Use server execution to verify them.',
 
   'designer.debug.sim.errorNoBranchMatched': 'No outgoing branch matched gateway {{nodeId}}',
 
   'designer.debug.sim.errorTriggerEntryUnsupported':
-    'Browser preview cannot execute trigger entry {{nodeId}}. Use Execution backend.',
+    'Browser simulation does not support trigger entry {{nodeId}}. Use server execution.',
 
   'designer.debug.sim.errorTimerUnsupported':
-    'Browser preview cannot advance timer task {{nodeId}}. Use Durable Runtime to verify persistent timer semantics.',
+    'Browser simulation cannot advance timer task {{nodeId}}. Use Durable Runtime to verify timer behavior.',
 
   'designer.debug.sim.errorLoopUnsupported':
-    'Browser preview cannot reproduce loop semantics at node {{nodeId}}. Use Execution backend.',
+    'Browser simulation does not support the loop at node {{nodeId}}. Use server execution.',
 
   'designer.debug.sim.errorCalledProcessUnsupported':
-    'Browser preview cannot execute the called process at node {{nodeId}}. Use Execution backend.',
+    'Browser simulation cannot run the process called by node {{nodeId}}. Use server execution.',
 
   'designer.debug.sim.errorEmbeddedProcessUnsupported':
-    'Browser preview cannot reproduce embedded subprocess semantics at node {{nodeId}}. Use Execution backend.',
+    'Browser simulation does not support the embedded subprocess at node {{nodeId}}. Use server execution.',
 
   'designer.debug.sim.errorExpressionEvaluationFailed':
     'Browser preview cannot safely evaluate the expression at {{elementId}}',
 
   'designer.debug.sim.errorDeadEnd':
     'Execution stopped at non-end node {{nodeId}} with no outgoing flow',
+  'designer.debug.sim.errorCycle': 'Simulation stopped after returning to node {{nodeId}}.',
+  'designer.debug.sim.errorStepLimit':
+    'Simulation reached its step limit near node {{nodeId}} and stopped.',
+  'designer.debug.sim.errorRunSuperseded': 'A newer simulation replaced this run.',
 
   'designer.node.bpmn.start': 'Start',
 
@@ -1615,7 +1609,7 @@ const enAuthoring = {
 
   'designer.node.bpmn.subProcess': 'Embedded Subprocess',
 
-  'designer.palette.dndFailed': 'Could not set up canvas drag-and-drop',
+  'designer.palette.dndFailed': 'Drag and drop is unavailable on the canvas',
 
   'designer.props.common.timeoutPlaceholder': 'PT0S (no timeout)',
 
@@ -1627,11 +1621,11 @@ const enAuthoring = {
 
   'designer.props.ph.javaType': 'java.lang.String',
 
-  'designer.props.ph.mappingReference': 'Process variable',
+  'designer.props.ph.mappingReference': 'Select a process variable',
 
-  'designer.props.ph.defaultValue': 'Literal value',
+  'designer.props.ph.defaultValue': 'Enter a literal value',
 
-  'designer.props.ph.description': 'Optional mapping description',
+  'designer.props.ph.description': 'Describe this mapping (optional)',
 
   'designer.props.ph.javaClass': 'com.example.OrderService',
 
@@ -1698,7 +1692,7 @@ const enAuthoring = {
   'designer.props.node.parallelGateway.title': 'AND gateway (parallel)',
 
   'designer.props.node.waitTask.triggerTip':
-    'Tip: Start a new execution at this entry with engine.trigger(ProcessDefinition.classpath("processCode", "flows/process.bpm"), ProcessTrigger.at(node.id), data)',
+    'Start an execution from this entry with engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM, "processCode", "flows/process.bpm"), ProcessTrigger.at(node.id), data)',
 
   'designer.props.node.loop.whileExampleTitle': '// While loop example',
 
@@ -1706,14 +1700,14 @@ const enAuthoring = {
 
   'designer.props.node.loop.controlTitle': 'Loop control',
 
-  'designer.props.node.loop.controlSupported': 'Supported control statements:',
+  'designer.props.node.loop.controlSupported': 'Available control statements:',
 
   'designer.props.node.loop.breakDesc': '— exit the loop immediately',
 
   'designer.props.node.loop.continueDesc': '— skip current iteration and continue',
 
   'designer.props.node.loop.limitBehaviorHint':
-    'If the condition is still true at the maximum iteration count, execution fails; the loop is never silently truncated',
+    'Execution fails if the condition remains true at the iteration limit',
 
   'designer.props.node.scriptTask.scriptFormat': 'Script format (scriptFormat)',
 
@@ -1722,12 +1716,12 @@ const enAuthoring = {
   'designer.props.node.receiveTask.messageId': 'Message ID (messageRef)',
 
   'designer.props.node.receiveTask.messageHelp':
-    'References a top-level BPMN message definition; Workbench creates one when needed',
+    'References a top-level BPMN message. Workbench creates it when needed.',
 
   'designer.props.node.receiveTask.eventName': 'Runtime event name',
 
   'designer.props.node.receiveTask.eventNameHelp':
-    'ProcessTrigger.event must equal this message name; changing a shared message affects every receive task that references it',
+    'ProcessTrigger.event must match this name. Changing it affects every receive task that uses the message.',
 
   'designer.props.node.receiveTask.eventNamePlaceholder': 'payment.received',
 
@@ -1771,11 +1765,11 @@ const enAuthoring = {
 
   'designer.actions.importXmlInvalid': 'Check XML format',
 
-  'designer.actions.canvasNotReady': 'Canvas is not initialized',
+  'designer.actions.canvasNotReady': 'The canvas is not ready. Try again in a moment.',
 
-  'designer.actions.duplicateSuccess': 'Duplicate created — open it from the flow list',
+  'designer.actions.duplicateSuccess': 'Flow copied. Open the copy from the flow list.',
 
-  'designer.actions.duplicateFailed': 'Could not duplicate',
+  'designer.actions.duplicateFailed': 'Flow could not be copied',
 
   'designer.actions.duplicateSuffix': ' (copy)',
 
@@ -1785,17 +1779,18 @@ const enAuthoring = {
 
   'designer.actions.xmlFormatError': 'Invalid XML: {{message}}',
 
-  'designer.actions.xmlParseFailed': 'Parse failed',
+  'designer.actions.xmlParseFailed': 'XML parsing failed',
 
   'designer.actions.xmlEditorTitle': 'XML source editor — {{name}}',
 
   'designer.actions.xmlEditorTitleDefault': 'XML source editor',
 
-  'designer.actions.exportImageFailed': 'Could not export image',
+  'designer.actions.exportImageFailed': 'Image export failed',
 
   'designer.actions.exportImageSuccess': 'PNG and SVG images exported',
 
-  'designer.actions.duplicateOperateUnavailable': 'Duplicate is not available for operate flows',
+  'designer.actions.duplicateOperateUnavailable':
+    'Flows opened from flow management cannot be copied',
 
   'designer.flow.defaultName': 'New {{type}} flow',
 
@@ -1809,7 +1804,7 @@ const enAuthoring = {
 
   'designer.warnings.title': 'Import warnings',
 
-  'designer.warnings.dismiss': 'Dismiss',
+  'designer.warnings.dismiss': 'Close',
 
   'designer.xmlParse.warning.NODE_PARSE_WARNING':
     'Could not parse a node ({{location}}): {{message}}',
@@ -1827,7 +1822,7 @@ const enAuthoring = {
     'Schema validation warning ({{location}}): {{message}}',
 
   'designer.split.canvasStaleHint':
-    'The canvas has unsaved changes. Click Apply in the XML panel after editing, or switch tabs to refresh the preview.',
+    'The canvas has unsaved changes. Apply any XML edits, or switch views to refresh the preview.',
 
   'designer.properties.selectNode': 'Select a node',
 
@@ -1839,7 +1834,7 @@ const enAuthoring = {
   'designer.properties.selectEdgeHint':
     'Click a connection on the canvas to view and edit its properties',
 
-  'designer.properties.updateFailed': 'Could not update properties',
+  'designer.properties.updateFailed': 'Properties could not be updated',
 
   'designer.properties.generalTab': 'General',
 
@@ -1847,7 +1842,7 @@ const enAuthoring = {
 
   'designer.edge.name': 'Connection name',
 
-  'designer.edge.nameTooltip': 'Label for the connection, e.g. Approve, Reject, Default',
+  'designer.edge.nameTooltip': 'A label for the connection, such as Approve, Reject, or Default',
 
   'designer.edge.namePlaceholder': 'Enter connection name',
 
@@ -1873,10 +1868,10 @@ const enAuthoring = {
 
   'designer.variableManager.edit': 'Edit variable',
 
-  'designer.variableManager.empty': 'No variables yet — click "Add variable" to create one',
+  'designer.variableManager.empty': 'No variables yet. Click Add variable to create one.',
 
   'designer.variableManager.tip':
-    'Variables map to &lt;var&gt; elements in .bpm files. dataType must be a full Java class name, e.g. java.lang.String',
+    'Use a fully qualified Java class name for the data type, such as java.lang.String.',
 
   'designer.variableManager.col.name': 'Name',
 
@@ -1942,7 +1937,7 @@ const enAuthoring = {
 
   'designer.nodeSearch.noResults': 'No matching nodes',
 
-  'designer.nodeSearch.startHint': 'Enter a keyword to search',
+  'designer.nodeSearch.startHint': 'Enter a keyword',
 
   'designer.nodeSearch.startSubhint': 'Search by node name, ID, or type',
 
@@ -1950,11 +1945,11 @@ const enAuthoring = {
 
   'designer.nodeSearch.nodeId': 'ID',
 
-  'designer.nodeSearch.tipsTitle': 'Search tips:',
+  'designer.nodeSearch.tipsTitle': 'Search tips',
 
-  'designer.nodeSearch.tip1': 'Fuzzy search, case insensitive',
+  'designer.nodeSearch.tip1': 'Search is fuzzy and case-insensitive',
 
-  'designer.nodeSearch.tip2': 'Click a result to focus the node on canvas',
+  'designer.nodeSearch.tip2': 'Select a result to focus the node on the canvas',
 
   'designer.nodeSearch.tip3': 'Shortcut: Ctrl/Cmd + F to open search',
 
@@ -1996,9 +1991,9 @@ const enAuthoring = {
 
   'designer.errorBoundary.title': 'Designer error',
 
-  'designer.errorBoundary.unknown': 'An unknown error occurred',
+  'designer.errorBoundary.unknown': 'The designer encountered an unexpected error',
 
-  'designer.errorBoundary.devInfo': 'Developer debug info',
+  'designer.errorBoundary.devInfo': 'Technical details',
 
   'designer.errorBoundary.retry': 'Try again',
 
@@ -2006,7 +2001,7 @@ const enAuthoring = {
 
   'designer.loading.default': 'Loading…',
 
-  'designer.loading.suspense': 'Loading component…',
+  'designer.loading.suspense': 'Loading…',
 
   'designer.loading.contextMenu': 'Loading menu…',
 
@@ -2020,13 +2015,13 @@ const enAuthoring = {
 
   'designer.flowInit.exampleLoadFailed': 'Could not load example: {{message}}',
 
-  'designer.flowInit.exampleCheckData': 'Check example data',
+  'designer.flowInit.exampleCheckData': 'Check the example data',
 
   'designer.flowInit.flowNotFound': 'Process not found',
 
   'designer.flowInit.templateNotFound': 'Template not found: {{id}}',
 
-  'designer.flowInit.templateCreated': 'Process created from template "{{name}}"',
+  'designer.flowInit.templateCreated': 'Flow created from template "{{name}}"',
 
   'designer.flowInit.templateFrom': 'From {{name}}',
 
@@ -2034,11 +2029,11 @@ const enAuthoring = {
 
   'designer.flowInit.createFailed': 'Could not create flow',
 
-  'designer.flowInit.operateLoaded': 'Operate flow loaded: {{name}}',
+  'designer.flowInit.operateLoaded': 'Flow loaded: {{name}}',
 
-  'designer.flowInit.operateLoadFailed': 'Could not load operate flow: {{message}}',
+  'designer.flowInit.operateLoadFailed': 'Flow could not be loaded: {{message}}',
 
-  'designer.flowInit.operateLoadFailedGeneric': 'Process load failed',
+  'designer.flowInit.operateLoadFailedGeneric': 'Flow could not be loaded',
 
   'designer.flowInit.errorTitle': 'Could not open designer',
 
@@ -2059,7 +2054,7 @@ const enAuthoring = {
 
   'designer.condition.tab.help': 'Help',
 
-  'designer.condition.content': 'Expression',
+  'designer.condition.content': 'Condition',
 
   'designer.condition.variables': 'Available variables',
 
@@ -2070,13 +2065,12 @@ const enAuthoring = {
 
   'designer.condition.help.syntaxTitle': 'Expression syntax',
 
-  'designer.condition.help.syntax1':
-    'BPMN conditions contain a raw <code>Java boolean expression</code>',
+  'designer.condition.help.syntax1': 'BPMN conditions use a <code>Java boolean expression</code>',
 
   'designer.condition.help.syntax2':
-    'TBBPM conditions use the same raw <code>Java boolean expression</code>',
+    'TBBPM conditions use the same <code>Java boolean expression</code>',
 
-  'designer.condition.help.syntax3': 'Conditions use side-effect-free Java boolean expressions',
+  'designer.condition.help.syntax3': 'Keep condition expressions free of side effects',
 
   'designer.condition.help.examplesTitle': 'Examples',
 
@@ -2090,7 +2084,7 @@ const enAuthoring = {
     'Use double quotes and null-safe value equality such as <code>"READY".equals(status)</code>',
 
   'designer.condition.help.note4':
-    'Browser simulation supports a safe subset; backend javac and execution are authoritative',
+    'Browser simulation supports a restricted subset. Use server execution for final verification.',
 
   'designer.condition.tpl.compare': 'Numeric compare',
 
@@ -2116,7 +2110,7 @@ const enAuthoring = {
 
   'designer.condition.tpl.logic.notCancelled': 'Not cancelled',
 
-  'designer.condition.tpl.collection': 'Collection ops',
+  'designer.condition.tpl.collection': 'Collection checks',
 
   'designer.condition.tpl.collection.itemsNotEmpty': 'Order items not empty',
 
@@ -2142,19 +2136,19 @@ const enAuthoring = {
 
   'designer.expr.modeText': 'Text',
 
-  'designer.expr.insertVariable': 'Insert variable:',
+  'designer.expr.insertVariable': 'Insert variable',
 
   'designer.expr.selectVariable': 'Select variable…',
 
-  'designer.expr.insertOperator': 'Insert operator:',
+  'designer.expr.insertOperator': 'Insert operator',
 
-  'designer.expr.label': 'Expression:',
+  'designer.expr.label': 'Expression',
 
-  'designer.expr.placeholder': "Enter expression, e.g. variable > 100 && status == 'active'",
+  'designer.expr.placeholder': 'Enter expression, e.g. variable > 100 && "active".equals(status)',
 
-  'designer.expr.panelFunctions': 'Built-in functions',
+  'designer.expr.panelFunctions': 'Functions',
 
-  'designer.expr.panelTemplates': 'Common templates',
+  'designer.expr.panelTemplates': 'Templates',
 
   'designer.expr.apply': 'Apply',
 
@@ -2162,7 +2156,8 @@ const enAuthoring = {
 
   'designer.expr.syntaxTip1': 'Variable names: letters, digits, underscore',
 
-  'designer.expr.syntaxTip2': 'Strings: double or single quotes',
+  'designer.expr.syntaxTip2':
+    'Use double-quoted strings and compare values with "active".equals(status)',
 
   'designer.expr.syntaxTip3': 'Guards use side-effect-free Java expressions',
 
@@ -2174,19 +2169,19 @@ const enAuthoring = {
 
   'designer.expr.validation.illegal': 'Contains illegal characters',
 
-  'designer.expr.validation.ok': 'Expression syntax OK',
+  'designer.expr.validation.ok': 'Expression is valid',
 
   'designer.expr.op.eq': 'Equals',
 
-  'designer.expr.op.ne': 'Not equals',
+  'designer.expr.op.ne': 'Does not equal',
 
   'designer.expr.op.gt': 'Greater than',
 
   'designer.expr.op.lt': 'Less than',
 
-  'designer.expr.op.gte': 'Greater or equal',
+  'designer.expr.op.gte': 'Greater than or equal to',
 
-  'designer.expr.op.lte': 'Less or equal',
+  'designer.expr.op.lte': 'Less than or equal to',
 
   'designer.expr.op.and': 'And',
 
@@ -2204,7 +2199,7 @@ const enAuthoring = {
 
   'designer.expr.op.isNotNull': 'Is not null',
 
-  'designer.expr.cat.compare': 'Compare',
+  'designer.expr.cat.compare': 'Comparison',
 
   'designer.expr.cat.logic': 'Logic',
 
@@ -2226,13 +2221,13 @@ const enAuthoring = {
 
   'designer.expr.fn.parseInt': 'Parse integer',
 
-  'designer.expr.fn.parseDouble': 'Parse double',
+  'designer.expr.fn.parseDouble': 'Parse decimal number',
 
   'designer.expr.tpl.strEq': 'String equality',
 
   'designer.expr.tpl.strEqDesc': 'Compare string value',
 
-  'designer.expr.tpl.numCmp': 'Numeric compare',
+  'designer.expr.tpl.numCmp': 'Numeric comparison',
 
   'designer.expr.tpl.numCmpDesc': 'Compare numeric value',
 
@@ -2248,9 +2243,9 @@ const enAuthoring = {
 
   'designer.expr.tpl.containsDesc': 'Check if string contains keyword',
 
-  'designer.expr.tpl.multiOr': 'Multiple OR',
+  'designer.expr.tpl.multiOr': 'Match any value',
 
-  'designer.expr.tpl.multiOrDesc': 'Match any of several values',
+  'designer.expr.tpl.multiOrDesc': 'Match one of several values',
 
   'designer.shortcutsModal.title': 'Keyboard shortcuts',
 
@@ -2262,7 +2257,7 @@ const enAuthoring = {
 
   'designer.shortcutsModal.col.description': 'Description',
 
-  'designer.shortcutsModal.tipTitle': 'Tips:',
+  'designer.shortcutsModal.tipTitle': 'Tips',
 
   'designer.shortcutsModal.tipMac': 'On Mac, use Cmd instead of Ctrl',
 
@@ -2338,6 +2333,12 @@ const enAuthoring = {
 
   'designer.shortcuts.item.fullscreen': 'Toggle fullscreen',
 
+  'designer.shortcuts.gesture.doubleClickNode': 'Double-click node',
+
+  'designer.shortcuts.gesture.dragPort': 'Drag port',
+
+  'designer.shortcuts.gesture.dragNode': 'Drag node',
+
   'designer.help.title': 'Help',
 
   'designer.help.section.quickStart': 'Quick start',
@@ -2352,26 +2353,26 @@ const enAuthoring = {
 
   'designer.help.quickStart.step1.title': 'Step 1: Create a flow',
 
-  'designer.help.quickStart.step1.li1': 'Drag a Start node from the left palette onto the canvas',
+  'designer.help.quickStart.step1.li1': 'Drag a Start node from the palette onto the canvas',
 
-  'designer.help.quickStart.step1.li2': 'Add business nodes (Auto task, Exclusive gateway, etc.)',
+  'designer.help.quickStart.step1.li2': 'Add the tasks and gateways your flow needs',
 
   'designer.help.quickStart.step1.li3': 'Add an End node',
 
   'designer.help.quickStart.step2.title': 'Step 2: Connect nodes',
 
   'designer.help.quickStart.step2.li1':
-    'Drag from a node port to another node to create a connection',
+    'Drag from one node connector to another to create a connection',
 
   'designer.help.quickStart.step2.li2': 'Click a connection to edit its condition expression',
 
   'designer.help.quickStart.step3.title': 'Step 3: Configure properties',
 
-  'designer.help.quickStart.step3.li1': 'Select a node and edit properties in the right panel',
+  'designer.help.quickStart.step3.li1': 'Select a node and edit its properties in the right panel',
 
   'designer.help.quickStart.step3.li2': 'Auto task: configure a Java method or Spring Bean action',
 
-  'designer.help.quickStart.step3.li3': 'Script task: choose a language and write its source',
+  'designer.help.quickStart.step3.li3': 'Script task: choose a language and enter the script',
 
   'designer.help.quickStart.step3.li4': 'Exclusive gateway: configure conditions on outgoing edges',
 
@@ -2379,23 +2380,23 @@ const enAuthoring = {
 
   'designer.help.quickStart.step4.li1': 'Click Validate in the toolbar to check for errors',
 
-  'designer.help.quickStart.step4.li2': 'Click Debug to test execution',
+  'designer.help.quickStart.step4.li2': 'Select Debug to simulate the flow in the browser',
 
   'designer.help.quickStart.step4.li3': 'Set breakpoints and step through the flow',
 
   'designer.help.quickStart.step5.title': 'Step 5: Save and export',
 
-  'designer.help.quickStart.step5.li1': 'Click Save to persist the flow',
+  'designer.help.quickStart.step5.li1': 'Select Save to save the flow',
 
-  'designer.help.quickStart.step5.li2': 'Export XML to generate a flow definition file',
+  'designer.help.quickStart.step5.li2': 'Export XML to download the flow definition',
 
-  'designer.help.quickStart.step5.li3': 'Export image to generate PNG/SVG',
+  'designer.help.quickStart.step5.li3': 'Export the diagram as PNG and SVG images',
 
   'designer.help.nodeTypes.flowControl': 'Process control',
 
-  'designer.help.nodeTypes.start': 'Start — flow entry point (exactly one per flow)',
+  'designer.help.nodeTypes.start': 'Start — the flow entry point',
 
-  'designer.help.nodeTypes.end': 'End — flow exit (exactly one per flow)',
+  'designer.help.nodeTypes.end': 'End — the flow exit point',
 
   'designer.help.nodeTypes.tasks': 'Tasks',
 
@@ -2407,11 +2408,11 @@ const enAuthoring = {
 
   'designer.help.nodeTypes.timerTask': 'Timer task — Durable wait for a duration or instant',
 
-  'designer.help.nodeTypes.scriptTask': 'Script task — author definition-owned inline code',
+  'designer.help.nodeTypes.scriptTask': 'Script task — run inline code',
 
   'designer.help.nodeTypes.gateways': 'Gateways',
 
-  'designer.help.nodeTypes.exclusive': 'Exclusive gateway - pick one branch (XOR)',
+  'designer.help.nodeTypes.exclusive': 'Exclusive gateway — select one branch (XOR)',
 
   'designer.help.nodeTypes.parallel': 'Parallel gateway — run all branches (AND)',
 
@@ -2419,7 +2420,7 @@ const enAuthoring = {
 
   'designer.help.nodeTypes.subprocess': 'Subprocess',
 
-  'designer.help.nodeTypes.subBpm': 'Embedded BPM — nested scope defined in this BPM',
+  'designer.help.nodeTypes.subBpm': 'Embedded BPM — group nodes within the current BPM',
 
   'designer.help.nodeTypes.bpmCall': 'BPM call — invoke another BPM definition',
 
@@ -2438,16 +2439,16 @@ const enAuthoring = {
 
   'designer.help.nodeTypes.note': 'Note — annotation only, not executed',
 
-  'designer.help.faq.branch.q': 'Q: How do I create conditional branches?',
+  'designer.help.faq.branch.q': 'How do I create conditional branches?',
 
   'designer.help.faq.branch.a':
-    'A: Use an Exclusive gateway, then set a condition on each outgoing edge.',
+    'Use an Exclusive gateway, then set a condition on each outgoing connection.',
 
   'designer.help.faq.branch.example': 'Example: edge 1 → amount > 1000, edge 2 → amount <= 1000',
 
-  'designer.help.faq.panel.q': 'Q: The properties panel does not respond when I click a node?',
+  'designer.help.faq.panel.q': 'Why does the properties panel not respond when I select a node?',
 
-  'designer.help.faq.panel.a': 'A: Try the following:',
+  'designer.help.faq.panel.a': 'Try these steps:',
 
   'designer.help.faq.panel.li1': 'Refresh the page and reload the flow',
 
@@ -2456,17 +2457,17 @@ const enAuthoring = {
   'designer.help.faq.panel.li3':
     'Ensure the node is on the canvas (check node count in status bar)',
 
-  'designer.help.faq.variables.q': 'Q: How do I reference flow variables?',
+  'designer.help.faq.variables.q': 'How do I reference flow variables?',
 
-  'designer.help.faq.variables.a': 'A: Use the variable name directly in expressions.',
+  'designer.help.faq.variables.a': 'Use the variable name directly in expressions.',
 
   'designer.help.faq.variables.example': 'Example: amount > 1000 && status == "active"',
 
-  'designer.help.faq.variables.tip': 'Tip: define global variables in Variable manager first',
+  'designer.help.faq.variables.tip': 'Define process variables before using them in expressions',
 
-  'designer.help.faq.validation.q': 'Q: Validation reports issues — how do I fix them?',
+  'designer.help.faq.validation.q': 'How do I fix validation issues?',
 
-  'designer.help.faq.validation.a': 'A: Click an issue in the validation panel for details:',
+  'designer.help.faq.validation.a': 'Select an issue in the Validation panel to view its details:',
 
   'designer.help.faq.validation.li1': 'Process must have start and end nodes',
 
@@ -2477,9 +2478,9 @@ const enAuthoring = {
 
   'designer.help.faq.validation.li4': 'Check for isolated nodes (not connected)',
 
-  'designer.help.faq.debug.q': 'Q: How do I use the debugger?',
+  'designer.help.faq.debug.q': 'How do I use the debugger?',
 
-  'designer.help.faq.debug.a': 'A: Debugging steps:',
+  'designer.help.faq.debug.a': 'To debug a flow:',
 
   'designer.help.faq.debug.li1': 'Open the Debug panel from the toolbar',
 
@@ -2487,16 +2488,16 @@ const enAuthoring = {
 
   'designer.help.faq.debug.li3': 'Optionally set breakpoints on nodes',
 
-  'designer.help.faq.debug.li4': 'Click Start to run the flow',
+  'designer.help.faq.debug.li4': 'Select Start to run the simulation',
 
   'designer.help.faq.debug.li5': 'Watch Variables and Execution log panels',
 
-  'designer.help.faq.rubberband.q': 'Q: How do I rubber-band select nodes?',
+  'designer.help.faq.rubberband.q': 'How do I select multiple nodes with a selection box?',
 
-  'designer.help.faq.rubberband.a':
-    'A: Hold Shift and drag on the canvas to select multiple nodes.',
+  'designer.help.faq.rubberband.a': 'Hold Shift and drag on the canvas to select multiple nodes.',
 
-  'designer.help.faq.rubberband.tip': 'Tip: then move, copy, or delete the selection in batch',
+  'designer.help.faq.rubberband.tip':
+    'You can then move, copy, or delete the selected nodes together',
 
   'designer.help.practices.naming.title': 'Naming conventions',
 
@@ -2513,9 +2514,9 @@ const enAuthoring = {
   'designer.help.practices.design.li1': 'Single responsibility: one flow, one purpose',
 
   'designer.help.practices.design.li2':
-    'Avoid complexity: split into subprocesses beyond ~20 nodes',
+    'Keep flows readable by splitting large sections into subprocesses',
 
-  'designer.help.practices.design.li3': 'Error handling: add exception branches on critical nodes',
+  'designer.help.practices.design.li3': 'Define failure handling for critical actions',
 
   'designer.help.practices.design.li4': 'Readability: use Note nodes for complex logic',
 
@@ -2523,7 +2524,8 @@ const enAuthoring = {
 
   'designer.help.practices.performance.li1': 'Avoid slow operations inside loops',
 
-  'designer.help.practices.performance.li2': 'Use parallel gateways for concurrent paths',
+  'designer.help.practices.performance.li2':
+    'Use parallel gateways when branches can run concurrently',
 
   'designer.help.practices.performance.li3': 'Use subprocesses to keep definitions manageable',
 
@@ -2533,15 +2535,16 @@ const enAuthoring = {
 
   'designer.help.practices.security.li1': 'Do not hardcode secrets in scripts',
 
-  'designer.help.practices.security.li2': 'Use variables or config for sensitive data',
+  'designer.help.practices.security.li2':
+    'Store sensitive data in your application configuration or secret store',
 
-  'designer.help.practices.security.li3': 'Avoid dangerous functions like eval in expressions',
+  'designer.help.practices.security.li3': 'Do not build executable code from untrusted input',
 
-  'designer.help.practices.security.li4': 'Back up flow definitions regularly',
+  'designer.help.practices.security.li4': 'Review scripts and Java actions before server execution',
 
   'designer.help.links.github': 'CompileFlow on GitHub',
 
-  'designer.help.links.githubDesc': '— source code and docs',
+  'designer.help.links.githubDesc': '— source code and documentation',
 
   'designer.help.links.docsZh': 'CompileFlow docs (Chinese)',
 
@@ -2549,7 +2552,7 @@ const enAuthoring = {
 
   'designer.help.links.nodeSupport': 'Node support list',
 
-  'designer.help.links.nodeSupportDesc': '— TBBPM node reference',
+  'designer.help.links.nodeSupportDesc': '— supported TBBPM nodes',
 
   'designer.help.links.issues': 'Issue tracker',
 

@@ -79,6 +79,12 @@ class VerifyJmhResultsTest(unittest.TestCase):
 
         self.assertEqual([], errors)
 
+    def test_rejects_non_numeric_raw_measurements(self) -> None:
+        for measurement in (None, True, "42", {}, []):
+            with self.subTest(measurement=measurement):
+                errors = self.verify([result([[measurement, 41.0, 42.0], [43.0, 44.0, 45.0]])])
+                self.assertTrue(any("finite number" in error for error in errors))
+
     def test_accepts_distinct_parameter_combinations_for_one_benchmark(self) -> None:
         raw_data = [[40.0, 41.0, 42.0], [43.0, 44.0, 45.0]]
         payload = [

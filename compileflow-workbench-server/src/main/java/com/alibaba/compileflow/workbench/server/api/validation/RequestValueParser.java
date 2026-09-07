@@ -76,77 +76,6 @@ public final class RequestValueParser {
     }
 
     /**
-     * Parses a required integer field from a JSON object.
-     *
-     * @param body request body
-     * @param key  field name
-     * @return parsed integer
-     */
-    public static int requiredInteger(Map<String, Object> body, String key) {
-        Object value = body == null ? null : body.get(key);
-        if (value == null) {
-            throw new IllegalArgumentException(key + " is required");
-        }
-        return integerValue(value, key);
-    }
-
-    /**
-     * Parses an optional long field from a JSON object.
-     *
-     * @param body request body
-     * @param key  field name
-     * @return parsed long, or {@code null} when the field is absent
-     */
-    public static Long optionalLong(Map<String, Object> body, String key) {
-        Object value = body == null ? null : body.get(key);
-        if (value == null) {
-            return null;
-        }
-        return longValue(value, key);
-    }
-
-    /**
-     * Parses an optional floating-point field from a JSON object.
-     *
-     * @param body request body
-     * @param key  field name
-     * @return parsed double, or {@code null} when the field is absent
-     */
-    public static Double optionalDouble(Map<String, Object> body, String key) {
-        Object value = body == null ? null : body.get(key);
-        if (value == null) {
-            return null;
-        }
-        if (!(value instanceof Number)) {
-            throw new IllegalArgumentException(key + " must be numeric");
-        }
-        double parsed = ((Number) value).doubleValue();
-        if (!Double.isFinite(parsed)) {
-            throw new IllegalArgumentException(key + " must be finite");
-        }
-        return parsed;
-    }
-
-    /**
-     * Parses an optional boolean field from a JSON object.
-     *
-     * @param body         request body
-     * @param key          field name
-     * @param defaultValue default value used when the field is absent
-     * @return parsed boolean or default value
-     */
-    public static boolean optionalBoolean(Map<String, Object> body, String key, boolean defaultValue) {
-        Object value = body == null ? null : body.get(key);
-        if (value == null) {
-            return defaultValue;
-        }
-        if (!(value instanceof Boolean)) {
-            throw new IllegalArgumentException(key + " must be a boolean");
-        }
-        return (Boolean) value;
-    }
-
-    /**
      * Requires one-based pagination values.
      *
      * @param page     one-based page number
@@ -189,20 +118,22 @@ public final class RequestValueParser {
     }
 
     /**
-     * Normalizes an optional invocation identifier and requires a log-safe URI segment.
+     * Validates an optional log-safe invocation identifier without rewriting it.
      *
      * @param value caller-provided invocation identifier
-     * @return normalized identifier, or {@code null} when absent or blank
+     * @return the unchanged identifier, or {@code null} when absent
+     * @throws IllegalArgumentException when blank, surrounded by whitespace, or otherwise invalid
      */
     public static String optionalInvocationId(String value) {
         return ProcessIdentifiers.optionalInvocationId(value);
     }
 
     /**
-     * Normalizes a required invocation identifier and requires a log-safe URI segment.
+     * Validates a required log-safe invocation identifier without rewriting it.
      *
      * @param value caller-provided invocation identifier
-     * @return normalized non-null identifier
+     * @return the unchanged non-null identifier
+     * @throws IllegalArgumentException when absent, blank, surrounded by whitespace, or otherwise invalid
      */
     public static String requiredInvocationId(String value) {
         return ProcessIdentifiers.requireInvocationId(value);
@@ -220,22 +151,6 @@ public final class RequestValueParser {
         }
         if (value instanceof BigDecimal) {
             return toInt(toBigInteger((BigDecimal) value, key), key);
-        }
-        throw new IllegalArgumentException(key + " must be an integer");
-    }
-
-    private static long longValue(Object value, String key) {
-        if (!(value instanceof Number)) {
-            throw new IllegalArgumentException(key + " must be an integer");
-        }
-        if (value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long) {
-            return ((Number) value).longValue();
-        }
-        if (value instanceof BigInteger) {
-            return toLong((BigInteger) value, key);
-        }
-        if (value instanceof BigDecimal) {
-            return toLong(toBigInteger((BigDecimal) value, key), key);
         }
         throw new IllegalArgumentException(key + " must be an integer");
     }
@@ -261,14 +176,6 @@ public final class RequestValueParser {
             return Math.toIntExact(value);
         } catch (ArithmeticException failure) {
             throw new IllegalArgumentException(key + " must fit in a 32-bit integer", failure);
-        }
-    }
-
-    private static long toLong(BigInteger value, String key) {
-        try {
-            return value.longValueExact();
-        } catch (ArithmeticException failure) {
-            throw new IllegalArgumentException(key + " must fit in a 64-bit integer", failure);
         }
     }
 }

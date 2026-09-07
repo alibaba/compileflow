@@ -1,9 +1,9 @@
 const enOperate = {
-  // Error Messages
+  // Process management
 
   'process.management': 'Processes',
 
-  'process.managementDesc': 'Manage, edit, and publish process definitions.',
+  'process.managementDesc': 'Create, edit, and publish process definitions.',
 
   'process.publish': 'Publish',
 
@@ -45,14 +45,14 @@ const enOperate = {
 
   'process.importError': 'Import failed. Check the XML and try again.',
 
-  // Operate Module - Monitoring
+  // Monitoring
 
   'monitoring.partialLoadError': 'Some monitoring sources could not be refreshed',
 
   'monitoring.partialLoadErrorDescription':
-    'Unavailable sources: {{sources}}. Other panels continue to refresh; stale panels retain their last successful values.',
+    'Unavailable sources: {{sources}}. Other panels will continue to refresh; affected panels show their latest available data.',
 
-  'monitoring.staleData': 'Refresh failed; showing the last successful value',
+  'monitoring.staleData': 'Could not refresh; showing the latest available data',
 
   'monitoring.source.metrics': 'execution metrics',
 
@@ -64,13 +64,13 @@ const enOperate = {
 
   'monitoring.source.versionDistribution': 'version distribution',
 
-  'monitoring.source.deployRuntime': 'deploy runtime',
+  'monitoring.source.deployRuntime': 'deployment runtime',
 
-  'monitoring.source.routingOutboxControl': 'deployment outbox',
+  'monitoring.source.routingOutboxControl': 'deployment delivery queue',
 
   'monitoring.source.asyncHealth': 'async invocation queue',
 
-  // Operate Module - Deployment Management
+  // Deployment management
 
   'deployment.processName': 'Process',
 
@@ -96,19 +96,19 @@ const enOperate = {
 
   'deployment.strategy.all_at_once': 'All at once',
 
-  'deployment.strategy.canary': 'Canary',
+  'deployment.strategy.canary': 'Canary rollout',
 
   'deployment.status': 'Status',
 
-  'deployment.detail': 'Deployment',
+  'deployment.detail': 'Deployment details',
 
-  'deployment.baselineVersion': 'Baseline',
+  'deployment.baselineVersion': 'Baseline version',
 
-  'deployment.baseRouteRevision': 'Starting route version',
+  'deployment.baseRouteRevision': 'Starting route revision',
 
-  'deployment.routeRevision': 'Committed route version',
+  'deployment.routeRevision': 'Applied route revision',
 
-  'deployment.deployedAt': 'Deployed At',
+  'deployment.deployedAt': 'Deployed at',
 
   'deployment.newDeployment': 'New deployment',
 
@@ -120,35 +120,36 @@ const enOperate = {
 
   'deployment.rollbackConfirm': 'Confirm rollback',
 
-  'deployment.rollbackWarning': 'This restores the process to a previous version. Continue?',
+  'deployment.rollbackWarning': 'Restore the baseline version for this deployment?',
 
-  'deployment.routeChanged':
-    'This deployment no longer owns the active route. The list has been refreshed.',
+  'deployment.routeChanged': 'The active route changed. Deployment data has been refreshed.',
 
   'deployment.routeSuperseded':
-    'A newer deployment owns this route. Mutating operations are disabled.',
+    'A newer deployment changed this route. Further changes are disabled.',
 
-  'deployment.abortMissingBaseline': 'Cannot abort canary without a captured baseline version.',
+  'deployment.abortMissingBaseline':
+    'Cannot abort the canary because its baseline version is unavailable.',
 
-  'deployment.rollbackMissingBaseline': 'Cannot roll back without a captured baseline version.',
+  'deployment.rollbackMissingBaseline':
+    'Cannot roll back because the baseline version is unavailable.',
 
-  'deployment.routeControl': 'Route Control',
+  'deployment.routeControl': 'Route control',
 
   'deployment.rollbackHint':
-    'Rollback creates a new audited deployment that restores the captured baseline.',
+    'Rollback creates a deployment record and restores the baseline version.',
 
   'deployment.partialRefresh':
-    'The operation succeeded, but related route or event data could not be refreshed.',
+    'The operation completed, but route or event data could not be refreshed.',
 
-  'deployment.abort': 'Abort',
+  'deployment.abort': 'Abort canary',
 
-  'deployment.abortSuccess': 'Aborted',
+  'deployment.abortSuccess': 'Canary aborted',
 
-  'deployment.abortConfirm': 'Abort Canary',
+  'deployment.abortConfirm': 'Abort canary',
 
-  'deployment.abortWarning': 'Stop the canary and send all traffic back to the stable version?',
+  'deployment.abortWarning': 'Stop the canary and return all traffic to the stable version?',
 
-  'deployment.processCode': 'Process Code',
+  'deployment.processCode': 'Process code',
 
   'deployment.selectProcessPlaceholder': 'Select a process',
 
@@ -164,25 +165,25 @@ const enOperate = {
 
   'deployment.status.aborted': 'Aborted',
 
-  'deployment.history': 'History',
+  'deployment.history': 'Deployment history',
 
   'deployment.noEvents': 'No deployment events',
 
-  'deployment.event.CANARY_STARTED': 'Canary Started',
+  'deployment.event.CANARY_STARTED': 'Canary started',
 
-  'deployment.event.COMPLETED': 'Completed',
+  'deployment.event.COMPLETED': 'Deployment completed',
 
   'deployment.event.CANARY_WEIGHT_UPDATED': 'Canary weight updated',
 
-  'deployment.event.PROMOTED': 'Promoted',
+  'deployment.event.PROMOTED': 'Promoted to full traffic',
 
-  'deployment.event.ABORTED': 'Aborted',
+  'deployment.event.ABORTED': 'Canary aborted',
 
-  'deployment.event.enteredPhase': 'Entered {{phase}}',
+  'deployment.event.enteredPhase': 'Status changed to {{phase}}',
 
-  'deployment.event.phaseTransition': '{{from}} -> {{to}}',
+  'deployment.event.phaseTransition': '{{from}} → {{to}}',
 
-  'deployment.event.actor': 'Actor: {{actor}}',
+  'deployment.event.actor': 'Changed by: {{actor}}',
 
   'deployment.phase.in_progress': 'In progress',
 
@@ -193,9 +194,9 @@ const enOperate = {
   'deployment.canaryControl': 'Canary release',
 
   'deployment.canaryControlHint':
-    'Evaluate observed traffic, adjust the cohort, promote the candidate, or restore the stable version.',
+    'Review traffic metrics, adjust the canary weight, promote the candidate, or restore the stable version.',
 
-  'deployment.updateCanary': 'Update weight',
+  'deployment.updateCanary': 'Adjust weight',
 
   'deployment.canaryUpdated': 'Canary weight updated',
 
@@ -203,57 +204,57 @@ const enOperate = {
 
   'deployment.evaluateHealth': 'Evaluate health',
 
-  'deployment.healthEvaluationError': 'Could not evaluate Canary health.',
+  'deployment.healthEvaluationError': 'Could not evaluate canary health.',
 
   'deployment.health.healthy': 'Canary is healthy',
 
   'deployment.health.unhealthy': 'Canary is unhealthy',
 
-  'deployment.health.insufficient_data': 'More Canary samples are required',
+  'deployment.health.insufficient_data': 'More canary samples are required',
 
-  'deployment.health.candidateSamples': 'Candidate Samples',
+  'deployment.health.candidateSamples': 'Candidate samples',
 
-  'deployment.health.baselineSamples': 'Baseline Samples',
+  'deployment.health.baselineSamples': 'Baseline samples',
 
   'deployment.health.candidateErrorRate': 'Candidate error rate',
 
-  'deployment.health.candidateP95': 'Candidate p95',
+  'deployment.health.candidateP95': 'Candidate P95 latency',
 
-  'deployment.promoteCanary': 'Promote to 100%',
+  'deployment.promoteCanary': 'Promote to full traffic',
 
-  'deployment.canaryPromoted': 'Canary promoted to full traffic',
+  'deployment.canaryPromoted': 'Candidate promoted to full traffic',
 
-  'deployment.canaryPromoteError': 'Could not promote the Canary.',
+  'deployment.canaryPromoteError': 'Could not promote the candidate.',
 
-  'deployment.promoteConfirm': 'Promote candidate',
+  'deployment.promoteConfirm': 'Confirm full rollout',
 
   'deployment.promoteWarning.healthy':
     'The latest health evaluation passed. Move all traffic to the candidate version?',
 
   'deployment.promoteWarning.unhealthy':
-    'The latest health evaluation failed. Promoting will still move all traffic to the candidate version.',
+    'The latest health evaluation failed. Continue and move all traffic to the candidate version?',
 
   'deployment.promoteWarning.insufficient_data':
-    'The latest evaluation does not have enough samples. Promote without sufficient evidence?',
+    'The latest evaluation does not have enough samples. Promote the candidate anyway?',
 
   'deployment.promoteWarning.notEvaluated':
-    'No health evaluation has been run for the current Canary version. Promote anyway?',
+    'The current candidate has not been evaluated. Promote it anyway?',
 
-  // Operate Module - Deployment Wizard
+  // Deployment wizard
 
   'deployment.wizard.title': 'Deploy',
 
-  'deployment.wizard.subtitle': 'Three steps to route an alias to a published process version.',
+  'deployment.wizard.subtitle': 'Route an alias to a published process version in three steps.',
 
   'deployment.wizard.selectProcess': 'Select process',
 
   'deployment.wizard.selectAlias': 'Select alias',
 
-  'deployment.wizard.confirm': 'Confirm',
+  'deployment.wizard.confirm': 'Review',
 
   'deployment.wizard.step1.desc': 'Choose the process to deploy',
 
-  'deployment.wizard.step2.desc': 'Choose the routing alias',
+  'deployment.wizard.step2.desc': 'Choose the route alias',
 
   'deployment.wizard.step3.desc': 'Review and deploy',
 
@@ -263,39 +264,39 @@ const enOperate = {
 
   'deployment.wizard.versionRequired': 'Select a published version',
 
-  'deployment.wizard.versionPlaceholder': 'Published version',
+  'deployment.wizard.versionPlaceholder': 'Select a published version',
 
   'deployment.wizard.noPublishedVersions': 'No published versions',
 
   'deployment.wizard.versionLoadFailed': 'Could not load published versions',
 
-  'deployment.wizard.selectAliasRequired': 'Enter a routing alias',
+  'deployment.wizard.selectAliasRequired': 'Enter a route alias',
 
   'deployment.wizard.selectAliasPlaceholder': 'Alias',
 
   'deployment.wizard.aliasInvalid':
     'Use 1–64 letters, digits, dots, underscores, or hyphens; start with a letter or digit.',
 
-  'deployment.wizard.step1.hint': 'Make sure the process is tested before you deploy.',
+  'deployment.wizard.step1.hint': 'Make sure the process has been tested before deployment.',
 
-  'deployment.wizard.step2.warningTitle': 'Before changing a live alias',
+  'deployment.wizard.step2.warningTitle': 'Before changing an active alias',
 
   'deployment.wizard.step2.warningDesc':
     'Confirm that the selected version is ready for traffic on this alias.',
 
   'deployment.wizard.confirmTitle': 'Confirm deployment',
 
-  'deployment.wizard.processType': 'Process Type',
+  'deployment.wizard.processType': 'Process type',
 
   'deployment.wizard.readyTitle': 'Ready to deploy',
 
   'deployment.wizard.readyDesc': 'Review the details above, then deploy.',
 
-  'deployment.wizard.deployFailed': 'Deployment failed—try again.',
+  'deployment.wizard.deployFailed': 'Could not deploy. Try again.',
 
   'deployment.wizard.deploySuccess': 'Deployed',
 
-  'deployment.wizard.deploySuccessDesc': '{{process}} is routed through {{alias}}',
+  'deployment.wizard.deploySuccessDesc': '{{process}} has been deployed to {{alias}}',
 
   'deployment.wizard.viewDeployment': 'View deployment',
 
@@ -305,7 +306,7 @@ const enOperate = {
 
   'monitoring.title': 'Monitoring',
 
-  'monitoring.subtitle': 'Execution metrics observed by this Workbench server and runtime health.',
+  'monitoring.subtitle': 'Execution metrics and runtime health for this Workbench server.',
 
   'monitoring.totalExecutions': 'Executions',
 
@@ -317,7 +318,7 @@ const enOperate = {
 
   'monitoring.executionTrends': 'Trends',
 
-  'monitoring.topProcesses': 'Top processes',
+  'monitoring.topProcesses': 'Process ranking',
 
   'monitoring.recentErrors': 'Recent errors',
 
@@ -329,17 +330,17 @@ const enOperate = {
 
   'monitoring.failed': 'Failed',
 
-  'monitoring.opsControlPlane': 'Control plane',
+  'monitoring.opsControlPlane': 'Operations',
 
   'monitoring.opsActionFailed': 'Operation failed',
 
-  'monitoring.opsRefreshFailed': 'Done, but status refresh failed',
+  'monitoring.opsRefreshFailed': 'Operation completed, but status could not be refreshed',
 
-  'monitoring.deploymentOutbox': 'Deployment outbox',
+  'monitoring.deploymentOutbox': 'Deployment delivery queue',
 
-  'monitoring.deploymentRunning': 'Routing delivery is active',
+  'monitoring.deploymentRunning': 'Deployment delivery is running',
 
-  'monitoring.deploymentStopped': 'Routing delivery is stopped',
+  'monitoring.deploymentStopped': 'Deployment delivery is stopped',
 
   'monitoring.outboxPending': 'Pending',
 
@@ -349,19 +350,19 @@ const enOperate = {
 
   'monitoring.outboxDeadLetters': 'Dead letters',
 
-  'monitoring.dispatcherRunning': 'Dispatcher',
+  'monitoring.dispatcherRunning': 'Delivery worker',
 
-  'monitoring.deploymentDeadLettersRequeued': 'Deployment dead letters requeued',
+  'monitoring.deploymentDeadLettersRequeued': 'Dead-lettered deployment tasks requeued',
 
-  'monitoring.requeueDeploymentDeadLetters': 'Requeue deployment dead letters',
+  'monitoring.requeueDeploymentDeadLetters': 'Requeue dead-lettered deployment tasks',
 
   'monitoring.asyncInvocationQueue': 'Async invocation queue',
 
-  'monitoring.asyncInvocationQueueTitle': 'Persisted async invocation retry pipeline',
+  'monitoring.asyncInvocationQueueTitle': 'Persistent queue for async invocation retries',
 
   'monitoring.asyncReady': 'Ready',
 
-  'monitoring.asyncOldestReady': 'Oldest ready',
+  'monitoring.asyncOldestReady': 'Longest wait',
 
   'monitoring.asyncDelayed': 'Delayed',
 
@@ -375,20 +376,21 @@ const enOperate = {
 
   'monitoring.asyncLease': 'Lease',
 
-  'monitoring.asyncBatch': 'Batch',
+  'monitoring.asyncConcurrency': 'Concurrency limit',
 
-  'monitoring.asyncDeadLettersRequeued': 'Async dead letters requeued',
+  'monitoring.asyncDeadLettersRequeued': 'Dead-lettered async invocations requeued',
 
-  'monitoring.requeueAsyncInvocationDeadLetters': 'Requeue async dead letters',
+  'monitoring.requeueAsyncInvocationDeadLetters': 'Requeue dead-lettered async invocations',
 
-  'monitoring.invocationLedgerEyebrow': 'Persisted runtime work',
+  'monitoring.invocationLedgerEyebrow': 'Persistent async execution',
 
-  'monitoring.invocationLedger': 'Async invocation ledger',
+  'monitoring.invocationLedger': 'Async invocation history',
 
   'monitoring.invocationLedgerDescription':
-    'Inspect logical invocations, physical attempts, retry decisions, and engine traces.',
+    'Review each invocation, its execution attempts, retry decisions, and engine traces.',
 
-  'monitoring.invocationLedgerStale': 'Invocation refresh failed; showing the last successful page',
+  'monitoring.invocationLedgerStale':
+    'Could not refresh invocations; showing the latest available data',
 
   'monitoring.invocationProcessFilter': 'Process code',
 
@@ -397,6 +399,8 @@ const enOperate = {
   'monitoring.invocationProcess': 'Process',
 
   'monitoring.invocationId': 'Invocation ID',
+
+  'monitoring.invocationTraceId': 'Trace ID',
 
   'monitoring.invocationStatus': 'Status',
 
@@ -408,10 +412,10 @@ const enOperate = {
 
   'monitoring.invocationStatus.dead_letter': 'Dead letter',
 
-  'monitoring.invocationAttempts': 'Attempts',
+  'monitoring.invocationAttempts': 'Execution attempts',
 
   'monitoring.invocationAttemptSummary':
-    '{{total}} lifetime, {{current}}/{{maximum}} current generation, {{redrives}} redrives',
+    '{{total}} total · {{current}}/{{maximum}} this run · {{redrives}} requeues',
 
   'monitoring.invocationVersion': 'Effective version',
 
@@ -419,11 +423,11 @@ const enOperate = {
 
   'monitoring.invocationDetail': 'Async invocation detail',
 
-  'monitoring.invocationDetailFailed': 'Invocation detail could not be loaded',
+  'monitoring.invocationDetailFailed': 'Could not load invocation details',
 
-  'monitoring.invocationAttemptHistory': 'Attempt history',
+  'monitoring.invocationAttemptHistory': 'Execution history',
 
-  'monitoring.invocationAttemptGeneration': 'redrive {{redrive}}, attempt {{attempt}}',
+  'monitoring.invocationAttemptGeneration': 'Requeues: {{redrive}} · Attempt: {{attempt}}',
 
   'monitoring.invocationWorker': 'Worker',
 
@@ -435,7 +439,7 @@ const enOperate = {
 
   'monitoring.invocationDuration': 'Duration',
 
-  'monitoring.invocationAttemptFailed': 'Attempt failed',
+  'monitoring.invocationAttemptFailed': 'Execution attempt failed',
 
   'monitoring.invocationOutcome.running': 'Running',
 
@@ -449,26 +453,26 @@ const enOperate = {
 
   'monitoring.invocationDisposition.retry_scheduled': 'Retry scheduled',
 
-  'monitoring.invocationDisposition.dead_lettered': 'Dead-lettered',
+  'monitoring.invocationDisposition.dead_lettered': 'Moved to dead-letter queue',
 
   'monitoring.noInvocations': 'No async invocations',
 
-  'monitoring.noInvocationAttempts': 'No attempts',
+  'monitoring.noInvocationAttempts': 'No execution attempts',
 
   'monitoring.requeueInvocation': 'Requeue',
 
-  'monitoring.invocationRequeued': 'Async invocation requeued',
+  'monitoring.invocationRequeued': 'Invocation requeued',
 
-  'monitoring.invocationRequeueConfirm': 'Requeue this dead-letter invocation?',
+  'monitoring.invocationRequeueConfirm': 'Requeue this dead-lettered invocation?',
 
   'monitoring.invocationRequeueWarning':
-    'Repair the cause first. Redrive is at-least-once and may repeat external effects.',
+    'Resolve the underlying issue first. Requeuing uses at-least-once delivery and may repeat external operations.',
 
   'monitoring.statusUnavailable': 'Status unavailable',
 
   'monitoring.unavailable': 'Unavailable',
 
-  'monitoring.deployRuntime': 'Deploy runtime data plane',
+  'monitoring.deployRuntime': 'Deployment runtime',
 
   'monitoring.deployRuntimeLocalNode': 'Local node diagnostics',
 
@@ -478,33 +482,33 @@ const enOperate = {
 
   'monitoring.runtimeStarted': 'Started',
 
-  'monitoring.runtimeInflight': 'Inflight installs',
+  'monitoring.runtimeInflight': 'Concurrent installs',
 
-  'monitoring.runtimeDesiredAliases': 'Desired aliases',
+  'monitoring.runtimeDesiredAliases': 'Target aliases',
 
-  'monitoring.runtimeLocalReadyAliases': 'Local-ready aliases',
+  'monitoring.runtimeLocalReadyAliases': 'Aliases ready locally',
 
-  'monitoring.runtimePendingAliases': 'Pending aliases',
+  'monitoring.runtimePendingAliases': 'Aliases syncing',
 
-  'monitoring.runtimeFailedAliases': 'Failed aliases',
+  'monitoring.runtimeFailedAliases': 'Aliases with sync errors',
 
-  'monitoring.runtimeDemanded': 'Demanded versions',
+  'monitoring.runtimeDemanded': 'Required versions',
 
-  'monitoring.runtimeBackedOff': 'Versions in retry backoff',
+  'monitoring.runtimeBackedOff': 'Versions waiting to retry',
 
-  'monitoring.runtimeAliases': 'Alias convergence',
+  'monitoring.runtimeAliases': 'Alias sync status',
 
   'monitoring.runtimeAliasState.local_ready': 'Local ready',
 
-  'monitoring.runtimeAliasState.pending': 'Pending',
+  'monitoring.runtimeAliasState.pending': 'Syncing',
 
   'monitoring.runtimeAliasState.failed': 'Failed',
 
-  'monitoring.runtimeAliasRevisions': 'desired r{{desired}}, local-ready r{{localReady}}',
+  'monitoring.runtimeAliasRevisions': 'target r{{desired}}, local ready r{{localReady}}',
 
-  'monitoring.runtimeDemandedList': 'Demanded',
+  'monitoring.runtimeDemandedList': 'Required versions',
 
-  'monitoring.runtimeBackedOffList': 'Retry backoff',
+  'monitoring.runtimeBackedOffList': 'Waiting to retry',
 
   'monitoring.runtimeDeployedList': 'Installed locally',
 
@@ -527,7 +531,7 @@ const enOperate = {
 
   'logs.title': 'Logs',
 
-  'logs.subtitle': 'Search and inspect process execution history.',
+  'logs.subtitle': 'Search and review process execution history.',
 
   'logs.namespace': 'Namespace',
 
@@ -553,15 +557,15 @@ const enOperate = {
 
   'logs.endDatePlaceholder': 'End date',
 
-  'logs.processCode': 'Process',
+  'logs.processCode': 'Process code',
 
-  'logs.invocationId': 'Invocation',
+  'logs.invocationId': 'Invocation ID',
 
-  'logs.parentInvocationId': 'Parent invocation',
+  'logs.parentInvocationId': 'Parent invocation ID',
 
   'logs.callDepth': 'Depth',
 
-  'logs.traceId': 'Trace',
+  'logs.traceId': 'Trace ID',
 
   'logs.status': 'Status',
 
@@ -571,13 +575,13 @@ const enOperate = {
 
   'logs.searchPlaceholder': 'Search logs…',
 
-  'logs.selectStatus': 'Status',
+  'logs.selectStatus': 'Select status',
 
   'logs.export': 'Export',
 
-  'logs.noData': 'No logs yet',
+  'logs.noData': 'No execution logs',
 
-  // Logs extras
+  // Shared filters
 
   'filters.clear': 'Clear filters',
 
@@ -591,7 +595,7 @@ const enOperate = {
 
   'filters.resultCount': '{{count}} examples found',
 
-  // Categories (ExampleList filter options)
+  // Sorting
 
   'sort.name': 'Name',
 
@@ -599,7 +603,7 @@ const enOperate = {
 
   'sort.duration': 'Duration',
 
-  // Process Type Filter
+  // Log details
 
   'logs.detail': 'Log detail',
 
@@ -613,18 +617,17 @@ const enOperate = {
 
   'logs.status.failed': 'Failed',
 
-  // Error extras
+  // Process actions
 
   'process.searchPlaceholder': 'Search processes…',
 
   'process.deleteConfirm': 'Delete this process?',
 
-  // Deployment extras
+  // Deployment filters and validation
 
   'deployment.management': 'Deployments',
 
-  'deployment.managementDesc':
-    'Track and manage published versions routed through process aliases.',
+  'deployment.managementDesc': 'Manage published versions and their route aliases.',
 
   'deployment.canaryRange': 'Canary weight must be between 1 and 9,999 basis points.',
   'deployment.canaryInteger': 'Canary weight must be a whole number of basis points.',
@@ -632,7 +635,7 @@ const enOperate = {
   'deployment.canaryRequired': 'Enter a canary traffic weight.',
 
   'deployment.health.reason.withinThresholds':
-    'Canary metrics are within the configured health thresholds.',
+    'Canary metrics are within the configured thresholds.',
 
   'deployment.health.metricsScope': 'Metrics scope',
 
@@ -650,18 +653,18 @@ const enOperate = {
 
   'deployment.filterAlias': 'Alias',
 
-  // Feedback
+  // Operate overview
 
   'operate.title': 'Operate',
 
   'operate.subtitle':
-    'Publish immutable versions, roll out safely, and trace every execution to its exact source.',
+    'Manage process versions and releases, monitor execution health, and review logs.',
 
-  'operate.deploy': 'Deploy',
+  'operate.deploy': 'Deploy process',
 
   'operate.monitor': 'Monitoring',
 
-  'operate.explore': 'Shortcuts',
+  'operate.explore': 'Quick access',
 
   'monitoring.runtimeTopology': 'Runtime topology',
 
@@ -671,15 +674,15 @@ const enOperate = {
 
   'operate.deployMgmt': 'Deployments',
 
-  'operate.deployMgmtDesc': 'Control published versions and Alias rollouts.',
+  'operate.deployMgmtDesc': 'Manage published versions and alias routing.',
 
   'operate.realtimeMonitor': 'Monitoring',
 
-  'operate.realtimeMonitorDesc': 'Execution health and performance metrics.',
+  'operate.realtimeMonitorDesc': 'Execution status and performance metrics.',
 
   'operate.logQuery': 'Logs',
 
-  'operate.logQueryDesc': 'Search and analyze execution logs.',
+  'operate.logQueryDesc': 'Search and review execution logs.',
 
   'operate.processesWithAliases': 'Processes with aliases',
 
@@ -697,7 +700,7 @@ const enOperate = {
 
   'operate.recentDeploys': 'Recent deployments',
 
-  'operate.noRecentDeployments': 'No recent deployments',
+  'operate.noRecentDeployments': 'No deployments yet',
 
   'operate.recentDeploymentsUnavailable': 'Recent deployments unavailable',
 
@@ -709,17 +712,15 @@ const enOperate = {
 
   'operate.pending': 'Pending',
 
-  // Monitoring error detail
+  // Monitoring error details
 
   'monitoring.errorCount': 'Count',
 
-  'monitoring.lastOccurred': 'Last',
-
-  // Learning progress
-
-  'process.editInDesigner': 'Edit in designer',
+  'monitoring.lastOccurred': 'Last seen',
 
   // Designer
+
+  'process.editInDesigner': 'Edit in designer',
 } as const
 
 export default enOperate

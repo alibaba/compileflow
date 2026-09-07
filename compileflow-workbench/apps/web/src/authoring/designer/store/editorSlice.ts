@@ -99,11 +99,10 @@ function resolveImportedProcessIdentity({
 
 function inheritedImportedProcessMetadata(
   currentProcess: UnifiedProcessDefinition | null
-): Partial<Pick<UnifiedProcessDefinition, 'category' | 'createdAt' | 'description' | 'tags'>> {
+): Partial<Pick<UnifiedProcessDefinition, 'category' | 'createdAt' | 'tags'>> {
   if (!currentProcess) return {}
 
   return {
-    description: currentProcess.description,
     createdAt: currentProcess.createdAt,
     category: currentProcess.category,
     tags: currentProcess.tags,
@@ -135,6 +134,7 @@ export interface EditorState {
   isModified: boolean
   /** Unique identity of the latest user-visible content mutation. */
   changeToken: string | null
+  savedChangeToken: string | null
   isLoading: boolean
   isSaving: boolean
   error: string | null
@@ -143,8 +143,12 @@ export interface EditorState {
   lastSavedTime: number | null
   /** When set, save persists to the operate flow API instead of IndexedDB. */
   operateBinding: { processCode: string; revision: number } | null
-  /** Latest local or operate load allowed to commit into the editor. */
-  activeLoadRequestId: string | null
+  /** Latest content transition allowed to replace or clear the editor document. */
+  activeContentRequestId: string | null
+  /** Document identity shared by its edit history, including same-ID reloads. */
+  documentRequestId: string | null
+  /** Correlates cancellation failures, which have no thunk rejection payload. */
+  activeSaveRequestId: string | null
 }
 
 interface EditorRootState {
@@ -157,6 +161,7 @@ const initialState: EditorState = {
   currentProcess: null,
   isModified: false,
   changeToken: null,
+  savedChangeToken: null,
   isLoading: false,
   isSaving: false,
   error: null,
@@ -164,7 +169,9 @@ const initialState: EditorState = {
   validationResult: null,
   lastSavedTime: null,
   operateBinding: null,
-  activeLoadRequestId: null,
+  activeContentRequestId: null,
+  documentRequestId: null,
+  activeSaveRequestId: null,
 }
 
 interface ChangeTokenMeta {
@@ -182,17 +189,41 @@ function markChanged(state: EditorState, token: string): void {
   state.isModified = true
 }
 
+function clearRemovedBpmnDefaultConnections(
+  process: UnifiedProcessDefinition,
+  removedConnectionIds: ReadonlySet<string>
+): void {
+  if (process.type !== 'BPMN' || removedConnectionIds.size === 0) return
+  process.nodes.forEach((node) => {
+    if (node.properties.default && removedConnectionIds.has(node.properties.default)) {
+      delete node.properties.default
+    }
+  })
+}
+
+function resetDocumentTracking(state: EditorState, requestId: string): void {
+  state.documentRequestId = requestId
+  state.activeSaveRequestId = null
+  state.isSaving = false
+  state.isModified = false
+  state.changeToken = null
+  state.savedChangeToken = null
+}
+
 export const createProcess = createAsyncThunk(
   'editor/createProcess',
-  async ({
-    type,
-    name,
-    definition: initialDefinition,
-  }: {
-    type: ProcessModelType
-    name?: string
-    definition?: string
-  }) => {
+  async (
+    {
+      type,
+      name,
+      definition: initialDefinition,
+    }: {
+      type: ProcessModelType
+      name?: string
+      definition?: string
+    },
+    { signal }
+  ) => {
     const id = generateId()
     const code = generateCode()
     const definition =
@@ -201,7 +232,9 @@ export const createProcess = createAsyncThunk(
 
     const baseName = name || `New ${type} Process`
     const processStorage = await loadProcessStorage()
+    signal.throwIfAborted()
     const availableName = await processStorage.suggestAvailableProcessName(baseName, type)
+    signal.throwIfAborted()
     const now = Date.now()
 
     const unified: UnifiedProcessDefinition = {
@@ -223,6 +256,7 @@ export const createProcess = createAsyncThunk(
     }
 
     await processStorage.saveProcess(flow)
+    signal.throwIfAborted()
 
     return unified
   }
@@ -284,64 +318,84 @@ export const loadOperateProcess = createAsyncThunk(
 )
 
 // The thunk condition prevents a second save while one is already in progress.
-export const saveProcess = createAsyncThunk(
+export const saveProcess = createAsyncThunk<
+  {
+    id: string
+    updatedAt: number
+    operateRevision: number | null
+    savedChangeToken: string | null
+    documentRequestId: string | null
+  },
+  { createSnapshot?: boolean } | undefined,
+  { rejectValue: { message: string; documentRequestId: string | null } }
+>(
   'editor/saveProcess',
-  async (options: { createSnapshot?: boolean } | undefined, { getState }) => {
+  async (options, { getState, rejectWithValue }) => {
     const state = getState() as EditorRootState
     const editorState = getEditorState(state)
     const currentProcess = editorState.currentProcess
     const savedChangeToken = editorState.changeToken
+    const documentRequestId = editorState.documentRequestId
 
-    if (!currentProcess) {
-      throw new Error('No flow to save')
-    }
+    try {
+      if (!currentProcess) {
+        throw new Error('No flow to save')
+      }
 
-    const xml = generateProcessXml(currentProcess)
+      const xml = generateProcessXml(currentProcess)
 
-    if (editorState.operateBinding) {
-      const updated = await updateOperateProcess(
-        editorState.operateBinding.processCode,
-        mapDesignerToOperateUpdate(currentProcess, xml, editorState.operateBinding.revision)
-      )
+      if (editorState.operateBinding) {
+        const updated = await updateOperateProcess(
+          editorState.operateBinding.processCode,
+          mapDesignerToOperateUpdate(currentProcess, xml, editorState.operateBinding.revision)
+        )
+        return {
+          id: currentProcess.id,
+          updatedAt: parseProcessContractTimestamp(updated.updatedAt, 'updatedAt'),
+          operateRevision: updated.revision,
+          savedChangeToken,
+          documentRequestId,
+        }
+      }
+
+      const processStorage = await loadProcessStorage()
+
+      // Generate the timestamp once and thread it through to avoid millisecond-level skew
+      // between the stored record and the Redux state.
+      const savedAt = Date.now()
+      const flow: StoredProcess = {
+        id: currentProcess.id,
+        code: currentProcess.code,
+        name: currentProcess.name,
+        type: currentProcess.type,
+        definition: xml,
+        description: currentProcess.description,
+        createdAt: currentProcess.createdAt || savedAt,
+        updatedAt: savedAt,
+        category: currentProcess.category,
+        tags: currentProcess.tags,
+      }
+
+      const snapshot = options?.createSnapshot
+        ? {
+            id: generateId(),
+            createdAt: savedAt,
+          }
+        : undefined
+      const savedProcess = await processStorage.saveProcess(flow, snapshot)
+
       return {
         id: currentProcess.id,
-        updatedAt: parseProcessContractTimestamp(updated.updatedAt, 'updatedAt'),
-        operateRevision: updated.revision,
+        updatedAt: savedProcess.updatedAt,
+        operateRevision: null,
         savedChangeToken,
+        documentRequestId,
       }
-    }
-
-    const processStorage = await loadProcessStorage()
-
-    // Generate the timestamp once and thread it through to avoid millisecond-level skew
-    // between the stored record and the Redux state.
-    const savedAt = Date.now()
-    const flow: StoredProcess = {
-      id: currentProcess.id,
-      code: currentProcess.code,
-      name: currentProcess.name,
-      type: currentProcess.type,
-      definition: xml,
-      description: currentProcess.description,
-      createdAt: currentProcess.createdAt || savedAt,
-      updatedAt: savedAt,
-      category: currentProcess.category,
-      tags: currentProcess.tags,
-    }
-
-    const snapshot = options?.createSnapshot
-      ? {
-          id: generateId(),
-          createdAt: savedAt,
-        }
-      : undefined
-    const savedProcess = await processStorage.saveProcess(flow, snapshot)
-
-    return {
-      id: currentProcess.id,
-      updatedAt: savedProcess.updatedAt,
-      operateRevision: null,
-      savedChangeToken,
+    } catch (error) {
+      return rejectWithValue({
+        message: error instanceof Error ? error.message : String(error),
+        documentRequestId,
+      })
     }
   },
   {
@@ -380,6 +434,32 @@ const editorSlice = createSlice({
   name: 'editor',
   initialState,
   reducers: {
+    addGraph: {
+      reducer(
+        state,
+        action: ChangeAction<{
+          nodes: BaseNode[]
+          connections: BaseConnection[]
+          messages: NonNullable<UnifiedProcessDefinition['messages']>
+        }>
+      ) {
+        if (!state.currentProcess || action.payload.nodes.length === 0) return
+        const { nodes, connections, messages } = action.payload
+        if (state.currentProcess.type === 'BPMN' && nodes.every(isBpmnNode)) {
+          state.currentProcess.nodes.push(...nodes)
+          if (messages.length) {
+            state.currentProcess.messages = [...(state.currentProcess.messages ?? []), ...messages]
+          }
+        } else if (state.currentProcess.type === 'TBBPM' && nodes.every(isTbbpmNode)) {
+          state.currentProcess.nodes.push(...nodes)
+        } else {
+          throw new Error(`Cannot add graph to a ${state.currentProcess.type} process`)
+        }
+        state.currentProcess.connections.push(...connections)
+        markChanged(state, action.meta.changeToken)
+      },
+      prepare: prepareChange,
+    },
     addNode: {
       reducer(state, action: ChangeAction<TbbpmNode | BpmnNode>) {
         if (!state.currentProcess) return
@@ -489,6 +569,14 @@ const editorSlice = createSlice({
           })
         }
         if (state.currentProcess.type === 'BPMN') {
+          const removedConnectionIds = new Set(
+            state.currentProcess.connections
+              .filter(
+                (connection) =>
+                  deletedIds.has(connection.sourceId) || deletedIds.has(connection.targetId)
+              )
+              .map((connection) => connection.id)
+          )
           state.currentProcess.nodes = state.currentProcess.nodes.filter(
             (node) => !deletedIds.has(node.id)
           )
@@ -496,6 +584,7 @@ const editorSlice = createSlice({
             (connection) =>
               !deletedIds.has(connection.sourceId) && !deletedIds.has(connection.targetId)
           )
+          clearRemovedBpmnDefaultConnections(state.currentProcess, removedConnectionIds)
         } else {
           state.currentProcess.nodes = state.currentProcess.nodes.filter(
             (node) => !deletedIds.has(node.id)
@@ -538,6 +627,7 @@ const editorSlice = createSlice({
         state.currentProcess.connections = state.currentProcess.connections.filter(
           (c) => c.id !== action.payload
         )
+        clearRemovedBpmnDefaultConnections(state.currentProcess, new Set([action.payload]))
         markChanged(state, action.meta.changeToken)
       },
       prepare: prepareChange,
@@ -562,20 +652,23 @@ const editorSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(createProcess.pending, (state) => {
+    builder.addCase(createProcess.pending, (state, action) => {
       state.isLoading = true
       state.error = null
-      state.activeLoadRequestId = null
+      state.activeContentRequestId = action.meta.requestId
     })
     builder.addCase(createProcess.fulfilled, (state, action) => {
+      if (state.activeContentRequestId !== action.meta.requestId) return
+      state.activeContentRequestId = null
       state.isLoading = false
       state.currentProcess = action.payload
-      state.isModified = false
-      state.changeToken = null
+      resetDocumentTracking(state, action.meta.requestId)
       state.warnings = []
       state.operateBinding = null
     })
     builder.addCase(createProcess.rejected, (state, action) => {
+      if (state.activeContentRequestId !== action.meta.requestId) return
+      state.activeContentRequestId = null
       state.isLoading = false
       state.error = action.error.message || 'Failed to create flow'
     })
@@ -583,31 +676,33 @@ const editorSlice = createSlice({
     builder.addCase(loadProcess.pending, (state, action) => {
       state.isLoading = true
       state.error = null
-      state.activeLoadRequestId = action.meta.requestId
+      state.activeContentRequestId = action.meta.requestId
     })
     builder.addCase(loadProcess.fulfilled, (state, action) => {
-      if (state.activeLoadRequestId !== action.meta.requestId) return
+      if (state.activeContentRequestId !== action.meta.requestId) return
       state.isLoading = false
-      state.activeLoadRequestId = null
+      state.activeContentRequestId = null
       state.currentProcess = action.payload.flow
       state.warnings = action.payload.warnings
-      state.isModified = false
-      state.changeToken = null
       state.operateBinding = null
+      resetDocumentTracking(state, action.meta.requestId)
     })
     builder.addCase(loadProcess.rejected, (state, action) => {
-      if (state.activeLoadRequestId !== action.meta.requestId) return
+      if (state.activeContentRequestId !== action.meta.requestId) return
       state.isLoading = false
-      state.activeLoadRequestId = null
+      state.activeContentRequestId = null
       state.error = action.error.message || 'Failed to load flow'
     })
 
-    builder.addCase(saveProcess.pending, (state) => {
+    builder.addCase(saveProcess.pending, (state, action) => {
       state.isSaving = true
+      state.activeSaveRequestId = action.meta.requestId
       state.error = null
     })
     builder.addCase(saveProcess.fulfilled, (state, action) => {
+      if (state.documentRequestId !== action.payload.documentRequestId) return
       state.isSaving = false
+      state.activeSaveRequestId = null
       // Only clear isModified when the saved flow is still the active flow.
       if (state.currentProcess && state.currentProcess.id === action.payload.id) {
         state.currentProcess.updatedAt = action.payload.updatedAt
@@ -615,29 +710,39 @@ const editorSlice = createSlice({
           state.operateBinding.revision = action.payload.operateRevision
         }
         state.isModified = state.changeToken !== action.payload.savedChangeToken
+        state.savedChangeToken = action.payload.savedChangeToken
         state.lastSavedTime = Date.now()
       }
     })
     builder.addCase(saveProcess.rejected, (state, action) => {
+      if (action.payload) {
+        if (state.documentRequestId !== action.payload.documentRequestId) return
+      } else if (state.activeSaveRequestId !== action.meta.requestId) {
+        return
+      }
       state.isSaving = false
-      state.error = action.error.message || 'Failed to save flow'
+      state.activeSaveRequestId = null
+      state.error = action.payload?.message || action.error.message || 'Failed to save flow'
     })
 
-    builder.addCase(deleteProcess.pending, (state) => {
+    builder.addCase(deleteProcess.pending, (state, action) => {
       // Show loading state while delete is in progress; prevents double-delete race.
       state.isLoading = true
       state.error = null
-      state.activeLoadRequestId = null
+      state.activeContentRequestId = action.meta.requestId
     })
-    builder.addCase(deleteProcess.fulfilled, (state) => {
+    builder.addCase(deleteProcess.fulfilled, (state, action) => {
+      if (state.activeContentRequestId !== action.meta.requestId) return
+      state.activeContentRequestId = null
       state.isLoading = false
       state.currentProcess = null
-      state.isModified = false
-      state.changeToken = null
+      resetDocumentTracking(state, action.meta.requestId)
       state.operateBinding = null
     })
     // Surface deleteProcess rejection in Redux state so the UI can show an error.
     builder.addCase(deleteProcess.rejected, (state, action) => {
+      if (state.activeContentRequestId !== action.meta.requestId) return
+      state.activeContentRequestId = null
       state.isLoading = false
       state.error = action.error.message || 'Failed to delete flow'
     })
@@ -645,35 +750,35 @@ const editorSlice = createSlice({
     builder.addCase(loadOperateProcess.pending, (state, action) => {
       state.isLoading = true
       state.error = null
-      state.activeLoadRequestId = action.meta.requestId
+      state.activeContentRequestId = action.meta.requestId
     })
     builder.addCase(loadOperateProcess.fulfilled, (state, action) => {
-      if (state.activeLoadRequestId !== action.meta.requestId) return
+      if (state.activeContentRequestId !== action.meta.requestId) return
       state.isLoading = false
-      state.activeLoadRequestId = null
+      state.activeContentRequestId = null
       state.currentProcess = action.payload.flow
       state.warnings = action.payload.warnings
-      state.isModified = false
-      state.changeToken = null
       state.operateBinding = {
         processCode: action.payload.operateProcessCode,
         revision: action.payload.revision,
       }
+      resetDocumentTracking(state, action.meta.requestId)
     })
     builder.addCase(loadOperateProcess.rejected, (state, action) => {
-      if (state.activeLoadRequestId !== action.meta.requestId) return
+      if (state.activeContentRequestId !== action.meta.requestId) return
       state.isLoading = false
-      state.activeLoadRequestId = null
+      state.activeContentRequestId = null
       state.error = action.error.message || 'Failed to load operate flow'
-      state.operateBinding = null
     })
 
-    builder.addCase(importXml.pending, (state) => {
+    builder.addCase(importXml.pending, (state, action) => {
       state.isLoading = true
       state.error = null
-      state.activeLoadRequestId = null
+      state.activeContentRequestId = action.meta.requestId
     })
     builder.addCase(importXml.fulfilled, (state, action) => {
+      if (state.activeContentRequestId !== action.meta.requestId) return
+      state.activeContentRequestId = null
       state.isLoading = false
       state.currentProcess = action.payload.flow
       state.warnings = action.payload.warnings
@@ -681,6 +786,8 @@ const editorSlice = createSlice({
       state.changeToken = action.meta.requestId
     })
     builder.addCase(importXml.rejected, (state, action) => {
+      if (state.activeContentRequestId !== action.meta.requestId) return
+      state.activeContentRequestId = null
       state.isLoading = false
       state.error = action.error.message || 'Failed to import XML'
     })
@@ -688,6 +795,7 @@ const editorSlice = createSlice({
 })
 
 export const {
+  addGraph,
   addNode,
   updateNode,
   replaceContainerChildren,

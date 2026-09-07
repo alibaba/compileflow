@@ -34,10 +34,10 @@ public final class ProcessRuntimeIdentity {
     private final String digest;
     private final int hashCode;
 
-    private ProcessRuntimeIdentity(ProcessDefinitionSnapshot definition, ProcessModelType modelType,
-            PipelineIdentity pipelineIdentity, ClassLoader classLoader) {
+    private ProcessRuntimeIdentity(ProcessDefinitionSnapshot definition, PipelineIdentity pipelineIdentity,
+            ClassLoader classLoader) {
         ProcessDefinitionSnapshot source = Objects.requireNonNull(definition, "definition");
-        this.modelType = Objects.requireNonNull(modelType, "modelType");
+        this.modelType = source.getModelType();
         this.code = source.getCode();
         this.sourceDigest = source.getSourceDigest();
         this.pipelineIdentity = Objects.requireNonNull(pipelineIdentity, "pipelineIdentity");
@@ -50,14 +50,13 @@ public final class ProcessRuntimeIdentity {
      * Creates a local runtime identity from exact runtime-construction inputs.
      *
      * @param definition             exact source snapshot
-     * @param modelType              engine model type
      * @param pipelineIdentity identity of the immutable engine runtime-construction pipeline
      * @param classLoader            exact application class-loader scope
      * @return local runtime identity
      */
-    public static ProcessRuntimeIdentity of(ProcessDefinitionSnapshot definition, ProcessModelType modelType,
-            PipelineIdentity pipelineIdentity, ClassLoader classLoader) {
-        return new ProcessRuntimeIdentity(definition, modelType, pipelineIdentity, classLoader);
+    public static ProcessRuntimeIdentity of(ProcessDefinitionSnapshot definition, PipelineIdentity pipelineIdentity,
+            ClassLoader classLoader) {
+        return new ProcessRuntimeIdentity(definition, pipelineIdentity, classLoader);
     }
 
     /**

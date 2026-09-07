@@ -21,15 +21,15 @@ import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.core.routing.LocalRoutingState;
 import com.alibaba.compileflow.engine.spi.routing.ProcessAliasRoute;
-import com.alibaba.compileflow.deploy.api.protocol.routing.RoutingStateKeys;
-import com.alibaba.compileflow.deploy.api.protocol.routing.RoutingStatePayloads;
-import com.alibaba.compileflow.deploy.api.sync.inmemory.InMemoryDeploymentSyncChannel;
-import com.alibaba.compileflow.deploy.control.repository.InMemoryProcessVersionRepository;
-import com.alibaba.compileflow.deploy.control.repository.ProcessVersionRecord;
-import com.alibaba.compileflow.deploy.runtime.DeployRuntime;
+import com.alibaba.compileflow.deploy.protocol.RoutingStateKeys;
+import com.alibaba.compileflow.deploy.protocol.RoutingStateCodec;
+import com.alibaba.compileflow.deploy.testkit.InMemoryDeploymentProjectionStore;
+import com.alibaba.compileflow.deploy.testkit.InMemoryProcessVersionStore;
+import com.alibaba.compileflow.deploy.spi.store.ProcessVersionRecord;
+import com.alibaba.compileflow.deploy.runtime.DeploymentRuntime;
 import com.alibaba.compileflow.engine.test.support.config.ProcessEngineTestConfiguration;
 import com.alibaba.compileflow.engine.test.support.helpers.Awaiter;
-import com.alibaba.compileflow.engine.test.support.helpers.DeployRuntimeTestSupport;
+import com.alibaba.compileflow.engine.test.support.helpers.DeploymentRuntimeTestSupport;
 import com.alibaba.compileflow.engine.test.support.helpers.ProcessEngineTestFactory;
 import java.time.Duration;
 import java.util.Collections;
@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -53,7 +52,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @Tag("resource")
 @Execution(ExecutionMode.SAME_THREAD)
 class ResourceManagementTest {
-    private static final Duration CHANNEL_TIMEOUT = Duration.ofSeconds(2);
+    private static final Duration OPERATION_TIMEOUT = Duration.ofSeconds(2);
 
     @Test
     @DisplayName("ProcessEngine close should not leak engine threads")
@@ -61,41 +60,40 @@ class ResourceManagementTest {
         int before = countEngineThreads();
 
         for (int i = 0; i < 3; i++) {
-            ProcessEngine engine = ProcessEngineTestFactory.createTbbpm();
-            engine.close();
+            ProcessEngine engine = ProcessEngineTestFactory.create();
+            try {
+                assertThat(engine
+                    .execute(ProcessDefinition.inline(ProcessModelType.TBBPM, "resource.threads",
+                                    markerFlow("resource.threads", "ready")), Map.of())
+                    .orElseThrow())
+                    .containsEntry("version_marker", "ready");
+                assertThat(countEngineThreads()).as("The test must exercise engine-owned worker threads").isGreaterThan(
+                        before);
+            } finally {
+                engine.close();
+            }
         }
 
-        AtomicInteger previousCount = new AtomicInteger(Integer.MIN_VALUE);
-        AtomicInteger stableSamples = new AtomicInteger();
-        Awaiter.await("Engine threads stabilized after close", Duration.ofSeconds(3), Duration.ofMillis(100),
-                () -> {
-                    int current = countEngineThreads();
-                    if (previousCount.getAndSet(current) == current) {
-                        return stableSamples.incrementAndGet() >= 2;
-                    }
-                    stableSamples.set(0);
-                    return false;
-                }, () -> "Current thread count: " + countEngineThreads());
+        Awaiter.await("Engine workers stopped", Duration.ofSeconds(3), Duration.ofMillis(100), () -> countEngineThreads() <= before, () -> "threads="
+                + countEngineThreads());
 
         int after = countEngineThreads();
-        // Allow minor JVM shared thread fluctuations (e.g., GC/JIT/IDE plugins), but engine threads
-        // should not grow persistently.
         assertThat(after)
             .as("Engine threads after close should not grow unexpectedly (before=%s after=%s)", before, after)
-            .isLessThanOrEqualTo(before + 2);
+            .isLessThanOrEqualTo(before);
     }
 
     @Test
-    @DisplayName("DeployRuntime close should stop reacting to routing state updates")
+    @DisplayName("DeploymentRuntime close should stop reacting to routing state updates")
     void deployRuntimeCloseShouldStopReacting() throws Exception {
         String ns = "default";
         String code = "resource.runtime.close";
         String version = "v1";
 
-        InMemoryProcessVersionRepository repo = new InMemoryProcessVersionRepository();
-        ProcessEngine engine = ProcessEngineTestFactory.createTbbpm();
+        InMemoryProcessVersionStore repo = new InMemoryProcessVersionStore();
+        ProcessEngine engine = ProcessEngineTestFactory.create();
         LocalRoutingState localRoutingState = new LocalRoutingState();
-        InMemoryDeploymentSyncChannel channel = new InMemoryDeploymentSyncChannel();
+        InMemoryDeploymentProjectionStore projectionStore = new InMemoryDeploymentProjectionStore();
 
         ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "test-deploy-runtime");
@@ -110,54 +108,54 @@ class ResourceManagementTest {
                 .namespace(ns)
                 .code(code)
                 .version(version)
-                .modelType(ProcessModelType.TBBPM)
-                .processDefinition(ProcessDefinition.inline(code, content))
-                .artifactDigest(ProcessArtifactDigest.compute(ProcessModelType.TBBPM,
-                        ProcessDefinition.inline(code, content), Map.of()))
+                .processDefinition(ProcessDefinition.inline(ProcessModelType.TBBPM, code, content))
+                .artifactDigest(ProcessArtifactDigest.compute(ProcessDefinition.inline(ProcessModelType.TBBPM, code,
+                                content), Map.of()))
                 .actor("test")
                 .createdAt(System.currentTimeMillis())
                 .build());
 
             String key = RoutingStateKeys.aliasState("compileflow.test.resource.", ns, code, "prod");
             List<String> keys = Collections.singletonList(key);
-            DeployRuntime rt = DeployRuntimeTestSupport.dbRuntime(channel, keys, engine, ProcessModelType.TBBPM, repo,
-                    CHANNEL_TIMEOUT, executor, localRoutingState);
-            rt.start();
+            try (DeploymentRuntime rt = DeploymentRuntimeTestSupport.sourceRuntime(projectionStore, keys, engine, repo,
+                    OPERATION_TIMEOUT, executor, localRoutingState)) {
+                rt.start();
 
-            assertThat(channel.compareAndSet(key, null, aliasPayload(ns, code, version, 1), "json", CHANNEL_TIMEOUT)).isTrue();
-            Awaiter.await("Version deployed to snapshot", Duration.ofMillis(8000), Duration.ofMillis(50), () -> localRoutingState
-                .getInstalledVersionState()
-                .contains(ns, code, version), () -> "Deployed snapshot state: "
-                    + localRoutingState.getInstalledVersionState());
-            assertThat(localRoutingState.getInstalledVersionState().contains(ns, code, version)).isTrue();
-            // Close runtime
-            rt.close();
-            // Clear snapshot and write again; closed runtime should NOT reinstall
-            localRoutingState.clear();
-            String current = channel.read(key, CHANNEL_TIMEOUT);
-            assertThat(channel.compareAndSet(key, current, aliasPayload(ns, code, version, 2), "json", CHANNEL_TIMEOUT)).isTrue();
-            // Verify runtime remains stopped (wait long enough to observe any reaction)
+                assertThat(projectionStore.compareAndSet(key, null, aliasPayload(ns, code, version, 1), "json",
+                        OPERATION_TIMEOUT))
+                    .isTrue();
+                Awaiter.await("Version and route deployed to local state", Duration.ofMillis(8000), Duration.ofMillis(
+                        50), () -> localRoutingState.getInstalledVersionState().contains(ns, code, version)
+                        && localRoutingState
+                            .getAliasRouteState()
+                            .resolve(ns, code, "prod")
+                            .filter(route -> route.revision() == 1L)
+                            .isPresent(), () -> "Local state: " + localRoutingState);
+                assertThat(localRoutingState.getInstalledVersionState().contains(ns, code, version)).isTrue();
+            }
+            long appliedRevision =
+                    localRoutingState.getAliasRouteState().resolve(ns, code, "prod").orElseThrow().revision();
+            String current = projectionStore.read(key, OPERATION_TIMEOUT);
+            assertThat(projectionStore.compareAndSet(key, current, aliasPayload(ns, code, version, 2), "json",
+                    OPERATION_TIMEOUT))
+                .isTrue();
             long verifyStart = System.currentTimeMillis();
             Awaiter.await("Verify runtime remains stopped", Duration.ofMillis(1500), Duration.ofMillis(100),
                     () -> {
-                        boolean stillStopped = !localRoutingState
-                            .getInstalledVersionState()
-                            .contains(ns, code, version);
-                        // Ensure we've waited at least 500ms to observe any potential reaction
-                        return stillStopped && (System.currentTimeMillis() - verifyStart > 500);
-                    },
-                    () -> "Snapshot contains version: "
-                    + localRoutingState.getInstalledVersionState().contains(ns, code, version));
+                        long currentRevision =
+                        localRoutingState.getAliasRouteState().resolve(ns, code, "prod").orElseThrow().revision();
+                        return currentRevision == appliedRevision && (System.currentTimeMillis() - verifyStart > 500);
+                    }, () -> "Applied route: " + localRoutingState.getAliasRouteState().resolve(ns, code, "prod"));
 
-            assertThat(localRoutingState.getInstalledVersionState().contains(ns, code, version))
+            assertThat(localRoutingState.getAliasRouteState().resolve(ns, code, "prod").orElseThrow().revision())
                 .as("Closed runtime must not react to routing state updates")
-                .isFalse();
+                .isEqualTo(appliedRevision);
         } finally {
             try {
                 engine.close();
             } finally {
-                executor.shutdown();
-                localRoutingState.clear();
+                executor.shutdownNow();
+                assertThat(executor.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
             }
         }
     }
@@ -194,7 +192,7 @@ class ResourceManagementTest {
     }
 
     private String aliasPayload(String namespace, String code, String version, long revision) {
-        return RoutingStatePayloads.aliasStateJson(namespace, code, "prod", version, null, null, revision, "test",
+        return RoutingStateCodec.aliasStateJson(namespace, code, "prod", version, null, null, revision, "test",
                 System.currentTimeMillis());
     }
 

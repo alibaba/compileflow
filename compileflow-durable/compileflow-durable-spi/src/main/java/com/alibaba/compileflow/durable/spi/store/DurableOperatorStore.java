@@ -24,7 +24,15 @@ import java.util.UUID;
  *
  * @author yusu
  */
-public interface DurableOperatorStore extends DurableRunProjectionStore {
+public interface DurableOperatorStore {
+    Optional<ProcessRun> findRun(ProcessRunId runId);
+
+    DurableStore.RunPage listRuns(DurableStore.RunQuery query);
+
+    DurableStore.TimelinePage listTimeline(DurableStore.TimelineQuery query);
+
+    DurableStore.ActiveWorkPage listActiveWork(DurableStore.ActiveWorkQuery query);
+
     ProcessRun control(DurableStore.ControlCommand command);
 
     ProcessRun resolveEffect(DurableStore.EffectResolution command);

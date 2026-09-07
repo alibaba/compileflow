@@ -4,9 +4,9 @@ CompileFlow is maintained by the project maintainers listed in this file and ref
 
 ## Primary Maintainer
 
-| GitHub        | Affiliation | Scope                                          |
-|---------------|-------------|------------------------------------------------|
-| @kangzhiqiang | Alibaba     | Repository-wide maintenance and release review |
+| GitHub    | Affiliation | Scope                                          |
+| --------- | ----------- | ---------------------------------------------- |
+| @yusu1210 | Alibaba     | Repository-wide maintenance and release review |
 
 ## Responsibilities
 

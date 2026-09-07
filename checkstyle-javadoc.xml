@@ -8,6 +8,7 @@
 
     This gate enforces substantive English Javadoc for public Java surfaces.
     Standard Javadoc tags such as @author are allowed.
+    Repository hygiene checks own comment-language validation.
 -->
 <module name="Checker">
     <property name="charset" value="UTF-8"/>
@@ -51,19 +52,6 @@
         <module name="MissingJavadocType">
             <property name="severity" value="error"/>
             <property name="scope" value="public"/>
-        </module>
-
-        <module name="SuppressionCommentFilter">
-            <property name="offCommentFormat" value="CHECKSTYLE.OFF\: ChineseCharacter"/>
-            <property name="onCommentFormat" value="CHECKSTYLE.ON\: ChineseCharacter"/>
-            <property name="checkFormat" value="RegexpSinglelineJava"/>
-        </module>
-
-        <module name="RegexpSinglelineJava">
-            <property name="severity" value="error"/>
-            <property name="format" value="[\u4e00-\u9fa5]"/>
-            <property name="message" value="Chinese characters detected in comment. Please translate to English."/>
-            <property name="ignoreComments" value="false"/>
         </module>
 
         <module name="RegexpSinglelineJava">

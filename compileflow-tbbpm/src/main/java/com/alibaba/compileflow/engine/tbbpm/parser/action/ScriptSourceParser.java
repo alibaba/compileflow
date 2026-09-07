@@ -27,7 +27,6 @@ import com.alibaba.compileflow.engine.tbbpm.model.TbbpmModelConstants;
 public final class ScriptSourceParser extends AbstractTbbpmElementParser<ScriptSource> {
     @Override
     protected ScriptSource doParse(XmlSource xmlSource, ParseContext parseContext) {
-        ActionParsing.requireOnlyAttributes(xmlSource);
         ScriptSource source = new ScriptSource();
         source.setSource(xmlSource.getElementText());
         return source;

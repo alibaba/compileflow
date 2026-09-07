@@ -130,6 +130,9 @@ class ExecutionLogControllerTest {
         ResponseEntity<byte[]> response = controller.exportExecutionLogs(null);
 
         String csv = new String(response.getBody(), StandardCharsets.UTF_8);
+        assertThat(csv.lines().toList()).hasSize(2);
+        assertThat(csv.lines().findFirst().orElseThrow()).endsWith("errorCode,errorMessage");
+        assertThat(csv.lines().skip(1).findFirst().orElseThrow()).startsWith("log-1,payment.approve,");
         assertThat(csv).contains("CF_EXEC_001").contains("\"' \t=HYPERLINK(\"\"https://example." + "invalid\"\")\"");
     }
 
@@ -184,5 +187,20 @@ class ExecutionLogControllerTest {
         assertThat(response.getBody().hasMore()).isTrue();
         assertThat(response.getBody().purgedAt()).isEqualTo(now.toString());
         verify(logService).purgeOlderThan(2_000L);
+    }
+
+    @Test
+    void rejectsTimestampsOutsideTheEpochMillisecondRangeBeforeQueryingOrPurging() {
+        ExecutionLogService logService = mock(ExecutionLogService.class);
+        ExecutionLogController controller = new ExecutionLogController(logService);
+        for (String timestamp : List.of(Instant.MAX.toString(), Instant.MIN.toString())) {
+            assertProblem(() -> controller.listExecutionLogs(null, null, null, timestamp, null, null, null, null, null,
+                            null, null, null, null, null, null, 1, 20), HttpStatus.BAD_REQUEST, "INVALID_REQUEST",
+                    "startTime must be an ISO-8601 timestamp");
+            assertProblem(() -> controller.purgeExecutionLogs(new PurgeExecutionLogsRequest(timestamp)),
+                    HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "before must be an ISO-8601 timestamp");
+        }
+        verify(logService, never()).search(any(ExecutionLogService.LogQuery.class), anyInt(), anyInt());
+        verify(logService, never()).purgeOlderThan(anyLong());
     }
 }

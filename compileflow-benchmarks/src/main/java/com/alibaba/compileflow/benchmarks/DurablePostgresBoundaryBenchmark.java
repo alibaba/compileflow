@@ -70,8 +70,8 @@ public class DurablePostgresBoundaryBenchmark {
      */
     @Benchmark
     public boolean commitWaitBoundary(ClaimedRunState claimed) {
-        return claimed.database.store.commitTurn(claimed.claim.lease(),
-                claimed.database.waitCommit(claimed.claim, claimed.waitToken));
+        return requireSuccess(claimed.database.store.commitTurn(claimed.claim.lease(),
+                        claimed.database.waitCommit(claimed.claim, claimed.waitToken)), "Wait commit");
     }
 
     /**
@@ -79,7 +79,8 @@ public class DurablePostgresBoundaryBenchmark {
      */
     @Benchmark
     public boolean commitTimerBoundary(ClaimedRunState claimed) {
-        return claimed.database.store.commitTurn(claimed.claim.lease(), claimed.database.timerCommit(claimed.claim));
+        return requireSuccess(claimed.database.store.commitTurn(claimed.claim.lease(),
+                        claimed.database.timerCommit(claimed.claim)), "Timer commit");
     }
 
     /**
@@ -95,7 +96,8 @@ public class DurablePostgresBoundaryBenchmark {
      */
     @Benchmark
     public boolean commitEffectBoundary(EffectRunState effect) {
-        return effect.database.store.commitTurn(effect.claim.lease(), effect.database.effectCommit(effect.claim));
+        return requireSuccess(effect.database.store.commitTurn(effect.claim.lease(),
+                        effect.database.effectCommit(effect.claim)), "Effect commit");
     }
 
     /**
@@ -112,8 +114,9 @@ public class DurablePostgresBoundaryBenchmark {
      */
     @Benchmark
     public boolean completeRun(CompleteRunState run) {
-        return run.database.store.commitTurn(run.claim.lease(),
-                run.database.succeededTurn(run.database.resultEnvelope("run-complete")));
+        return requireSuccess(run.database.store.commitTurn(run.claim.lease(),
+                        run.database.succeededTurn(run.claim, run.database.resultEnvelope("run-complete"))),
+                "Run completion");
     }
 
     /**
@@ -121,8 +124,8 @@ public class DurablePostgresBoundaryBenchmark {
      */
     @Benchmark
     public boolean completeEffect(ClaimedEffectState effect) {
-        return effect.database.store.completeEffect(effect.claim.lease(),
-                effect.database.resultEnvelope("effect-complete"));
+        return requireSuccess(effect.database.store.completeEffect(effect.claim.lease(),
+                        effect.database.resultEnvelope("effect-complete")), "Effect completion");
     }
 
     /**
@@ -130,7 +133,8 @@ public class DurablePostgresBoundaryBenchmark {
      */
     @Benchmark
     public boolean markEffectUnknown(ClaimedEffectState effect) {
-        return effect.database.store.markEffectUnknown(effect.claim.lease(), Duration.ZERO, "benchmark-unknown");
+        return requireSuccess(effect.database.store.markEffectUnknown(effect.claim.lease(), Duration.ZERO,
+                        "benchmark-unknown"), "Effect UNKNOWN transition");
     }
 
     /**
@@ -151,6 +155,13 @@ public class DurablePostgresBoundaryBenchmark {
             .claimOutbox(new DurableStore.OutboxClaimRequest("benchmark-outbox", DatabaseState.LEASE))
             .orElseThrow();
         return outbox.claim;
+    }
+
+    private static boolean requireSuccess(boolean committed, String operation) {
+        if (!committed) {
+            throw new IllegalStateException(operation + " lost its fence; benchmark sample is invalid");
+        }
+        return true;
     }
 
     /**
@@ -204,7 +215,7 @@ public class DurablePostgresBoundaryBenchmark {
                 .configure()
                 .dataSource(dataSource)
                 .cleanDisabled(false)
-                .locations("classpath:db/compileflow-durable/migration")
+                .locations("classpath:db/compileflow-durable/postgres/migration")
                 .load();
             flyway.clean();
             flyway.migrate();
@@ -252,7 +263,7 @@ public class DurablePostgresBoundaryBenchmark {
                             UUID.randomUUID()), occurrence, PROCESS_ID, ROOT_INVOCATION_ID, "root",
                     "approval-" + occurrence, "approved", DurableDigests.sha256(waitToken), null,
                     envelope("wait-committed-" + occurrence));
-            return waitingTurn(wait, snapshotEnvelope("waiting-state-" + sequence.incrementAndGet()));
+            return waitingTurn(claim, wait, snapshotEnvelope("waiting-state-" + sequence.incrementAndGet()));
         }
 
         private DurableStore.TurnCommit timerCommit(DurableStore.RunClaim claim) {
@@ -260,21 +271,24 @@ public class DurablePostgresBoundaryBenchmark {
             DurableStore.TimerCommit timer = new DurableStore.TimerCommit(new DurableStore.OccurrenceKey(DurableStore.OccurrenceKind.TIMER,
                             UUID.randomUUID()), occurrence, PROCESS_ID, ROOT_INVOCATION_ID, "root",
                     "timer-" + occurrence, Duration.ofMinutes(5), null);
-            return waitingTurn(timer, snapshotEnvelope("timer-state-" + occurrence));
+            return waitingTurn(claim, timer, snapshotEnvelope("timer-state-" + occurrence));
         }
 
         private DurableStore.TurnCommit effectCommit(DurableStore.RunClaim claim) {
+            return effectCommit(claim, EffectRecoveryPlan.manual());
+        }
+
+        private DurableStore.TurnCommit effectCommit(DurableStore.RunClaim claim, EffectRecoveryPlan recoveryPlan) {
             long occurrence = claim.occurrenceSequence() + 1;
             DurableStore.EffectCommit effect = new DurableStore.EffectCommit(new DurableStore.OccurrenceKey(DurableStore.OccurrenceKind.EFFECT,
                             UUID.randomUUID()), occurrence, PROCESS_ID, ROOT_INVOCATION_ID, "root",
-                    "effect-" + occurrence, EffectRecoveryPlan.manual(),
-                    envelope("effect-input-" + sequence.incrementAndGet()));
-            return waitingTurn(effect, snapshotEnvelope("effect-state-" + occurrence));
+                    "effect-" + occurrence, recoveryPlan, envelope("effect-input-" + sequence.incrementAndGet()));
+            return waitingTurn(claim, effect, snapshotEnvelope("effect-state-" + occurrence));
         }
 
-        private DurableStore.EffectClaim createEffectClaim() {
+        private DurableStore.EffectClaim createEffectClaim(EffectRecoveryPlan recoveryPlan) {
             DurableStore.RunClaim run = claimOrCreate();
-            if (!store.commitTurn(run.lease(), effectCommit(run))) {
+            if (!store.commitTurn(run.lease(), effectCommit(run, recoveryPlan))) {
                 throw new IllegalStateException("Unable to create Effect boundary");
             }
             return claimEffect(DurableStore.EffectOperation.DISPATCH);
@@ -298,14 +312,19 @@ public class DurablePostgresBoundaryBenchmark {
             return "wait-" + claim.lease().runId().value() + '-' + (claim.occurrenceSequence() + 1);
         }
 
-        private DurableStore.TurnCommit waitingTurn(DurableStore.OccurrenceCommit occurrence,
-                DurableStore.Envelope continuation) {
-            return new DurableStore.TurnCommit(List.of(), List.of(occurrence),
+        private DurableStore.TurnCommit waitingTurn(DurableStore.RunClaim claim,
+                DurableStore.OccurrenceCommit occurrence, DurableStore.Envelope continuation) {
+            return new DurableStore.TurnCommit(consumedOccurrences(claim), List.of(occurrence),
                     new DurableStore.WaitingTurn(continuation));
         }
 
-        private DurableStore.TurnCommit succeededTurn(DurableStore.Envelope result) {
-            return new DurableStore.TurnCommit(List.of(), List.of(), new DurableStore.SucceededTurn(result));
+        private DurableStore.TurnCommit succeededTurn(DurableStore.RunClaim claim, DurableStore.Envelope result) {
+            return new DurableStore.TurnCommit(consumedOccurrences(claim), List.of(),
+                    new DurableStore.SucceededTurn(result));
+        }
+
+        private static List<DurableStore.OccurrenceKey> consumedOccurrences(DurableStore.RunClaim claim) {
+            return claim.occurrenceResults().stream().map(DurableStore.OccurrenceResult::occurrence).toList();
         }
 
         private static DurableStore.Envelope envelope(String value) {
@@ -410,7 +429,9 @@ public class DurablePostgresBoundaryBenchmark {
         @TearDown(Level.Invocation)
         public void tearDown() {
             if (claim != null) {
-                database.store.commitTurn(claim.lease(), database.succeededTurn(database.resultEnvelope("claimed-run")));
+                requireSuccess(database.store.commitTurn(claim.lease(),
+                                database.succeededTurn(claim, database.resultEnvelope("claimed-run"))),
+                        "Run claim settlement");
                 claim = null;
             }
         }
@@ -448,7 +469,7 @@ public class DurablePostgresBoundaryBenchmark {
         @Setup(Level.Invocation)
         public void setup(DatabaseState shared) {
             database = shared;
-            claim = database.createEffectClaim();
+            claim = database.createEffectClaim(EffectRecoveryPlan.manual());
         }
     }
 
@@ -466,7 +487,9 @@ public class DurablePostgresBoundaryBenchmark {
         @Setup(Level.Invocation)
         public void setup(DatabaseState shared) {
             database = shared;
-            DurableStore.EffectClaim dispatch = database.createEffectClaim();
+            DurableStore.EffectClaim dispatch =
+                    database.createEffectClaim(EffectRecoveryPlan.reconcile(1, 1, Duration.ofMillis(1),
+                            Duration.ofMinutes(1)));
             if (!database.store.markEffectUnknown(dispatch.lease(), Duration.ZERO, "benchmark-reconcile")) {
                 throw new IllegalStateException("Unable to create UNKNOWN Effect");
             }
@@ -478,7 +501,8 @@ public class DurablePostgresBoundaryBenchmark {
         @TearDown(Level.Invocation)
         public void tearDown() {
             if (claim != null) {
-                database.store.requireEffectReview(claim.lease(), "benchmark-complete");
+                requireSuccess(database.store.requireEffectReview(claim.lease(), "benchmark-complete"),
+                        "Reconciliation settlement");
                 claim = null;
             }
         }
@@ -499,7 +523,7 @@ public class DurablePostgresBoundaryBenchmark {
         public void setup(DatabaseState shared) {
             database = shared;
             DurableStore.RunClaim run = database.claimOrCreate();
-            if (!database.store.commitTurn(run.lease(), database.succeededTurn(DatabaseState.envelope("done")))) {
+            if (!database.store.commitTurn(run.lease(), database.succeededTurn(run, DatabaseState.envelope("done")))) {
                 throw new IllegalStateException("Unable to create Outbox event");
             }
         }
@@ -510,7 +534,7 @@ public class DurablePostgresBoundaryBenchmark {
         @TearDown(Level.Invocation)
         public void tearDown() {
             if (claim != null) {
-                database.store.completeOutbox(claim.lease());
+                requireSuccess(database.store.completeOutbox(claim.lease()), "Outbox settlement");
                 claim = null;
             }
         }

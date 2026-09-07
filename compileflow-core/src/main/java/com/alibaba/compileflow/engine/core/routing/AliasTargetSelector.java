@@ -64,9 +64,10 @@ public final class AliasTargetSelector {
                     return new Selection(override.orElseThrow(), Reason.TARGETING, targeting.policy());
                 }
             } catch (RuntimeException | LinkageError failure) {
-                LOGGER.error("Alias targeting failed; selecting stable: ns={} code={} alias={} revision={} policy={}",
-                        authoritative.alias().namespace(), authoritative.alias().code(), authoritative.alias().alias(),
-                        authoritative.revision(), targeting.policy(), failure);
+                LOGGER.error("Alias targeting failed; selecting stable: ns={} code={} alias={} revision={} policy={} "
+                        + "failureType={}", authoritative.alias().namespace(), authoritative.alias().code(),
+                        authoritative.alias().alias(), authoritative.revision(), targeting.policy(),
+                        failure.getClass().getName());
                 return new Selection(ProcessAliasTarget.STABLE, Reason.TARGETING_ERROR, targeting.policy());
             }
         }

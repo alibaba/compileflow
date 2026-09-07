@@ -23,7 +23,7 @@ import {
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { TFunction } from 'i18next'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { UnifiedProcessDefinition } from '../types/flowDefinition'
@@ -160,6 +160,21 @@ function syncSimulationEvent({
   setExecutionState(simulationEngine.getState())
 }
 
+function subscribeToSimulationEvents(
+  engine: ProcessSimulationEngine,
+  callback: (event: ExecutionEvent) => void
+) {
+  let active = true
+  const listener = (event: ExecutionEvent) => {
+    if (active) callback(event)
+  }
+  engine.on(listener)
+  return () => {
+    active = false
+    engine.off(listener)
+  }
+}
+
 function useSimulationDebugger({
   flowDefinition,
   simulationEngine,
@@ -174,6 +189,7 @@ function useSimulationDebugger({
   const [variables, setVariables] = useState<Record<string, unknown>>({})
   const [events, setEvents] = useState<ExecutionEvent[]>([])
   const [currentNodeId, setCurrentNodeId] = useState<string | null>(null)
+  const requestGeneration = useRef(0)
 
   const updateVariables = useCallback(() => {
     setVariables(variablesFromEngine(simulationEngine))
@@ -183,16 +199,20 @@ function useSimulationDebugger({
     setBreakpoints(simulationEngine.getBreakpoints())
   }, [simulationEngine])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    requestGeneration.current += 1
     setEvents([])
     setCurrentNodeId(null)
     setVariables({})
     setExecutionState(ExecutionState.READY)
     setBreakpoints(simulationEngine.getBreakpoints())
-  }, [simulationEngine])
+    return () => {
+      requestGeneration.current += 1
+    }
+  }, [simulationEngine, flowDefinition.id])
 
-  useEffect(() => {
-    const handleEvent = (event: ExecutionEvent) => {
+  useLayoutEffect(() => {
+    return subscribeToSimulationEvents(simulationEngine, (event) => {
       setEvents((prev) => [...prev, event])
       syncSimulationEvent({
         event,
@@ -203,17 +223,17 @@ function useSimulationDebugger({
         onHighlightNode,
         onHighlightConnection,
       })
-    }
-    simulationEngine.on(handleEvent)
-    return () => simulationEngine.off(handleEvent)
-  }, [simulationEngine, onHighlightNode, onHighlightConnection, updateVariables])
+    })
+  }, [simulationEngine, flowDefinition.id, onHighlightNode, onHighlightConnection, updateVariables])
 
   const start = useCallback(async () => {
+    const generation = ++requestGeneration.current
     try {
       const initialVars = JSON.parse(initialVarsInput)
       setEvents([])
       setCurrentNodeId(null)
       const result = await simulationEngine.start(initialVars)
+      if (generation !== requestGeneration.current) return
       setExecutionState(result.state)
       setVariables(result.finalVariables)
       if (result.error) {
@@ -224,6 +244,7 @@ function useSimulationDebugger({
         message.success(t('designer.debug.sim.runComplete'))
       }
     } catch (error) {
+      if (generation !== requestGeneration.current) return
       message.error(
         t('designer.debug.sim.runFailed', {
           message: formatSimulationError(toError(error).message, t),
@@ -233,26 +254,33 @@ function useSimulationDebugger({
   }, [initialVarsInput, simulationEngine, t])
 
   const stepNext = useCallback(async () => {
+    const generation = ++requestGeneration.current
     try {
       await simulationEngine.stepNext()
+      if (generation !== requestGeneration.current) return
       setExecutionState(simulationEngine.getState())
       updateVariables()
     } catch (error) {
+      if (generation !== requestGeneration.current) return
       message.error(formatSimulationError(toError(error).message, t))
     }
   }, [simulationEngine, t, updateVariables])
 
   const continueExecution = useCallback(async () => {
+    const generation = ++requestGeneration.current
     try {
       await simulationEngine.continue()
+      if (generation !== requestGeneration.current) return
       setExecutionState(simulationEngine.getState())
       updateVariables()
     } catch (error) {
+      if (generation !== requestGeneration.current) return
       message.error(formatSimulationError(toError(error).message, t))
     }
   }, [simulationEngine, t, updateVariables])
 
   const reset = useCallback(() => {
+    requestGeneration.current += 1
     simulationEngine.reset()
     setExecutionState(ExecutionState.READY)
     setEvents([])

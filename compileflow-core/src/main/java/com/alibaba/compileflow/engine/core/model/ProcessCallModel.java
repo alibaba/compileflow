@@ -37,7 +37,7 @@ public interface ProcessCallModel extends MappingModel {
     String getCalledProcessClasspath();
 
     /**
-     * Returns the exact published version target, or {@code null}.
+     * Returns the exact version target, or {@code null}.
      */
     String getCalledProcessVersion();
 }

@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.core.bpmn;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.CompileFlowException;
 import com.alibaba.compileflow.engine.ErrorCode;
@@ -60,13 +61,13 @@ public class BpmnAdvancedFeatureTest {
     private KtvService ktvService;
 
     private static ProcessDefinition.Classpath classpathDefinition(String code) {
-        return ProcessDefinition.classpath(code, code.replace('.', '/') + ".bpmn");
+        return ProcessDefinition.classpath(ProcessModelType.BPMN, code, code.replace('.', '/') + ".bpmn");
     }
 
     @BeforeEach
     void setUp() {
         engine = ProcessEngineFactory.create(ProcessEngineTestFactory
-            .bpmnBuilder()
+            .builder()
             .componentResolver(componentResolver("ktvService", ktvService))
             .build());
         runtimeManager = engine.runtime();
@@ -88,8 +89,8 @@ public class BpmnAdvancedFeatureTest {
         KtvRequest bpmnKtvRequest = new KtvRequest();
         bpmnKtvRequest.pList = Lists.newArrayList("user1", "user2");
         // When: Execute the flow with typed DTOs
-        ProcessResult<KtvResponse> executionResult = engine.execute(ProcessDefinition.classpath(bpmnKtvFlowCode,
-                        bpmnKtvFlowCode.replace(".", "/") + ".bpmn"), bpmnKtvRequest, KtvResponse.class,
+        ProcessResult<KtvResponse> executionResult = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        bpmnKtvFlowCode, bpmnKtvFlowCode.replace(".", "/") + ".bpmn"), bpmnKtvRequest, KtvResponse.class,
                 ProcessExecutionOptions.defaults());
         // Then: Verify execution success and typed response
         assertThat(executionResult.isSuccess()).as("Type-safe execution should succeed").isTrue();
@@ -109,8 +110,8 @@ public class BpmnAdvancedFeatureTest {
         Map<String, Object> ktvContext = new HashMap<>();
         ktvContext.put("pList", Lists.newArrayList("u1", "u2"));
         // When: Execute V1 (without explicit deploy, execute will compile and deploy automatically)
-        ProcessResult<Map<String, Object>> v1Result = engine.execute(ProcessDefinition.classpath(bpmnKtvFlowCode,
-                        bpmnKtvFlowCode.replace(".", "/") + ".bpmn"), ktvContext);
+        ProcessResult<Map<String, Object>> v1Result = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        bpmnKtvFlowCode, bpmnKtvFlowCode.replace(".", "/") + ".bpmn"), ktvContext);
         // Then: Verify V1 execution and price
         assertThat(v1Result.isSuccess()).as("V1 execution should succeed").isTrue();
         assertThat(v1Result.getOutput().get("price")).as("V1 price should be 2 people × 27 = 54").isEqualTo(54);
@@ -120,14 +121,16 @@ public class BpmnAdvancedFeatureTest {
 
         String v2XmlContent = v1XmlContent.replace("calculatePrice", "calculatePriceForHotDeploy");
         // Warm V2 and execute the exact definition.
-        runtimeManager.warmUp(ProcessDefinition.inline(bpmnKtvFlowCode, v2XmlContent));
+        runtimeManager.warmUp(ProcessDefinition.inline(ProcessModelType.BPMN, bpmnKtvFlowCode, v2XmlContent));
         ProcessResult<Map<String, Object>> v2Result =
-                engine.execute(ProcessDefinition.inline(bpmnKtvFlowCode, v2XmlContent), ktvContext);
+                engine.execute(ProcessDefinition.inline(ProcessModelType.BPMN, bpmnKtvFlowCode, v2XmlContent),
+                        ktvContext);
         // Then: Verify V2 execution and price
         assertThat(v2Result.isSuccess()).as("V2 execution should succeed").isTrue();
         assertThat(v2Result.getOutput().get("price")).as("V2 price should be 2 people × 900 = 1800").isEqualTo(1800);
         // Verify that the generated code has also been updated
-        String v2JavaCode = toolingService.generateJavaCode(ProcessDefinition.inline(bpmnKtvFlowCode, v2XmlContent));
+        String v2JavaCode = toolingService.generateJavaCode(ProcessDefinition.inline(ProcessModelType.BPMN,
+                bpmnKtvFlowCode, v2XmlContent));
         assertThat(v2JavaCode)
             .as("Generated code should contain calculatePriceForHotDeploy")
             .contains("calculatePriceForHotDeploy");
@@ -149,8 +152,8 @@ public class BpmnAdvancedFeatureTest {
             .as("Generated source should remain readable")
             .isLessThanOrEqualTo(120);
         // When: Execute the flow
-        ProcessResult<Map<String, Object>> executionResult =
-                engine.execute(ProcessDefinition.classpath(flowCode, flowCode.replace(".", "/") + ".bpmn"), context);
+        ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        flowCode, flowCode.replace(".", "/") + ".bpmn"), context);
         // Then: Verify execution success and result
         assertThat(executionResult.isSuccess())
             .as("Service task with timeout InvocationPolicy should execute successfully, error=%s",
@@ -177,8 +180,8 @@ public class BpmnAdvancedFeatureTest {
             .as("Code generation with retry InvocationPolicy should succeed")
             .isNotNull();
         // When: Execute the flow
-        ProcessResult<Map<String, Object>> executionResult =
-                engine.execute(ProcessDefinition.classpath(flowCode, flowCode.replace(".", "/") + ".bpmn"), context);
+        ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        flowCode, flowCode.replace(".", "/") + ".bpmn"), context);
         // Then: Verify execution success and result
         assertThat(executionResult.isSuccess())
             .as("Service task with retry InvocationPolicy should execute successfully, error=%s",
@@ -205,8 +208,8 @@ public class BpmnAdvancedFeatureTest {
             .as("Code generation with full InvocationPolicy should succeed")
             .isNotNull();
         // When: Execute the flow
-        ProcessResult<Map<String, Object>> executionResult =
-                engine.execute(ProcessDefinition.classpath(flowCode, flowCode.replace(".", "/") + ".bpmn"), context);
+        ProcessResult<Map<String, Object>> executionResult = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        flowCode, flowCode.replace(".", "/") + ".bpmn"), context);
         // Then: Verify execution success and result
         assertThat(executionResult.isSuccess())
             .as("Service task with full InvocationPolicy should execute successfully, error=%s",

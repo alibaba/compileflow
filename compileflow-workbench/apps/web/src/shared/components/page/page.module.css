@@ -760,7 +760,8 @@
 
 @media (max-width: 991px) {
   .metricGrid {
-    grid-template-columns: repeat(2, 1fr);
+    /* The column prop is inline; narrow layouts must still reflow. */
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
   .metricCard:not(:last-child)::after {
@@ -801,7 +802,7 @@
 
 @media (max-width: 575px) {
   .metricGrid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
   .pageHeaderTitle {

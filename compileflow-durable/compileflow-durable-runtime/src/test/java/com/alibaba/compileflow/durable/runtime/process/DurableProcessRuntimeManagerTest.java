@@ -15,6 +15,9 @@ package com.alibaba.compileflow.durable.runtime.process;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.AdditionalAnswers.delegatesTo;
 import com.alibaba.compileflow.durable.api.error.DurableErrorCode;
 import com.alibaba.compileflow.durable.api.error.DurableProcessException;
 import com.alibaba.compileflow.durable.api.model.ProcessRunId;
@@ -32,11 +35,11 @@ import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.config.JavaDiagnosticsConfig;
 import com.alibaba.compileflow.engine.config.ProcessDefinitionConfig;
-import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -98,6 +101,51 @@ class DurableProcessRuntimeManagerTest {
     }
 
     @Test
+    void delayedCacheMissReusesARuntimePublishedBeforeLoadOwnership() throws InterruptedException {
+        MemoryCatalogStore store = new MemoryCatalogStore();
+        DurableProcessRuntimeCache resident = new InMemoryDurableProcessRuntimeCache(2);
+        DurableProcessRuntimeCache cache = mock(DurableProcessRuntimeCache.class, delegatesTo(resident));
+        DurableProcessRuntimeManager manager = manager(store, cache);
+        DurableStore.RunProcess process = manager.register(DEFINITION);
+        CountDownLatch observedMiss = new CountDownLatch(1);
+        CountDownLatch resume = new CountDownLatch(1);
+        AtomicReference<DurableProcessRuntime> delayedResult = new AtomicReference<>();
+        AtomicReference<Throwable> delayedFailure = new AtomicReference<>();
+        Thread delayed = new Thread(() -> {
+            try {
+                delayedResult.set(manager.requireRuntime(process.processId()));
+            } catch (Throwable failure) {
+                delayedFailure.set(failure);
+            }
+        }, "delayed-runtime-load");
+        doAnswer(invocation -> {
+            Object result = resident.get(process.processId());
+            if (Thread.currentThread() == delayed && observedMiss.getCount() != 0) {
+                observedMiss.countDown();
+                if (!resume.await(5, TimeUnit.SECONDS)) {
+                    throw new AssertionError("Cache miss was not resumed");
+                }
+            }
+            return result;
+        }).when(cache).get(process.processId());
+
+        delayed.start();
+        DurableProcessRuntime first;
+        try {
+            assertThat(observedMiss.await(5, TimeUnit.SECONDS)).isTrue();
+            first = manager.requireRuntime(process.processId());
+        } finally {
+            resume.countDown();
+            delayed.join(5_000);
+        }
+
+        assertThat(delayed.isAlive()).isFalse();
+        assertThat(delayedFailure.get()).isNull();
+        assertThat(delayedResult.get()).isSameAs(first);
+        assertThat(store.processReads).hasValue(1);
+    }
+
+    @Test
     void concurrentLoadFailurePreservesTheDurableErrorAndAllowsRetry() throws InterruptedException {
         BlockingMissingProcessStore store = new BlockingMissingProcessStore();
         DurableProcessRuntimeManager manager = manager(store, new InMemoryDurableProcessRuntimeCache(1));
@@ -143,9 +191,9 @@ class DurableProcessRuntimeManagerTest {
         DurableVersionDefinitionSource source =
                 version -> {
             String coordinate = version.version().equals("v1") ? "80,0" : "90,0";
-            ProcessDefinition.Inline definition =
-                    ProcessDefinition.inline(version.code(), definitionXml(version.code()).replace("80,0", coordinate));
-            return Optional.of(new DurableVersionDefinitionSource.VersionDefinition(ProcessModelType.TBBPM, definition));
+            ProcessDefinition.Inline definition = ProcessDefinition.inline(ProcessModelType.TBBPM, version.code(),
+                    definitionXml(version.code()).replace("80,0", coordinate));
+            return Optional.of(new DurableVersionDefinitionSource.VersionDefinition(definition));
         };
         DurableProcessRuntimeManager manager = manager(store, new InMemoryDurableProcessRuntimeCache(1), source);
         ProcessRef.Version v1 = ProcessRef.version("test", "history", "v1");
@@ -169,8 +217,7 @@ class DurableProcessRuntimeManagerTest {
                 version -> {
             sourceReads.incrementAndGet();
             return version.equals(PROCESS)
-                    ? Optional.of(
-                            new DurableVersionDefinitionSource.VersionDefinition(ProcessModelType.TBBPM, DEFINITION))
+                    ? Optional.of(new DurableVersionDefinitionSource.VersionDefinition(DEFINITION))
                     : Optional.empty();
         };
         DurableProcessRuntimeManager admitting = manager(store, new InMemoryDurableProcessRuntimeCache(1), source);
@@ -188,13 +235,13 @@ class DurableProcessRuntimeManagerTest {
     }
 
     @Test
-    void changedConventionDefinitionGetsANewExactProcessIdentity() {
+    void changedDefinitionGetsANewExactProcessIdentity() {
         MemoryCatalogStore store = new MemoryCatalogStore();
         DurableProcessRuntimeManager manager = manager(store, new InMemoryDurableProcessRuntimeCache(2));
         ProcessDefinition.Inline process = definition("convention.process");
         DurableStore.RunProcess first = manager.register(process);
-        ProcessDefinition.Inline changed =
-                ProcessDefinition.inline(process.code(), definitionXml(process.code()).replace("80,0", "90,0"));
+        ProcessDefinition.Inline changed = ProcessDefinition.inline(ProcessModelType.TBBPM, process.code(),
+                definitionXml(process.code()).replace("80,0", "90,0"));
 
         DurableStore.RunProcess second = manager.register(changed);
 
@@ -211,7 +258,7 @@ class DurableProcessRuntimeManagerTest {
         DurableProcessRuntimeManager manager =
                 manager(new MemoryCatalogStore(), new InMemoryDurableProcessRuntimeCache(1));
 
-        assertThatThrownBy(() -> manager.register(ProcessDefinition.classpath("missing",
+        assertThatThrownBy(() -> manager.register(ProcessDefinition.classpath(ProcessModelType.TBBPM, "missing",
                 "missing".replace(".", "/") + ".bpm")))
             .isInstanceOfSatisfying(DurableProcessException.class, failure -> assertThat(failure.getErrorCode())
                 .isEqualTo(DurableErrorCode.INVALID_ARGUMENT));
@@ -221,7 +268,7 @@ class DurableProcessRuntimeManagerTest {
     void admissionPersistsDistinctCallSitesWhilePreparingSharedMembersOnce() {
         MemoryCatalogStore store = new MemoryCatalogStore();
         DurableProcessRuntimeManager manager = manager(store, new InMemoryDurableProcessRuntimeCache(8));
-        ProcessDefinition.Inline rootDefinition = ProcessDefinition.inline("root",
+        ProcessDefinition.Inline rootDefinition = ProcessDefinition.inline(ProcessModelType.TBBPM, "root",
                 """
                 <bpm code="root">
                   <start id="start" g="0,0,32,32"><transition to="first"/></start>
@@ -253,7 +300,7 @@ class DurableProcessRuntimeManagerTest {
     void admissionRejectsMappingsOutsideTheExactChildContract() {
         MemoryCatalogStore store = new MemoryCatalogStore();
         DurableProcessRuntimeManager manager = manager(store, new InMemoryDurableProcessRuntimeCache(4));
-        ProcessDefinition.Inline rootDefinition = ProcessDefinition.inline("root",
+        ProcessDefinition.Inline rootDefinition = ProcessDefinition.inline(ProcessModelType.TBBPM, "root",
                 """
                 <bpm code="root">
                   <var name="request" dataType="java.lang.String" inOutType="param"/>
@@ -276,23 +323,85 @@ class DurableProcessRuntimeManagerTest {
     }
 
     @Test
+    void exactVersionCallsFreezeMixedModelRecoveryClosureAtEveryEdge() {
+        for (ProcessModelType rootType : List.of(ProcessModelType.TBBPM, ProcessModelType.BPMN)) {
+            for (int depth : List.of(1, 2)) {
+                verifyVersionGraph(rootType, depth, false);
+                verifyVersionGraph(rootType, depth, true);
+            }
+        }
+    }
+
+    private void verifyVersionGraph(ProcessModelType rootType, int depth, boolean mixed) {
+        MemoryCatalogStore store = new MemoryCatalogStore();
+        Map<ProcessRef.Version, DurableVersionDefinitionSource.VersionDefinition> definitions = new LinkedHashMap<>();
+        Map<ProcessRef.Version, Integer> reads = new LinkedHashMap<>();
+        for (int i = 0; i <= depth; i++) {
+            ProcessRef.Version ref = ProcessRef.version("test", "edge" + i, "v1");
+            ProcessRef.Version child = ProcessRef.version("test", "edge" + (i + 1), "v1");
+            ProcessModelType type = mixed && i == depth
+                    ? (rootType == ProcessModelType.TBBPM ? ProcessModelType.BPMN : ProcessModelType.TBBPM)
+                    : rootType;
+            String xml;
+            if (type == ProcessModelType.TBBPM) {
+                xml = i == depth
+                        ? definition(ref.code()).content()
+                        : callDefinitionXml(ref.code(), child.code(), "version=\"v1\"");
+            } else {
+                xml = """
+                        <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                                     xmlns:cf="http://www.compileflow.org" targetNamespace="https://compileflow.test">
+                          <process id="%s" isExecutable="true">
+                            <startEvent id="start"/><endEvent id="end"/>
+                            %s
+                          </process>
+                        </definitions>
+                        """
+                    .formatted(ref.code(),
+                            i == depth
+                            ? "<sequenceFlow id=\"toEnd\" sourceRef=\"start\" targetRef=\"end\"/>"
+                            : "<callActivity id=\"call\" calledElement=\"" + child.code() + "\" cf:version=\"v1\"/>"
+                            + "<sequenceFlow id=\"toCall\" sourceRef=\"start\" targetRef=\"call\"/>"
+                            + "<sequenceFlow id=\"toEnd\" sourceRef=\"call\" targetRef=\"end\"/>");
+            }
+            definitions.put(ref,
+                    new DurableVersionDefinitionSource.VersionDefinition(ProcessDefinition.inline(type, ref.code(), xml),
+                            i == depth ? Map.of() : Map.of("call", child)));
+        }
+        DurableProcessRuntimeManager manager = manager(store, new InMemoryDurableProcessRuntimeCache(4), ref -> {
+            reads.merge(ref, 1, Integer::sum);
+            return Optional.ofNullable(definitions.get(ref));
+        });
+        DurableStore.RunProcess root = manager.register(ProcessRef.version("test", "edge0", "v1"));
+        var run = manager.createNewRun(ProcessRunId.random(), root, Map.of(), null);
+        assertThat(run.recoveryProcessIds()).hasSize(depth + 1);
+        DurableProcessRuntimeManager restarted = manager(store, new InMemoryDurableProcessRuntimeCache(4), ref -> {
+            throw new AssertionError("Recovery must not resolve a Version");
+        });
+        for (var processId : run.recoveryProcessIds()) {
+            assertThat(restarted.requireRuntime(processId)).isNotNull();
+        }
+        assertThat(reads.values())
+            .hasSize(depth + 1)
+            .allMatch(count -> count == 1);
+    }
+
+    @Test
     void versionedCallInheritsItsCallerNamespace() {
         MemoryCatalogStore store = new MemoryCatalogStore();
         ProcessRef.Version rootVersion = ProcessRef.version("commerce", "order", "v7");
         ProcessRef.Version childVersion = ProcessRef.version("commerce", "payment", "v3");
-        ProcessDefinition.Inline root = ProcessDefinition.inline(rootVersion.code(),
+        ProcessDefinition.Inline root = ProcessDefinition.inline(ProcessModelType.TBBPM, rootVersion.code(),
                 callDefinitionXml(rootVersion.code(), childVersion.code(), "version=\"v3\""));
         DurableVersionDefinitionSource source =
                 version -> {
             if (version.equals(rootVersion)) {
                 return Optional.of(
-                        new DurableVersionDefinitionSource.VersionDefinition(ProcessModelType.TBBPM, root,
-                                Map.of("call", childVersion)));
+                        new DurableVersionDefinitionSource.VersionDefinition(root, Map.of("call", childVersion)));
             }
             if (version.equals(childVersion)) {
                 return Optional.of(
-                        new DurableVersionDefinitionSource.VersionDefinition(ProcessModelType.TBBPM,
-                                definition(childVersion.code())));
+                        new DurableVersionDefinitionSource.VersionDefinition(definition(childVersion.code())));
             }
             return Optional.empty();
         };
@@ -310,13 +419,11 @@ class DurableProcessRuntimeManagerTest {
         ProcessRef.Version childVersion = ProcessRef.version(ProcessRef.DEFAULT_NAMESPACE, "payment", "v3");
         DurableVersionDefinitionSource source =
                 version -> version.equals(childVersion)
-                ? Optional.of(
-                        new DurableVersionDefinitionSource.VersionDefinition(ProcessModelType.TBBPM,
-                                definition(childVersion.code())))
+                ? Optional.of(new DurableVersionDefinitionSource.VersionDefinition(definition(childVersion.code())))
                 : Optional.empty();
         DurableProcessRuntimeManager manager = manager(store, new InMemoryDurableProcessRuntimeCache(2), source);
-        ProcessDefinition.Inline root =
-                ProcessDefinition.inline("order", callDefinitionXml("order", "payment", "version=\"v3\""));
+        ProcessDefinition.Inline root = ProcessDefinition.inline(ProcessModelType.TBBPM, "order",
+                callDefinitionXml("order", "payment", "version=\"v3\""));
         DurableStore.RunProcess storedRoot = manager.register(root);
 
         DurableStore.NewRun command = manager.createNewRun(ProcessRunId.random(), storedRoot, Map.of(), null);
@@ -326,26 +433,13 @@ class DurableProcessRuntimeManagerTest {
     }
 
     @Test
-    void versionedParentCannotUseResourceChild() {
-        ProcessRef.Version rootVersion = ProcessRef.version("commerce", "order", "v7");
-        ProcessDefinition.Inline root = ProcessDefinition.inline(rootVersion.code(),
-                callDefinitionXml(rootVersion.code(), "child", "classpath=\"flows/child.bpm\""));
-        MemoryCatalogStore store = new MemoryCatalogStore();
-        DurableProcessRuntimeManager manager =
-                manager(store, new InMemoryDurableProcessRuntimeCache(2), versionSource(rootVersion, root));
-        assertThatThrownBy(() -> manager.register(rootVersion))
-            .isInstanceOfSatisfying(DurableProcessException.class, failure -> assertThat(failure.getErrorCode())
-                .isEqualTo(DurableErrorCode.UNSUPPORTED_PROCESS));
-    }
-
-    @Test
     void versionedBpmnParentCannotUseResourceChild() {
         ProcessRef.Version rootVersion = ProcessRef.version("commerce", "bpmn.parent", "v1");
-        ProcessDefinition.Inline root = ProcessDefinition.inline(rootVersion.code(),
+        ProcessDefinition.Inline root = ProcessDefinition.inline(ProcessModelType.BPMN, rootVersion.code(),
                 bpmnCallDefinitionXml(rootVersion.code(), "bpmn.child", "flows/bpmn-child.bpmn"));
         MemoryCatalogStore store = new MemoryCatalogStore();
-        DurableProcessRuntimeManager manager = manager(store, new InMemoryDurableProcessRuntimeCache(4),
-                versionSource(rootVersion, ProcessModelType.BPMN, root));
+        DurableProcessRuntimeManager manager =
+                manager(store, new InMemoryDurableProcessRuntimeCache(4), versionSource(rootVersion, root));
         assertThatThrownBy(() -> manager.register(rootVersion))
             .isInstanceOfSatisfying(DurableProcessException.class, failure -> assertThat(failure.getErrorCode())
                 .isEqualTo(DurableErrorCode.UNSUPPORTED_PROCESS));
@@ -354,34 +448,22 @@ class DurableProcessRuntimeManagerTest {
     @Test
     void versionedTbbpmParentCannotUseResourceChild() {
         ProcessRef.Version rootVersion = ProcessRef.version("commerce", "tbbpm.parent", "v1");
-        ProcessDefinition.Inline root = ProcessDefinition.inline(rootVersion.code(),
+        ProcessDefinition.Inline root = ProcessDefinition.inline(ProcessModelType.TBBPM, rootVersion.code(),
                 callDefinitionXml(rootVersion.code(), "child", "classpath=\"flows/child.bpm\""));
         MemoryCatalogStore store = new MemoryCatalogStore();
-        ProcessEngineConfig config =
-                ProcessEngineConfig
-            .bpmnBuilder()
-            .classLoader(getClass().getClassLoader())
-            .discoverPlugins(false)
-            .build();
-        DurableProcessRuntimeManager manager = manager(store, new InMemoryDurableProcessRuntimeCache(4), config,
-                versionSource(rootVersion, ProcessModelType.TBBPM, root));
+        DurableProcessRuntimeManager manager =
+                manager(store, new InMemoryDurableProcessRuntimeCache(4), versionSource(rootVersion, root));
         assertThatThrownBy(() -> manager.register(rootVersion))
             .isInstanceOfSatisfying(DurableProcessException.class, failure -> assertThat(failure.getErrorCode())
                 .isEqualTo(DurableErrorCode.UNSUPPORTED_PROCESS));
     }
 
     @Test
-    void directDefinitionUsesTheBoundModelType() {
+    void directDefinitionOwnsItsModelType() {
         MemoryCatalogStore store = new MemoryCatalogStore();
-        ProcessEngineConfig config =
-                ProcessEngineConfig
-            .bpmnBuilder()
-            .classLoader(getClass().getClassLoader())
-            .discoverPlugins(false)
-            .build();
         DurableProcessRuntimeManager manager =
-                manager(store, new InMemoryDurableProcessRuntimeCache(4), config, DurableVersionDefinitionSource.empty());
-        ProcessDefinition.Inline definition = ProcessDefinition.inline("bpmn.local",
+                manager(store, new InMemoryDurableProcessRuntimeCache(4), DurableVersionDefinitionSource.empty());
+        ProcessDefinition.Inline definition = ProcessDefinition.inline(ProcessModelType.BPMN, "bpmn.local",
                 """
                 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
                              targetNamespace="https://compileflow.alibaba.com/test">
@@ -420,15 +502,10 @@ class DurableProcessRuntimeManagerTest {
                 versionDefinition(shared, callDefinitionXml(shared.code(), leaf.code(), "version=\"v1\""),
                         Map.of("call", leaf)), leaf,
                 versionDefinition(leaf, definition(leaf.code()).content(), Map.of()));
-        ProcessEngineConfig config = ProcessEngineConfig
-            .tbbpmBuilder()
-            .classLoader(getClass().getClassLoader())
-            .discoverPlugins(false)
-            .maxCallDepth(4)
-            .build();
         MemoryCatalogStore store = new MemoryCatalogStore();
         DurableVersionDefinitionSource source = requested -> Optional.ofNullable(definitions.get(requested));
-        DurableProcessRuntimeManager manager = manager(store, new InMemoryDurableProcessRuntimeCache(8), config, source);
+        DurableProcessRuntimeManager manager =
+                manager(store, new InMemoryDurableProcessRuntimeCache(8), ProcessDefinitionConfig.defaults(), 4, source);
 
         DurableStore.RunProcess storedRoot = manager.register(root);
 
@@ -441,13 +518,11 @@ class DurableProcessRuntimeManagerTest {
 
     @Test
     void rejectsDefinitionsThatExceedTheDurableLimitBeforeParsing() {
-        ProcessEngineConfig config = ProcessEngineConfig
-            .tbbpmBuilder()
-            .definitions(ProcessDefinitionConfig.builder().maxBytes(DurableStore.MAX_DEFINITION_BYTES + 1024).build())
-            .build();
+        ProcessDefinitionConfig config =
+                ProcessDefinitionConfig.builder().maxBytes(DurableStore.MAX_DEFINITION_BYTES + 1024).build();
         DurableProcessRuntimeManager manager = manager(new MemoryCatalogStore(),
-                new InMemoryDurableProcessRuntimeCache(1), config, DurableVersionDefinitionSource.empty());
-        ProcessDefinition definition = ProcessDefinition.inline("too.large",
+                new InMemoryDurableProcessRuntimeCache(1), config, 32, DurableVersionDefinitionSource.empty());
+        ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.TBBPM, "too.large",
                 "<bpm code=\"too.large\">" + " ".repeat(DurableStore.MAX_DEFINITION_BYTES) + "</bpm>");
 
         assertThatThrownBy(() -> manager.register(definition))
@@ -457,41 +532,82 @@ class DurableProcessRuntimeManagerTest {
             });
     }
 
+    @Test
+    void versionAdmissionHonorsTheConfiguredDefinitionLimit() {
+        MemoryCatalogStore store = new MemoryCatalogStore();
+        ProcessDefinitionConfig config = ProcessDefinitionConfig.builder().maxBytes(32).build();
+        DurableProcessRuntimeManager manager =
+                manager(store, new InMemoryDurableProcessRuntimeCache(1), config, 32, versionSource(PROCESS, DEFINITION));
+
+        for (Runnable admission : List.<Runnable>of(() -> manager.register(DEFINITION), () -> manager.register(PROCESS))) {
+            assertThatThrownBy(admission::run).isInstanceOfSatisfying(DurableProcessException.class, failure -> {
+                assertThat(failure.getErrorCode()).isEqualTo(DurableErrorCode.INVALID_ARGUMENT);
+                assertThat(failure)
+                    .hasRootCauseMessage(
+                            "Process definition exceeds the configured size limit: code=" + PROCESS.code()
+                            + ", source=inline content, maxBytes=32, observedBytes=" + DEFINITION.content().length());
+            });
+        }
+        assertThat(store.byId).isEmpty();
+    }
+
+    @Test
+    void versionAdmissionChecksTheDurableLimitBeforeParsing() {
+        MemoryCatalogStore store = new MemoryCatalogStore();
+        ProcessDefinitionConfig config =
+                ProcessDefinitionConfig.builder().maxBytes(DurableStore.MAX_DEFINITION_BYTES + 1024).build();
+        ProcessDefinition.Inline oversized = ProcessDefinition.inline(ProcessModelType.TBBPM, PROCESS.code(),
+                "not XML" + " ".repeat(DurableStore.MAX_DEFINITION_BYTES));
+        DurableProcessRuntimeManager manager =
+                manager(store, new InMemoryDurableProcessRuntimeCache(1), config, 32, versionSource(PROCESS, oversized));
+
+        assertThatThrownBy(() -> manager.register(PROCESS))
+            .isInstanceOfSatisfying(DurableProcessException.class, failure -> {
+                assertThat(failure.getErrorCode()).isEqualTo(DurableErrorCode.UNSUPPORTED_PROCESS);
+                assertThat(failure).hasMessageContaining("Durable size limit");
+            });
+        assertThat(store.byId).isEmpty();
+    }
+
+    @Test
+    void recoveryDoesNotApplyNewAdmissionLimitsToStoredSemantics() {
+        MemoryCatalogStore store = new MemoryCatalogStore();
+        DurableStore.RunProcess process = manager(store, new InMemoryDurableProcessRuntimeCache(1))
+            .register(DEFINITION);
+        ProcessDefinitionConfig config = ProcessDefinitionConfig.builder().maxBytes(32).build();
+        DurableProcessRuntimeManager recovering =
+                manager(store, new InMemoryDurableProcessRuntimeCache(1), config, 32, version -> {
+            throw new AssertionError("Recovery must not consult an admission source");
+        });
+
+        assertThat(recovering.requireRuntime(process.processId()).processId()).isEqualTo(process.processId());
+    }
+
     private DurableProcessRuntimeManager manager(DurableCatalogStore store, DurableProcessRuntimeCache cache) {
         return manager(store, cache, DurableVersionDefinitionSource.empty());
     }
 
     private DurableProcessRuntimeManager manager(DurableCatalogStore store, DurableProcessRuntimeCache cache,
             DurableVersionDefinitionSource versionSource) {
-        ProcessEngineConfig config =
-                ProcessEngineConfig
-            .tbbpmBuilder()
-            .classLoader(getClass().getClassLoader())
-            .discoverPlugins(false)
-            .build();
-        return manager(store, cache, config, versionSource);
+        return manager(store, cache, ProcessDefinitionConfig.defaults(), 32, versionSource);
     }
 
     private DurableProcessRuntimeManager manager(DurableCatalogStore store, DurableProcessRuntimeCache cache,
-            ProcessEngineConfig config, DurableVersionDefinitionSource versionSource) {
+            ProcessDefinitionConfig config, int maxCallDepth, DurableVersionDefinitionSource versionSource) {
         return new DurableProcessRuntimeManager(store, cache,
-                new DurableInterpretedProgramCompiler(JavaDiagnosticsConfig.defaults()), config, versionSource);
+                new DurableInterpretedProgramCompiler(JavaDiagnosticsConfig.defaults()), config,
+                getClass().getClassLoader(), maxCallDepth, versionSource);
     }
 
     private static DurableVersionDefinitionSource versionSource(ProcessRef.Version version,
             ProcessDefinition.Inline definition) {
-        return versionSource(version, ProcessModelType.TBBPM, definition);
-    }
-
-    private static DurableVersionDefinitionSource versionSource(ProcessRef.Version version, ProcessModelType modelType,
-            ProcessDefinition.Inline definition) {
         return requested -> requested.equals(version)
-                ? Optional.of(new DurableVersionDefinitionSource.VersionDefinition(modelType, definition))
+                ? Optional.of(new DurableVersionDefinitionSource.VersionDefinition(definition))
                 : Optional.empty();
     }
 
     private static ProcessDefinition.Inline definition(String code) {
-        return ProcessDefinition.inline(code, definitionXml(code));
+        return ProcessDefinition.inline(ProcessModelType.TBBPM, code, definitionXml(code));
     }
 
     private static String definitionXml(String code) {
@@ -533,8 +649,8 @@ class DurableProcessRuntimeManagerTest {
 
     private static DurableVersionDefinitionSource.VersionDefinition versionDefinition(ProcessRef.Version version,
             String definition, Map<String, ProcessRef.Version> callBindings) {
-        return new DurableVersionDefinitionSource.VersionDefinition(ProcessModelType.TBBPM,
-                ProcessDefinition.inline(version.code(), definition), callBindings);
+        return new DurableVersionDefinitionSource.VersionDefinition(ProcessDefinition.inline(ProcessModelType.TBBPM,
+                        version.code(), definition), callBindings);
     }
 
     private static Throwable captureFailure(Runnable operation) {

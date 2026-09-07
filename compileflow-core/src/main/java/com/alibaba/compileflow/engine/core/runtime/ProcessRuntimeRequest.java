@@ -75,7 +75,7 @@ public final class ProcessRuntimeRequest {
     }
 
     /**
-     * Creates a request that binds an exact published version to exact definition content.
+     * Creates a request that binds an exact version to exact definition content.
      *
      * @param version    exact version reference
      * @param definition exact process definition

@@ -1,12 +1,12 @@
 import { register } from '@antv/x6-react-shape'
 
+import { BpmnScriptTaskNode } from './BpmnScriptTaskNode'
 import { CallActivityNode } from './CallActivityNode'
 import { EndEventNode } from './EndEventNode'
 import { ExclusiveGatewayNode } from './ExclusiveGatewayNode'
 import { InclusiveGatewayNode } from './InclusiveGatewayNode'
 import { ParallelGatewayNode } from './ParallelGatewayNode'
 import { ReceiveTaskNode } from './ReceiveTaskNode'
-import { ScriptTaskNode } from './ScriptTaskNode'
 import { ServiceTaskNode } from './ServiceTaskNode'
 import { StartEventNode } from './StartEventNode'
 import { SubProcessNode } from './SubProcessNode'
@@ -59,7 +59,7 @@ const BPMN_NODE_CONFIGS = {
   },
   'bpmn:ScriptTask': {
     shape: 'bpmn-script-task',
-    component: ScriptTaskNode,
+    component: BpmnScriptTaskNode,
     width: 100,
     height: 80,
     ports: [

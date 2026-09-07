@@ -19,7 +19,7 @@ export const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
   'other',
 ]
 
-export function buildShortcutItems(): ShortcutItem[] {
+export function buildShortcutItems(t: TFunction): ShortcutItem[] {
   return [
     {
       key: 'save',
@@ -78,19 +78,19 @@ export function buildShortcutItems(): ShortcutItem[] {
     {
       key: 'node-properties',
       category: 'node',
-      shortcut: 'Double-click node',
+      shortcut: t('designer.shortcuts.gesture.doubleClickNode'),
       descriptionKey: 'designer.shortcuts.item.nodeProperties',
     },
     {
       key: 'node-connect',
       category: 'node',
-      shortcut: 'Drag port',
+      shortcut: t('designer.shortcuts.gesture.dragPort'),
       descriptionKey: 'designer.shortcuts.item.nodeConnect',
     },
     {
       key: 'node-move',
       category: 'node',
-      shortcut: 'Drag node',
+      shortcut: t('designer.shortcuts.gesture.dragNode'),
       descriptionKey: 'designer.shortcuts.item.nodeMove',
     },
     {

@@ -1,0 +1,375 @@
+name: Reusable Release Build
+
+# Builds and attests one release candidate. Keeping the build and attestation
+# in this reusable workflow gives consumers a stable signer-workflow identity.
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build release artifacts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify current container and database baselines
+        run: python3 scripts/check_release_baselines.py --online
+
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093
+        with:
+          package_json_file: compileflow-workbench/package.json
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: compileflow-workbench/.node-version
+          cache: 'pnpm'
+          cache-dependency-path: compileflow-workbench/pnpm-lock.yaml
+
+      - name: Verify tag and project version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          case "$RELEASE_TAG" in
+            v*) release_version="${RELEASE_TAG#v}" ;;
+            *) echo "Release tag must start with v: $RELEASE_TAG" >&2; exit 1 ;;
+          esac
+          python3 scripts/check_project_versions.py \
+            --expected "$release_version" \
+            --release
+          release_commit="$(git rev-list -n 1 "$RELEASE_TAG")"
+          git merge-base --is-ancestor "$release_commit" origin/master \
+            || { echo "Release tag is not based on origin/master: $release_commit" >&2; exit 1; }
+
+      - name: Resolve supported API compatibility baseline
+        id: api-compat
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          release_version="${RELEASE_TAG#v}"
+          baseline="$(
+            python3 scripts/resolve_api_compatibility_baseline.py \
+              --release-version "$release_version" \
+              --format baseline
+          )"
+          echo "baseline=$baseline" >> "$GITHUB_OUTPUT"
+          if [ -n "$baseline" ]; then
+            echo "Comparing supported APIs against v$baseline"
+          else
+            echo "No prior stable release exists in this MAJOR line"
+          fi
+
+      - name: Verify supported API compatibility
+        if: steps.api-compat.outputs.baseline != ''
+        env:
+          API_COMPAT_BASELINE: ${{ steps.api-compat.outputs.baseline }}
+        run: |
+          ./mvnw verify \
+            -pl compileflow-api,compileflow-deploy/compileflow-deploy-api,compileflow-deploy/compileflow-deploy-protocol \
+            -am \
+            -Papi-compat \
+            -Dcompileflow.api.baseline.version="$API_COMPAT_BASELINE" \
+            -DskipTests \
+            -B -V --no-transfer-progress
+
+      - name: Build and verify release artifacts
+        run: |
+          release_modules="compileflow-bom,compileflow-api,compileflow-core,compileflow-tbbpm,compileflow-bpmn,compileflow-durable/compileflow-durable-api,compileflow-durable/compileflow-durable-spi,compileflow-durable/compileflow-durable-testkit,compileflow-durable/compileflow-durable-runtime,compileflow-durable/compileflow-durable-postgresql,compileflow-durable/compileflow-durable-mysql,compileflow-durable/compileflow-durable-spring-boot-autoconfigure,compileflow-durable/compileflow-durable-spring-boot-autoconfigure-postgresql,compileflow-durable/compileflow-durable-spring-boot-autoconfigure-mysql,compileflow-durable/compileflow-durable-spring-boot-starter,compileflow-durable/compileflow-durable-spring-boot-starter-postgresql,compileflow-durable/compileflow-durable-spring-boot-starter-mysql,compileflow-deploy/compileflow-deploy-api,compileflow-deploy/compileflow-deploy-protocol,compileflow-deploy/compileflow-deploy-spi,compileflow-deploy/compileflow-deploy-testkit,compileflow-deploy/compileflow-deploy-jdbc,compileflow-deploy/compileflow-deploy-postgresql,compileflow-deploy/compileflow-deploy-mysql,compileflow-deploy/compileflow-deploy-control-plane,compileflow-deploy/compileflow-deploy-runtime,compileflow-deploy/compileflow-deploy-spring-boot-autoconfigure,compileflow-deploy/compileflow-deploy-spring-boot-autoconfigure-postgresql,compileflow-deploy/compileflow-deploy-spring-boot-autoconfigure-mysql,compileflow-deploy/compileflow-deploy-spring-boot-starter,compileflow-deploy/compileflow-deploy-spring-boot-starter-postgresql,compileflow-deploy/compileflow-deploy-spring-boot-starter-mysql,compileflow-spring-boot-autoconfigure,compileflow-spring-boot-starter,compileflow-spring-boot-starter-tbbpm,compileflow-spring-boot-starter-bpmn,compileflow-workbench-server"
+          python3 scripts/check_internal_links.py
+          python3 scripts/check_architecture_boundaries.py
+          python3 scripts/check_spec_impl_parity.py
+          python3 scripts/check_bilingual_parity.py
+          python3 scripts/check_durable_delivery.py
+          # Install tested tag artifacts locally before the metadata-only BOM resolves them.
+          ./mvnw clean install \
+            -pl "$release_modules" -am \
+            -Prelease-artifacts \
+            -B -V --no-transfer-progress
+          python3 scripts/verify_spotbugs_reports.py \
+            compileflow-api \
+            compileflow-core \
+            compileflow-tbbpm \
+            compileflow-bpmn \
+            compileflow-durable/compileflow-durable-api \
+            compileflow-durable/compileflow-durable-spi \
+            compileflow-durable/compileflow-durable-testkit \
+            compileflow-durable/compileflow-durable-runtime \
+            compileflow-durable/compileflow-durable-postgresql \
+            compileflow-durable/compileflow-durable-mysql \
+            compileflow-durable/compileflow-durable-spring-boot-autoconfigure \
+            compileflow-durable/compileflow-durable-spring-boot-autoconfigure-postgresql \
+            compileflow-durable/compileflow-durable-spring-boot-autoconfigure-mysql \
+            compileflow-deploy/compileflow-deploy-api \
+            compileflow-deploy/compileflow-deploy-protocol \
+            compileflow-deploy/compileflow-deploy-spi \
+            compileflow-deploy/compileflow-deploy-jdbc \
+            compileflow-deploy/compileflow-deploy-postgresql \
+            compileflow-deploy/compileflow-deploy-mysql \
+            compileflow-deploy/compileflow-deploy-control-plane \
+            compileflow-deploy/compileflow-deploy-runtime \
+            compileflow-deploy/compileflow-deploy-spring-boot-autoconfigure \
+            compileflow-deploy/compileflow-deploy-spring-boot-autoconfigure-postgresql \
+            compileflow-deploy/compileflow-deploy-spring-boot-autoconfigure-mysql \
+            compileflow-spring-boot-autoconfigure \
+            compileflow-workbench-server
+          ./mvnw checkstyle:check \
+            -pl compileflow-api,compileflow-durable/compileflow-durable-api,compileflow-durable/compileflow-durable-spi,compileflow-durable/compileflow-durable-testkit,compileflow-deploy/compileflow-deploy-api,compileflow-deploy/compileflow-deploy-protocol \
+            -Dcheckstyle.config.location=checkstyle-javadoc.xml \
+            -B -V --no-transfer-progress
+          python3 scripts/verify_javadoc_artifacts.py \
+            compileflow-api \
+            compileflow-deploy/compileflow-deploy-api \
+            compileflow-deploy/compileflow-deploy-protocol \
+            compileflow-durable/compileflow-durable-api \
+            compileflow-durable/compileflow-durable-spi \
+            compileflow-durable/compileflow-durable-testkit
+
+      - name: Verify executable Spring Boot examples
+        run: |
+          ./mvnw test \
+            -pl examples/spring-boot-basic,examples/spring-boot-order-fulfillment \
+            -Pexamples -am \
+            -Dtest=SampleApplicationTest,OrderFulfillmentApplicationTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -B -V --no-transfer-progress
+
+      - name: Build bundled Workbench distribution
+        run: |
+          pnpm --dir compileflow-workbench install --frozen-lockfile
+          pnpm --dir compileflow-workbench audit --audit-level high
+          pnpm --dir compileflow-workbench --filter @compileflow/workbench-web build
+          ./mvnw package \
+            -pl compileflow-workbench-server -am \
+            -Pworkbench-bundled -DskipTests \
+            -B -V --no-transfer-progress
+          bundled="compileflow-workbench-server/target/compileflow-workbench-all-in-one-${GITHUB_REF_NAME#v}.jar"
+          test -f "$bundled"
+          jar tf "$bundled" | grep -qx 'BOOT-INF/classes/static/index.html'
+          jar tf "$bundled" | grep -qx 'META-INF/LICENSE'
+          jar tf "$bundled" | grep -qx 'META-INF/NOTICE'
+          compileflow-workbench/scripts/verify-bundled-web-assets.sh "$bundled"
+          unzip -p "$bundled" META-INF/MANIFEST.MF | tr -d '\r' \
+            | grep -qx "Implementation-Version: ${GITHUB_REF_NAME#v}"
+
+      - name: Generate and verify Workbench Server SBOM
+        run: |
+          # makeBom also writes parent BOMs; regenerate the aggregate afterward.
+          ./mvnw -Pworkbench-sbom -pl compileflow-workbench-server -am \
+            org.cyclonedx:cyclonedx-maven-plugin:makeBom@workbench-application \
+            -B -V --no-transfer-progress
+          ./mvnw -Pworkbench-sbom -pl compileflow-workbench-server \
+            dependency:copy@workbench-sbom-loader \
+            -B -V --no-transfer-progress
+          python3 scripts/verify_workbench_sbom.py \
+            compileflow-workbench-server/target/compileflow-workbench-server-bom.json \
+            "compileflow-workbench-server/target/compileflow-workbench-all-in-one-${GITHUB_REF_NAME#v}.jar" \
+            --loader-jar compileflow-workbench-server/target/sbom/spring-boot-loader.jar \
+            --expected-version "${GITHUB_REF_NAME#v}"
+          python3 scripts/verify_workbench_sbom.py \
+            compileflow-workbench-server/target/compileflow-workbench-server-bom.json \
+            "compileflow-workbench-server/target/compileflow-workbench-server-${GITHUB_REF_NAME#v}.jar" \
+            --loader-jar compileflow-workbench-server/target/sbom/spring-boot-loader.jar \
+            --expected-version "${GITHUB_REF_NAME#v}"
+
+      - name: Generate and verify aggregate SBOM
+        run: |
+          ./mvnw org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom \
+            -Dcyclonedx.skipAttach=true \
+            -B -V --no-transfer-progress
+          python3 scripts/verify_maven_sbom.py \
+            target/compileflow-bom.json \
+            --expected-version "${GITHUB_REF_NAME#v}"
+
+      - name: Generate and verify Workbench Web SBOM
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          pnpm --dir compileflow-workbench \
+            --filter @compileflow/workbench-web \
+            sbom --prod \
+            --sbom-format cyclonedx \
+            --sbom-spec-version 1.6 \
+            --sbom-type application \
+            --out "$GITHUB_WORKSPACE/target/compileflow-workbench-web-bom.json"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          path = Path("target/compileflow-workbench-web-bom.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          component = data.get("metadata", {}).get("component", {})
+          expected_version = os.environ["RELEASE_TAG"].removeprefix("v")
+          if data.get("bomFormat") != "CycloneDX":
+              raise SystemExit("Workbench Web SBOM is not in CycloneDX format")
+          if (component.get("group"), component.get("name")) != (
+              "@compileflow", "workbench-web"
+          ):
+              raise SystemExit("Workbench Web SBOM has the wrong root component")
+          if component.get("version") != expected_version:
+              raise SystemExit("Workbench Web SBOM has the wrong release version")
+          if not data.get("components"):
+              raise SystemExit("Workbench Web SBOM contains no production dependencies")
+          print(f"Validated {len(data['components'])} Workbench Web SBOM components")
+          PY
+
+      - name: Collect release artifacts
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          mkdir -p staging
+          release_version="${RELEASE_TAG#v}"
+          bundled_jar="compileflow-workbench-server/target/compileflow-workbench-all-in-one-${release_version}.jar"
+          test -f "$bundled_jar" \
+            || { echo "Missing bundled Workbench artifact: $bundled_jar" >&2; exit 1; }
+          cp "$bundled_jar" staging/
+          expected_artifacts=(
+            compileflow-api
+            compileflow-core
+            compileflow-tbbpm
+            compileflow-bpmn
+            compileflow-durable-api
+            compileflow-durable-spi
+            compileflow-durable-testkit
+            compileflow-durable-runtime
+            compileflow-durable-postgresql
+            compileflow-durable-mysql
+            compileflow-durable-spring-boot-autoconfigure
+            compileflow-durable-spring-boot-autoconfigure-postgresql
+            compileflow-durable-spring-boot-autoconfigure-mysql
+            compileflow-durable-spring-boot-starter
+            compileflow-durable-spring-boot-starter-postgresql
+            compileflow-durable-spring-boot-starter-mysql
+            compileflow-deploy-api
+            compileflow-deploy-protocol
+            compileflow-deploy-spi
+            compileflow-deploy-testkit
+            compileflow-deploy-jdbc
+            compileflow-deploy-postgresql
+            compileflow-deploy-mysql
+            compileflow-deploy-control-plane
+            compileflow-deploy-runtime
+            compileflow-deploy-spring-boot-autoconfigure
+            compileflow-deploy-spring-boot-autoconfigure-postgresql
+            compileflow-deploy-spring-boot-autoconfigure-mysql
+            compileflow-deploy-spring-boot-starter
+            compileflow-deploy-spring-boot-starter-postgresql
+            compileflow-deploy-spring-boot-starter-mysql
+            compileflow-spring-boot-autoconfigure
+            compileflow-spring-boot-starter
+            compileflow-spring-boot-starter-tbbpm
+            compileflow-spring-boot-starter-bpmn
+            compileflow-workbench-server
+          )
+          # The release allowlist also defines the collection universe.
+          for artifact_id in "${expected_artifacts[@]}"; do
+            for classifier in "" "-sources" "-javadoc"; do
+              filename="${artifact_id}-${release_version}${classifier}.jar"
+              candidates=()
+              while IFS= read -r -d '' candidate; do
+                candidates+=("$candidate")
+              done < <(find . -type f -path "*/${artifact_id}/target/${filename}" -print0)
+              test "${#candidates[@]}" -gt 0 \
+                || { echo "Missing expected release artifact: $filename" >&2; exit 1; }
+              test "${#candidates[@]}" -eq 1 \
+                || { echo "Duplicate release artifact candidates: $filename" >&2; exit 1; }
+              expected="staging/$filename"
+              test ! -e "$expected" \
+                || { echo "Duplicate release artifact name: $expected" >&2; exit 1; }
+              cp "${candidates[0]}" "$expected"
+              test -f "$expected" || { echo "Missing expected release artifact: $expected" >&2; exit 1; }
+            done
+          done
+          if find staging -type f -name "*SNAPSHOT*" | grep -q .; then
+            echo "Snapshot artifact reached release staging" >&2
+            exit 1
+          fi
+          main_artifact_count="$(
+            find staging -maxdepth 1 -type f -name "compileflow-*-${release_version}.jar" \
+              ! -name "compileflow-workbench-all-in-one-${release_version}.jar" \
+              | wc -l | tr -d ' '
+          )"
+          test "$main_artifact_count" -eq "${#expected_artifacts[@]}" \
+            || { echo "Unexpected release JAR set: found $main_artifact_count main artifacts" >&2; exit 1; }
+          for artifact in staging/compileflow-*.jar; do
+            case "$artifact" in
+              *-sources.jar|*-javadoc.jar|*compileflow-workbench-all-in-one-*.jar) continue ;;
+            esac
+            base="${artifact%.jar}"
+            test -f "${base}-sources.jar" || { echo "Missing sources for $artifact" >&2; exit 1; }
+            test -f "${base}-javadoc.jar" || { echo "Missing Javadoc for $artifact" >&2; exit 1; }
+            for licensed_artifact in "$artifact" "${base}-sources.jar"; do
+              jar tf "$licensed_artifact" | grep -qx 'META-INF/LICENSE' \
+                || { echo "Missing META-INF/LICENSE in $licensed_artifact" >&2; exit 1; }
+              jar tf "$licensed_artifact" | grep -qx 'META-INF/NOTICE' \
+                || { echo "Missing META-INF/NOTICE in $licensed_artifact" >&2; exit 1; }
+            done
+            unzip -p "$artifact" META-INF/MANIFEST.MF | tr -d '\r' \
+              | grep -qx "Implementation-Version: $release_version" \
+              || { echo "Incorrect Implementation-Version in $artifact" >&2; exit 1; }
+          done
+          cp target/compileflow-bom.json staging/
+          cp target/compileflow-workbench-web-bom.json staging/
+          cp compileflow-workbench-server/target/compileflow-workbench-server-bom.json staging/
+          release_commit="$(git rev-list -n 1 "$RELEASE_TAG")"
+          source_archive="staging/compileflow-${release_version}-source.tar.gz"
+          git archive \
+            --format=tar \
+            --prefix="compileflow-${release_version}/" \
+            "$release_commit" \
+            | gzip -n -9 > "$source_archive"
+          python3 scripts/verify_source_archive.py "$source_archive" "$release_version"
+          ls -la staging/
+
+      - name: Verify release source archive bootstrap
+        run: |
+          shopt -s nullglob
+          archives=(staging/*-source.tar.gz)
+          test "${#archives[@]}" -eq 1 \
+            || { echo "Expected exactly one release source archive" >&2; exit 1; }
+          extraction="$(mktemp -d "$RUNNER_TEMP/compileflow-source.XXXXXX")"
+          tar -xzf "${archives[0]}" -C "$extraction"
+          source_root="$(find "$extraction" -mindepth 1 -maxdepth 1 -type d -print -quit)"
+          test -n "$source_root" || { echo "Release source archive has no root directory" >&2; exit 1; }
+          cd "$source_root"
+          ./mvnw -version
+          ./mvnw clean verify -B -V --no-transfer-progress
+
+      - name: Compute artifact hashes
+        run: |
+          cd staging
+          sha256sum -- *.jar *-source.tar.gz *-bom.json | sort -k2 > SHA256SUMS
+
+      - name: Attest release build provenance
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
+        with:
+          subject-checksums: staging/SHA256SUMS
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-artifacts
+          path: |
+            staging/*.jar
+            staging/*-source.tar.gz
+            staging/*-bom.json
+            staging/SHA256SUMS
+          retention-days: 7

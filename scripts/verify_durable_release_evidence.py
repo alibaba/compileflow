@@ -27,16 +27,17 @@ TEST_EVIDENCE_SCHEMA = "compileflow-durable-test-evidence/v2"
 RELEASE_EVIDENCE_SCHEMA = "compileflow-durable-release-evidence/v2"
 COMMIT_PATTERN = re.compile(r"[0-9a-f]{40}")
 POSTGRES_VERSION_PATTERN = re.compile(r"[0-9]+\.[0-9]+")
+MYSQL_VERSION_PATTERN = re.compile(r"8[.]4[.][0-9]+")
 COUNT_FIELDS = (
     "tests", "failures", "errors", "skipped", "flakes", "passed"
 )
 KERNEL_REQUIRED_TEST_CASES = frozenset(
     {
         "com.alibaba.compileflow.durable.api.DurableApiShapeTest#keepsSupportedTypesExplicitlyAllowlisted",
-        "com.alibaba.compileflow.durable.api.GreenfieldDurableApiTest#aliasRoutingOptionsContainOnlyAdmissionInputs",
-        "com.alibaba.compileflow.durable.api.GreenfieldDurableApiTest#applicationFacadeUsesDirectSemanticArguments",
-        "com.alibaba.compileflow.durable.api.GreenfieldDurableApiTest#runLifecycleAndControlAreIndependentAxes",
-        "com.alibaba.compileflow.durable.api.GreenfieldDurableApiTest#waitTokenStringRepresentationNeverExposesTheBearerCapability",
+        "com.alibaba.compileflow.durable.api.DurableApiContractTest#aliasRoutingOptionsContainOnlyBoundedAdmissionInputs",
+        "com.alibaba.compileflow.durable.api.DurableApiContractTest#engineApiUsesExplicitAdmissionInputs",
+        "com.alibaba.compileflow.durable.api.DurableApiContractTest#runLifecycleAndControlAreIndependentAxes",
+        "com.alibaba.compileflow.durable.api.DurableApiContractTest#waitTokenStringRepresentationNeverExposesTheBearerCapability",
         "com.alibaba.compileflow.durable.api.model.ProcessRunResultTest#succeededResultDeeplyOwnsAndRedactsOutput",
         "com.alibaba.compileflow.durable.spi.wait.DurableWaitDescriptionProviderTest#defaultsProvideNoApplicationWaitAttributes",
         "com.alibaba.compileflow.durable.spi.outbox.DurableOutboxSinkTest#outboundEventOwnsAnImmutableLogicalPayloadAndRedactsIt",
@@ -110,7 +111,7 @@ KERNEL_REQUIRED_TEST_CASES = frozenset(
         "com.alibaba.compileflow.durable.runtime.process.DurableProcessRuntimeManagerTest#recoveryUsesStoredSemanticsWithoutConsultingTheAdmissionSource",
         "com.alibaba.compileflow.durable.runtime.process.DurableProcessRuntimeManagerTest#admissionPersistsDistinctCallSitesWhilePreparingSharedMembersOnce",
         "com.alibaba.compileflow.durable.runtime.process.DurableProcessRuntimeManagerTest#admissionRejectsMappingsOutsideTheExactChildContract",
-        "com.alibaba.compileflow.durable.runtime.process.DurableProcessRuntimeManagerTest#definitionSourcedCallSelectsAnExactChildVersion",
+        "com.alibaba.compileflow.durable.runtime.process.DurableProcessRuntimeManagerTest#exactVersionCallsFreezeMixedModelRecoveryClosureAtEveryEdge",
         "com.alibaba.compileflow.durable.runtime.DefaultDurableProcessEngineTest#startRejectsReturnInnerAndUndeclaredVariablesBeforeStoreMutation",
         "com.alibaba.compileflow.durable.runtime.DefaultDurableProcessEngineTest#startRejectsMismatchedStoreIdentity",
         "com.alibaba.compileflow.durable.runtime.DefaultDurableProcessEngineTest#completeWaitValidatesTypedProcessStateBeforeStoreMutation",
@@ -122,8 +123,9 @@ KERNEL_REQUIRED_TEST_CASES = frozenset(
         "com.alibaba.compileflow.durable.spring.boot.autoconfigure.CompileFlowDurableOptionalObservabilityAutoConfigurationTest#composesDeployThroughTheTwoNarrowAdmissionAdapters",
         "com.alibaba.compileflow.durable.spring.boot.autoconfigure.CompileFlowDurableOptionalObservabilityAutoConfigurationTest#startsWithoutOptionalDeployLibrary",
         "com.alibaba.compileflow.durable.spring.boot.autoconfigure.postgres.DurablePostgresSchemaInitializerTest#rejectsPendingMigrationWhenDdlIsExternallyManaged",
+        "com.alibaba.compileflow.durable.spring.boot.autoconfigure.mysql.DurableMySqlSchemaInitializerTest#rejectsPendingMigrationWhenDdlIsExternallyManaged",
         "com.alibaba.compileflow.durable.spring.boot.autoconfigure.runtime.DurableHealthIndicatorTest#persistentLeaseRenewalFaultIsDegradedWithoutLeakingFailureDetails",
-        "com.alibaba.compileflow.durable.spring.boot.autoconfigure.runtime.DurableWorkerCoordinatorTest#gracefulStopDrainsInFlightWorkWithoutInterruptingIt",
+        "com.alibaba.compileflow.durable.runtime.worker.DurableWorkerCoordinatorTest#gracefulStopDrainsInFlightWorkWithoutInterruptingIt",
         "com.alibaba.compileflow.durable.testkit.DurableTestCompilationTest#keepsDebugArtifactExportDisabledByDefault",
     }
 )
@@ -152,13 +154,10 @@ POSTGRES_REQUIRED_TEST_CASES = frozenset(
         "com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#expiredClaimsRecoverAfterWorkerCrashAndFenceEveryLateOwner",
         "com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#waitCommittedOutboxCannotBeAbandoned",
         "com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#waitAuthorityFulfillmentOrRevocationSettlesItsOutboxAndFencesLatePublishers",
-        "com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#pauseAndEffectClaimRaceHasOneSafeOutcomeWithoutDeadlock",
-        "com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#cancelAndDueTimerRaceCompletesWithoutDeadlock",
         "com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#cancelLeaseRenewalAndOutboxCompletionShareRunFirstLockOrder",
         "com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#oneTurnIssuesAndConsumesMultipleExactOccurrences",
         "com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#oneFrontierOwnsAtMostOneOutstandingOccurrenceAndAdvancesAfterExactConsumption",
         "com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#activeWorkIsSummarizedPagedAndMayCoexistWithRunnableFrontier",
-        "com.alibaba.compileflow.durable.postgres.LocalPostgresDurableStoreContractTest#pauseAndCancelWaitForEveryPossibleEffectDispatch",
         "com.alibaba.compileflow.durable.postgres.LocalPostgresDurableOutboxAckLossTest#sigkillAfterDurableAcceptanceReplaysTheSameCommittedEvent",
         "com.alibaba.compileflow.durable.postgres.LocalPostgresDurableBpmnCrashMatrixTest#effectResponseLossBecomesUnknownThenReconcilesToOneContinuation",
         "com.alibaba.compileflow.durable.postgres.LocalPostgresDurableBpmnCrashMatrixTest#messageCatchSurvivesRuntimeLossAndResumesExactlyOnce",
@@ -166,6 +165,16 @@ POSTGRES_REQUIRED_TEST_CASES = frozenset(
         "com.alibaba.compileflow.durable.postgres.LocalPostgresDurableBpmnCrashMatrixTest#callActivityChildAndParentContinuationRecoverAsOneChain",
         "com.alibaba.compileflow.durable.postgres.LocalPostgresDurableBpmnCrashMatrixTest#parallelBranchesResumeFromPartialProgressAndConvergeExactly",
         "com.alibaba.compileflow.durable.postgres.LocalPostgresDurableBpmnCrashMatrixTest#parallelMultiInstanceRecoversPartialIterationsWithStableOrderedMerge",
+    }
+)
+MYSQL_REQUIRED_TEST_CASES = frozenset(
+    {
+        "com.alibaba.compileflow.durable.mysql.MySqlDurableStoreContractTest#storedProcessIsImmutableAndIdempotent",
+        "com.alibaba.compileflow.durable.mysql.MySqlDurableStoreContractTest#waitCompletionResumeAndTerminalOutboxFormOneFencedChain",
+        "com.alibaba.compileflow.durable.mysql.MySqlDurableStoreContractTest#expiredClaimsRecoverAfterWorkerCrashAndFenceEveryLateOwner",
+        "com.alibaba.compileflow.durable.mysql.MySqlDurableStoreContractTest#pauseAndEffectClaimRaceHasOneSafeOutcomeWithoutDeadlock",
+        "com.alibaba.compileflow.durable.mysql.MySqlDurableStoreContractTest#cancelAndDueTimerRaceCompletesWithoutDeadlock",
+        "com.alibaba.compileflow.durable.mysql.MySqlDurableStoreContractTest#terminalRunRetentionWaitsForRequiredOutboxAndPurgesTheWholeRun",
     }
 )
 EXAMPLE_REQUIRED_TEST_CASES = frozenset(
@@ -177,17 +186,22 @@ EXAMPLE_REQUIRED_TEST_CASES = frozenset(
 REQUIRED_TEST_CASES = {
     "durable-kernel": KERNEL_REQUIRED_TEST_CASES,
     "postgres-contract": POSTGRES_REQUIRED_TEST_CASES,
+    "mysql-contract": MYSQL_REQUIRED_TEST_CASES,
     "durable-postgres-example": EXAMPLE_REQUIRED_TEST_CASES,
 }
 SUITE_POLICIES = {
     "durable-kernel": (None, 250, 165, False),
-    "postgres-contract": (3, 50, 50, True),
+    "postgres-contract": (4, 50, 50, True),
+    "mysql-contract": (1, 45, 45, True),
     "durable-postgres-example": (1, 2, 2, True),
 }
 SUITE_METADATA_FIELDS = {
     "durable-kernel": frozenset({"commit", "java"}),
     "postgres-contract": frozenset(
         {"commit", "java", "postgres", "declared-image"}
+    ),
+    "mysql-contract": frozenset(
+        {"commit", "java", "mysql", "declared-image"}
     ),
     "durable-postgres-example": frozenset({"commit", "java"}),
 }
@@ -204,7 +218,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Verify all Durable test evidence belongs to one commit and "
-            "covers the exact required JDK, PostgreSQL, and example matrix."
+            "covers the exact required JDK, PostgreSQL, MySQL, and example matrix."
         )
     )
     parser.add_argument("--evidence-root", required=True, type=Path)
@@ -220,6 +234,12 @@ def parse_args() -> argparse.Namespace:
         action="append",
         required=True,
         help="Required PostgreSQL major.minor; repeat for the complete matrix",
+    )
+    parser.add_argument(
+        "--expected-mysql",
+        action="append",
+        required=True,
+        help="Required MySQL 8.4 patch version; repeat for the complete matrix",
     )
     parser.add_argument("--output", required=True, type=Path)
     return parser.parse_args()
@@ -790,6 +810,60 @@ def postgres_environment(
     }
 
 
+def mysql_image(
+    metadata: dict[str, object],
+    version: str,
+    path: Path,
+) -> str:
+    """Require a version-matching immutable MySQL image digest."""
+    image = require_text(
+        metadata.get("declared-image"),
+        "metadata.declared-image",
+        path,
+    )
+    if re.fullmatch(rf"mysql:{re.escape(version)}@sha256:[0-9a-f]{{64}}", image) is None:
+        raise ReleaseEvidenceError(
+            f"{path}: MySQL {version} image is not an immutable, version-matching digest"
+        )
+    return image
+
+
+def mysql_environment(
+    manifest_path: Path,
+    version: str,
+    declared_image: str,
+    expected_commit: str,
+) -> dict[str, str]:
+    """Bind declared MySQL metadata to the resolved image digest."""
+    values, content = load_environment(
+        manifest_path,
+        "mysql-environment.txt",
+        "MySQL",
+        {"commit", "declared_mysql", "declared_image", "resolved_image"},
+    )
+    if values["commit"] != expected_commit:
+        raise ReleaseEvidenceError(f"{manifest_path}: MySQL environment commit does not match")
+    if values["declared_mysql"] != version:
+        raise ReleaseEvidenceError(f"{manifest_path}: MySQL environment version does not match")
+    if values["declared_image"] != declared_image:
+        raise ReleaseEvidenceError(
+            f"{manifest_path}: MySQL environment declared image does not match the test manifest"
+        )
+    resolved = re.fullmatch(
+        r"[a-z0-9][a-z0-9._/-]*@sha256:([0-9a-f]{64})",
+        values["resolved_image"],
+    )
+    declared_digest = declared_image.rsplit("@sha256:", 1)[1]
+    if resolved is None or resolved.group(1) != declared_digest:
+        raise ReleaseEvidenceError(
+            f"{manifest_path}: resolved MySQL image digest does not match the declared image"
+        )
+    return {
+        "resolvedImage": values["resolved_image"],
+        "environmentSha256": hashlib.sha256(content).hexdigest(),
+    }
+
+
 def load_environment(
     manifest_path: Path,
     filename: str,
@@ -902,6 +976,7 @@ def build_release_evidence(
     commit: str,
     expected_java: Iterable[str],
     expected_postgres: Iterable[str],
+    expected_mysql: Iterable[str] = (),
 ) -> dict[str, object]:
     """Build a complete same-commit release-evidence manifest."""
     if not COMMIT_PATTERN.fullmatch(commit):
@@ -918,9 +993,15 @@ def build_release_evidence(
         "expected_postgres",
         POSTGRES_VERSION_PATTERN,
     )
+    mysql_values = tuple(expected_mysql)
+    mysql_matrix = normalize_unique(
+        mysql_values,
+        "expected_mysql",
+        MYSQL_VERSION_PATTERN,
+    ) if mysql_values else ()
 
     input_paths = tuple(sorted({path.resolve() for path in paths}))
-    expected_subjects = len(java_matrix) + len(postgres_matrix) + 1
+    expected_subjects = len(java_matrix) + len(postgres_matrix) + len(mysql_matrix) + 1
     if len(input_paths) != expected_subjects:
         raise ReleaseEvidenceError(
             f"expected {expected_subjects} evidence manifests, "
@@ -990,6 +1071,18 @@ def build_release_evidence(
                 raise ReleaseEvidenceError(
                     f"{path}: PostgreSQL contract must not skip tests"
                 )
+        elif suite == "mysql-contract":
+            version = require_text(metadata.get("mysql"), "metadata.mysql", path, 32)
+            if version not in mysql_matrix:
+                raise ReleaseEvidenceError(f"{path}: unexpected MySQL version {version}")
+            if java != "17":
+                raise ReleaseEvidenceError(f"{path}: MySQL contract must use JDK 17")
+            subject_id = f"mysql-{version}"
+            declared_image = mysql_image(metadata, version, path)
+            subject["declaredImage"] = declared_image
+            subject.update(mysql_environment(path, version, declared_image, commit))
+            if int(subject["summary"]["skipped"]) != 0:
+                raise ReleaseEvidenceError(f"{path}: MySQL contract must not skip tests")
         elif suite == "durable-postgres-example":
             if java != "17":
                 raise ReleaseEvidenceError(
@@ -1016,6 +1109,7 @@ def build_release_evidence(
     required_ids = {
         *(f"kernel-java-{java}" for java in java_matrix),
         *(f"postgres-{version}" for version in postgres_matrix),
+        *(f"mysql-{version}" for version in mysql_matrix),
         "postgres-example-java-17",
     }
     actual_ids = set(subjects)
@@ -1041,6 +1135,7 @@ def build_release_evidence(
         "matrix": {
             "java": list(java_matrix),
             "postgres": list(postgres_matrix),
+            "mysql": list(mysql_matrix),
             "executableExample": True,
         },
         "summary": totals,
@@ -1079,6 +1174,7 @@ def main() -> int:
             commit=arguments.commit,
             expected_java=arguments.expected_java,
             expected_postgres=arguments.expected_postgres,
+            expected_mysql=arguments.expected_mysql,
         )
         write_evidence(arguments.output, evidence)
     except ReleaseEvidenceError as failure:

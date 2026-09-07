@@ -13,7 +13,6 @@
  */
 package com.alibaba.compileflow.engine.core.source.loader;
 
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.core.runtime.ProcessRuntimeRequest;
 import com.alibaba.compileflow.engine.core.source.ProcessDefinitionSnapshot;
 
@@ -32,9 +31,8 @@ public interface ProcessDefinitionLoader {
      * and size policies before returning.
      *
      * @param request       runtime request carrying an explicit definition source
-     * @param modelType     selected process model type
      * @param classLoader   exact class-loader scope used for classpath lookup
      * @return loaded snapshot
      */
-    ProcessDefinitionSnapshot load(ProcessRuntimeRequest request, ProcessModelType modelType, ClassLoader classLoader);
+    ProcessDefinitionSnapshot load(ProcessRuntimeRequest request, ClassLoader classLoader);
 }

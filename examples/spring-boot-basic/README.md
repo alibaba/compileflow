@@ -1,40 +1,39 @@
-# CompileFlow Spring Boot Sample
+# CompileFlow Spring Boot Basic Example
 
-Minimal Spring Boot application that installs the CompileFlow starter from this repository and executes a classpath
-TBBPM flow that uses only QL script actions (no Spring beans).
+This example starts a minimal Spring Boot application and runs a TBBPM process from the classpath. The process adds
+two to an input value with a QL script action and does not call any Spring bean.
 
 ## Prerequisites
 
-- JDK 17+
-- From the repository root, install the starter once:
+- JDK 17 or later
+- A local checkout of this repository
+
+Install the TBBPM starter and its dependencies from the repository root:
 
 ```bash
-./mvnw install -pl compileflow-spring-boot-starter -am -DskipTests
+./mvnw install -pl compileflow-spring-boot-starter-tbbpm -am -DskipTests
 ```
 
 ## Run
 
 ```bash
-cd examples/spring-boot-basic
-../../mvnw -f pom.xml spring-boot:run
+./mvnw -f examples/spring-boot-basic/pom.xml spring-boot:run
 ```
 
-Expected log line: `Sample process completed: result=42`.
+When the process completes, the application logs `Sample process completed: result=42`.
 
 ## Verify
 
-The context test runs the same strict preflight and execution path as the application:
-
 ```bash
-../../mvnw -f pom.xml test
+./mvnw -f examples/spring-boot-basic/pom.xml test
 ```
+
+The test starts the Spring context, executes the same process with an input value of `40`, and verifies the result is
+`42`.
 
 ## What it demonstrates
 
-- Spring Boot auto-configured `ProcessEngine` singleton
-- Explicit `ProcessDefinition.classpath(...)` resolution
+- Spring Boot auto-configuration of a `ProcessEngine`
+- Classpath process resolution with `ProcessDefinition.classpath(...)`
+- Strict preflight validation before execution
 - Typed `ProcessResult` handling
-- Preflight validation before execution
-
-For hot deployment and Workbench Operate, use the Docker stack in
-[compileflow-workbench/DEPLOYMENT.md](../../compileflow-workbench/DEPLOYMENT.md).

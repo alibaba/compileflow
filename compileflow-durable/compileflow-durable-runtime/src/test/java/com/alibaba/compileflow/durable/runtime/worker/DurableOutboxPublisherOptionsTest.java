@@ -24,8 +24,9 @@ class DurableOutboxPublisherOptionsTest {
     }
 
     @Test
-    void defaultsProvideBoundedAtLeastOncePolicy() {
-        DurableOutboxPublisherOptions options = DurableOutboxPublisherOptions.defaults("worker-1");
+    void computesABoundedExponentialRetryWindow() {
+        DurableOutboxPublisherOptions options =
+                new DurableOutboxPublisherOptions("worker-1", Duration.ofSeconds(1), Duration.ofMinutes(1), 100);
 
         assertThat(options.initialRetryDelay()).isEqualTo(Duration.ofSeconds(1));
         assertThat(options.maxRetryDelay()).isEqualTo(Duration.ofMinutes(1));
@@ -42,7 +43,7 @@ class DurableOutboxPublisherOptionsTest {
             .hasMessage("initialRetryDelay");
         assertThatThrownBy(() -> options(Duration.ZERO, Duration.ofSeconds(2)))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("positive whole-millisecond");
+            .hasMessage("initialRetryDelay must be positive");
         assertThatThrownBy(() -> options(Duration.ofNanos(1), Duration.ofSeconds(2)))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("whole-millisecond");
@@ -51,7 +52,7 @@ class DurableOutboxPublisherOptionsTest {
             .hasMessageContaining("whole-millisecond");
         assertThatThrownBy(() -> options(Duration.ofSeconds(1), Duration.ofHours(1).plusMillis(1)))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("at most PT1H");
+            .hasMessage("maxRetryDelay must be in [PT0S, PT1H]");
         assertThatThrownBy(() -> options(Duration.ofSeconds(2), Duration.ofSeconds(1)))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("greater than or equal");

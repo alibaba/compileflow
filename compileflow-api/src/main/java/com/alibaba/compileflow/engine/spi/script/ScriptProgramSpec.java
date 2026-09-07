@@ -34,7 +34,7 @@ import java.util.Objects;
 public record ScriptProgramSpec(String language, String source, List<Input> inputs, String expectedOutputType) {
     public ScriptProgramSpec {
         language = ScriptExecutor.requireCanonicalName(language);
-        source = requireSource(source);
+        source = ProcessText.requireNonBlank(source, "source");
         inputs = List.copyOf(Objects.requireNonNull(inputs, "inputs"));
         expectedOutputType = optionalIdentity(expectedOutputType, "expectedOutputType");
     }
@@ -50,10 +50,6 @@ public record ScriptProgramSpec(String language, String source, List<Input> inpu
             name = required(name, "name");
             declaredType = required(declaredType, "declaredType");
         }
-    }
-
-    private static String requireSource(String value) {
-        return ProcessText.requireNonBlank(value, "source");
     }
 
     private static String required(String value, String name) {

@@ -19,6 +19,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
@@ -69,7 +71,7 @@ public class ExecutionLogController {
         }
         try {
             return Instant.parse(iso).toEpochMilli();
-        } catch (DateTimeParseException failure) {
+        } catch (DateTimeParseException | ArithmeticException failure) {
             throw new IllegalArgumentException(key + " must be an ISO-8601 timestamp");
         }
     }
@@ -187,6 +189,8 @@ public class ExecutionLogController {
      * @return CSV attachment, or {@code 400} when the filters are invalid
      */
     @PostMapping(value = "/export", produces = "text/csv")
+    @ApiResponse(responseCode = "200", description = "Raw UTF-8 CSV attachment (not base64 encoded)", content = @Content(mediaType = "t"
+            + "ext/csv", schema = @Schema(type = "string", format = "binary")))
     public ResponseEntity<byte[]> exportExecutionLogs(@RequestBody(required = false) ExecutionLogExportRequest body) {
         ExecutionLogService.LogQuery query;
         try {
@@ -204,7 +208,7 @@ public class ExecutionLogController {
         StringBuilder csv = new StringBuilder(
                 "id,processCode,invocationId,parentInvocationId,callDepth,traceId,modelType,sourceDigest,"
                 + "status,startTime,endTime,duration,namespace,requestedVersion,effectiveVersion,"
-                + "routingSource,routeAlias,routeRevision,errorCode,errorMessage\\n");
+                + "routingSource,routeAlias,routeRevision,errorCode,errorMessage\n");
         for (ExecutionLogEntity entity : rows) {
             ExecutionLogResponse row = toResponse(entity);
             csv
@@ -220,7 +224,7 @@ public class ExecutionLogController {
                 .append(',')
                 .append(escapeCsv(row.traceId()))
                 .append(',')
-                .append(escapeCsv(row.modelType().name()))
+                .append(escapeCsv(row.modelType() == null ? null : row.modelType().name()))
                 .append(',')
                 .append(escapeCsv(row.sourceDigest()))
                 .append(',')
@@ -286,7 +290,6 @@ public class ExecutionLogController {
     }
 
     private ExecutionLogResponse toResponse(ExecutionLogEntity entity) {
-        String namespace = textOrNull(entity.getNamespace());
         String requestedVersion = textOrNull(entity.getRequestedVersion());
         String effectiveVersion = textOrNull(entity.getEffectiveVersion());
         String routingSource = textOrNull(entity.getRoutingSource());

@@ -8,7 +8,17 @@ import {
 } from '@ant-design/icons'
 import type { Graph } from '@antv/x6'
 import { App, Layout, Segmented, Tooltip } from 'antd'
-import { lazy, ReactNode, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  lazy,
+  ReactNode,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { DesignerContextValue } from '../context'
@@ -245,7 +255,11 @@ function useRightPanelTabs(dispatch: AppDispatch) {
   return { handleTabChange, tabs }
 }
 
-function useGraphHighlights(graphRef: GraphRef): GraphHighlightHandlers {
+function useGraphHighlights(
+  graphRef: GraphRef,
+  flowDefinition: UnifiedProcessDefinition,
+  tab: RightPanelTab
+): GraphHighlightHandlers {
   const prevHighlightedNodesRef = useRef<Set<string>>(new Set())
   const prevHighlightedEdgesRef = useRef<Set<string>>(new Set())
   const prevDebugHighlightedNodeRef = useRef<string | null>(null)
@@ -256,13 +270,13 @@ function useGraphHighlights(graphRef: GraphRef): GraphHighlightHandlers {
   const onHighlightValidationNodes = useCallback(
     (nodeIds: string[]) => {
       const graph = graphRef.current
-      if (!graph || !nodeIds.length) return
+      if (!graph) return
       if (highlightNodesIdleHandle.current) cancelIdle(highlightNodesIdleHandle.current)
 
       const highlightSet = new Set(nodeIds)
       highlightNodesIdleHandle.current = requestIdle(() => {
         const currentGraph = graphRef.current
-        if (!currentGraph) return
+        if (currentGraph !== graph) return
         currentGraph.startBatch('highlight-nodes')
         prevHighlightedNodesRef.current.forEach((id) => resetNodeStyle(currentGraph, id))
         nodeIds.forEach((nodeId) =>
@@ -271,7 +285,7 @@ function useGraphHighlights(graphRef: GraphRef): GraphHighlightHandlers {
         currentGraph.stopBatch('highlight-nodes')
         prevHighlightedNodesRef.current = highlightSet
 
-        const firstCell = currentGraph.getCellById(nodeIds[0])
+        const firstCell = nodeIds.length ? currentGraph.getCellById(nodeIds[0]) : null
         if (firstCell) currentGraph.centerCell(firstCell)
       })
     },
@@ -281,13 +295,13 @@ function useGraphHighlights(graphRef: GraphRef): GraphHighlightHandlers {
   const onHighlightValidationConnections = useCallback(
     (connectionIds: string[]) => {
       const graph = graphRef.current
-      if (!graph || !connectionIds.length) return
+      if (!graph) return
       if (highlightEdgesIdleHandle.current) cancelIdle(highlightEdgesIdleHandle.current)
 
       const highlightSet = new Set(connectionIds)
       highlightEdgesIdleHandle.current = requestIdle(() => {
         const currentGraph = graphRef.current
-        if (!currentGraph) return
+        if (currentGraph !== graph) return
         currentGraph.startBatch('highlight-edges')
         prevHighlightedEdgesRef.current.forEach((id) => resetEdgeStyle(currentGraph, id))
         connectionIds.forEach((connectionId) =>
@@ -326,6 +340,27 @@ function useGraphHighlights(graphRef: GraphRef): GraphHighlightHandlers {
       prevDebugHighlightedEdgeRef.current = connectionId
     },
     [graphRef]
+  )
+
+  useLayoutEffect(
+    () => () => {
+      cancelIdle(highlightNodesIdleHandle.current)
+      cancelIdle(highlightEdgesIdleHandle.current)
+      const graph = graphRef.current
+      if (graph) {
+        prevHighlightedNodesRef.current.forEach((id) => resetNodeStyle(graph, id))
+        prevHighlightedEdgesRef.current.forEach((id) => resetEdgeStyle(graph, id))
+        if (prevDebugHighlightedNodeRef.current)
+          resetNodeStyle(graph, prevDebugHighlightedNodeRef.current)
+        if (prevDebugHighlightedEdgeRef.current)
+          resetEdgeStyle(graph, prevDebugHighlightedEdgeRef.current)
+      }
+      prevHighlightedNodesRef.current.clear()
+      prevHighlightedEdgesRef.current.clear()
+      prevDebugHighlightedNodeRef.current = null
+      prevDebugHighlightedEdgeRef.current = null
+    },
+    [graphRef, flowDefinition, tab]
   )
 
   return {
@@ -771,7 +806,7 @@ export function DesignerLayout({
   const layoutState = useLayoutState()
   const flowDefinition = requireCurrentProcess(layoutState.currentProcess)
   const simulationEngine = useSimulationEngine(flowDefinition)
-  const graphHighlights = useGraphHighlights(graphRef)
+  const graphHighlights = useGraphHighlights(graphRef, flowDefinition, layoutState.rightPanelTab)
   const segmentedValue = resolveSegmentedValue(layoutState.rightPanelTab)
   const emptyPanel =
     !layoutState.selectedNodeId &&

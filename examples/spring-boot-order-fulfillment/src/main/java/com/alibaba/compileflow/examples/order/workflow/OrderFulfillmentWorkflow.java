@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.examples.order.workflow;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
 import com.alibaba.compileflow.engine.ProcessExecutionOptions;
@@ -33,8 +34,8 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class OrderFulfillmentWorkflow {
-    static final ProcessDefinition PROCESS =
-            ProcessDefinition.classpath("example.order.fulfillment", "flows/order-fulfillment.bpm");
+    static final ProcessDefinition PROCESS = ProcessDefinition.classpath(ProcessModelType.TBBPM,
+            "example.order.fulfillment", "flows/order-fulfillment.bpm");
     private final ProcessEngine processEngine;
 
     public OrderFulfillmentWorkflow(ProcessEngine processEngine, OrderOperations orderOperations) {

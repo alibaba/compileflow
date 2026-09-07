@@ -20,47 +20,33 @@ import com.alibaba.compileflow.engine.core.java.compiler.JavaCompiler;
 import com.alibaba.compileflow.engine.core.runtime.executable.ExecutableProcess;
 import com.alibaba.compileflow.engine.core.runtime.script.ScriptProgramCatalog;
 import com.alibaba.compileflow.engine.core.runtime.script.ScriptExecutorRegistry;
-import com.alibaba.compileflow.engine.core.semantic.ProcessSemanticCompiler;
-import com.alibaba.compileflow.engine.core.source.ProcessDefinitionSnapshot;
+import com.alibaba.compileflow.engine.core.semantic.ProcessSemanticCompiler.ProcessSemanticCompilation;
 import com.alibaba.compileflow.engine.spi.script.ScriptProgram;
 import com.alibaba.compileflow.engine.spi.script.ScriptProgramSpec;
 import java.util.Map;
 import java.util.Objects;
 
 /**
- * Creates compiled runtimes through the single source-to-semantics pipeline.
+ * Realizes shared process semantics as compiled Java execution.
  *
  * @author yusu
  */
 public final class CompiledProcessRuntimeFactory implements ProcessRuntimeFactory {
-    private final ProcessSemanticCompiler<?> semanticCompiler;
     private final ScriptExecutorRegistry scripts;
     private final JavaCompiler javaCompiler;
     private final JavaDiagnosticsConfig compilationConfig;
 
-    public CompiledProcessRuntimeFactory(ProcessSemanticCompiler<?> semanticCompiler, ScriptExecutorRegistry scripts,
-            JavaCompiler javaCompiler, JavaDiagnosticsConfig compilationConfig) {
-        this.semanticCompiler = Objects.requireNonNull(semanticCompiler, "semanticCompiler");
+    public CompiledProcessRuntimeFactory(ScriptExecutorRegistry scripts, JavaCompiler javaCompiler,
+            JavaDiagnosticsConfig compilationConfig) {
         this.scripts = Objects.requireNonNull(scripts, "scripts");
         this.javaCompiler = Objects.requireNonNull(javaCompiler, "javaCompiler");
         this.compilationConfig = Objects.requireNonNull(compilationConfig, "compilationConfig");
     }
 
     @Override
-    public ProcessRuntime createRuntime(ProcessDefinitionSnapshot definition, ClassLoader classLoader) {
-        ClassLoader loader = Objects.requireNonNull(classLoader, "classLoader");
-        Thread thread = Thread.currentThread();
-        ClassLoader previous = thread.getContextClassLoader();
-        try {
-            thread.setContextClassLoader(loader);
-            return createInClassLoaderScope(definition, loader);
-        } finally {
-            thread.setContextClassLoader(previous);
-        }
-    }
-
-    private ProcessRuntime createInClassLoaderScope(ProcessDefinitionSnapshot definition, ClassLoader classLoader) {
-        ProcessSemanticCompiler.ProcessSemanticCompilation compilation = semanticCompiler.compile(definition);
+    public ProcessRuntime createRuntime(ProcessSemanticCompilation compilation, ClassLoader classLoader) {
+        Objects.requireNonNull(compilation, "compilation");
+        Objects.requireNonNull(classLoader, "classLoader");
         ProcessRuntimeEligibilityChecker.validate(compilation.semanticPlan(), compilation.structuredPlan());
 
         Map<ScriptProgramSpec, ScriptProgram> scriptPrograms =

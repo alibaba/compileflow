@@ -22,16 +22,11 @@ import org.junit.jupiter.api.Test;
 
 class DataTypeGeneratedSourceTest {
     @Test
-    void generatedBoundarySyntaxCompilesAsJava17() throws Exception {
+    void generatedCharacterDefaultCompilesAsJava17() throws Exception {
         String className = "com.alibaba.compileflow.generated.DataTypeBoundaryProbe";
         String characterLiteral = DataTypes.generateDefaultValueCode(char.class, "'").expression();
-        String memberConversion = DataTypes.generateTypeConversionCode(Object.class, Map.Entry.class, "value");
         String source = "package com.alibaba.compileflow.generated;\n"
-                + "import com.alibaba.compileflow.engine.core.type.DataTypes;\n" + "import java.util.List;\n"
-                + "import java.util.Map.Entry;\n" + "public class DataTypeBoundaryProbe {\n" + "    char delimiter = "
-                + characterLiteral + ";\n" + "    List<int[]> values;\n"
-                + "    Entry<String, Integer> convert(Object value) {\n" + "        return " + memberConversion + ";\n"
-                + "    }\n" + "}\n";
+                + "public class DataTypeBoundaryProbe {\n    char delimiter = " + characterLiteral + ";\n}\n";
         JavaCompileOptions options =
                 new JavaCompileOptions(JavaDiagnosticsConfig.DebugSymbols.LINES, getClass().getClassLoader());
         Map<String, byte[]> classes = new HashMap<>();

@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.alibaba.compileflow.engine.CompileFlowException;
 import com.alibaba.compileflow.engine.ProcessAliasTarget;
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.spi.ProcessEnginePlugin;
 import com.alibaba.compileflow.engine.spi.ProcessEnginePluginContext;
 import com.alibaba.compileflow.engine.spi.event.ProcessEvent;
@@ -52,7 +51,7 @@ class ProcessEngineConfigPluginTest {
 
     @Test
     void discoversClasspathPluginsWhenExplicitlyEnabled() {
-        ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder().discoverPlugins(true).build();
+        ProcessEngineConfig config = ProcessEngineConfig.builder().discoverPlugins(true).build();
 
         assertThat(config.getEventListeners())
             .extracting(listener -> ((NamedListener) listener).name)
@@ -61,17 +60,8 @@ class ProcessEngineConfigPluginTest {
     }
 
     @Test
-    void ordersDiscoveredPluginsByPriorityThenStableId() {
-        ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder().discoverPlugins(true).build();
-        // DiscoveredPlugin(10) applies before LateDiscoveredPlugin(20).
-        assertThat(config.getEventListeners())
-            .extracting(listener -> ((NamedListener) listener).name)
-            .containsExactly("discovered", "late");
-    }
-
-    @Test
     void disablingDiscoverySkipsClasspathPlugins() {
-        ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineConfig.builder().discoverPlugins(false).build();
 
         assertThat(config.getEventListeners()).isEmpty();
         assertThat(config.getScriptExecutors()).isEmpty();
@@ -83,7 +73,7 @@ class ProcessEngineConfigPluginTest {
         NamedListener explicitListener = new NamedListener("explicit");
 
         ProcessEngineConfig config = ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(true)
             .scriptExecutor(explicitMvel)
             .eventListener(explicitListener)
@@ -100,7 +90,7 @@ class ProcessEngineConfigPluginTest {
     void explicitPluginsComposeAfterDiscoveredPluginsWithDistinctLanguages() {
         NamedExecutor explicit = new NamedExecutor("mvel");
         ProcessEngineConfig config = ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(true)
             .plugin(ProcessEnginePlugin.of("test.explicit", Integer.MIN_VALUE, context -> context.scriptExecutor(
                     explicit)))
@@ -112,7 +102,7 @@ class ProcessEngineConfigPluginTest {
     @Test
     void ordersExplicitPluginsByPriorityThenStableId() {
         ProcessEngineConfig config = ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .plugin(ProcessEnginePlugin.of("test.zulu", context -> context.eventListener(new NamedListener("zulu"))))
             .plugin(ProcessEnginePlugin.of("test.alpha", context -> context.eventListener(new NamedListener("alpha"))))
@@ -126,7 +116,7 @@ class ProcessEngineConfigPluginTest {
     @Test
     void pluginFailureFailsFast() {
         assertThatThrownBy(() -> ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .plugin(ProcessEnginePlugin.of("test.failure", context -> {
                 throw new IllegalStateException("bad plugin");
@@ -138,13 +128,12 @@ class ProcessEngineConfigPluginTest {
     }
 
     @Test
-    void pluginReceivesTheTargetModelType() {
+    void pluginContributesEngineWideCapabilities() {
         ProcessEngineConfig config = ProcessEngineConfig
-            .bpmnBuilder()
+            .builder()
             .discoverPlugins(false)
-            .plugin(ProcessEnginePlugin.of("test.model-type", context -> {
-                assertThat(context.getModelType()).isEqualTo(ProcessModelType.BPMN);
-                context.eventListener(new NamedListener("bpmn"));
+            .plugin(ProcessEnginePlugin.of("test.listener", context -> {
+                context.eventListener(new NamedListener("all-definitions"));
             }))
             .build();
 
@@ -154,11 +143,7 @@ class ProcessEngineConfigPluginTest {
     @Test
     void explicitPluginReplacesDiscoveredPluginWithSameId() {
         ProcessEnginePlugin explicit = new DiscoveredPlugin("explicit-replacement");
-        ProcessEngineConfig config = ProcessEngineConfig
-            .tbbpmBuilder()
-            .discoverPlugins(true)
-            .plugin(explicit)
-            .build();
+        ProcessEngineConfig config = ProcessEngineConfig.builder().discoverPlugins(true).plugin(explicit).build();
 
         assertThat(config.getEventListeners())
             .extracting(listener -> ((NamedListener) listener).name)
@@ -169,7 +154,7 @@ class ProcessEngineConfigPluginTest {
     @Test
     void duplicateExplicitPluginIdsFailFast() {
         assertThatThrownBy(() -> ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .plugin(new NamedPlugin("duplicate", "first"))
             .plugin(new NamedPlugin("duplicate", "second"))
@@ -180,8 +165,16 @@ class ProcessEngineConfigPluginTest {
 
     @Test
     void rejectsUnsafePluginIdentifiers() {
+        for (String id : new String[] {"\u00a0plugin", "plugin\u00a0", "plug\u200bin", "plug\ud800in"}) {
+            assertThatThrownBy(() -> ProcessEngineConfig
+                .builder()
+                .plugin(ProcessEnginePlugin.of(id, context -> {}))
+                .build())
+                .isInstanceOf(CompileFlowException.ConfigurationException.class)
+                .hasMessageContaining("ProcessEnginePlugin id");
+        }
         assertThatThrownBy(() -> ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .plugin(ProcessEnginePlugin.of(" padded ", context -> {}))
             .build())
@@ -189,7 +182,7 @@ class ProcessEngineConfigPluginTest {
             .hasMessageContaining("surrounding whitespace");
 
         assertThatThrownBy(() -> ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .plugin(ProcessEnginePlugin.of("bad\nplugin", context -> {}))
             .build())
@@ -198,7 +191,7 @@ class ProcessEngineConfigPluginTest {
 
         String oversized = "x".repeat(257);
         assertThatThrownBy(() -> ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .plugin(ProcessEnginePlugin.of(oversized, context -> {}))
             .build())
@@ -229,11 +222,7 @@ class ProcessEngineConfigPluginTest {
             }
         };
 
-        ProcessEngineConfig config = ProcessEngineConfig
-            .tbbpmBuilder()
-            .discoverPlugins(false)
-            .plugin(plugin)
-            .build();
+        ProcessEngineConfig config = ProcessEngineConfig.builder().discoverPlugins(false).plugin(plugin).build();
 
         assertThat(config.getEventListeners()).hasSize(1);
         assertThat(idReads).hasValue(1);
@@ -252,7 +241,7 @@ class ProcessEngineConfigPluginTest {
             }
         };
 
-        assertThatThrownBy(() -> ProcessEngineConfig.tbbpmBuilder().discoverPlugins(false).plugin(plugin).build())
+        assertThatThrownBy(() -> ProcessEngineConfig.builder().discoverPlugins(false).plugin(plugin).build())
             .isInstanceOf(CompileFlowException.ConfigurationException.class)
             .hasMessageContaining("Failed to read explicit ProcessEnginePlugin metadata")
             .hasRootCauseMessage("metadata failure");
@@ -264,7 +253,7 @@ class ProcessEngineConfigPluginTest {
         NamedExecutor second = new NamedExecutor("groovy");
 
         assertThatThrownBy(() -> ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .scriptExecutor(first)
             .scriptExecutor(second))
@@ -278,7 +267,7 @@ class ProcessEngineConfigPluginTest {
         NamedExecutor second = new NamedExecutor("groovy");
 
         assertThatThrownBy(() -> ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .plugin(ProcessEnginePlugin.of("test.first", 1, context -> context.scriptExecutor(first)))
             .plugin(ProcessEnginePlugin.of("test.second", 2, context -> context.scriptExecutor(second)))
@@ -293,7 +282,7 @@ class ProcessEngineConfigPluginTest {
         NamedExecutor direct = new NamedExecutor("groovy");
 
         assertThatThrownBy(() -> ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .plugin(ProcessEnginePlugin.of("test.plugin", context -> context.scriptExecutor(plugin)))
             .scriptExecutor(direct)
@@ -308,9 +297,9 @@ class ProcessEngineConfigPluginTest {
         NamedExecutor second = new NamedExecutor("second");
 
         ProcessEngineConfig firstConfig =
-                ProcessEngineConfig.tbbpmBuilder().discoverPlugins(false).scriptExecutor(first).build();
+                ProcessEngineConfig.builder().discoverPlugins(false).scriptExecutor(first).build();
         ProcessEngineConfig secondConfig =
-                ProcessEngineConfig.tbbpmBuilder().discoverPlugins(false).scriptExecutor(second).build();
+                ProcessEngineConfig.builder().discoverPlugins(false).scriptExecutor(second).build();
 
         assertThat(firstConfig.getScriptExecutors()).containsExactly(first);
         assertThat(secondConfig.getScriptExecutors()).containsExactly(second);
@@ -322,7 +311,7 @@ class ProcessEngineConfigPluginTest {
     void retainedPluginContextCannotMutateBuiltConfiguration() {
         AtomicReference<ProcessEnginePluginContext> retainedContext = new AtomicReference<>();
         ProcessEngineConfig config = ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .plugin(ProcessEnginePlugin.of("test.retained-context", context -> {
                 retainedContext.set(context);
@@ -340,7 +329,7 @@ class ProcessEngineConfigPluginTest {
     @Test
     void replacingObservabilitySnapshotReplacesScalarBehavior() {
         ProcessEngineConfig config = ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .observability(ProcessObservabilityConfig.builder().eventsAsync(false).build())
             .observability(ProcessObservabilityConfig
@@ -362,7 +351,7 @@ class ProcessEngineConfigPluginTest {
         NamedListener directListener = new NamedListener("direct");
 
         ProcessEngineConfig config = ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .plugin(ProcessEnginePlugin.of("test.layering", context -> context.eventListener(
                     new NamedListener("plugin"))))
@@ -383,7 +372,7 @@ class ProcessEngineConfigPluginTest {
         ProcessAliasRouteSource source = alias -> Optional.empty();
 
         ProcessEngineConfig config =
-                ProcessEngineConfig.tbbpmBuilder().discoverPlugins(false).aliasRouteSource(source).build();
+                ProcessEngineConfig.builder().discoverPlugins(false).aliasRouteSource(source).build();
 
         assertThat(config.getAliasRouteSource()).isSameAs(source);
     }
@@ -396,7 +385,7 @@ class ProcessEngineConfigPluginTest {
         FailureHandler directFailure = context -> FailureResolution.CONTINUE_PROCESS;
 
         ProcessEngineConfig config = ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .plugin(ProcessEnginePlugin.of("test.execution-policies", context -> context
                 .retryPolicy("custom-retry", pluginRetry)
@@ -417,7 +406,7 @@ class ProcessEngineConfigPluginTest {
         RetryPolicy second = failure -> true;
 
         assertThatThrownBy(() -> ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .plugin(ProcessEnginePlugin.of("test.first", 1, context -> context.retryPolicy("network", first)))
             .plugin(ProcessEnginePlugin.of("test.second", 2, context -> context.retryPolicy("network", second)))
@@ -432,7 +421,7 @@ class ProcessEngineConfigPluginTest {
         FailureHandler second = context -> FailureResolution.CONTINUE_PROCESS;
 
         assertThatThrownBy(() -> ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .plugin(ProcessEnginePlugin.of("test.first", 1, context -> context.failureHandler("network", first)))
             .plugin(ProcessEnginePlugin.of("test.second", 2, context -> context.failureHandler("network", second)))
@@ -458,21 +447,21 @@ class ProcessEngineConfigPluginTest {
         };
 
         assertThatThrownBy(() -> ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .plugin(ProcessEnginePlugin.of("test.first", context -> context.retryPolicy("network", retry)))
             .plugin(ProcessEnginePlugin.of("test.second", context -> context.retryPolicy("network", retry)))
             .build())
             .hasMessageContaining("Duplicate retry policies for name 'network'");
         assertThatThrownBy(() -> ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .plugin(ProcessEnginePlugin.of("test.first", context -> context.failureHandler("network", failure)))
             .plugin(ProcessEnginePlugin.of("test.second", context -> context.failureHandler("network", failure)))
             .build())
             .hasMessageContaining("Duplicate failure handlers for name 'network'");
         assertThatThrownBy(() -> ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .aliasTargetingPolicy(targeting)
             .aliasTargetingPolicy(targeting))
             .hasMessageContaining("Duplicate Alias targeting policies for name 'tenant-cohort'");
@@ -481,19 +470,19 @@ class ProcessEngineConfigPluginTest {
     @Test
     void rejectsReservedOrUnsafeExecutionPolicyNames() {
         assertThatThrownBy(() -> ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .retryPolicy("always", failure -> true))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("reserved");
         assertThatThrownBy(() -> ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .failureHandler("propagate", context -> FailureResolution.FAIL_PROCESS))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("reserved");
         assertThatThrownBy(() -> ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .failureHandler("bad\nname", context -> FailureResolution.FAIL_PROCESS))
             .isInstanceOf(IllegalArgumentException.class)
@@ -506,7 +495,7 @@ class ProcessEngineConfigPluginTest {
         ClassLoader original = thread.getContextClassLoader();
         thread.setContextClassLoader(null);
         try {
-            ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder().discoverPlugins(false).build();
+            ProcessEngineConfig config = ProcessEngineConfig.builder().discoverPlugins(false).build();
 
             assertThat(config.getClassLoader()).isSameAs(ProcessEngineConfig.class.getClassLoader());
         } finally {
@@ -526,7 +515,8 @@ class ProcessEngineConfigPluginTest {
             }
         };
 
-        ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder().classLoader(noPluginResources).build();
+        ProcessEngineConfig config =
+                ProcessEngineConfig.builder().discoverPlugins(true).classLoader(noPluginResources).build();
 
         assertThat(config.getEventListeners()).isEmpty();
         assertThat(config.getScriptExecutors()).isEmpty();
@@ -550,7 +540,7 @@ class ProcessEngineConfigPluginTest {
         };
 
         assertThatThrownBy(() -> ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(true)
             .classLoader(malformedServiceLoader)
             .build())

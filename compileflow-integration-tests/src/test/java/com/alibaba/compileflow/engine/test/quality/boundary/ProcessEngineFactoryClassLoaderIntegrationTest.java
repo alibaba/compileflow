@@ -44,7 +44,7 @@ class ProcessEngineFactoryClassLoaderIntegrationTest {
         };
         ProcessEngineConfig config =
                 ProcessEngineTestFactory
-            .tbbpmBuilder()
+            .builder()
             .classLoader(applicationClassLoader)
             .discoverPlugins(false)
             .build();

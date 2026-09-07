@@ -39,13 +39,12 @@ public final class ProcessDefinitionDigest {
     /**
      * Computes a lowercase SHA-256 digest for one inline definition.
      *
-     * @param modelType  process definition format
      * @param definition exact inline definition
      * @return lowercase SHA-256 digest
      */
-    public static String compute(ProcessModelType modelType, ProcessDefinition.Inline definition) {
+    public static String compute(ProcessDefinition.Inline definition) {
         ProcessDefinition.Inline source = Objects.requireNonNull(definition, "definition");
-        return compute(modelType, source.code(), source.content().getBytes(StandardCharsets.UTF_8));
+        return compute(source.modelType(), source.code(), source.content().getBytes(StandardCharsets.UTF_8));
     }
 
     /**

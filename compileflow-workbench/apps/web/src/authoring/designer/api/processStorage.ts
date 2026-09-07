@@ -39,8 +39,11 @@ export interface ImportResult {
 }
 
 const EXPORT_FORMAT_VERSION = 2
-const requiredString = z.string().trim().min(1)
-const optionalString = requiredString.optional()
+const requiredString = z.string().refine((value) => value.trim().length > 0)
+const sourceContent = z
+  .string()
+  .refine((value) => value.trim().length > 0, 'Source content must not be blank')
+const optionalString = z.string().optional()
 const timestamp = z.number().int().nonnegative().finite()
 
 const processSchema: z.ZodType<StoredProcess> = z
@@ -49,7 +52,7 @@ const processSchema: z.ZodType<StoredProcess> = z
     code: requiredString,
     name: requiredString,
     type: z.enum(['BPMN', 'TBBPM']),
-    definition: requiredString,
+    definition: sourceContent,
     createdAt: timestamp,
     updatedAt: timestamp,
     description: optionalString,
@@ -62,7 +65,7 @@ const processSnapshotSchema: z.ZodType<ProcessSnapshot> = z
   .object({
     id: requiredString,
     processId: requiredString,
-    definition: requiredString,
+    definition: sourceContent,
     createdAt: timestamp,
     changeLog: optionalString,
     tag: optionalString,
@@ -75,7 +78,7 @@ const processTemplateSchema: z.ZodType<ProcessTemplate> = z
     name: requiredString,
     type: z.enum(['BPMN', 'TBBPM']),
     description: optionalString,
-    content: requiredString,
+    content: sourceContent,
     category: optionalString,
     tags: z.array(requiredString).optional(),
   })

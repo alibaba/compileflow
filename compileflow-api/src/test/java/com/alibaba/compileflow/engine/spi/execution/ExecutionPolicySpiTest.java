@@ -88,4 +88,39 @@ class ExecutionPolicySpiTest {
         }
         assertThat(ActionExecutionContext.currentOptional()).isEmpty();
     }
+
+    @Test
+    void rejectsOutOfOrderScopesEvenWhenTheyBindTheSameContext() {
+        ActionExecutionContext action = new ActionExecutionContext("process-1", "default", "order.process",
+                ProcessModelType.TBBPM, SOURCE_DIGEST, "task", 1L, 1);
+        try (ActionExecutionContext.Scope outer = ActionExecutionContext.open(action)) {
+            try (ActionExecutionContext.Scope inner = ActionExecutionContext.open(action)) {
+                assertThat(inner).isNotNull();
+                assertThatThrownBy(outer::close).isInstanceOf(IllegalStateException.class).hasMessageContaining("LIFO");
+                assertThat(ActionExecutionContext.current()).isSameAs(action);
+            }
+            assertThat(ActionExecutionContext.current()).isSameAs(action);
+        }
+        assertThat(ActionExecutionContext.currentOptional()).isEmpty();
+    }
+
+    @Test
+    void rejectsOutOfOrderNestedSuspensions() {
+        ActionExecutionContext action = new ActionExecutionContext("process-1", "default", "order.process",
+                ProcessModelType.TBBPM, SOURCE_DIGEST, "task", 1L, 1);
+        try (ActionExecutionContext.Scope bound = ActionExecutionContext.open(action)) {
+            assertThat(bound).isNotNull();
+            try (ActionExecutionContext.Scope outer = ActionExecutionContext.suspend()) {
+                try (ActionExecutionContext.Scope inner = ActionExecutionContext.suspend()) {
+                    assertThat(inner).isNotNull();
+                    assertThatThrownBy(outer::close).isInstanceOf(IllegalStateException.class).hasMessageContaining(
+                            "LIFO");
+                    assertThat(ActionExecutionContext.currentOptional()).isEmpty();
+                }
+                assertThat(ActionExecutionContext.currentOptional()).isEmpty();
+            }
+            assertThat(ActionExecutionContext.current()).isSameAs(action);
+        }
+        assertThat(ActionExecutionContext.currentOptional()).isEmpty();
+    }
 }

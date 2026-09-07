@@ -21,9 +21,9 @@ import org.junit.jupiter.api.Test;
 class ProcessEngineConfigLimitsTest {
     @Test
     void providesBoundedDefaultsAndDirectScalarOverrides() {
-        ProcessEngineConfig defaults = ProcessEngineConfig.tbbpm();
+        ProcessEngineConfig defaults = ProcessEngineConfig.defaults();
         ProcessEngineConfig configured = ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .maxCallDepth(64)
             .maxResidentRuntimes(512)
             .shutdownTimeout(Duration.ofSeconds(7))
@@ -40,7 +40,7 @@ class ProcessEngineConfigLimitsTest {
     @Test
     void rejectsInvalidEngineWideLimitsTogether() {
         assertThatThrownBy(() -> ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .maxCallDepth(257)
             .maxResidentRuntimes(0)
             .shutdownTimeout(Duration.ZERO)
@@ -54,7 +54,7 @@ class ProcessEngineConfigLimitsTest {
     @Test
     void rejectsShutdownTimeoutsThatExecutorApisCannotRepresent() {
         assertThatThrownBy(() -> ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .shutdownTimeout(Duration.ofSeconds(Long.MAX_VALUE))
             .build())
             .isInstanceOf(IllegalArgumentException.class)

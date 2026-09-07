@@ -44,6 +44,50 @@ import org.junit.jupiter.api.Test;
 
 class TbbpmDurableParallelForEachTest {
     @Test
+    void parallelWaitsDescribeTheirRecoveredItemAndIndex() throws Exception {
+        CompiledMachineProgram compiled = compile(
+                """
+                <bpm code="parallel.foreach.waits">
+                  <var name="items" dataType="java.util.List&lt;java.lang.String&gt;" inOutType="param"/>
+                  <start id="start"><transition to="loop"/></start>
+                  <foreach id="loop" execution="parallel" collection="items"
+                       item="item" itemType="java.lang.String" index="itemIndex">
+                    <transition to="end"/>
+                    <start id="loopStart"><transition to="approval"/></start>
+                    <waitTask id="approval"><transition to="loopEnd"/></waitTask>
+                    <end id="loopEnd"/>
+                  </foreach>
+                  <end id="end"/>
+                </bpm>
+                """);
+        DurableValueSerializer serializer = serializer(compiled);
+        DurableProgram interpreted = new DurableInterpretedProgramCompiler(com.alibaba.compileflow.engine.config.JavaDiagnosticsConfig.defaults())
+            .compile(compiled.machinePlan(), getClass().getClassLoader());
+        for (DurableProgram program : List.of(compiled.program(), interpreted)) {
+            List<Map<String, Object>> described = new ArrayList<>();
+            DurableExecutionContext context = new DurableExecutionContext(compiled.machinePlan(),
+                    DurableActionInvoker.unavailable(), new DurableWaitDescriptionProvider() {
+                        @Override
+                        public Map<String, Object> describeWait(
+                                com.alibaba.compileflow.durable.spi.wait.DurableWaitDescriptionContext wait) {
+                            described.add(wait.lexicalBindings());
+                            return wait.lexicalBindings();
+                        }
+                    }, serializer);
+            MachineTurnResult turn = program.advance(ContinuationSnapshot.start(Map.of("items", List.of("A", "B"))),
+                    List.of(), new TurnBudget(100, 2), context);
+            for (int index = 0; index < 2; index++) {
+                turn = program.advance(serializer.decode(serializer.encode(turn.continuation())), List.of(),
+                        new TurnBudget(100, 2), context);
+                assertThat(turn.outcome()).isInstanceOf(FrontierStepResult.Waiting.class);
+            }
+            assertThat(described).containsExactly(Map.of("item", "A", "itemIndex", 0),
+                    Map.of("item", "B", "itemIndex", 1));
+            assertThat(turn.continuation().hasRunnableFrontier(2)).isFalse();
+        }
+    }
+
+    @Test
     void sequentialParentMayOwnParallelForEachAndRecoverBetweenEveryTurn() throws Exception {
         CompiledMachineProgram compiled = compile(sequentialParentParallelFlow());
         DurableMachinePlan.Iteration.ForEach inner =

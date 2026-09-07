@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.quality.boundary;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ErrorCode;
 import com.alibaba.compileflow.engine.ProcessDefinition;
@@ -28,14 +29,14 @@ import org.junit.jupiter.api.Test;
 class ProcessVariableBoundaryIntegrationTest {
     @Test
     void tbbpmExecutionAcceptsOnlyDeclaredParameterVariables() {
-        try (ProcessEngine engine = ProcessEngineTestFactory.createTbbpm()) {
-            ProcessDefinition ref = ProcessDefinition.classpath("bpm.java-code.javaCodeSum",
+        try (ProcessEngine engine = ProcessEngineTestFactory.create()) {
+            ProcessDefinition ref = ProcessDefinition.classpath(ProcessModelType.TBBPM, "bpm.java-code.javaCodeSum",
                     "bpm.java-code.javaCodeSum".replace(".", "/") + ".bpm");
 
             assertRejected(engine.execute(ref, Map.of("inputA", 15, "inputB", 25, "result", 999)));
             assertRejected(engine.execute(ref, Map.of("inputA", 15, "inputB", 25, "unknown", true)));
-            assertRejected(engine.execute(ProcessDefinition.classpath("bpm.stateful.waitTaskProcess",
-                            "bpm.stateful.waitTaskProcess".replace(".", "/") + ".bpm"),
+            assertRejected(engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            "bpm.stateful.waitTaskProcess", "bpm.stateful.waitTaskProcess".replace(".", "/") + ".bpm"),
                     Map.of("taskData", "task-a", "processedData", "forged-inner-state")));
 
             ProcessResult<Map<String, Object>> accepted = engine.execute(ref, Map.of("inputA", 15, "inputB", 25));
@@ -46,8 +47,8 @@ class ProcessVariableBoundaryIntegrationTest {
 
     @Test
     void bpmnExecutionUsesTheSameClosedParameterContract() {
-        try (ProcessEngine engine = ProcessEngineTestFactory.createBpmn()) {
-            ProcessDefinition ref = ProcessDefinition.classpath("bpmn20.compat.simple_service",
+        try (ProcessEngine engine = ProcessEngineTestFactory.create()) {
+            ProcessDefinition ref = ProcessDefinition.classpath(ProcessModelType.BPMN, "bpmn20.compat.simple_service",
                     "bpmn20.compat.simple_service".replace(".", "/") + ".bpmn");
 
             assertRejected(engine.execute(ref, Map.of("a", 15, "b", 25, "serviceTask1Result", 999)));
@@ -61,10 +62,10 @@ class ProcessVariableBoundaryIntegrationTest {
 
     @Test
     void typedInputMustMapToTheSameDeclaredParameterContract() {
-        try (ProcessEngine engine = ProcessEngineTestFactory.createTbbpm()) {
-            ProcessResult<TypedOutput> result = engine.execute(ProcessDefinition.classpath("bpm.java-code.javaCodeSum",
-                            "bpm.java-code.javaCodeSum".replace(".", "/") + ".bpm"), new SupersetInput(15, 25, 999),
-                    TypedOutput.class, ProcessExecutionOptions.defaults());
+        try (ProcessEngine engine = ProcessEngineTestFactory.create()) {
+            ProcessResult<TypedOutput> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            "bpm.java-code.javaCodeSum", "bpm.java-code.javaCodeSum".replace(".", "/") + ".bpm"),
+                    new SupersetInput(15, 25, 999), TypedOutput.class, ProcessExecutionOptions.defaults());
 
             assertRejected(result);
         }
@@ -73,8 +74,9 @@ class ProcessVariableBoundaryIntegrationTest {
     @Test
     void nativeTriggerAcceptsDeclaredStateButRejectsUndeclaredState() {
         ProcessRef.Version ref = ProcessRef.version("default", "bpm.stateful.waitTaskProcess", "v1");
-        ProcessDefinition definition = ProcessDefinition.classpath(ref.code(), "bpm/stateful/waitTaskProcess.bpm");
-        try (ProcessEngine engine = ProcessEngineTestFactory.createTbbpm()) {
+        ProcessDefinition definition =
+                ProcessDefinition.classpath(ProcessModelType.TBBPM, ref.code(), "bpm/stateful/waitTaskProcess.bpm");
+        try (ProcessEngine engine = ProcessEngineTestFactory.create()) {
             engine.runtime().load(ref, definition);
 
             ProcessResult<Map<String, Object>> accepted = engine.trigger(ref, ProcessTrigger.at("waitTask1"),

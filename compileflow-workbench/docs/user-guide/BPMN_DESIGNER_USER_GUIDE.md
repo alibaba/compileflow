@@ -1,15 +1,13 @@
 # BPMN Designer User Guide
 
-The Workbench BPMN designer creates and edits local BPMN drafts for CompileFlow's executable BPMN subset. Drafts remain
-in the current browser until you export them or explicitly publish through the server-backed Operate workflow.
+The Workbench BPMN designer creates and edits BPMN drafts for CompileFlow's executable BPMN subset. Build workspace
+drafts are stored in the current browser; drafts opened from Operate remain bound to the Server.
 
 ## Create Or Open A Process
 
 1. Open the Build workspace at `/build`.
 2. Create a BPMN process, open a saved process, or start from a template.
-3. Workbench opens the canonical designer route at `/build/designer`.
-
-The route records the source and model type. Do not edit route query parameters to change an existing process's format.
+3. Workbench opens the designer at `/build/designer`.
 
 ## Supported Nodes
 
@@ -20,15 +18,15 @@ The route records the source and model type. Do not edit route query parameters 
 | Gateways    | Exclusive, parallel, inclusive          |
 | Composition | Call activity, embedded subprocess      |
 
-This is a bounded CompileFlow subset, not every BPMN 2.0 element. Unsupported XML is reported during import or
-validation. Workbench rejects `userTask` because the CompileFlow runtime does not provide durable human-task semantics.
+The designer supports the elements listed above. Unsupported BPMN XML is reported during import or validation. Human
+tasks are not supported because the CompileFlow runtime does not provide durable human-task execution.
 
 An embedded subprocess owns a nested graph with its own start and end event. Workbench preserves that hierarchy in
-visual and XML views. Sequence flows cannot cross the container boundary, event subprocesses are unsupported, and a
-receive task cannot be nested because trigger invocations do not restore an embedded call stack.
+visual and XML views. Sequence flows cannot cross the container boundary, event subprocesses are unsupported, and
+receive tasks cannot be placed inside an embedded subprocess.
 
-Service tasks use CompileFlow `cf:action` extensions rather than Camunda execution attributes. Script tasks default to
-the built-in `qlexpress` executor and may name another executor installed in the engine. Process variables, action and
+Service tasks use CompileFlow `cf:action` extensions. Script tasks default to the built-in `qlexpress` executor and may
+name another executor installed in the engine. Process variables, action and
 call-activity variable mappings, message definitions, plain-text documentation, and diagram geometry are retained across
 XML and visual editing.
 
@@ -47,8 +45,9 @@ to visual editing.
 
 ## Save, History, And Export
 
-Saving writes the draft to local IndexedDB. Local history stores snapshots for the current flow. Restoring a
-snapshot loads its XML back into the editor; save the flow to persist the restored draft.
+Saving a local workspace draft writes it to IndexedDB. Local history stores snapshots for that flow. Restoring a
+snapshot loads its XML back into the editor; save the flow to persist the restored draft. Saving a draft opened from
+Operate updates the Server draft with its expected revision, without creating local snapshots or publishing a Version.
 
 Workspace export produces a JSON backup containing local flows, snapshots, and templates. BPMN XML export
 produces an engine-facing process definition. These formats serve different purposes and are not interchangeable.
@@ -56,14 +55,15 @@ produces an engine-facing process definition. These formats serve different purp
 Browser storage is origin-specific and can be cleared by browser policy or user action. Use workspace export when the
 local draft must be retained or moved to another device.
 
-## Runtime Boundary
+## Preview And Published Execution
 
-The designer does not make a draft executable by itself:
+Preview and published execution use separate paths:
 
 - Learn/designer trial execution uses the loopback development mock in mock mode and Workbench Server preview in real
   mode.
-- Browser simulation stops at an embedded subprocess; use real backend preview for generated-code subprocess execution.
-- Real validation, release, routing, and execution belong to `compileflow-workbench-server` and the Java engine.
+- Browser simulation stops at an embedded subprocess; use Workbench Server preview to test compiled subprocess
+  execution.
+- Server validation, publication, routing, and execution belong to `compileflow-workbench-server` and the Java engine.
 - Operate state is not copied into the local workspace.
 
 ## Keyboard Shortcuts

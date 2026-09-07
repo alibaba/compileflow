@@ -16,6 +16,25 @@ function draft(variable: ProcessVariable) {
 }
 
 describe('process-variable serialization contract', () => {
+  test.each(['TBBPM', 'BPMN'] as const)(
+    'preserves XML attribute whitespace for %s defaults',
+    (type) => {
+      const variable: ProcessVariable = {
+        name: 'message',
+        type: 'java.lang.String',
+        inOutType: 'param',
+        defaultValue: 'first\nsecond\tthird\rfourth',
+      }
+      const result =
+        type === 'TBBPM'
+          ? parseTbbpmXml(generateTbbpmXml({ ...draft(variable), type }))
+          : parseBpmnXml(generateBpmnXml({ ...draft(variable), type }))
+
+      expect(result.success).toBe(true)
+      expect(result.data?.variables?.[0].defaultValue).toBe(variable.defaultValue)
+    }
+  )
+
   test('rejects invalid Java names when importing either model format', () => {
     const tbbpm = parseTbbpmXml(
       '<bpm code="invalid"><var name="order-id" dataType="java.lang.String" inOutType="param"/></bpm>'

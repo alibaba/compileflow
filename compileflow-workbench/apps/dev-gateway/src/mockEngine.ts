@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 
 import type { DevGatewayLogLevel } from './config.js'
 import { createLogger, type DevGatewayLogger } from './logger.js'
@@ -13,26 +13,18 @@ export interface MockPreviewRequest {
   params?: Record<string, unknown>
 }
 
-interface ExecutionResultBase {
+export interface MockExecutionResult {
+  success: true
   message: string
   traceId: string
   invocationId: string
-  modelType: MockProcessType
-  sourceDigest: string
+  processCode: string
   durationMs: number
   routing: {
     namespace: 'default'
   }
-}
-
-interface ExecutionSuccessResult extends ExecutionResultBase {
-  success: true
   result: Record<string, unknown>
-  errorCode?: never
-  error?: never
 }
-
-export type MockExecutionResult = ExecutionSuccessResult
 
 export class MockEngine {
   private readonly logger: DevGatewayLogger
@@ -55,13 +47,11 @@ export class MockEngine {
       message: 'Draft preview completed (mock)',
       result: {
         output: 'Mock preview result',
-        processCode: request.code,
         inputParams: request.params ?? {},
       },
       traceId,
       invocationId,
-      modelType: request.modelType,
-      sourceDigest: createHash('sha256').update(request.xml, 'utf8').digest('hex'),
+      processCode: request.code,
       durationMs: Math.max(0, Math.round(performance.now() - startedAt)),
       routing: { namespace: 'default' },
     }

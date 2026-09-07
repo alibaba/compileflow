@@ -253,12 +253,29 @@ public final class CompileFlowWorkbenchServerProperties {
      */
     public static final class Database {
         /**
+         * Selected database Provider for Workbench-owned drafts, execution logs, and asynchronous invocations.
+         */
+        public enum Provider {
+            POSTGRESQL,
+            MYSQL
+        }
+
+        /**
+         * Selected database Provider; the executable must contain the matching provider-specific dependencies.
+         */
+        private final Provider provider;
+        /**
          * Whether this Server process may apply the packaged Flyway migrations.
          */
         private final boolean migrate;
 
-        public Database(@DefaultValue("false") boolean migrate) {
+        public Database(@DefaultValue("POSTGRESQL") Provider provider, @DefaultValue("false") boolean migrate) {
+            this.provider = provider;
             this.migrate = migrate;
+        }
+
+        public Provider getProvider() {
+            return provider;
         }
 
         public boolean isMigrate() {
@@ -326,26 +343,12 @@ public final class CompileFlowWorkbenchServerProperties {
      */
     public static final class AsyncInvocation {
         private static final int MAX_CONCURRENCY = 256;
-        private static final int MAX_QUEUE_CAPACITY = 10_000;
-        private static final int MAX_DISPATCH_BATCH_SIZE = 1_000;
         /**
          * Maximum number of concurrent asynchronous invocations.
          */
         @Min(value = 1, message = "concurrency must be between 1 and 256")
         @Max(value = MAX_CONCURRENCY, message = "concurrency must be between 1 and 256")
         private final int concurrency;
-        /**
-         * Maximum invocation attempts waiting for a worker.
-         */
-        @Min(value = 1, message = "queue-capacity must be between 1 and 10000")
-        @Max(value = MAX_QUEUE_CAPACITY, message = "queue-capacity must be between 1 and 10000")
-        private final int queueCapacity;
-        /**
-         * Maximum persisted invocations claimed by one dispatcher cycle.
-         */
-        @Min(value = 1, message = "dispatch-batch-size must be between 1 and 1000")
-        @Max(value = MAX_DISPATCH_BATCH_SIZE, message = "dispatch-batch-size must be between 1 and 1000")
-        private final int dispatchBatchSize;
         /**
          * Delay between persisted invocation dispatch cycles.
          */
@@ -362,12 +365,9 @@ public final class CompileFlowWorkbenchServerProperties {
         @NotNull
         private final Duration leaseRecoveryInterval;
 
-        public AsyncInvocation(@DefaultValue("4") int concurrency, @DefaultValue("256") int queueCapacity,
-                @DefaultValue("50") int dispatchBatchSize, @DefaultValue("1s") Duration dispatchInterval,
+        public AsyncInvocation(@DefaultValue("4") int concurrency, @DefaultValue("1s") Duration dispatchInterval,
                 @DefaultValue("30s") Duration leaseDuration, @DefaultValue("5s") Duration leaseRecoveryInterval) {
             this.concurrency = concurrency;
-            this.queueCapacity = queueCapacity;
-            this.dispatchBatchSize = dispatchBatchSize;
             this.dispatchInterval = dispatchInterval;
             this.leaseDuration = leaseDuration;
             this.leaseRecoveryInterval = leaseRecoveryInterval;
@@ -375,14 +375,6 @@ public final class CompileFlowWorkbenchServerProperties {
 
         public int getConcurrency() {
             return concurrency;
-        }
-
-        public int getQueueCapacity() {
-            return queueCapacity;
-        }
-
-        public int getDispatchBatchSize() {
-            return dispatchBatchSize;
         }
 
         public Duration getDispatchInterval() {
@@ -413,12 +405,6 @@ public final class CompileFlowWorkbenchServerProperties {
         public boolean isLeaseDurationRenewable() {
             return leaseDuration != null && isPositiveWholeMilliseconds(leaseDuration)
                     && leaseDuration.compareTo(Duration.ofMillis(2)) >= 0;
-        }
-
-        @AssertTrue(message = "compileflow.workbench.server.async-invocation.dispatch-batch-size must not exceed "
-                + "concurrency plus queue-capacity")
-        public boolean isDispatchCapacityValid() {
-            return (long) dispatchBatchSize <= (long) concurrency + queueCapacity;
         }
     }
 }

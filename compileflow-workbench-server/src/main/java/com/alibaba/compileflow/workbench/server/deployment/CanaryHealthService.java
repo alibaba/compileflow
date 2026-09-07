@@ -161,7 +161,7 @@ public class CanaryHealthService {
             if (minCanarySamples <= 0) {
                 throw new IllegalArgumentException("minCanarySamples must be greater than 0");
             }
-            if (maxCanaryErrorRate < 0D || maxCanaryErrorRate > 1D) {
+            if (!Double.isFinite(maxCanaryErrorRate) || maxCanaryErrorRate < 0D || maxCanaryErrorRate > 1D) {
                 throw new IllegalArgumentException("maxCanaryErrorRate must be between 0 and 1");
             }
             if (maxCanaryP95Ms < 0) {

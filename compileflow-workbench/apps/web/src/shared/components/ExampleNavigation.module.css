@@ -19,16 +19,19 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
 }
 
 /* ============ Navigation Halves ============ */
 
 .navHalf {
   flex: 1;
+  min-width: 0;
 }
 
 .navHalfEnd {
   flex: 1;
+  min-width: 0;
   display: flex;
   justify-content: flex-end;
 }
@@ -37,6 +40,7 @@
 
 .navButton {
   height: 48px;
+  max-width: 100%;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -45,6 +49,7 @@
 
 .navButtonNext {
   height: 48px;
+  max-width: 100%;
   display: flex;
   align-items: center;
   flex-direction: row-reverse;
@@ -56,11 +61,13 @@
 
 .prevTextContainer {
   text-align: left;
+  min-width: 0;
   max-width: 200px;
 }
 
 .nextTextContainer {
   text-align: right;
+  min-width: 0;
   max-width: 200px;
 }
 
@@ -90,6 +97,7 @@
 
 .progressCenter {
   text-align: center;
+  flex-shrink: 0;
 }
 
 .progressLabel {
@@ -120,6 +128,17 @@
 }
 
 /* ============ Dark Mode ============ */
+
+@media (max-width: 575px) {
+  .navigationBar {
+    padding: 12px 8px;
+  }
+
+  .navButton,
+  .navButtonNext {
+    padding: 0 8px;
+  }
+}
 
 [data-theme='dark'] .navigationBar {
   background: var(--color-bg-elevated);

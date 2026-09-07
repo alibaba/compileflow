@@ -14,7 +14,6 @@
 package com.alibaba.compileflow.deploy.api.artifact;
 
 import com.alibaba.compileflow.engine.ProcessDefinition;
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -29,7 +28,6 @@ import java.util.Objects;
  */
 public final class ProcessArtifact {
     private final ProcessRef.Version ref;
-    private final ProcessModelType modelType;
     private final ProcessDefinition.Inline definition;
     private final String artifactDigest;
     private final Map<String, ProcessCallBinding> callBindings;
@@ -41,28 +39,24 @@ public final class ProcessArtifact {
      * parsers and runtime loaders remain responsible for comparing it with the exact definition.
      *
      * @param ref          immutable process-version identity
-     * @param modelType    source model format
      * @param definition   exact inline process definition
      * @param artifactDigest lowercase SHA-256 digest of the executable artifact
      */
-    public ProcessArtifact(ProcessRef.Version ref, ProcessModelType modelType, ProcessDefinition.Inline definition,
-            String artifactDigest) {
-        this(ref, modelType, definition, artifactDigest, List.of());
+    public ProcessArtifact(ProcessRef.Version ref, ProcessDefinition.Inline definition, String artifactDigest) {
+        this(ref, definition, artifactDigest, List.of());
     }
 
     /**
      * Creates an immutable artifact with exact direct call-site bindings.
      *
      * @param ref immutable process-version identity
-     * @param modelType source model format
      * @param definition exact inline process definition
      * @param artifactDigest lowercase SHA-256 digest of the executable artifact
      * @param callBindings source-derived exact direct calls
      */
-    public ProcessArtifact(ProcessRef.Version ref, ProcessModelType modelType, ProcessDefinition.Inline definition,
-            String artifactDigest, List<ProcessCallBinding> callBindings) {
+    public ProcessArtifact(ProcessRef.Version ref, ProcessDefinition.Inline definition, String artifactDigest,
+            List<ProcessCallBinding> callBindings) {
         this.ref = Objects.requireNonNull(ref, "ref");
-        this.modelType = Objects.requireNonNull(modelType, "modelType");
         this.definition = Objects.requireNonNull(definition, "definition");
         if (!ref.code().equals(definition.code())) {
             throw new IllegalArgumentException("Artifact reference code and definition code must match");
@@ -96,15 +90,6 @@ public final class ProcessArtifact {
      */
     public ProcessRef.Version getRef() {
         return ref;
-    }
-
-    /**
-     * Returns the process model format.
-     *
-     * @return model type used to parse the definition
-     */
-    public ProcessModelType getModelType() {
-        return modelType;
     }
 
     /**
@@ -142,18 +127,18 @@ public final class ProcessArtifact {
         if (!(other instanceof ProcessArtifact that)) {
             return false;
         }
-        return ref.equals(that.ref) && modelType == that.modelType && definition.equals(that.definition)
-                && artifactDigest.equals(that.artifactDigest) && callBindings.equals(that.callBindings);
+        return ref.equals(that.ref) && definition.equals(that.definition) && artifactDigest.equals(that.artifactDigest)
+                && callBindings.equals(that.callBindings);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(ref, modelType, definition, artifactDigest, callBindings);
+        return Objects.hash(ref, definition, artifactDigest, callBindings);
     }
 
     @Override
     public String toString() {
-        return "ProcessArtifact{ref=" + ref + ", modelType=" + modelType + ", definition=" + definition
-                + ", callSiteIds=" + callBindings.keySet() + '}';
+        return "ProcessArtifact{ref=" + ref + ", definition=" + definition + ", callSiteIds=" + callBindings.keySet()
+                + '}';
     }
 }

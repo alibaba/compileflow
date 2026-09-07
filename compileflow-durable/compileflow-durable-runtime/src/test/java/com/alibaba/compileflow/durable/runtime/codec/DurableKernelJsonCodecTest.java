@@ -24,6 +24,14 @@ class DurableKernelJsonCodecTest {
     private final DurableKernelJsonCodec codec = new DurableKernelJsonCodec();
 
     @Test
+    void rejectsTrailingDocumentsAndGarbage() {
+        for (String suffix : java.util.List.of(" {}", " true", " garbage")) {
+            assertThatThrownBy(() -> codec.decode(("{}" + suffix).getBytes(StandardCharsets.UTF_8)))
+                .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Test
     void preservesTheNarrowestExactIntegralScalarAtJavaBoundaries() {
         Map<String, Object> decoded = codec.decode(("""
             {"intMin":-2147483648,"intMax":2147483647,

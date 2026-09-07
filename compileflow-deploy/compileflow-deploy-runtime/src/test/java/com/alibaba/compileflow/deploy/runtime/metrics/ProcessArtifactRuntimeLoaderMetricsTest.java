@@ -13,28 +13,28 @@
  */
 package com.alibaba.compileflow.deploy.runtime.metrics;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import com.alibaba.compileflow.engine.ProcessDefinition;
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.core.runtime.ownership.ProcessRuntimeOwnership;
 import com.alibaba.compileflow.deploy.api.artifact.ProcessArtifact;
 import com.alibaba.compileflow.deploy.api.error.DeploymentErrorCode;
 import com.alibaba.compileflow.deploy.api.error.DeploymentException;
-import com.alibaba.compileflow.deploy.api.observability.ProcessDeploymentMetrics;
-import com.alibaba.compileflow.deploy.runtime.install.ProcessArtifactRuntimeLoader;
+import com.alibaba.compileflow.deploy.runtime.observability.DeploymentRuntimeMetrics;
+import com.alibaba.compileflow.deploy.runtime.version.ProcessArtifactRuntimeLoader;
 import org.junit.jupiter.api.Test;
 
 class ProcessArtifactRuntimeLoaderMetricsTest {
     @Test
     void loaderCountsDigestMismatchAtTheRuntimeTrustBoundary() {
-        ProcessDeploymentMetrics metrics = new ProcessDeploymentMetrics();
+        DeploymentRuntimeMetrics metrics = new DeploymentRuntimeMetrics();
         ProcessArtifactRuntimeLoader loader = new ProcessArtifactRuntimeLoader(mock(ProcessRuntimeOwnership.class),
-                ignored -> java.util.List.of(), ProcessModelType.BPMN, ignored -> null, metrics);
+                ignored -> java.util.List.of(), ignored -> null, metrics);
         ProcessArtifact artifact = new ProcessArtifact(ProcessRef.version("default", "metrics.flow", "v1"),
-                ProcessModelType.BPMN, ProcessDefinition.inline("metrics.flow", "<definitions/>"), "0".repeat(64));
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "metrics.flow", "<definitions/>"), "0".repeat(64));
 
         assertThatThrownBy(() -> loader.load(artifact))
             .isInstanceOfSatisfying(DeploymentException.class, failure -> assertThat(failure.getErrorCode())

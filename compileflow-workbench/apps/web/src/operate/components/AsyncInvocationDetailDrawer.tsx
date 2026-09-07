@@ -77,7 +77,9 @@ function InvocationAttemptList({
                 {attempt.durationMs === undefined ? '-' : `${attempt.durationMs} ms`}
               </span>
               {attempt.traceId && (
-                <span className={styles.monospace}>trace: {attempt.traceId}</span>
+                <span className={styles.monospace}>
+                  {t('monitoring.invocationTraceId')}: {attempt.traceId}
+                </span>
               )}
               {attempt.nextAttemptAt && (
                 <span>
@@ -206,7 +208,7 @@ function InvocationDetail({ detail }: { detail: AsyncInvocationDetailState }) {
           {formatTimestamp(selected.updatedAt)}
         </Descriptions.Item>
         {selected.traceId && (
-          <Descriptions.Item label="Trace ID">
+          <Descriptions.Item label={t('monitoring.invocationTraceId')}>
             <span className={styles.monospace}>{selected.traceId}</span>
           </Descriptions.Item>
         )}

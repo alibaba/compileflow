@@ -1,13 +1,14 @@
 # Durable Operations Runbook
 
-Use this runbook to operate the CompileFlow 2.0 PostgreSQL Durable Kernel. PostgreSQL V1 currently uses seven
-tables; that count is an operational restore layout, not a Kernel invariant.
+Use this runbook to operate the CompileFlow 2.0 Durable Kernel with a first-party PostgreSQL or MySQL Store. Each
+Provider owns its V1 schema layout; the physical layout is an operational restore detail, not a Kernel invariant.
 
 ## 1. Safety rules
 
-- PostgreSQL is the only execution authority.
+- The selected Durable Store is the only execution authority. Never run PostgreSQL and MySQL as competing authorities
+  for the same Run set.
 - Stop every worker before Store-level restore, migration repair, or manual state inspection that takes locks.
-- Never edit Process, Run-Process, Wait, Effect, Journal, or Outbox rows by hand.
+- Never edit Process, Run, Run-Process, Wait, Effect, Journal, or Outbox rows by hand.
 - Use the audited operator API for Pause/Resume, Effect resolution, and Outbox resolution.
 - Never log snapshot envelopes, Effect payloads, Wait tokens, transport credentials, or page tokens.
 - Alias changes affect only future admissions; never use Alias to “move” an existing Run.
@@ -32,9 +33,9 @@ node; the latter identifies only the affected stored Process ID.
 
 Lease renewal runs independently for Run, Effect, and Outbox at `lease-duration / 3`. Size the lease above observed JVM
 pause plus tail Store latency, and configure connection acquisition, network, lock, and statement timeouts so a failed
-renewal call returns before the next cadence. These are DataSource/PostgreSQL limits, not additional Kernel knobs.
+renewal call returns before the next cadence. These are DataSource and database limits, not additional Kernel knobs.
 
-## 3. PostgreSQL outage
+## 3. Store outage
 
 1. Keep application workers running only if they fail closed; they must not create local shadow state.
 2. Restore connectivity and verify database time, primary role, migration checksum, and connection-pool health.
@@ -46,7 +47,7 @@ Do not manually flip `RUNNING` rows to `RUNNABLE`; lease reclaim is the authorit
 
 ## 4. Coordinated PITR
 
-1. Stop every process capable of Start, Trigger, operator commands, worker claims, Outbox delivery, or maintenance.
+1. Stop every process capable of Start, Wait completion, cancellation, operator commands, worker claims, Outbox delivery, or maintenance.
 2. Record the restore point and discard all local program caches.
 3. Restore all seven Durable tables as one unit: Process, Run, Run-Process, Wait, Effect, Journal, and Outbox.
 4. Validate the Flyway version/checksum and all schema constraints.
@@ -66,8 +67,8 @@ Never restore only selected tables. Never run pre-restore and post-restore autho
    with the current review revision, actor, a concrete reason, and optional audit-context ID.
 6. Do not treat timeout as failure and do not cancel away unresolved external authority.
 
-A deployment compatibility problem may require deploying a capable implementation. It does not justify adding historical
-build routing to Kernel state.
+If the current deployment lacks a required capability, make that capability available to the configured runtime. Kernel
+state does not contain application build routing.
 
 ## 6. Outbox failure
 
@@ -93,7 +94,7 @@ needed, repair the current deployment, then resume.
 
 ## 8. Pause and cancel
 
-Pause is appropriate for containing ProcessEngine execution while retaining Trigger, Timer, reconciliation, Outbox, and
+Pause is appropriate for containing Run business execution while retaining Wait completion, Timer, reconciliation, Outbox, and
 maintenance progress. A `PAUSE_REQUESTED` Run has in-flight authority; wait for the fenced outcome.
 
 Cancel is cooperative. Confirm whether an Effect has uncertain external authority before declaring the incident closed.
@@ -105,7 +106,7 @@ page-token keys according to the owning adapter's protocol. Wait tokens are rand
 exposed, prevent its delivery, inspect whether it was already committed, and follow the application incident process.
 Never create a second Kernel result for the same Wait boundary.
 
-## 10. Rolling restart, upgrade, and rollback
+## 10. Graceful shutdown
 
 On graceful shutdown, a worker stops admitting claims and cancels delayed probes before waiting for already executing
 Turn, Effect, and Outbox work. Those calls are not interrupted, and lease renewal remains available while the Spring
@@ -113,16 +114,9 @@ lifecycle phase drains. Set `spring.lifecycle.timeout-per-shutdown-phase` and th
 above the longest supported in-flight call. A forced process death after that outer deadline is recovered through lease
 expiry and fencing, so externally visible work still requires idempotency.
 
-CompileFlow does not guarantee application/provider/runtime compatibility for persisted Runs. Before deploying:
-
-1. test runtime preparation for every stored Process referenced by active Runs;
-2. run Store and race contracts against the target build;
-3. verify the migration is forward-only and backed up;
-4. canary operational capacity, not historical build identity;
-5. retain a rollback plan that restores the whole application and Store consistently when a migration was applied.
-
-A missing capability after deployment is repaired by deploying suitable current code or script providers. The Kernel
-does not route by Application Build ID.
+The Kernel does not route recovery by Application Build ID. A stored Process must be executable by the current configured
+engine and registered capabilities; otherwise the Run remains recoverable but does not advance until the capability is
+available.
 
 ## 11. Incident completion
 
@@ -136,4 +130,4 @@ An incident is complete only when:
 - external Effect and event deduplication ledgers agree with Kernel identities;
 - the timeline and change record contain no secrets.
 
-See the [architecture](../architecture/10-DURABLE_ARCHITECTURE.en.md).
+See the [architecture](architecture/durable-architecture.md).

@@ -34,6 +34,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -134,6 +136,32 @@ class OpenApiContractTest {
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
             .andExpect(jsonPath("$.detail").value("Idempotency-Key is required"));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"/api/execution-logs/export,post,text/csv", "/api/processes/{code}/export,get,application/xml"})
+    void exportsDescribeRawDownloadsRatherThanBase64(String path, String method, String mediaType) throws Exception {
+        String generated = mockMvc
+            .perform(get("/v3/api-docs"))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString(StandardCharsets.UTF_8);
+        var schema = CANONICAL_MAPPER
+            .readTree(generated)
+            .path("paths")
+            .path(path)
+            .path(method)
+            .path("responses")
+            .path("200")
+            .path("content")
+            .path(mediaType)
+            .path("schema");
+
+        assertThat(schema.isMissingNode()).as("Download schema for %s %s", method, path).isFalse();
+        assertThat(schema.path("type").stringValue()).isEqualTo("string");
+        assertThat(schema.path("format").stringValue()).isEqualTo("binary");
+        assertThat(schema.has("contentEncoding")).as("Raw downloads must not require base64 decoding").isFalse();
     }
 
     @TestConfiguration(proxyBeanMethods = false)

@@ -1,7 +1,7 @@
 import { App } from 'antd'
 import type { MessageInstance } from 'antd/es/message/interface'
 import type { TFunction } from 'i18next'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import {
   abortCanary,
@@ -20,6 +20,7 @@ import type {
   DeploymentRoute,
 } from '@/shared/contracts'
 import { toError } from '@/shared/errors'
+import { createUniqueId } from '@/shared/identifiers'
 import { createLogger } from '@/shared/logging/logger'
 
 const logger = createLogger('DeploymentDetail')
@@ -145,6 +146,38 @@ function useDeploymentDetailState(id: string | undefined, message: MessageInstan
   }
 }
 
+function useDeploymentActionLifetime(
+  id: string | undefined,
+  setAction: (action: DeploymentAction | undefined) => void
+) {
+  const selection = useMemo(() => ({ active: true }), [id])
+  const currentSelection = useRef(selection)
+  currentSelection.current = selection
+  const actionGeneration = useRef(0)
+
+  useEffect(() => {
+    selection.active = true
+    setAction(undefined)
+    return () => {
+      selection.active = false
+    }
+  }, [selection, setAction])
+
+  return useCallback(
+    (action: DeploymentAction) => {
+      // The callback captures a selection lifetime, so A -> B -> A cannot revive it.
+      if (!selection.active || currentSelection.current !== selection) return undefined
+      const generation = ++actionGeneration.current
+      setAction(action)
+      return () =>
+        selection.active &&
+        currentSelection.current === selection &&
+        generation === actionGeneration.current
+    },
+    [selection, setAction]
+  )
+}
+
 export function useDeploymentDetailData(id: string | undefined, t: TFunction) {
   const { message }: { message: MessageInstance } = App.useApp()
   const {
@@ -161,104 +194,102 @@ export function useDeploymentDetailData(id: string | undefined, t: TFunction) {
   } = useDeploymentDetailState(id, message, t)
   const [action, setAction] = useState<DeploymentAction>()
   const rollbackIntents = useRef(new Map<string, string>())
-  const activeId = useRef(id)
-  activeId.current = id
-
-  useEffect(() => {
-    activeId.current = id
-    return () => {
-      activeId.current = undefined
-    }
-  }, [id])
-  useEffect(() => setAction(undefined), [id])
+  const beginAction = useDeploymentActionLifetime(id, setAction)
 
   const updateCanary = useCallback(async () => {
     if (!id || !deployment) return
-    setAction('update-canary')
+    const isCurrent = beginAction('update-canary')
+    if (!isCurrent) return
     try {
       const updated = await updateCanaryWeightBps(id, canaryValue, deployment.revision)
-      if (activeId.current !== id) return
+      if (!isCurrent()) return
       await applyMutation(updated)
-      if (activeId.current !== id) return
+      if (!isCurrent()) return
       message.success(t('deployment.canaryUpdated'))
     } catch (error) {
-      if (activeId.current !== id) return
+      if (!isCurrent()) return
       logger.error('Failed to update canary weight', toError(error), { deploymentId: id })
       message.error(t('deployment.canaryUpdateError'))
       await loadDetail(false)
     } finally {
-      if (activeId.current === id) setAction(undefined)
+      if (isCurrent()) setAction(undefined)
     }
-  }, [applyMutation, canaryValue, deployment, id, loadDetail, message, t])
+  }, [applyMutation, beginAction, canaryValue, deployment, id, loadDetail, message, t])
 
   const evaluateHealth = useCallback(async () => {
     if (!id) return
-    setAction('evaluate-health')
+    const isCurrent = beginAction('evaluate-health')
+    if (!isCurrent) return
     try {
       const evaluated = await evaluateCanaryHealth(id)
-      if (activeId.current !== id) return
+      if (!isCurrent()) return
       setHealth(evaluated)
     } catch (error) {
-      if (activeId.current !== id) return
+      if (!isCurrent()) return
       logger.error('Failed to evaluate canary health', toError(error), { deploymentId: id })
       message.error(t('deployment.healthEvaluationError'))
     } finally {
-      if (activeId.current === id) setAction(undefined)
+      if (isCurrent()) setAction(undefined)
     }
-  }, [id, message, t])
+  }, [beginAction, id, message, setHealth, t])
 
   const promote = useCallback(async (): Promise<Deployment | undefined> => {
     if (!id || !deployment) return undefined
-    setAction('promote')
+    const isCurrent = beginAction('promote')
+    if (!isCurrent) return undefined
     try {
       const updated = await promoteCanary(id, deployment.revision)
-      if (activeId.current !== id) return undefined
+      if (!isCurrent()) return undefined
       await applyMutation(updated)
-      if (activeId.current !== id) return undefined
+      if (!isCurrent()) return undefined
       message.success(t('deployment.canaryPromoted'))
       return updated
     } catch (error) {
-      if (activeId.current !== id) return undefined
+      if (!isCurrent()) return undefined
       logger.error('Failed to promote canary', toError(error), { deploymentId: id })
       message.error(t('deployment.canaryPromoteError'))
       await loadDetail(false)
       return undefined
     } finally {
-      if (activeId.current === id) setAction(undefined)
+      if (isCurrent()) setAction(undefined)
     }
-  }, [applyMutation, deployment, id, loadDetail, message, t])
+  }, [applyMutation, beginAction, deployment, id, loadDetail, message, t])
 
   const restoreBaseline = useCallback(async (): Promise<Deployment | undefined> => {
     if (!id || !deployment) return undefined
     const isCanary = deployment.status === 'in_progress'
-    if (!canRestoreBaseline(deployment, route, message, t)) return undefined
-    setAction('restore-baseline')
+    const isCurrent = beginAction('restore-baseline')
+    if (!isCurrent) return undefined
+    if (!canRestoreBaseline(deployment, route, message, t)) {
+      setAction(undefined)
+      return undefined
+    }
     try {
       let updated: Deployment
       if (isCanary) {
         updated = await abortCanary(id, deployment.revision, 'Operator restored the stable version')
       } else {
         const intent = `${id}\u0000${deployment.routeRevision}`
-        const idempotencyKey = rollbackIntents.current.get(intent) ?? crypto.randomUUID()
+        const idempotencyKey = rollbackIntents.current.get(intent) ?? createUniqueId()
         rollbackIntents.current.set(intent, idempotencyKey)
         updated = await rollbackDeployment(id, deployment.routeRevision, idempotencyKey)
         rollbackIntents.current.delete(intent)
       }
-      if (activeId.current !== id) return undefined
+      if (!isCurrent()) return undefined
       await applyMutation(updated)
-      if (activeId.current !== id) return undefined
+      if (!isCurrent()) return undefined
       message.success(t(isCanary ? 'deployment.abortSuccess' : 'deployment.rollbackSuccess'))
       return updated
     } catch (error) {
-      if (activeId.current !== id) return undefined
+      if (!isCurrent()) return undefined
       logger.error('Failed to restore deployment baseline', toError(error), { deploymentId: id })
       message.error(t(isCanary ? 'error.abortFailed' : 'error.rollbackFailed'))
       await loadDetail(false)
       return undefined
     } finally {
-      if (activeId.current === id) setAction(undefined)
+      if (isCurrent()) setAction(undefined)
     }
-  }, [applyMutation, deployment, id, loadDetail, message, route?.revision, t])
+  }, [applyMutation, beginAction, deployment, id, loadDetail, message, route?.revision, t])
 
   return {
     action,

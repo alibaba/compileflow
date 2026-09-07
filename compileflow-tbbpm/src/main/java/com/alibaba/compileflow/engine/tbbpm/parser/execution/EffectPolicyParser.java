@@ -22,7 +22,6 @@ import com.alibaba.compileflow.engine.core.model.action.EffectiveEffectPolicy;
 import com.alibaba.compileflow.engine.core.model.action.ReconcileAction;
 import com.alibaba.compileflow.engine.tbbpm.parser.AbstractTbbpmElementParser;
 import com.alibaba.compileflow.engine.tbbpm.model.TbbpmModelConstants;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * Parser for the optional parameters subordinate to execution="effect".
@@ -35,7 +34,7 @@ public final class EffectPolicyParser extends AbstractTbbpmElementParser<EffectP
         EffectPolicy policy = new EffectPolicy();
         policy.setRecoveryPlanVariable(source.getString(TbbpmModelConstants.EFFECT_POLICY_RECOVERY_PLAN_VARIABLE));
         String recovery = source.getString(TbbpmModelConstants.EFFECT_POLICY_RECOVERY);
-        if (StringUtils.isNotBlank(recovery)) {
+        if (recovery != null) {
             policy.setRecovery(EffectRecovery.of(recovery));
         }
         policy.setMaxAttempts(integer(source, TbbpmModelConstants.EFFECT_POLICY_MAX_ATTEMPTS));

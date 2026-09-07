@@ -14,6 +14,7 @@
 package com.alibaba.compileflow.workbench.server.execution;
 
 import com.alibaba.compileflow.engine.ProcessAliasTarget;
+import java.math.BigInteger;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -21,8 +22,13 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import tools.jackson.core.JacksonException;
+import tools.jackson.core.StreamReadConstraints;
+import tools.jackson.core.StreamReadFeature;
+import tools.jackson.core.json.JsonFactory;
 import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Encodes persisted async payloads and reconstructs their public representation.
@@ -30,30 +36,31 @@ import tools.jackson.databind.ObjectMapper;
  * @author yusu
  */
 final class AsyncInvocationPayloadCodec {
+    private static final int MAX_DOCUMENT_CHARACTERS = 4 * 1024 * 1024;
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<Map<String, Object>>() {
     };
-    private final ObjectMapper objectMapper;
+    private static final ObjectMapper MAPPER = JsonMapper
+        .builder(JsonFactory
+            .builder()
+            .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
+            .streamReadConstraints(StreamReadConstraints
+                .builder()
+                .maxDocumentLength(MAX_DOCUMENT_CHARACTERS)
+                .maxNestingDepth(64)
+                .maxTokenCount(200_000)
+                .maxStringLength(MAX_DOCUMENT_CHARACTERS)
+                .maxNameLength(512)
+                .maxNumberLength(1_000)
+                .build())
+            .build())
+        .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+        .build();
 
-    AsyncInvocationPayloadCodec(ObjectMapper objectMapper) {
-        this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
+    AsyncInvocationPayloadCodec() {
     }
 
     static String stringValue(Object value) {
         return value instanceof String text ? StringUtils.trimToNull(text) : null;
-    }
-
-    static long requireRouteRevision(Object value) {
-        Long revision = routeRevision(value);
-        if (revision == null) {
-            throw new IllegalArgumentException("routeRevision must be a positive integer");
-        }
-        return revision;
-    }
-
-    static void requireStableTarget(Object value) {
-        if (routeTarget(value) != ProcessAliasTarget.STABLE) {
-            throw new IllegalArgumentException("target must be STABLE for a persisted Alias pin");
-        }
     }
 
     private static ExecutionRoutingResponse routingSnapshot(PersistedInvocationRouting storedRouting,
@@ -93,10 +100,13 @@ final class AsyncInvocationPayloadCodec {
     }
 
     static Long routeRevision(Object value) {
-        if (!(value instanceof Number number)) {
+        if (value instanceof BigInteger integer) {
+            return integer.signum() > 0 && integer.bitLength() <= 63 ? integer.longValue() : null;
+        }
+        if (!(value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long)) {
             return null;
         }
-        long revision = number.longValue();
+        long revision = ((Number) value).longValue();
         return revision > 0L ? revision : null;
     }
 
@@ -120,7 +130,7 @@ final class AsyncInvocationPayloadCodec {
             return Collections.emptyMap();
         }
         try {
-            Map<String, Object> value = objectMapper.readValue(json, MAP_TYPE);
+            Map<String, Object> value = MAPPER.readValue(json, MAP_TYPE);
             if (value == null) {
                 throw new AsyncInvocationPayloadException(fieldName,
                         new IllegalArgumentException(fieldName + " must be a JSON object"));
@@ -136,11 +146,22 @@ final class AsyncInvocationPayloadCodec {
     }
 
     String write(Object value) {
+        String json;
         try {
-            return objectMapper.writeValueAsString(Objects.requireNonNull(value, "value"));
+            json = MAPPER.writeValueAsString(Objects.requireNonNull(value, "value"));
         } catch (JacksonException failure) {
             throw new IllegalStateException("Failed to serialize async invocation payload", failure);
         }
+        if (json.length() > MAX_DOCUMENT_CHARACTERS) {
+            throw new IllegalArgumentException("Async invocation payload exceeds the character limit");
+        }
+        // Anything persisted must also be readable by the worker and response codec.
+        try {
+            MAPPER.readTree(json);
+        } catch (JacksonException failure) {
+            throw new IllegalArgumentException("Async invocation payload exceeds JSON constraints", failure);
+        }
+        return json;
     }
 
     AsyncInvocationResponse toResponse(AsyncInvocationEntity invocation) {
@@ -196,7 +217,7 @@ final class AsyncInvocationPayloadCodec {
 
     private ProcessExecutionResponse readResponseForRepresentation(String json, Map<String, String> payloadErrors) {
         try {
-            return objectMapper.readValue(json, ProcessExecutionResponse.class);
+            return MAPPER.readValue(json, ProcessExecutionResponse.class);
         } catch (JacksonException failure) {
             payloadErrors.put("resultJson", new AsyncInvocationPayloadException("resultJson", failure).getMessage());
             return null;

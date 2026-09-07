@@ -140,8 +140,10 @@ function text(value: unknown): string {
 
 function enclosingLoopVariables(node: TbbpmNode, ctx: ValidationContext): Set<string> {
   const variables = new Set<string>()
+  const visited = new Set<string>()
   let parentId = node.parentId
-  while (parentId) {
+  while (parentId && !visited.has(parentId)) {
+    visited.add(parentId)
     const parent = ctx.nodes.find((candidate) => candidate.id === parentId)
     if (!parent) break
     if (parent.type === 'foreach') {
@@ -156,8 +158,10 @@ function enclosingLoopVariables(node: TbbpmNode, ctx: ValidationContext): Set<st
 }
 
 function nearestLoopId(node: TbbpmNode, ctx: ValidationContext): string | undefined {
+  const visited = new Set<string>()
   let parentId = node.parentId
-  while (parentId) {
+  while (parentId && !visited.has(parentId)) {
+    visited.add(parentId)
     const parent = ctx.nodes.find((candidate) => candidate.id === parentId)
     if (!parent) return undefined
     if (parent.type === 'while' || parent.type === 'foreach') return parent.id

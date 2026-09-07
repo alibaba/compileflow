@@ -35,7 +35,7 @@
 
 .x6-widget-selection-box {
   border: 2px solid var(--color-primary) !important;
-  background: var(--color-primary-bg) !important;
+  background: transparent !important;
 }
 
 .x6-widget-snapline-horizontal,
@@ -47,11 +47,11 @@
 
 .x6-widget-minimap {
   position: absolute !important;
-  right: var(--spacing-base) !important;
-  bottom: var(--spacing-base) !important;
+  right: var(--spacing-4) !important;
+  bottom: var(--spacing-4) !important;
   border: 1px solid var(--color-border) !important;
-  border-radius: var(--radius-base) !important;
-  box-shadow: var(--shadow-base) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: var(--shadow-sm) !important;
 }
 
 .x6-graph-scroller {
@@ -60,13 +60,13 @@
 }
 
 .x6-graph-scroller::-webkit-scrollbar {
-  width: var(--spacing-sm);
-  height: var(--spacing-sm);
+  width: var(--spacing-2);
+  height: var(--spacing-2);
 }
 
 .x6-graph-scroller::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb-color);
-  border-radius: var(--radius-base);
+  border-radius: var(--radius-sm);
 }
 
 .x6-graph-scroller::-webkit-scrollbar-thumb:hover {

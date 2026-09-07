@@ -21,6 +21,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -28,20 +29,19 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.core.JacksonException;
+import tools.jackson.core.StreamReadFeature;
+import tools.jackson.core.json.JsonFactory;
 import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Application service for editable process-draft persistence.
  *
  * <p>The service owns draft CRUD and optimistic-concurrency rules while delegating
  * collection persistence to {@link ProcessDraftRepository}. Release and route facts live in
- * the deploy control plane
- * ({@code cf_process_version} + {@code cf_process_alias}
- * + {@code cf_routing_outbox}).
- * The Workbench projection tables {@code cf_deployment} and
- * {@code cf_server_process_version} were removed — the UI now reads the control
- * plane directly as a read-only projection.
+ * the deploy control plane; the UI reads those facts without duplicating their ownership.
  *
  * @author yusu
  */
@@ -49,15 +49,16 @@ import tools.jackson.databind.ObjectMapper;
 public class ProcessDraftService {
     private static final TypeReference<List<String>> TAG_LIST_TYPE = new TypeReference<>() {
     };
+    private static final ObjectMapper TAG_MAPPER = JsonMapper
+        .builder(JsonFactory.builder().enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION).build())
+        .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+        .build();
     private final ProcessDraftRepository processRepository;
     private final ServerIdentity identity;
-    private final ObjectMapper objectMapper;
 
-    public ProcessDraftService(ProcessDraftRepository processRepository, ServerIdentity identity,
-            ObjectMapper objectMapper) {
+    public ProcessDraftService(ProcessDraftRepository processRepository, ServerIdentity identity) {
         this.processRepository = processRepository;
         this.identity = identity;
-        this.objectMapper = objectMapper;
     }
 
     private static void requireRevision(String code, long expectedRevision, long currentRevision) {
@@ -145,7 +146,8 @@ public class ProcessDraftService {
             duplicate.setCode(newCode);
             duplicate.setName(newName);
             duplicate.setType(source.getType());
-            duplicate.setXml(source.getXml());
+            duplicate.setXml(new ProcessImportParser()
+                .copyWithIdentity(source.getXml(), source.getType(), newCode, newName));
             duplicate.setDescription(source.getDescription());
             duplicate.setTagsJson(source.getTagsJson());
             duplicate.setCreatedAt(now);
@@ -160,7 +162,11 @@ public class ProcessDraftService {
         try {
             processRepository.saveAndFlush(entity);
         } catch (DataIntegrityViolationException failure) {
-            throw new ProcessAlreadyExistsException(code, failure);
+            if (failure.getCause() instanceof ConstraintViolationException constraint
+                    && constraint.getKind() == ConstraintViolationException.ConstraintKind.UNIQUE) {
+                throw new ProcessAlreadyExistsException(code, failure);
+            }
+            throw failure;
         }
     }
 
@@ -182,7 +188,7 @@ public class ProcessDraftService {
 
     private String writeTags(List<String> tags) {
         try {
-            return objectMapper.writeValueAsString(tags == null ? List.of() : tags);
+            return TAG_MAPPER.writeValueAsString(tags == null ? List.of() : tags);
         } catch (JacksonException failure) {
             throw new IllegalStateException("Failed to serialize process tags", failure);
         }
@@ -194,7 +200,7 @@ public class ProcessDraftService {
         }
         List<String> tags;
         try {
-            tags = objectMapper.readValue(json, TAG_LIST_TYPE);
+            tags = TAG_MAPPER.readValue(json, TAG_LIST_TYPE);
         } catch (JacksonException failure) {
             throw new IllegalStateException("Failed to deserialize persisted process tags", failure);
         }

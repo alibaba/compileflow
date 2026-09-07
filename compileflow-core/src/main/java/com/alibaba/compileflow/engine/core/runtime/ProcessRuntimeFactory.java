@@ -13,14 +13,15 @@
  */
 package com.alibaba.compileflow.engine.core.runtime;
 
-import com.alibaba.compileflow.engine.core.source.ProcessDefinitionSnapshot;
+import com.alibaba.compileflow.engine.core.semantic.ProcessSemanticCompiler.ProcessSemanticCompilation;
 
 /**
- * Factory for creating process runtimes from exact resolved source.
+ * Realizes a validated semantic compilation without reading or interpreting source formats.
+ * The runtime loading pipeline supplies the compilation ClassLoader as its thread context.
  *
  * @author yusu
  */
 @FunctionalInterface
 public interface ProcessRuntimeFactory {
-    ProcessRuntime createRuntime(ProcessDefinitionSnapshot definition, ClassLoader classLoader);
+    ProcessRuntime createRuntime(ProcessSemanticCompilation compilation, ClassLoader classLoader);
 }

@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.durable.spi.store;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.alibaba.compileflow.durable.api.effect.EffectRecoveryPlan;
 import java.time.Instant;
@@ -38,14 +39,16 @@ class DurableStoreValueTest {
     }
 
     @Test
-    void timerResultRequiresMonotonicTimes() {
+    void timerResultPreservesPastAbsoluteDueTimeAndRequiresCausalResolution() {
         Instant scheduled = Instant.parse("2026-01-01T00:00:00Z");
         Instant due = scheduled.plusSeconds(1);
         Instant resolved = due.plusSeconds(1);
 
-        assertThatThrownBy(() -> timerResult(due, scheduled, resolved))
+        assertThat(timerResult(due, scheduled, resolved).dueAt()).isEqualTo(scheduled);
+        assertThat(timerResult(due, scheduled, due).resolvedAt()).isEqualTo(due);
+        assertThatThrownBy(() -> timerResult(resolved, scheduled, due))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("dueAt");
+            .hasMessageContaining("scheduledAt");
         assertThatThrownBy(() -> timerResult(scheduled, resolved, due))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("resolvedAt");

@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.workbench.server.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -29,6 +30,16 @@ import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.flyway.autoconfigure.FlywayMigrationStrategy;
 
 class WorkbenchSchemaConfigurationTest {
+    @Test
+    void mapsPublicDatabaseProvidersToPackagedMigrationDirectories() {
+        assertThat(WorkbenchSchemaConfiguration.migrationLocation(
+                CompileFlowWorkbenchServerProperties.Database.Provider.POSTGRESQL))
+            .isEqualTo("classpath:db/compileflow-workbench-server/postgres/migration");
+        assertThat(WorkbenchSchemaConfiguration.migrationLocation(
+                CompileFlowWorkbenchServerProperties.Database.Provider.MYSQL))
+            .isEqualTo("classpath:db/compileflow-workbench-server/mysql/migration");
+    }
+
     private static MigrationInfoService migrationInformation() {
         MigrationInfoService information = mock(MigrationInfoService.class);
         when(information.pending()).thenReturn(new MigrationInfo[0]);
@@ -76,7 +87,7 @@ class WorkbenchSchemaConfigurationTest {
         assertThatThrownBy(() -> strategy.migrate(flyway))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("pending Flyway migration")
-            .hasMessageContaining("deployment migration identity");
+            .hasMessageContaining("Workbench migration identity");
         verify(flyway, never()).migrate();
         verify(flyway).validate();
     }

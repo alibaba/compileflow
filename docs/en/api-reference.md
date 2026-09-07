@@ -5,25 +5,17 @@ Server DTOs are not public Java API unless another document explicitly says so.
 
 ## 1. Engine Lifecycle
 
-Create one long-lived engine for each model type and configuration. Engine instances are thread-safe and own executors,
-runtime caches, and generated-class loaders.
+Create one long-lived engine for each resource/configuration boundary, independent of definition format.
+The engine discovers installed TBBPM/BPMN frontends and owns its executors, runtime cache, and generated-class loaders.
 
 ```java
-ProcessEngine tbbpm = ProcessEngineFactory.createTbbpm();
-ProcessEngine bpmn = ProcessEngineFactory.createBpmn();
-
-try {
-    // Execute processes.
-} finally {
-    tbbpm.close();
-    bpmn.close();
+try (ProcessEngine engine = ProcessEngineFactory.create()) {
+    engine.execute(ProcessDefinition.inline(ProcessModelType.TBBPM, "order", orderXml), input);
+    engine.execute(ProcessDefinition.inline(ProcessModelType.BPMN, "payment", paymentXml), input);
 }
 ```
 
-Spring Boot applications normally inject the single auto-configured `ProcessEngine`. A platform that hosts both formats
-creates a `ProcessEngineRegistry` in its composition root, registers it as a managed bean, and selects an engine by
-`ProcessModelType`. The auto-configuration module provides this registry type, but the starter does not create a
-multi-format registry implicitly.
+Spring Boot and Workbench use the same single-engine assembly. Add the BPMN frontend module to support BPMN alongside TBBPM.
 
 ## 2. Process Identity And Content
 
@@ -44,22 +36,22 @@ and record constructors that receive an explicit namespace reject null, blank, s
 identifier characters. Namespace is a logical resource scope, not an authorization boundary by itself. A reference never
 carries source content.
 
-`ProcessDefinition` describes how content is supplied or located without namespace, version, alias, or model type:
+`ProcessDefinition` describes how content is supplied or located with an explicit model type, but without namespace, version, or alias:
 
 ```java
-ProcessDefinition inline = ProcessDefinition.inline("order.validate", xml);
+ProcessDefinition inline = ProcessDefinition.inline(ProcessModelType.TBBPM, "order.validate", xml);
 ProcessDefinition classpath =
-        ProcessDefinition.classpath("order.validate", "flows/order.bpm");
+        ProcessDefinition.classpath(ProcessModelType.TBBPM, "order.validate", "flows/order.bpm");
 ```
 
-The receiving format-bound engine determines the model type. Inline content is redacted from `toString()`.
+The Definition owns its model type; the engine never guesses it from content or a filename. Inline content is redacted from `toString()`.
 Classpath access, UTF-8 decoding, and source-size limits are enforced by the Engine definition loader.
 
-The root API also exposes four supported protocol primitives: `ProcessDefinitionDigest` computes the stable exact
-definition digest; `ProcessIdentifiers` validates identities without normalization; `ProcessText` provides explicit
-Unicode/text operations. Bounded nested-call rejection is reported through `CompileFlowException` with
-`CF_EXEC_013`; its implementation exception type is not a Supported API. Their public shape and
-documented semantics are part of the 2.x Java API contract.
+The root API also exposes supported protocol primitives: `ProcessDefinitionDigest` computes the stable exact definition
+digest; `ProcessIdentifiers` validates identities without normalization; and `ProcessText` provides explicit
+Unicode/text operations. Root failures use `CompileFlowException` and `ErrorCode`. Bounded nested-call rejection uses
+`CF_EXEC_013`; its implementation exception type is not a Supported API. These public shapes and documented semantics
+are part of the 2.x Java API contract.
 
 ## 3. Execution
 
@@ -104,7 +96,7 @@ For example:
 
 ```java
 ProcessDefinition definition =
-        ProcessDefinition.classpath("order.validate", "flows/order.bpm");
+        ProcessDefinition.classpath(ProcessModelType.TBBPM, "order.validate", "flows/order.bpm");
 ProcessResult<Map<String, Object>> result =
         engine.execute(definition, Map.of("orderId", "A-42"));
 ```
@@ -128,7 +120,8 @@ The routing key is used only during target selection. It is not copied into vari
 or HTTP responses. Routing attributes are immutable; fixed routing fields and the Engine-owned `__cf_` prefix are
 reserved and cannot be overridden. Routing input is bounded to a 512-character key, at most 32 attributes,
 128-character names, 2,048-character values, and 32 KiB total UTF-8 data. An invocation
-ID is optional; when present it is trimmed, limited to 128 characters, starts with an ASCII letter or digit, and
+ID is optional; when present it is validated unchanged, rejects surrounding whitespace, is limited to 128 characters,
+starts with an ASCII letter or digit, and
 contains only ASCII letters, digits,
 `.`, `_`, `:`, `@`, or `-`.
 
@@ -154,7 +147,7 @@ so test `isSuccess()` instead of inferring the outcome from `getOutput()`. `Proc
 characters and sanitized messages to 4,096 characters.
 
 `map()` transforms only successful output and carries the same failure and execution attribution otherwise. `orElse()`
-and `orElseGet()` deliberately discard a failure, so use them only when a fallback is part of the application contract.
+and `orElseGet()` discard failure information, so use them only when a fallback is part of the application contract.
 `orElseThrow()` raises `ProcessExecutionException`; its supplier overload adapts a failure at an application boundary:
 
 ```java
@@ -224,15 +217,15 @@ Generated source can contain business logic and must be handled as sensitive dia
 Configurations are immutable snapshots:
 
 ```java
-ProcessEngineConfig.Builder tbbpmBuilder();
+ProcessEngineConfig.Builder builder();
 
-ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder()
+ProcessEngineConfig config = ProcessEngineConfig.builder()
         .dataMapper(customMapper)
         .build();
 ProcessEngine engine = ProcessEngineFactory.create(config);
 ```
 
-Use `ProcessEngineConfig.tbbpmBuilder()` or `bpmnBuilder()`. The builder owns executor, cache, script, compilation,
+Use `ProcessEngineConfig.builder()`. The builder owns executor, cache, script, compilation,
 definition-loading, observability, class-loader, mapper, component resolver, routing, and extension contributions.
 External configuration is parsed once by the Spring boundary into the same immutable model.
 
@@ -264,6 +257,9 @@ never installs a runtime or changes traffic. Rollback creates a new rollout; it 
 
 Applications should depend on `compileflow-deploy-api` for deployment commands and domain contracts, not on control-plane
 repositories or runtime implementation packages.
+
+Wire payloads, parsers, canonical JSON codecs, and projection keys are published separately by
+`compileflow-deploy-protocol`; the domain API does not depend on that representation module.
 
 ## 11. Durable Process API
 
@@ -298,8 +294,8 @@ Admission follows these rules:
 - `AliasRoutingOptions` applies only to Alias admission.
 - Recovery reads the stored Process by `processId`; it never re-resolves Alias or reloads current Classpath content.
 
-`completeWait` accepts an opaque one-shot `WaitToken` and a typed partial result. Replaying the same committed token
-and canonical result is current-equivalent; a different result conflicts. Treat raw tokens as credentials: keep them
+`completeWait` accepts an opaque one-shot `WaitToken` and a typed partial result. Repeating a committed completion with
+the same token and canonical result is a no-op; a different result conflicts. Treat raw tokens as credentials: keep them
 out of logs, metric labels, browser-visible URLs, third-party metadata, and Workbench views.
 
 `getRun` and `listRuns` are payload-blind. `getRunResult` returns `ProcessRunResult.NotFound`, `NotCompleted`,
@@ -307,12 +303,12 @@ out of logs, metric labels, browser-visible URLs, third-party metadata, and Work
 
 The public Run lifecycle is:
 
-| Status | Meaning |
-|---|---|
-| `RUNNABLE` | Committed and awaiting a compatible Worker. |
-| `RUNNING` | A Turn owns the current lease. |
-| `WAITING` | Waiting for external completion, Timer, or Effect. |
-| `SUCCEEDED`, `FAILED`, `CANCELLED` | Terminal. |
+| Status                             | Meaning                                            |
+| ---------------------------------- | -------------------------------------------------- |
+| `RUNNABLE`                         | Committed and awaiting a compatible Worker.        |
+| `RUNNING`                          | A Turn owns the current lease.                     |
+| `WAITING`                          | Waiting for external completion, Timer, or Effect. |
+| `SUCCEEDED`, `FAILED`, `CANCELLED` | Terminal.                                          |
 
 Cancellation intent and `ProcessRunControl` are orthogonal to lifecycle. `ACTIVE` admits execution,
 `PAUSE_REQUESTED` records cooperative convergence, and `PAUSED` blocks new business Turn/Effect admission while
@@ -327,8 +323,8 @@ Run. Outbox delivery is at least once and unordered; sinks deduplicate by stable
 keyset cursors, while transport adapters own opaque page-token protocols.
 
 Catch `DurableProcessException` and branch on `DurableErrorCode`, never message text. Action
-`execution="replayable|effect"` selects Durable execution semantics; only an `UNKNOWN` post-invocation Effect
-requires authenticated operator reconciliation. See the [Durable Process guide](durable-process.md) for admission,
+`execution="replayable|effect"` selects Durable execution semantics. An `UNKNOWN` post-invocation Effect follows
+its configured automatic recovery policy; authenticated operator resolution is required when `reviewRequired()` is true. See the [Durable Process guide](durable-process.md) for admission,
 Wait-token handling, Process Calls, operations, and Effect recovery.
 
 ## 12. Failure Boundary
@@ -337,7 +333,7 @@ Expected execution failures are represented by `ProcessResult`. Invalid configur
 providers, lifecycle misuse, and other failures before an execution result can be formed use the typed
 `CompileFlowException` hierarchy.
 
-Its optional diagnostic context is deliberately non-authoritative and bounded to 32 entries, 128-character keys,
+Its optional diagnostic context is non-authoritative and bounded to 32 entries, 128-character keys,
 2,048-character text values, and 32 collection elements. Mutable collections are snapshotted; unsupported or oversized
 values are replaced by a fixed omission marker. Diagnostic enrichment must never carry process variables, payloads,
 source, credentials, or change execution outcome.
@@ -352,4 +348,4 @@ when translating either failure form.
 - [Extension Guide](extension-guide.md)
 - [Hot Deployment](hot-deploy.md)
 - [Durable Process](durable-process.md)
-- [Supported Surfaces](../architecture/06-SUPPORTED_SURFACES.en.md)
+- [Supported Surfaces](architecture/supported-surfaces.md)

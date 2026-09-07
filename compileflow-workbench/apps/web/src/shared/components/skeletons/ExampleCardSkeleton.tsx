@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 import './SkeletonStyles.css'
 import styles from './ExampleCardSkeleton.module.css'
 
@@ -6,10 +8,16 @@ interface ExampleCardSkeletonProps {
 }
 
 const ExampleCardSkeleton: React.FC<ExampleCardSkeletonProps> = ({ count = 6 }) => {
+  const { t } = useTranslation()
   return (
     <>
       {Array.from({ length: count }).map((_, index) => (
-        <div key={index} className={styles.card}>
+        <div
+          key={index}
+          className={styles.card}
+          role={index === 0 ? 'status' : undefined}
+          aria-label={index === 0 ? t('common.loading') : undefined}
+        >
           <div className={styles.accent} />
 
           <div

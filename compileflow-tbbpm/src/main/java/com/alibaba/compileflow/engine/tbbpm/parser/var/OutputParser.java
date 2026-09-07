@@ -31,6 +31,9 @@ public final class OutputParser extends AbstractTbbpmElementParser<Element> {
     @Override
     protected Element doParse(XmlSource source, ParseContext context) {
         if (context.getParent() instanceof ForEachNode) {
+            if (source.getString(TbbpmModelConstants.ATTRIBUTE_DATA_TYPE) != null) {
+                throw new IllegalArgumentException("foreach output must not declare dataType");
+            }
             ForEachOutput output = new ForEachOutput();
             output.setTarget(source.getString(TbbpmModelConstants.ATTRIBUTE_TARGET));
             output.setSource(source.getString(TbbpmModelConstants.ATTRIBUTE_SOURCE));

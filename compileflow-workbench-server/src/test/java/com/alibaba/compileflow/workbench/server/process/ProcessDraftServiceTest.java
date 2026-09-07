@@ -15,6 +15,7 @@ package com.alibaba.compileflow.workbench.server.process;
 
 import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -31,7 +32,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import tools.jackson.databind.ObjectMapper;
+import org.springframework.dao.DataIntegrityViolationException;
 
 class ProcessDraftServiceTest {
     private static ProcessDraftEntity flowEntity(long revision) {
@@ -49,13 +50,32 @@ class ProcessDraftServiceTest {
     }
 
     @Test
+    void storageIntegrityFailuresAreNotMisreportedAsDuplicateCodes() {
+        ProcessDraftRepository repository = mock(ProcessDraftRepository.class);
+        when(repository.currentTimestamp()).thenReturn(Instant.parse("2026-07-25T03:00:00Z"));
+        DataIntegrityViolationException failure = new DataIntegrityViolationException("Invalid stored value");
+        when(repository.saveAndFlush(any(ProcessDraftEntity.class))).thenThrow(failure);
+        ProcessDraftService service = new ProcessDraftService(repository, mock(ServerIdentity.class));
+
+        assertThatThrownBy(() -> service.createProcess(
+                new ProcessDraftService.ProcessCreate("order.approve", "Order", ProcessModelType.BPMN, "<definitions/>",
+                        null, List.of())))
+            .isSameAs(failure);
+    }
+
+    @Test
     void createUsesIdentityEstablishedByAuthenticationBoundary() {
         ProcessDraftRepository repository = mock(ProcessDraftRepository.class);
         ServerIdentity identity = mock(ServerIdentity.class);
         Instant databaseTime = Instant.parse("2026-07-25T03:00:00Z");
         when(repository.currentTimestamp()).thenReturn(databaseTime);
         when(identity.principal()).thenReturn("bridge-service");
-        ProcessDraftService service = new ProcessDraftService(repository, identity, new ObjectMapper());
+        when(repository.saveAndFlush(any(ProcessDraftEntity.class))).thenAnswer(invocation -> {
+            ProcessDraftEntity entity = invocation.getArgument(0);
+            entity.setRevision(0L);
+            return entity;
+        });
+        ProcessDraftService service = new ProcessDraftService(repository, identity);
 
         ProcessDraftService.ProcessRecord result = service.createProcess(
                 new ProcessDraftService.ProcessCreate("order.approve", "Order Approval", ProcessModelType.BPMN,
@@ -85,8 +105,7 @@ class ProcessDraftServiceTest {
         when(projection.getRevision()).thenReturn(4L);
         when(repository.findSummaries(eq(ProcessModelType.BPMN), eq("%50!%!_!!%"), any(Pageable.class)))
             .thenReturn(new PageImpl<>(List.of(projection), org.springframework.data.domain.PageRequest.of(1, 25), 31));
-        ProcessDraftService service =
-                new ProcessDraftService(repository, mock(ServerIdentity.class), new ObjectMapper());
+        ProcessDraftService service = new ProcessDraftService(repository, mock(ServerIdentity.class));
         ProcessDraftService.ProcessListQuery query =
                 new ProcessDraftService.ProcessListQuery(ProcessModelType.BPMN, " 50%_! ", "updatedAt", "desc", 2, 25);
 
@@ -114,8 +133,7 @@ class ProcessDraftServiceTest {
         ProcessDraftRepository repository = mock(ProcessDraftRepository.class);
         ProcessDraftEntity entity = flowEntity(3L);
         when(repository.findById("order.approve")).thenReturn(Optional.of(entity));
-        ProcessDraftService service =
-                new ProcessDraftService(repository, mock(ServerIdentity.class), new ObjectMapper());
+        ProcessDraftService service = new ProcessDraftService(repository, mock(ServerIdentity.class));
         ProcessDraftService.ProcessUpdate update =
                 new ProcessDraftService.ProcessUpdate("Changed", "<definitions/>", null, Collections.emptyList(), 2L);
 
@@ -130,8 +148,7 @@ class ProcessDraftServiceTest {
     void updateAndDuplicateRepresentMissingProcessesExplicitly() {
         ProcessDraftRepository repository = mock(ProcessDraftRepository.class);
         when(repository.findById("missing")).thenReturn(Optional.empty());
-        ProcessDraftService service =
-                new ProcessDraftService(repository, mock(ServerIdentity.class), new ObjectMapper());
+        ProcessDraftService service = new ProcessDraftService(repository, mock(ServerIdentity.class));
 
         assertThat(service.updateProcess("missing", new ProcessDraftService.ProcessUpdate(null, null, null, null, 0L)))
             .isEmpty();

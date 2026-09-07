@@ -150,9 +150,15 @@ public abstract class AbstractBpmnElementParser<E extends Element> extends Abstr
             ExtensionElement effectPolicy =
                     findOnlyExtension(extensionElements, BpmnModelConstants.BPMN_EXT_ELEMENT_EFFECT_POLICY);
             if (invocationPolicy != null) {
+                if (scriptTask.getInvocationPolicy() != null) {
+                    throw invalidExtension("A BPMN scriptTask must declare at most one cf:invocationPolicy");
+                }
                 scriptTask.setInvocationPolicy(buildInvocationPolicy(invocationPolicy));
             }
             if (effectPolicy != null) {
+                if (scriptTask.getEffectPolicy() != null) {
+                    throw invalidExtension("A BPMN scriptTask must declare at most one cf:effectPolicy");
+                }
                 scriptTask.setEffectPolicy(buildEffectPolicy(effectPolicy));
             }
         }
@@ -468,7 +474,7 @@ public abstract class AbstractBpmnElementParser<E extends Element> extends Abstr
         try {
             policy.setRecoveryPlanVariable(element.getAttributeValue("recoveryPlanVariable"));
             String recovery = element.getAttributeValue("recovery");
-            if (recovery != null && !recovery.isBlank()) {
+            if (recovery != null) {
                 policy.setRecovery(EffectRecovery.of(recovery));
             }
             policy.setMaxAttempts(parseIntegerAttribute(element, "maxAttempts", "effectPolicy"));

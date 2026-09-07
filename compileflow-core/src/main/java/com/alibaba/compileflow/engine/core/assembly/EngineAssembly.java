@@ -24,6 +24,8 @@ import com.alibaba.compileflow.engine.core.routing.AliasAdmission;
 import com.alibaba.compileflow.engine.core.routing.LocalReadyAliasRouteSource;
 import com.alibaba.compileflow.engine.spi.routing.ProcessAliasRouteSource;
 import java.util.Objects;
+import com.alibaba.compileflow.engine.ProcessEngine;
+import com.alibaba.compileflow.engine.core.DefaultProcessEngine;
 
 /**
  * Constructs the internal collaborators for one process engine instance.
@@ -32,6 +34,36 @@ import java.util.Objects;
  */
 public final class EngineAssembly {
     private EngineAssembly() {
+    }
+
+    /**
+     * Creates an engine through the canonical resource assembly.
+     * @param config immutable engine configuration
+     * @return newly owned engine
+     */
+    public static ProcessEngine create(ProcessEngineConfig config) {
+        return create(config, assemble(config));
+    }
+
+    /**
+     * Creates an engine from dependencies sharing the host's admission state.
+     * @param config immutable engine configuration
+     * @param dependencies assembled dependencies transferred to the engine
+     * @return newly owned engine
+     */
+    public static ProcessEngine create(ProcessEngineConfig config, EngineDependencies dependencies) {
+        Objects.requireNonNull(config, "config");
+        Objects.requireNonNull(dependencies, "dependencies");
+        try {
+            return new DefaultProcessEngine(config, dependencies);
+        } catch (RuntimeException | Error failure) {
+            try {
+                dependencies.scriptExecutors().close();
+            } catch (RuntimeException | Error closeFailure) {
+                failure.addSuppressed(closeFailure);
+            }
+            throw failure;
+        }
     }
 
     /**
@@ -85,7 +117,7 @@ public final class EngineAssembly {
             dataMapper = JacksonProcessDataMapper.createDefault();
         }
         ScriptExecutorRegistry scriptExecutors =
-                ScriptExecutorRegistry.configured(engineConfig, engineConfig.getScriptExecutors());
+                ScriptExecutorRegistry.configured(engineConfig.getClassLoader(), engineConfig.getScriptExecutors());
         return new EngineDependencies(definitionLoader, engineConfig.getComponentResolver(), scriptExecutors,
                 javaCompiler, dataMapper, localRoutingState, admission);
     }

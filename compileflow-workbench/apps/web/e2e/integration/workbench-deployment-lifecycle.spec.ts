@@ -208,7 +208,7 @@ test('publishes, canaries, promotes, rolls back, and executes the effective vers
     )?.ok()
   ).toBeTruthy()
   expect((await versionResponse).ok()).toBeTruthy()
-  await expect(page.getByRole('heading', { level: 1, name: '部署向导' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: '部署' })).toBeVisible()
 
   const searchedVersions = page.waitForResponse((response) => {
     const url = new URL(response.url())
@@ -308,11 +308,11 @@ test('publishes, canaries, promotes, rolls back, and executes the effective vers
       response.request().method() === 'POST' &&
       new URL(response.url()).pathname === `/api/deployments/${canary.id}/canary/evaluate`
   )
-  await page.getByRole('button', { name: '评估健康度' }).click()
+  await page.getByRole('button', { name: '健康评估' }).click()
   expect((await healthResponse).ok()).toBeTruthy()
   await expect(page.getByText('灰度版本健康')).toBeVisible()
 
-  await page.getByRole('button', { name: /全量放量|提升至全量|Promote to 100%|Promote/i }).click()
+  await page.getByRole('button', { name: /全量发布|Promote/i }).click()
   const promoteDialog = page.getByRole('dialog', {
     name: /确认放量|提升候选版本|Promote candidate/i,
   })
@@ -322,12 +322,10 @@ test('publishes, canaries, promotes, rolls back, and executes the effective vers
       response.request().method() === 'POST' &&
       new URL(response.url()).pathname === `/api/deployments/${canary.id}/promote`
   )
-  await promoteDialog
-    .getByRole('button', { name: /全量放量|提升至全量|Promote to 100%|Promote/i })
-    .click()
+  await promoteDialog.getByRole('button', { name: /全量发布|Promote/i }).click()
   const promoted = await expectJson<DeploymentResult>(await promoteResponse)
   expect(promoted.status).toBe('completed')
-  await expect(page.getByText('候选版本已提升至全量流量')).toBeVisible()
+  await expect(page.getByText('候选版本已承接全部流量')).toBeVisible()
 
   const promotedExecution = await executeAlias(request, code, 'lifecycle-promoted')
   expect(promotedExecution).toEqual(

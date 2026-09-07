@@ -20,7 +20,7 @@ import com.alibaba.compileflow.engine.core.model.action.HasAction;
  * Abstract base class for single-action TBBPM activity nodes.
  *
  * <p>Activity nodes carry exactly one {@link com.alibaba.compileflow.engine.core.model.action.Action}
- * and complete synchronously before passing control to the next node.
+ * whose invocation or Effect execution must complete before passing control to the next node.
  * Concrete subtypes include {@link AutoTaskNode} and {@link ScriptTaskNode}.
  *
  * @author yusu

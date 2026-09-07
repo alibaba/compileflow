@@ -1,18 +1,19 @@
 import { type ClipboardData, DESIGNER_CLIPBOARD_KEY, parseClipboardData } from './clipboardData'
 
 let inMemoryClipboard: string | null = null
+let hasUnpersistedChange = false
 
 export function readDesignerClipboard(): ClipboardData | null {
   let raw: string | null
   try {
-    raw = sessionStorage.getItem(DESIGNER_CLIPBOARD_KEY)
+    raw = hasUnpersistedChange ? inMemoryClipboard : sessionStorage.getItem(DESIGNER_CLIPBOARD_KEY)
   } catch {
     raw = inMemoryClipboard
   }
 
+  inMemoryClipboard = raw
   const data = parseClipboardData(raw)
   if (data) {
-    inMemoryClipboard = raw
     return data
   }
 
@@ -28,8 +29,10 @@ export function writeDesignerClipboard(data: ClipboardData): void {
 
   try {
     sessionStorage.setItem(DESIGNER_CLIPBOARD_KEY, serialized)
+    hasUnpersistedChange = false
   } catch {
-    // The in-memory copy remains available for the current page session.
+    // Failed writes must not let an older persisted value replace this copy.
+    hasUnpersistedChange = true
   }
 }
 
@@ -38,7 +41,8 @@ export function clearDesignerClipboard(): void {
 
   try {
     sessionStorage.removeItem(DESIGNER_CLIPBOARD_KEY)
+    hasUnpersistedChange = false
   } catch {
-    // The in-memory copy is already cleared.
+    hasUnpersistedChange = true
   }
 }

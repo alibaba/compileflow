@@ -282,21 +282,6 @@ final class DurableProcessEligibilityChecker {
                     problem("DURABLE_MULTI_INSTANCE_INPUT_NOT_LIST", node.id(),
                             "Parallel foreach collection must reference a visible java.util.List-compatible variable"));
         }
-        if (forEach.outputTargetVariable() == null) {
-            return;
-        }
-        ProcessSemanticPlan.VariablePlan output = semantics.getVariables().get(forEach.outputTargetVariable());
-        if (output == null || !listCompatible(output.dataType())) {
-            problems.add(
-                    problem("DURABLE_MULTI_INSTANCE_OUTPUT_NOT_LIST", node.id(),
-                            "Parallel foreach output target must declare a java.util.List-compatible type"));
-        }
-        ProcessSemanticPlan.VariablePlan source = semantics.getVariables().get(forEach.outputSourceVariable());
-        if (source == null || source.role() != ProcessSemanticPlan.VariableRole.INNER) {
-            problems.add(
-                    problem("DURABLE_MULTI_INSTANCE_OUTPUT_SOURCE_NOT_LOCAL", node.id(),
-                            "Parallel foreach output source must reference an inner process variable"));
-        }
     }
 
     private void validateExpressions(ProcessSemanticPlan semantics, ProcessSemanticPlan.NodePlan node,

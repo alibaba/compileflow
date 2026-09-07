@@ -1,12 +1,5 @@
-import {
-  AppError,
-  ErrorSeverity,
-  isTransientFetchError,
-  parseProblemDetail,
-  problemDetailToAppError,
-  retryOperation,
-} from '@/shared/api/errorHandler'
-import { TIMEOUTS } from '@/shared/constants'
+import apiClient from '@/shared/api/client'
+import { handleApiError, isTransientApiError } from '@/shared/api/errorHandler'
 import type {
   ExecutionResponse,
   ExecutionStatusResponse,
@@ -98,68 +91,33 @@ function isExecutionResponse(value: unknown): value is ExecutionResponse {
   )
 }
 
-function fetchWithTimeout(
-  url: string,
-  options?: RequestInit,
-  timeout = TIMEOUTS.API_REQUEST
-): Promise<Response> {
-  const controller = new AbortController()
-  const id = setTimeout(() => controller.abort(), timeout)
-  return fetch(url, {
-    ...options,
-    signal: controller.signal,
-  }).finally(() => clearTimeout(id))
-}
-
-function responseError(response: Response, body: unknown, operation: string): AppError {
-  const problem = parseProblemDetail(body)
-  if (problem !== undefined) {
-    return problemDetailToAppError(problem, response.status)
-  }
-  return new AppError(
-    `${operation} failed (HTTP ${response.status}): ${response.statusText}`,
-    `HTTP_${response.status}`,
-    response.status >= 500 ? ErrorSeverity.HIGH : ErrorSeverity.MEDIUM,
-    { statusCode: response.status }
-  )
-}
-
-async function parseExecutionResponse(res: Response): Promise<ExecutionResponse> {
-  const body = await res.json().catch(() => undefined)
-  if (!res.ok) {
-    throw responseError(res, body, 'Execution request')
-  }
-  if (!isExecutionResponse(body)) {
-    throw new Error('Execution request failed: backend returned an invalid response')
-  }
-  return body
-}
-
 /** Query availability from either the development mock or Workbench Server. */
 export async function getEngineStatus(): Promise<ExecutionStatusResponse> {
-  return retryOperation(
-    async () => {
-      const res = await fetchWithTimeout('/api/status')
-      if (!res.ok) {
-        const body = await res.json().catch(() => undefined)
-        throw responseError(res, body, 'Status check')
-      }
-      const body: unknown = await res.json()
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const body = await apiClient.get('/api/status')
       if (!isExecutionStatusResponse(body)) {
         throw new Error('Status check failed: backend returned an invalid response')
       }
       return body
-    },
-    { isRetryable: isTransientFetchError }
-  )
+    } catch (error) {
+      const failure = handleApiError(error)
+      if (attempt >= 2 || !isTransientApiError(failure)) {
+        throw failure
+      }
+      const delay = 1000 * 2 ** attempt * (0.5 + Math.random() * 0.5)
+      await new Promise((resolve) => setTimeout(resolve, delay))
+    }
+  }
 }
 
 /** Execute the supplied draft XML without publishing or published-version routing. */
 export async function executePreview(request: PreviewExecutionRequest): Promise<ExecutionResponse> {
-  const res = await fetchWithTimeout('/api/executions/preview', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
+  const body = await apiClient.post('/api/executions/preview', request).catch((error: unknown) => {
+    throw handleApiError(error)
   })
-  return parseExecutionResponse(res)
+  if (!isExecutionResponse(body)) {
+    throw new Error('Execution request failed: backend returned an invalid response')
+  }
+  return body
 }

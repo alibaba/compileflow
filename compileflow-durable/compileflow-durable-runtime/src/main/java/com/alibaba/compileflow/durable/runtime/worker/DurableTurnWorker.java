@@ -145,6 +145,9 @@ public final class DurableTurnWorker {
         turnPrograms.put(rootProgram.processId(), rootProgram);
         Function<UUID, DurableProcessRuntime> programResolver = processId -> loadTurnProgram(turnPrograms, processId);
         RunContinuation continuation = continuations.decode(claim.continuation().payload(), programResolver);
+        if (!claim.rootProcess().processId().equals(continuation.requireInvocation(0).processId())) {
+            throw new IllegalArgumentException("Run continuation root does not match the claimed Process");
+        }
         continuation
             .processCallTargets()
             .values()
@@ -168,6 +171,12 @@ public final class DurableTurnWorker {
             MachineTurnResult turn =
                     program.program().advance(invocation.continuation(), availableResults, budget, context);
             collectConsumedResults(turn, invocationResults, consumedResults);
+            // A turn can resume another frontier or enter a child after consuming a stored result.
+            Set<OccurrenceKey> consumedThisStep = Set.copyOf(turn.consumedOccurrences());
+            storedResults.computeIfPresent(invocation.invocationId(), (ignored, remaining) -> remaining
+                .stream()
+                .filter(result -> !consumedThisStep.contains(occurrenceKey(result.occurrence())))
+                .toList());
 
             FrontierStepResult outcome = turn.outcome();
             if (outcome instanceof FrontierStepResult.Completed completed) {

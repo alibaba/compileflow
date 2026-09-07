@@ -28,7 +28,10 @@ function reportStartupFailure(error: unknown): void {
   console.error('CompileFlow Workbench failed to start', sanitizeDiagnosticValue(error))
   const rootElement = document.getElementById('root')
   if (rootElement !== null) {
-    rootElement.textContent = 'CompileFlow Workbench failed to start.'
+    const isChinese = navigator.language.toLowerCase().startsWith('zh')
+    rootElement.textContent = isChinese
+      ? 'CompileFlow Workbench 启动失败，请刷新页面后重试。'
+      : 'CompileFlow Workbench failed to start. Refresh the page to try again.'
   }
 }
 

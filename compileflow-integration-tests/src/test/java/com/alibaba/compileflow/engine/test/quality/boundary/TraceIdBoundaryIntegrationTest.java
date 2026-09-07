@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.quality.boundary;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
@@ -32,7 +33,8 @@ import org.junit.jupiter.api.Test;
  */
 public class TraceIdBoundaryIntegrationTest {
     private static final AtomicInteger ACTIONS = new AtomicInteger();
-    private static final ProcessDefinition DEFINITION = ProcessDefinition.inline("test.trace-boundary",
+    private static final ProcessDefinition DEFINITION = ProcessDefinition.inline(ProcessModelType.TBBPM,
+            "test.trace-boundary",
             """
             <?xml version="1.0" encoding="UTF-8" ?>
             <bpm code="test.trace-boundary" name="Trace Boundary">
@@ -57,7 +59,7 @@ public class TraceIdBoundaryIntegrationTest {
     void oversizedProviderFallsBackBeforeActionAndReturnsControlledSuccess() {
         String oversized = "t".repeat(ProcessIdentifiers.MAX_TRACE_ID_LENGTH + 1);
         try (ProcessEngine engine = ProcessEngineFactory.create(ProcessEngineTestFactory
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .traceIdProvider(() -> oversized)
             .build())) {

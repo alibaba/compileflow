@@ -14,7 +14,6 @@ export class AppError extends Error {
   ) {
     super(message)
     this.name = 'AppError'
-    Object.setPrototypeOf(this, AppError.prototype)
   }
 
   toJSON() {
@@ -33,7 +32,6 @@ export class NetworkError extends AppError {
   constructor(message: string, context?: Record<string, unknown>) {
     super(message, 'NETWORK_ERROR', ErrorSeverity.HIGH, context)
     this.name = 'NetworkError'
-    Object.setPrototypeOf(this, NetworkError.prototype)
   }
 }
 

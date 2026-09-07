@@ -17,7 +17,6 @@ import com.alibaba.compileflow.engine.CompileFlowException;
 import com.alibaba.compileflow.engine.ErrorCode;
 import com.alibaba.compileflow.engine.spi.ProcessComponentResolver;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 import org.springframework.beans.BeansException;
@@ -40,8 +39,7 @@ public final class SpringProcessComponentResolver implements ProcessComponentRes
      */
     public SpringProcessComponentResolver(ApplicationContext applicationContext, Collection<String> allowedBeanNames) {
         this.applicationContext = Objects.requireNonNull(applicationContext, "applicationContext");
-        this.allowedBeanNames = Set.copyOf(
-                new LinkedHashSet<>(Objects.requireNonNull(allowedBeanNames, "allowedBeanNames")));
+        this.allowedBeanNames = Set.copyOf(Objects.requireNonNull(allowedBeanNames, "allowedBeanNames"));
         for (String beanName : this.allowedBeanNames) {
             if (!applicationContext.containsBean(beanName)) {
                 throw new CompileFlowException.ConfigurationException(ErrorCode.CF_CONFIG_003,

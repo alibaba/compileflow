@@ -33,7 +33,7 @@ class EngineExecutionScopeTest {
     @AfterEach
     void clearThreadState() {
         EngineExecutionContextHolder.clear();
-        LogContext.clear();
+        LogContext.setContext(null);
         if (executors != null) {
             executors.close();
         }
@@ -114,6 +114,37 @@ class EngineExecutionScopeTest {
         inner.close();
         outer.close();
         assertThat(EngineExecutionContextHolder.current()).isNull();
+    }
+
+    @Test
+    void rejectsOutOfOrderScopesForTheSameContextAndPreservesMdc() {
+        EngineExecutionContext context = context("same", "trace");
+        LogContext.setContext(Map.of("requestId", "caller"));
+        try (EngineExecutionScope outer = EngineExecutionScope.open(context)) {
+            LogContext.setContext(Map.of("requestId", "outer"));
+            try (EngineExecutionScope inner = EngineExecutionScope.open(context)) {
+                assertThat(inner.context()).isSameAs(context);
+                assertThatThrownBy(outer::close).isInstanceOf(IllegalStateException.class).hasMessageContaining("LIFO");
+                assertThat(EngineExecutionContextHolder.current()).isSameAs(context);
+                assertThat(LogContext.getContext()).containsEntry("requestId", "outer");
+            }
+            assertThat(EngineExecutionContextHolder.current()).isSameAs(context);
+            assertThat(LogContext.getContext()).containsExactlyEntriesOf(Map.of("requestId", "outer"));
+        }
+        assertThat(EngineExecutionContextHolder.current()).isNull();
+        assertThat(LogContext.getContext()).containsExactlyEntriesOf(Map.of("requestId", "caller"));
+    }
+
+    @Test
+    void rejectsOutOfOrderScriptScopesWithTheSameImmutableCatalog() {
+        EngineExecutionContext context = context("scripts", "trace");
+        try (EngineExecutionContext.ScriptProgramsScope outer = context.openScriptPrograms(Map.of())) {
+            try (EngineExecutionContext.ScriptProgramsScope inner = context.openScriptPrograms(Map.of())) {
+                assertThat(inner).isNotSameAs(outer);
+                assertThatThrownBy(outer::close).isInstanceOf(IllegalStateException.class).hasMessageContaining(
+                        "invocation order");
+            }
+        }
     }
 
     private EngineExecutionContext context(String processCode, String traceId) {

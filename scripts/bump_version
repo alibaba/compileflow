@@ -22,8 +22,37 @@ python3 scripts/check_project_versions.py --syntax-only "$version"
 
 ./mvnw versions:set \
     -DgenerateBackupPoms=false \
+    -DupdateBuildOutputTimestampPolicy=never \
     -DnewVersion="$version" \
     -B -V --no-transfer-progress
 
-pnpm --dir compileflow-workbench --recursive pkg set "version=$version"
+# The consumer BOM has no parent and is not updated by the root version change.
+./mvnw -f compileflow-bom/pom.xml versions:set \
+    -DgenerateBackupPoms=false \
+    -DupdateBuildOutputTimestampPolicy=never \
+    -DnewVersion="$version" \
+    -B -V --no-transfer-progress
+
+./mvnw -f compileflow-bom/pom.xml versions:set-property \
+    -DgenerateBackupPoms=false \
+    -DnewVersion="$version" \
+    -Dproperty=compileflow.version \
+    -B -V --no-transfer-progress
+
+node - "$version" <<'NODE'
+const fs = require('node:fs')
+
+const version = process.argv[2]
+const packageFiles = [
+    'compileflow-workbench/package.json',
+    'compileflow-workbench/apps/web/package.json',
+    'compileflow-workbench/apps/dev-gateway/package.json',
+]
+
+for (const packageFile of packageFiles) {
+    const packageJson = JSON.parse(fs.readFileSync(packageFile, 'utf8'))
+    packageJson.version = version
+    fs.writeFileSync(packageFile, `${JSON.stringify(packageJson, null, 2)}\n`)
+}
+NODE
 python3 scripts/check_project_versions.py --expected "$version"

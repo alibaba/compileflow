@@ -122,10 +122,6 @@ public final class InstalledVersionState {
         return removed == null ? Collections.emptySet() : removed;
     }
 
-    public void clear() {
-        installedVersions.clear();
-    }
-
     private record Key(String namespace, String code) {
         private Key {
             namespace = ProcessIdentifiers.requireNamespace(namespace);

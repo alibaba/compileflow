@@ -14,7 +14,6 @@
 package com.alibaba.compileflow.durable.spi.admission;
 
 import com.alibaba.compileflow.engine.ProcessDefinition;
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.ProcessIdentifiers;
 import java.util.LinkedHashMap;
@@ -54,18 +53,15 @@ public interface DurableVersionDefinitionSource {
     /**
      * Immutable Process-owned facts required to register an exact recovery replica.
      *
-     * @param modelType authoritative definition format
      * @param definition exact inline definition
      * @param callBindings verified exact Version selected for every direct Process call
      */
-    record VersionDefinition(ProcessModelType modelType, ProcessDefinition.Inline definition,
-            Map<String, ProcessRef.Version> callBindings) {
-        public VersionDefinition(ProcessModelType modelType, ProcessDefinition.Inline definition) {
-            this(modelType, definition, Map.of());
+    record VersionDefinition(ProcessDefinition.Inline definition, Map<String, ProcessRef.Version> callBindings) {
+        public VersionDefinition(ProcessDefinition.Inline definition) {
+            this(definition, Map.of());
         }
 
         public VersionDefinition {
-            modelType = Objects.requireNonNull(modelType, "modelType");
             definition = Objects.requireNonNull(definition, "definition");
             Map<String, ProcessRef.Version> bindings = new LinkedHashMap<>();
             for (Map.Entry<String, ProcessRef.Version> entry : Objects

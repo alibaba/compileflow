@@ -88,20 +88,7 @@ public final class ProcessObservabilityConfig {
         return mdcPropagationEnabled;
     }
 
-    /**
-     * Returns a builder initialized from this configuration.
-     *
-     * @return observability configuration builder
-     */
-    public Builder toBuilder() {
-        return builder()
-            .eventsAsync(eventsAsync)
-            .eventDeliveryMaxConcurrency(eventDeliveryMaxConcurrency)
-            .eventDeliveryMaxPending(eventDeliveryMaxPending)
-            .mdcPropagationEnabled(mdcPropagationEnabled);
-    }
-
-    ValidationResult validate() {
+    private ValidationResult validate() {
         return ProcessConfigValidator.combine(ProcessConfigValidator.validatePositive(eventDeliveryMaxConcurrency,
                         "observability.eventDeliveryMaxConcurrency"),
                 ProcessConfigValidator.validateNonNegative(eventDeliveryMaxPending,

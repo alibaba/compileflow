@@ -16,8 +16,8 @@ package com.alibaba.compileflow.engine.tbbpm.model;
 /**
  * Defines a named entry for a later trigger invocation.
  *
- * <p>Reaching this node ends the current invocation. A trigger starts a new
- * invocation at this entry; the node does not perform hidden business work.
+ * <p>ProcessEngine execution ends the current invocation at this node and exposes a later trigger
+ * entry. Durable execution persists the suspension and resumes the same Run when the wait completes.
  *
  * @author wuxiang
  * @author yusu

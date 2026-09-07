@@ -3,14 +3,16 @@ import { spawn } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { mkdir, readdir, writeFile } from 'node:fs/promises'
+import { createServer } from 'node:net'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const workbenchRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 const repositoryRoot = dirname(workbenchRoot)
-const resultDirectory = join(workbenchRoot, 'apps', 'web', 'test-results')
+const resultDirectory =
+  process.env.COMPILEFLOW_E2E_RESULT_DIRECTORY ?? join(workbenchRoot, 'apps', 'web', 'test-results')
 const resultPath = join(resultDirectory, 'async-invocation-process-lifecycle.json')
-const serverPort = Number.parseInt(process.env.COMPILEFLOW_E2E_LIFECYCLE_PORT ?? '18080', 10)
+const serverPort = Number(process.env.COMPILEFLOW_E2E_LIFECYCLE_PORT ?? '18080')
 const serverUrl = `http://127.0.0.1:${serverPort}`
 const apiKey = requiredEnvironment('COMPILEFLOW_E2E_SERVER_API_KEY')
 
@@ -19,9 +21,18 @@ requiredEnvironment('SPRING_DATASOURCE_USERNAME')
 requiredEnvironment('SPRING_DATASOURCE_PASSWORD')
 assert(Number.isInteger(serverPort) && serverPort >= 1024 && serverPort <= 65_535, 'invalid port')
 
-const jar = await findBundledJar()
+const jar = process.env.COMPILEFLOW_E2E_SERVER_JAR ?? (await findBundledJar())
 const serverHistory = []
 let activeServer
+let interrupted
+const interrupt = (signal) => {
+  interrupted ??= new Error(`Lifecycle verification interrupted by ${signal}`)
+  for (const server of serverHistory) server.process.kill('SIGTERM')
+}
+const onSigint = () => interrupt('SIGINT')
+const onSigterm = () => interrupt('SIGTERM')
+process.on('SIGINT', onSigint)
+process.on('SIGTERM', onSigterm)
 
 try {
   activeServer = await startServer('graceful-owner')
@@ -51,7 +62,7 @@ try {
   assert.equal(graceful.currentAttemptCount, 1, 'graceful shutdown must not replay the invocation')
   assert.equal(graceful.totalAttemptCount, 1)
   assert.equal(graceful.redriveCount, 0)
-  assert.equal(graceful.effectiveVersion, flow.version)
+  assert.equal(graceful.routing?.effectiveVersion, flow.version)
   assert.equal(graceful.response?.result?.version_marker, 'process-lifecycle')
   await assertSingleSuccessfulExecution(gracefulInvocationId, flow.version)
   const gracefulAttempts = await listInvocationAttempts(gracefulInvocationId)
@@ -93,7 +104,7 @@ try {
   )
   assert.equal(recovered.totalAttemptCount, 2)
   assert.equal(recovered.redriveCount, 0)
-  assert.equal(recovered.effectiveVersion, flow.version)
+  assert.equal(recovered.routing?.effectiveVersion, flow.version)
   assert.equal(recovered.response?.result?.version_marker, 'process-lifecycle')
   await assertSingleSuccessfulExecution(crashInvocationId, flow.version)
   const crashAttempts = await listInvocationAttempts(crashInvocationId)
@@ -149,6 +160,9 @@ try {
       recoveryDurationMs: Date.now() - crashSignalAt,
     },
   }
+  await stopServer(activeServer)
+  activeServer = undefined
+  if (interrupted) throw interrupted
   await mkdir(resultDirectory, { recursive: true })
   await writeFile(resultPath, `${JSON.stringify(evidence, null, 2)}\n`, 'utf8')
   process.stdout.write(`Verified async invocation process lifecycle: ${resultPath}\n`)
@@ -158,19 +172,35 @@ try {
   }
   throw failure
 } finally {
-  if (
-    activeServer &&
-    activeServer.process.exitCode === null &&
-    activeServer.process.signalCode === null
-  ) {
-    activeServer.process.kill('SIGTERM')
-    try {
-      await waitForExit(activeServer, 12_000)
-    } catch {
-      activeServer.process.kill('SIGKILL')
-      await waitForExit(activeServer, 3_000).catch(() => undefined)
-    }
+  try {
+    for (const server of serverHistory) await stopServer(server)
+  } finally {
+    process.off('SIGINT', onSigint)
+    process.off('SIGTERM', onSigterm)
   }
+}
+
+async function stopServer(server) {
+  if (server.process.exitCode !== null || server.process.signalCode !== null || !server.process.pid)
+    return
+  server.process.kill('SIGTERM')
+  try {
+    await waitForExit(server, 12_000)
+  } catch {
+    server.process.kill('SIGKILL')
+    await waitForExit(server, 3_000)
+  }
+}
+
+async function assertPortAvailable() {
+  const probe = createServer()
+  await new Promise((resolve, reject) => {
+    probe.once('error', reject)
+    probe.listen({ host: '127.0.0.1', port: serverPort, exclusive: true }, resolve)
+  })
+  await new Promise((resolve, reject) =>
+    probe.close((error) => (error ? reject(error) : resolve()))
+  )
 }
 
 async function findBundledJar() {
@@ -191,6 +221,8 @@ async function findBundledJar() {
 }
 
 async function startServer(label) {
+  if (interrupted) throw interrupted
+  await assertPortAvailable()
   const java = process.env.JAVA_HOME ? join(process.env.JAVA_HOME, 'bin', 'java') : 'java'
   const child = spawn(
     java,
@@ -200,11 +232,10 @@ async function startServer(label) {
       '--spring.profiles.active=prod',
       '--spring.main.banner-mode=off',
       '--server.shutdown=graceful',
+      '--server.address=127.0.0.1',
       `--server.port=${serverPort}`,
       '--spring.lifecycle.timeout-per-shutdown-phase=10s',
       '--compileflow.workbench.server.async-invocation.concurrency=1',
-      '--compileflow.workbench.server.async-invocation.queue-capacity=8',
-      '--compileflow.workbench.server.async-invocation.dispatch-batch-size=4',
       '--compileflow.workbench.server.async-invocation.dispatch-interval=100ms',
       '--compileflow.workbench.server.async-invocation.lease-duration=2s',
       '--compileflow.workbench.server.async-invocation.lease-recovery-interval=250ms',
@@ -227,11 +258,16 @@ async function startServer(label) {
   }
   child.stdout.on('data', append)
   child.stderr.on('data', append)
+  let spawnFailure
   const server = {
     label,
     process: child,
     logs: () => output,
     exit: new Promise((resolve) => {
+      child.once('error', (error) => {
+        spawnFailure = error
+        resolve({ code: null, signal: null, error, exitedAt: Date.now() })
+      })
       child.once('exit', (code, signal) => resolve({ code, signal, exitedAt: Date.now() }))
     }),
   }
@@ -239,6 +275,7 @@ async function startServer(label) {
   try {
     await waitUntil(
       async () => {
+        if (spawnFailure) throw spawnFailure
         if (child.exitCode !== null || child.signalCode !== null) {
           throw new Error(`${label} exited before readiness\n${output}`)
         }
@@ -258,6 +295,7 @@ async function startServer(label) {
     return server
   } catch (failure) {
     child.kill('SIGKILL')
+    await waitForExit(server, 3_000)
     throw new Error(`${failure.message}\n${output}`, { cause: failure })
   }
 }
@@ -436,8 +474,10 @@ async function waitUntil(operation, timeoutMs, message, retryFailures = true) {
   const deadline = Date.now() + timeoutMs
   let lastFailure
   while (Date.now() < deadline) {
+    if (interrupted) throw interrupted
     try {
       const result = await operation()
+      if (interrupted) throw interrupted
       if (result !== undefined && result !== false) {
         return result
       }

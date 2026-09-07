@@ -1,9 +1,12 @@
+import { useTranslation } from 'react-i18next'
+
 import './SkeletonStyles.css'
 import styles from './ExampleDetailSkeleton.module.css'
 
 const ExampleDetailSkeleton: React.FC = () => {
+  const { t } = useTranslation()
   return (
-    <div>
+    <div role="status" aria-label={t('common.loading')}>
       <div className={styles.headerSection}>
         <div
           className={`skeleton ${styles.line}`}

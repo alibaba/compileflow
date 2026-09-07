@@ -13,29 +13,51 @@
  */
 package com.alibaba.compileflow.engine.spring.boot.autoconfigure;
 
-import com.alibaba.compileflow.deploy.spring.boot.autoconfigure.CompileFlowDeployActuatorAutoConfiguration;
-import com.alibaba.compileflow.deploy.spring.boot.autoconfigure.CompileFlowDeploymentMetricsAutoConfiguration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import com.alibaba.compileflow.engine.ProcessEngine;
+import com.alibaba.compileflow.engine.ProcessEngineFactory;
 import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
+import com.alibaba.compileflow.engine.config.ProcessExecutorConfig;
 import com.alibaba.compileflow.engine.spring.boot.autoconfigure.observability.CompileFlowMetricsBinder;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.binder.MeterBinder;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 class CompileFlowOptionalObservabilityAutoConfigurationTest {
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(CompileFlowEnginePropertiesAutoConfiguration.class,
-                CompileFlowCoreAutoConfiguration.class, CompileFlowDeployActuatorAutoConfiguration.class,
-                CompileFlowMetricsAutoConfiguration.class))
+                CompileFlowEngineAutoConfiguration.class, CompileFlowEngineMetricsAutoConfiguration.class))
         .withBean(MeterRegistry.class, SimpleMeterRegistry::new);
+
+    @Test
+    void micrometerRemainsOptional() {
+        new ApplicationContextRunner()
+            .withClassLoader(new FilteredClassLoader("io.micrometer.core"))
+            .withConfiguration(AutoConfigurations.of(CompileFlowEnginePropertiesAutoConfiguration.class,
+                    CompileFlowEngineAutoConfiguration.class, CompileFlowEngineMetricsAutoConfiguration.class))
+            .run(context -> {
+                assertThat(context).hasNotFailed();
+                assertThat(context).hasSingleBean(ProcessEngine.class);
+                assertThat(context).doesNotHaveBean("compileFlowMetricsBinder");
+            });
+    }
+
+    @Test
+    void createsTheBinderWithoutDependingOnRegistryBeanRegistrationOrder() {
+        new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(CompileFlowEnginePropertiesAutoConfiguration.class,
+                    CompileFlowEngineAutoConfiguration.class, CompileFlowEngineMetricsAutoConfiguration.class))
+            .run(context -> {
+                assertThat(context).hasNotFailed();
+                assertThat(context).doesNotHaveBean(MeterRegistry.class);
+                assertThat(context).hasBean("compileFlowMetricsBinder");
+            });
+    }
 
     @Test
     void disablingTheEngineAlsoDisablesEngineMetrics() {
@@ -44,82 +66,68 @@ class CompileFlowOptionalObservabilityAutoConfigurationTest {
             .run(context -> {
                 assertThat(context).hasNotFailed();
                 assertThat(context).doesNotHaveBean(ProcessEngine.class);
-                assertThat(context).doesNotHaveBean(HealthIndicator.class);
                 assertThat(context).doesNotHaveBean(MeterBinder.class);
             });
     }
 
     @Test
-    void userProvidedEngineRetainsOptionalMetricsWithoutSyntheticHealth() {
+    void unknownEngineDoesNotBorrowCapacityFromAnUnrelatedConfiguration() {
         runner
             .withPropertyValues("compileflow.engine.enabled=false")
             .withBean(ProcessEngine.class, () -> mock(ProcessEngine.class))
-            .withBean(ProcessEngineConfig.class, ProcessEngineConfig::tbbpm)
+            .withBean(ProcessEngineConfig.class, ProcessEngineConfig::defaults)
             .run(context -> {
                 assertThat(context).hasNotFailed();
-                assertThat(context).doesNotHaveBean(HealthIndicator.class);
                 assertThat(context).hasBean("compileFlowMetricsBinder");
                 SimpleMeterRegistry registry = new SimpleMeterRegistry();
                 context.getBean("compileFlowMetricsBinder", MeterBinder.class).bindTo(registry);
-                assertThat(registry
-                    .find("compileflow.engine.executor.runtime.load.max.concurrency")
-                    .tag("model.type", "TBBPM")
-                    .gauge())
-                    .isNotNull();
+                assertThat(registry.find("compileflow.engine.executor.runtime.load.max.concurrency").gauge()).isNull();
+                assertThat(registry.find("compileflow.engine.events.dropped").functionCounter()).isNotNull();
             });
     }
 
     @Test
-    void metricsRepresentEveryConfiguredModelType() {
+    void customEngineCapacityComesFromItsOwnConfiguration() {
+        ProcessEngineConfig actual = ProcessEngineConfig
+            .builder()
+            .executors(ProcessExecutorConfig.builder().runtimeLoadMaxConcurrency(7).build())
+            .build();
+        runner
+            .withBean(ProcessEngine.class, () -> ProcessEngineFactory.create(actual))
+            .withBean(ProcessEngineConfig.class, () -> ProcessEngineConfig
+                .builder()
+                .executors(ProcessExecutorConfig.builder().runtimeLoadMaxConcurrency(3).build())
+                .build())
+            .run(context -> {
+                assertThat(context).hasNotFailed();
+                SimpleMeterRegistry registry = new SimpleMeterRegistry();
+                try {
+                    context.getBean("compileFlowMetricsBinder", MeterBinder.class).bindTo(registry);
+                    assertThat(registry
+                        .get("compileflow.engine.executor.runtime.load.max.concurrency")
+                        .gauge()
+                        .value()).isEqualTo(7);
+                } finally {
+                    registry.close();
+                }
+            });
+    }
+
+    @Test
+    void capacityMetricsHaveNoDefinitionTypeTag() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
-        new CompileFlowMetricsBinder(List.of(ProcessEngineConfig.tbbpm(), ProcessEngineConfig.bpmn())).bindTo(registry);
-
-        assertThat(registry
-            .find("compileflow.engine.executor.runtime.load.max.concurrency")
-            .tag("model.type", "TBBPM")
-            .gauge())
-            .isNotNull();
-        assertThat(registry
-            .find("compileflow.engine.executor.runtime.load.max.concurrency")
-            .tag("model.type", "BPMN")
-            .gauge())
-            .isNotNull();
-        assertThat(registry.find("compileflow.engine.events.dropped").functionCounter()).isNotNull();
-    }
-
-    @Test
-    void runtimeMetricsDoNotRequireControlPlaneClasses() {
-        new ApplicationContextRunner()
-            .withClassLoader(new FilteredClassLoader("com.alibaba.compileflow.deploy.control"))
-            .withConfiguration(AutoConfigurations.of(CompileFlowEnginePropertiesAutoConfiguration.class,
-                    CompileFlowDeploymentMetricsAutoConfiguration.class))
-            .withPropertyValues("compileflow.deploy.enabled=true", "compileflow.deploy.control-plane-enabled=false",
-                    "compileflow.deploy.runtime-worker-enabled=true", "compileflow.deploy.topology=DISTRIBUTED",
-                    "compileflow.deploy.routing.codes[0]=metrics.flow")
-            .withBean(MeterRegistry.class, SimpleMeterRegistry::new)
-            .run(context -> {
-                assertThat(context).hasNotFailed();
-                assertThat(context).hasBean("flowDeploymentMetrics");
-                assertThat(context).hasBean("compileFlowDeploymentMetricsBinder");
-                context.getBean("compileFlowDeploymentMetricsBinder", MeterBinder.class).bindTo(
-                        new SimpleMeterRegistry());
-            });
-    }
-
-    @Test
-    void controlPlaneMetricsDoNotRequireRuntimeClasses() {
-        new ApplicationContextRunner()
-            .withClassLoader(new FilteredClassLoader("com.alibaba.compileflow.deploy.runtime"))
-            .withConfiguration(AutoConfigurations.of(CompileFlowEnginePropertiesAutoConfiguration.class,
-                    CompileFlowDeploymentMetricsAutoConfiguration.class))
-            .withPropertyValues("compileflow.deploy.enabled=true")
-            .withBean(MeterRegistry.class, SimpleMeterRegistry::new)
-            .run(context -> {
-                assertThat(context).hasNotFailed();
-                assertThat(context).hasBean("flowDeploymentOpsMetrics");
-                assertThat(context).hasBean("compileFlowDeploymentMetricsBinder");
-                context.getBean("compileFlowDeploymentMetricsBinder", MeterBinder.class).bindTo(
-                        new SimpleMeterRegistry());
-            });
+        try (ProcessEngine engine = ProcessEngineFactory.create()) {
+            new CompileFlowMetricsBinder(engine).bindTo(registry);
+            assertThat(registry.find("compileflow.engine.executor.runtime.load.max.concurrency").gauge()).isNotNull();
+            assertThat(registry
+                .find("compileflow.engine.executor.runtime.load.max.concurrency")
+                .gauge()
+                .getId()
+                .getTags())
+                .isEmpty();
+            assertThat(registry.find("compileflow.engine.events.dropped").functionCounter()).isNotNull();
+        } finally {
+            registry.close();
+        }
     }
 }

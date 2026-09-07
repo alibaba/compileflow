@@ -43,7 +43,6 @@
 
 /* Hover state */
 .drag-palette-item:hover {
-  transform: translateY(-1px);
   border-color: color-mix(
     in srgb,
     var(--drag-accent-color, var(--color-primary)) 55%,

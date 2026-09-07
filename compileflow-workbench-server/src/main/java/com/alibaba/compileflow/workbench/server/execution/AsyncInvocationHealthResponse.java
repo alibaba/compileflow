@@ -33,7 +33,7 @@ import java.util.Objects;
  * @param dispatchedCount     invocations guarded as dispatched in this server process
  * @param workerId            reporting worker identifier
  * @param leaseDurationMs     configured worker lease duration
- * @param dispatchBatchSize   configured dispatch batch size
+ * @param concurrency        maximum locally admitted invocations
  * @param checkedAt           snapshot timestamp
  * @author yusu
  */
@@ -44,7 +44,7 @@ public record AsyncInvocationHealthResponse(@JsonProperty(required = true) Strin
         @JsonProperty(required = true) long deadLetterCount, @JsonProperty(required = true) long expiredRunningCount,
         @JsonProperty(required = true) int localRunningCount, @JsonProperty(required = true) int dispatchedCount,
         @JsonProperty(required = true) String workerId, @JsonProperty(required = true) long leaseDurationMs,
-        @JsonProperty(required = true) int dispatchBatchSize, @JsonProperty(required = true) String checkedAt) {
+        @JsonProperty(required = true) int concurrency, @JsonProperty(required = true) String checkedAt) {
     public AsyncInvocationHealthResponse {
         Objects.requireNonNull(status, "status");
         Objects.requireNonNull(workerId, "workerId");

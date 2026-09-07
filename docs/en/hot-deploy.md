@@ -13,7 +13,7 @@ same definition:
 
 ```java
 ProcessDefinition updated =
-        ProcessDefinition.inline("bpm.order.process", updatedXml);
+        ProcessDefinition.inline(ProcessModelType.TBBPM, "bpm.order.process", updatedXml);
 
 engine.runtime().warmUp(updated);
 engine.execute(updated, variables).orElseThrow();
@@ -27,11 +27,11 @@ mechanism.
 ## Choose A Topology
 
 | Use case                                | Topology      | Control plane | Runtime worker | Delivery                                                   |
-|-----------------------------------------|---------------|---------------|----------------|------------------------------------------------------------|
+| --------------------------------------- | ------------- | ------------- | -------------- | ---------------------------------------------------------- |
 | CompileFlow Workbench Server or one JVM | `EMBEDDED`    | true          | false          | Post-commit local-ready activation; outbox-backed recovery |
-| Release API process                     | `DISTRIBUTED` | true          | false          | Outbox delivery to the sync channel                        |
-| Execution worker                        | `DISTRIBUTED` | false         | true           | Channel subscription drives runtime installation           |
-| Deliberate combined node                | `DISTRIBUTED` | true          | true           | Publishes and subscribes through the channel               |
+| Release API process                     | `DISTRIBUTED` | true          | false          | Outbox delivery to the projection store                    |
+| Execution worker                        | `DISTRIBUTED` | false         | true           | Projection store subscription drives runtime installation  |
+| Combined node                           | `DISTRIBUTED` | true          | true           | Publishes and subscribes through the projection store      |
 
 The starter defaults `compileflow.deploy.enabled` to `false`. Enabling deploy with no process role is invalid.
 
@@ -39,13 +39,13 @@ The starter defaults `compileflow.deploy.enabled` to `false`. Enabling deploy wi
 
 ```yaml
 compileflow:
-  deploy:
-    enabled: true
-    topology: EMBEDDED
-    control-plane-enabled: true
-    runtime-worker-enabled: false
-    artifact:
-      mode: DATABASE
+    deploy:
+        enabled: true
+        topology: EMBEDDED
+        control-plane-enabled: true
+        runtime-worker-enabled: false
+        artifact:
+            mode: SOURCE
 ```
 
 The database stores immutable versions, alias routes, rollout history, and outbox state. After a route transaction
@@ -57,44 +57,43 @@ cache; JDBC remains authoritative after restart or eviction.
 
 ```yaml
 compileflow:
-  deploy:
-    enabled: true
-    topology: DISTRIBUTED
-    control-plane-enabled: true
-    runtime-worker-enabled: false
-    artifact:
-      mode: DATABASE
+    deploy:
+        enabled: true
+        topology: DISTRIBUTED
+        control-plane-enabled: true
+        runtime-worker-enabled: false
+        artifact:
+            mode: SOURCE
 ```
 
-The control plane requires a `DeploymentSyncChannel`, dispatches only committed outbox records, and reconciles current
-route authority to the channel. The application must provide one audited channel bean; missing mandatory infrastructure
+The control plane requires a Provider Preview `DeploymentProjectionStore` from `compileflow-deploy-spi`, dispatches only committed outbox records, and reconciles current
+route authority to the projection store. The application must provide one audited projection store bean; missing mandatory infrastructure
 fails startup.
 
-### Distributed Data Plane
+### Distributed Deployment Runtime
 
 ```yaml
 compileflow:
-  deploy:
-    enabled: true
-    topology: DISTRIBUTED
-    control-plane-enabled: false
-    runtime-worker-enabled: true
-    runtime:
-      failure-backoff: 5m
-      convergence-timeout: 30s
-      concurrency: 1
-      queue-capacity: 256
-    artifact:
-      mode: DATABASE
-    routing:
-      namespaces: [default]
-      codes: [order.rule]
-      aliases: [production]
-      operation-timeout: 5s
+    deploy:
+        enabled: true
+        topology: DISTRIBUTED
+        control-plane-enabled: false
+        runtime-worker-enabled: true
+        runtime:
+            failure-backoff: 5m
+            installation-concurrency: 1
+        artifact:
+            mode: SOURCE
+        routing:
+            namespaces: [default]
+            codes: [order.rule]
+            aliases: [production]
+            operation-timeout: 5s
 ```
 
-At least one explicit key or derived code subscription is required. Database artifact mode requires read access to the
-version repository; channel mode resolves immutable artifacts from the configured sync transport.
+Configure a non-empty `routing.namespaces × routing.codes × routing.aliases` subscription set, bounded to 10,000 keys.
+There is no separate explicit-key property. Database artifact mode requires read access to the
+version repository; projection store mode resolves immutable artifacts from the configured sync transport.
 
 ## Publish An Immutable Version
 
@@ -102,8 +101,7 @@ version repository; channel mode resolves immutable artifacts from the configure
 PublishedProcessVersion published = deploymentService.publish(
         new PublishProcessVersionCommand(
                 ProcessRef.version("default", "order.rule", "2026-07-15-001"),
-                ProcessModelType.TBBPM,
-                ProcessDefinition.inline("order.rule", flowXml),
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "order.rule", flowXml),
                 "alice",
                 metadata));
 ```
@@ -153,7 +151,7 @@ overwriting concurrent changes.
 - In `DISTRIBUTED` topology, a successful command means the control-plane transaction committed. Routing activation
   requests immediate outbox dispatch, but runtime-node readiness remains observable asynchronous convergence.
 - `RoutingOutboxDispatcher` remains the durable replay path in both topologies and the only control-plane writer to a
-  distributed sync channel.
+  distributed projection store.
 - The outbox coalesces identical delivery work by a database-unique key; rollout events remain the append-only audit
   log.
 - Alias state payloads carry one positive `revision`; duplicates and older messages are ignored.
@@ -167,14 +165,14 @@ Alias route keys:
 compileflow.deployment.alias.{identityDigest}
 ```
 
-Channel artifact keys:
+Projection store artifact keys:
 
 ```text
 compileflow.process.version.{identityDigest}
 ```
 
 `identityDigest` is lowercase SHA-256 over the ordered, length-prefixed UTF-8 identity tuple. Payloads retain the full
-identity and consumers verify it against the key. In `CHANNEL` mode, the artifact payload must fit the selected
+identity and consumers verify it against the key. In `PROJECTION_STORE` mode, the artifact payload must fit the selected
 backend's documented per-item capacity.
 
 See [configuration](configuration.md), [distributed integration](hot-deploy-integration.md), and

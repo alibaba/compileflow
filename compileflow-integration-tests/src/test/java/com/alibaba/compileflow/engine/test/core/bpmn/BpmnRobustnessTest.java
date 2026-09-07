@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.core.bpmn;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
@@ -45,7 +46,7 @@ public class BpmnRobustnessTest {
 
     @BeforeEach
     void setUp() {
-        engine = ProcessEngineTestFactory.createBpmn();
+        engine = ProcessEngineTestFactory.create();
     }
 
     @AfterEach
@@ -61,17 +62,16 @@ public class BpmnRobustnessTest {
         @Test
         @DisplayName("should handle nested structures when inputs are provided")
         void shouldHandleNestedStructuresWhenInputsAreProvided() {
-            ProcessDefinition definition =
-                    ProcessDefinition.classpath("bpmn20.compat.nested_subprocess",
-                            "bpmn20/compat/nested_subprocess.bpmn");
+            ProcessDefinition definition = ProcessDefinition.classpath(ProcessModelType.BPMN,
+                    "bpmn20.compat.nested_subprocess", "bpmn20/compat/nested_subprocess.bpmn");
             String source = engine.tooling().generateJavaCode(definition);
             Map<String, Object> context = new HashMap<>();
             context.put("a", 100);
             context.put("b", 200);
 
-            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpmn20.compat."
-                            + "nested_subprocess", "bpmn20.compat.nested_subprocess".replace(".", "/") + ".bpmn"),
-                    context);
+            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                            "bpmn20.compat." + "nested_subprocess",
+                            "bpmn20.compat.nested_subprocess".replace(".", "/") + ".bpmn"), context);
 
             assertThat(result.isSuccess()).isTrue();
             assertThat(result.getOutput()).isNotNull();
@@ -94,8 +94,8 @@ public class BpmnRobustnessTest {
                 context.put("a", i);
                 context.put("b", i * 2);
 
-                ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpmn20."
-                                + "gateway.parallel_gateway",
+                ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                                "bpmn20." + "gateway.parallel_gateway",
                                 "bpmn20.gateway.parallel_gateway".replace(".", "/") + ".bpmn"), context);
 
                 assertThat(result.isSuccess()).as("Parallel gateway execution %d", i).isTrue();
@@ -109,9 +109,9 @@ public class BpmnRobustnessTest {
             context.put("pList", Arrays.asList("A", "B", "C"));
             context.put("subList", Arrays.asList(1, 2, 3, 4, 5));
 
-            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpmn20.compat."
-                            + "nested_multi_instance", "bpmn20.compat.nested_multi_instance".replace(".", "/") + ".bpmn"),
-                    context);
+            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                            "bpmn20.compat." + "nested_multi_instance",
+                            "bpmn20.compat.nested_multi_instance".replace(".", "/") + ".bpmn"), context);
 
             assertThat(result.isSuccess()).isTrue();
         }

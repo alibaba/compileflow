@@ -112,6 +112,16 @@ function registerBpmnMutationEvents(
 
     runGraphMutation(isSyncingRef, () => {
       const vertices = (edge.getVertices() ?? []) as Array<{ x: number; y: number }>
+      const existing = connectionsRef.current.some((connection) => connection.id === edge.id)
+      if (existing) {
+        dispatch(
+          updateConnection({
+            id: edge.id,
+            updates: { sourceId, targetId, waypoints: vertices.length > 0 ? vertices : undefined },
+          })
+        )
+        return
+      }
       dispatch(
         addConnection({
           id: edge.id,
@@ -291,15 +301,20 @@ const BpmnCanvas = memo(function BpmnCanvas({ onGraphReady }: BpmnCanvasProps) {
     checkEdgeChanged: (edge, conn) => {
       const currentData = edge.getData() as Record<string, unknown>
       const currentLabel = (edge.getLabels() || [])[0]?.attrs?.label?.text
-      return currentLabel !== conn.name || currentData?.condition !== conn.condition
+      return (
+        currentLabel !== conn.name ||
+        currentData?.condition !== conn.condition ||
+        edge.getSourceCellId() !== conn.sourceId ||
+        edge.getTargetCellId() !== conn.targetId ||
+        JSON.stringify(edge.getVertices()) !== JSON.stringify(conn.waypoints ?? [])
+      )
     },
     syncEdgeToCell: (edge, conn) => {
       edge.setData({ condition: conn.condition })
       edge.setLabels(conn.name ? [{ attrs: { label: { text: conn.name } } }] : [])
-      // Sync edge geometry (waypoints) from Redux state to X6 vertices on re-render.
-      if (conn.waypoints) {
-        edge.setVertices(conn.waypoints)
-      }
+      edge.setSource({ cell: conn.sourceId })
+      edge.setTarget({ cell: conn.targetId })
+      edge.setVertices(conn.waypoints ?? [])
     },
   })
 

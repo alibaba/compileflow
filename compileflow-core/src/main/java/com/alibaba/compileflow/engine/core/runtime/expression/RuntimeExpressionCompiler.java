@@ -29,6 +29,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Compiles only the typed Java expressions needed by an interpreted Process runtime.
@@ -101,8 +103,16 @@ public final class RuntimeExpressionCompiler {
             .append("    public Object evaluate(int expressionIndex, Object[] arguments) {\n")
             .append("        return switch (expressionIndex) {\n");
         for (int index = 0; index < expressions.size(); index++) {
-            source.append("            case ").append(index).append(" -> expression").append(index).append(
-                    "(arguments);\n");
+            source.append("            case ").append(index).append(" -> ");
+            boolean condition = expressions.get(index).kind() == RuntimeExpression.Kind.CONDITION;
+            if (condition) {
+                source.append("ConditionSemantics.isTrue(");
+            }
+            source.append("expression").append(index).append("(arguments)");
+            if (condition) {
+                source.append(')');
+            }
+            source.append(";\n");
         }
         source
             .append(
@@ -125,12 +135,26 @@ public final class RuntimeExpressionCompiler {
 
     private static void appendExpression(StringBuilder source, int index, RuntimeExpression expression,
             ClassLoader classLoader) {
-        source.append("    private static Object expression").append(index).append("(Object[] arguments) {\n");
+        Set<String> bindingNames =
+                expression.bindings().stream().map(RuntimeExpression.Binding::name).collect(Collectors.toSet());
+        String parameter = "arguments";
+        while (bindingNames.contains(parameter)) {
+            parameter = '_' + parameter;
+        }
+        source
+            .append("    private static ")
+            .append(expression.kind() == RuntimeExpression.Kind.CONDITION ? "Boolean" : "Object")
+            .append(" expression")
+            .append(index)
+            .append("(Object[] ")
+            .append(parameter)
+            .append(") {\n");
         for (int argument = 0; argument < expression.bindings().size(); argument++) {
             RuntimeExpression.Binding binding = expression.bindings().get(argument);
             Class<?> type = loadType(binding.typeName(), classLoader);
-            String declaredType = sourceType(type);
-            String castType = sourceType(type.isPrimitive() ? DataTypes.getWrapperClass(type) : type);
+            String declaredType =
+                    DataTypes.getTypeArguments(binding.typeName()).isEmpty() ? sourceType(type) : binding.typeName();
+            String castType = type.isPrimitive() ? sourceType(DataTypes.getWrapperClass(type)) : declaredType;
             source
                 .append("        ")
                 .append(declaredType)
@@ -138,19 +162,13 @@ public final class RuntimeExpressionCompiler {
                 .append(binding.name())
                 .append(" = (")
                 .append(castType)
-                .append(") arguments[")
+                .append(") ")
+                .append(parameter)
+                .append('[')
                 .append(argument)
                 .append("];\n");
         }
-        source.append("        return ");
-        if (expression.kind() == RuntimeExpression.Kind.CONDITION) {
-            source.append("ConditionSemantics.isTrue(");
-        }
-        source.append(expression.source());
-        if (expression.kind() == RuntimeExpression.Kind.CONDITION) {
-            source.append(')');
-        }
-        source.append(";\n    }\n\n");
+        source.append("        return ").append(expression.source()).append(";\n    }\n\n");
     }
 
     private static Class<?> loadType(String typeName, ClassLoader classLoader) {

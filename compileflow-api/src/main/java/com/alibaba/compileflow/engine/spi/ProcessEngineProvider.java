@@ -14,38 +14,17 @@
 package com.alibaba.compileflow.engine.spi;
 
 import com.alibaba.compileflow.engine.ProcessEngine;
-import com.alibaba.compileflow.engine.ProcessEngineFactory;
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
 
 /**
- * Service Provider Interface (SPI) for {@link ProcessEngine} implementations.
- * <p>
- * This interface allows plain-Java applications and implementation modules to discover process
- * engine implementations (for example BPMN or TBBPM) through Java's
- * {@link java.util.ServiceLoader} mechanism. Each implementation is responsible for creating a
- * complete {@link ProcessEngine} for one existing {@link ProcessModelType} from public configuration
- * alone.
- * <p>
- * {@code ProcessModelType} is a closed set, so this SPI selects one implementation for a known
- * model type; it does not add model types. Provider resolution requires exactly one provider for
- * the requested model and fails closed on duplicates. Spring applications that replace the
- * complete engine should expose a {@code ProcessEngine} bean, allowing auto-configuration to back
- * off; that integration-level bean replacement is not an SPI conflict policy.
+ * Version-coupled bootstrap contract separating the API artifact from the engine implementation.
+ * Discovery requires exactly one implementation and does not select a semantic format.
+ * Application extensions use engine plugins or replace the engine bean at their framework boundary.
  *
  * @author yusu
  * @see com.alibaba.compileflow.engine.ProcessEngineFactory
  */
 public interface ProcessEngineProvider {
-    /**
-     * Returns the specific {@link ProcessModelType} that this provider supports.
-     * This is used by the {@link ProcessEngineFactory} to find the correct provider
-     * for a given configuration.
-     *
-     * @return non-null process model type supported by this provider
-     */
-    ProcessModelType getModelType();
-
     /**
      * Creates a new {@link ProcessEngine} instance configured according to the provided
      * {@link ProcessEngineConfig}.

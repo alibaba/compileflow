@@ -32,13 +32,4 @@ public record JavaCompileOptions(JavaDiagnosticsConfig.DebugSymbols debugSymbols
     public JavaCompileOptions {
         Objects.requireNonNull(debugSymbols, "debugSymbols");
     }
-
-    /**
-     * Returns the standard generated-code compilation options.
-     *
-     * @return default options
-     */
-    public static JavaCompileOptions defaults() {
-        return new JavaCompileOptions(JavaDiagnosticsConfig.DebugSymbols.LINES, null);
-    }
 }

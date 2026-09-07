@@ -1,10 +1,12 @@
 import type { Reducer } from '@reduxjs/toolkit'
 import { configureStore, createSlice, PayloadAction } from '@reduxjs/toolkit'
 import type { StateWithHistory } from 'redux-undo'
-import undoable, { ActionCreators } from 'redux-undo'
+import undoable, { ActionCreators, ActionTypes } from 'redux-undo'
 
 import editorReducer, {
+  type EditorState,
   addConnection,
+  addGraph,
   addNode,
   deleteConnection,
   deleteNode,
@@ -35,37 +37,63 @@ const navigationSlice = createSlice({
   },
 })
 
+const editorHistory = undoable(editorReducer, {
+  limit: LIMITS.MAX_UNDO_HISTORY,
+  filter: (action) => {
+    // Process metadata edits belong to the same undo history as graph edits.
+    // stack, consistent with node and connection mutations.
+    const undoableActions = new Set<string>([
+      addGraph.type,
+      addNode.type,
+      updateNode.type,
+      replaceContainerChildren.type,
+      updateProcessInfo.type,
+      moveNode.type,
+      deleteNode.type,
+      addConnection.type,
+      updateConnection.type,
+      deleteConnection.type,
+    ])
+    return undoableActions.has(action.type)
+  },
+  groupBy: (action) => {
+    if (action.type === 'editor/moveNode') {
+      const moveAction = action as PayloadAction<{ id: string; x: number; y: number }>
+      return `moveNode-${moveAction.payload.id}`
+    }
+    return null
+  },
+}) satisfies Reducer<StateWithHistory<import('@/authoring/designer/store/editorSlice').EditorState>>
+
+const historyActions = new Set<string>([
+  ActionTypes.UNDO,
+  ActionTypes.REDO,
+  ActionTypes.JUMP,
+  ActionTypes.JUMP_TO_PAST,
+  ActionTypes.JUMP_TO_FUTURE,
+])
+const editorWithHistory: Reducer<StateWithHistory<EditorState>> = (state, action) => {
+  const next = editorHistory(state, action)
+  if (!state || !historyActions.has(action.type) || next.present === state.present) return next
+  // History owns content, never persistence revisions or active request identities.
+  if (next.present.documentRequestId !== state.present.documentRequestId) return state
+  const present = {
+    ...state.present,
+    currentProcess: next.present.currentProcess
+      ? { ...next.present.currentProcess, updatedAt: state.present.currentProcess?.updatedAt }
+      : null,
+    changeToken: next.present.changeToken,
+    warnings: next.present.warnings,
+    validationResult: null,
+    isModified: next.present.changeToken !== state.present.savedChangeToken,
+  }
+  return { ...next, present, _latestUnfiltered: present }
+}
+
 export const store = configureStore({
   reducer: {
     navigation: navigationSlice.reducer,
-    editor: undoable(editorReducer, {
-      limit: LIMITS.MAX_UNDO_HISTORY,
-      filter: (action) => {
-        // Process metadata edits belong to the same undo history as graph edits.
-        // stack, consistent with node and connection mutations.
-        const undoableActions = new Set<string>([
-          addNode.type,
-          updateNode.type,
-          replaceContainerChildren.type,
-          updateProcessInfo.type,
-          moveNode.type,
-          deleteNode.type,
-          addConnection.type,
-          updateConnection.type,
-          deleteConnection.type,
-        ])
-        return undoableActions.has(action.type)
-      },
-      groupBy: (action) => {
-        if (action.type === 'editor/moveNode') {
-          const moveAction = action as PayloadAction<{ id: string; x: number; y: number }>
-          return `moveNode-${moveAction.payload.id}`
-        }
-        return null
-      },
-    }) satisfies Reducer<
-      StateWithHistory<import('@/authoring/designer/store/editorSlice').EditorState>
-    >,
+    editor: editorWithHistory,
     ui: uiReducer,
   },
   middleware: (getDefaultMiddleware) =>

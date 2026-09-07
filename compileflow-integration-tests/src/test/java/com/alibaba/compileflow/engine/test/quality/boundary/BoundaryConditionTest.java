@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.quality.boundary;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -47,7 +48,7 @@ class BoundaryConditionTest {
     @BeforeEach
     @Timeout(30)
     void setUp() {
-        engine = ProcessEngineTestFactory.createBpmn();
+        engine = ProcessEngineTestFactory.create();
     }
 
     @AfterEach
@@ -60,42 +61,43 @@ class BoundaryConditionTest {
     @Test
     @DisplayName("should reject null context before execution")
     void shouldRejectNullContextBeforeExecution() {
-        assertThatThrownBy(() -> engine.execute(ProcessDefinition.classpath("bpmn20.compat.simple_service",
-                        "bpmn20.compat.simple_service".replace(".", "/") + ".bpmn"), (Map<String, Object>) null))
+        assertThatThrownBy(() -> engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        "bpmn20.compat.simple_service", "bpmn20.compat.simple_service".replace(".", "/") + ".bpmn"),
+                (Map<String, Object>) null))
             .isInstanceOf(NullPointerException.class)
             .hasMessage("variables");
     }
 
     @Test
-    @DisplayName("should not crash when context is empty")
-    void shouldNotCrashWhenContextIsEmpty() {
-        // Constraint: empty context is common misuse; engine should return failure result instead
-        // of throwing exception.
-        ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpmn20.compat.simple_"
-                        + "service", "bpmn20.compat.simple_service".replace(".", "/") + ".bpmn"), Collections.emptyMap());
-        assertThat(result).isNotNull();
-        // No strong assertion on success: process may require inputs; we only verify "no crash".
+    @DisplayName("should use the sample action's zero defaults for empty input")
+    void shouldUseZeroDefaultsWhenContextIsEmpty() {
+        ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        "bpmn20.compat.simple_" + "service", "bpmn20.compat.simple_service".replace(".", "/") + ".bpmn"),
+                Collections.emptyMap());
+        assertThat(result.orElseThrow()).containsEntry("serviceTask1Result", 0);
     }
 
     @ParameterizedTest
     @ValueSource(ints = {Integer.MIN_VALUE, -1000000, 0, 1000000, Integer.MAX_VALUE})
-    @DisplayName("should not crash when inputs contain extreme integer values")
+    @DisplayName("should preserve Java integer arithmetic at the input boundaries")
     @Timeout(30)
     void shouldNotCrashWhenInputsContainExtremeIntegers(int value) {
         Map<String, Object> context = new HashMap<>();
         context.put("a", value);
         context.put("b", 1);
         // Constraint: numeric extremes should not cause runtime crash.
-        ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpmn20.compat.simple_"
-                        + "service", "bpmn20.compat.simple_service".replace(".", "/") + ".bpmn"), context);
-        assertThat(result).isNotNull();
+        ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        "bpmn20.compat.simple_" + "service", "bpmn20.compat.simple_service".replace(".", "/") + ".bpmn"),
+                context);
+        assertThat(result.orElseThrow()).containsEntry("serviceTask1Result", value + 1);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"", " ", "   "})
     @DisplayName("should handle invalid flow codes")
     void shouldHandleInvalidFlowCodes(String flowCode) {
-        assertThatThrownBy(() -> ProcessDefinition.classpath(flowCode, flowCode.replace(".", "/") + ".bpmn"))
+        assertThatThrownBy(() -> ProcessDefinition.classpath(ProcessModelType.BPMN, flowCode,
+                flowCode.replace(".", "/") + ".bpmn"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("code must not be blank");
     }
@@ -104,23 +106,22 @@ class BoundaryConditionTest {
     @NullSource
     @DisplayName("should reject null flow code")
     void shouldRejectNullFlowCode(String flowCode) {
-        assertThatThrownBy(() -> ProcessDefinition.classpath(flowCode, flowCode.replace(".", "/") + ".bpmn"))
-            .isInstanceOf(Exception.class);
+        assertThatThrownBy(() -> ProcessDefinition.classpath(ProcessModelType.BPMN, flowCode,
+                "bpmn20/compat/simple_service.bpmn"))
+            .isInstanceOf(NullPointerException.class)
+            .hasMessage("code");
     }
 
     @Test
-    @DisplayName("should fail when required variable is missing")
-    void shouldFailWhenRequiredVariableIsMissing() {
-        // Current status: this sample process handles missing variables unstably (may succeed or
-        // fail, depending on implementation details).
-        // We only assert "no engine crash/no hang", avoiding writing tests that tightly bind to
-        // sample process details.
+    @DisplayName("should use the sample action's zero default for a missing operand")
+    void shouldUseZeroDefaultWhenOperandIsMissing() {
         Map<String, Object> context = new HashMap<>();
         context.put("a", 1);
         // missing "b"
-        ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpmn20.compat.simple_"
-                        + "service", "bpmn20.compat.simple_service".replace(".", "/") + ".bpmn"), context);
-        assertThat(result).isNotNull();
+        ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        "bpmn20.compat.simple_" + "service", "bpmn20.compat.simple_service".replace(".", "/") + ".bpmn"),
+                context);
+        assertThat(result.orElseThrow()).containsEntry("serviceTask1Result", 1);
     }
 
     @Test
@@ -129,8 +130,9 @@ class BoundaryConditionTest {
         // Current status: compile layer failure is caught by execute and converted to
         // ProcessResult.failure.
         // Therefore we only assert failure result (should not throw exception).
-        ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpmn20.compat.not_exist",
-                        "bpmn20.compat.not_exist".replace(".", "/") + ".bpmn"), Collections.emptyMap());
+        ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        "bpmn20.compat.not_exist", "bpmn20.compat.not_exist".replace(".", "/") + ".bpmn"),
+                Collections.emptyMap());
         assertThat(result).isNotNull();
         assertThat(result.isSuccess()).isFalse();
     }

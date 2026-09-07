@@ -12,9 +12,9 @@ through the process in
 - Use the bug report form for reproducible defects.
 - Use the feature request form for a concrete problem or capability proposal.
 - Use the dedicated Durable Kernel Change form before changing Durable public API/SPI, state-machine semantics,
-  persisted schema, security boundaries, or module surface. Complete the linked fifteen-section ADR template before
-  implementation.
-- For usage questions, search the documentation and existing issues first. The project does not currently provide a
+  persisted schema, security boundaries, or module surface. Complete all applicable sections in the form before
+  implementation begins.
+- For usage questions, search the documentation and existing issues first. The project does not provide a
   dedicated Q&A channel.
 - Open a pull request directly for a small, self-contained fix.
 - Discuss changes to public APIs, persisted data, protocols, security, or module boundaries before investing in a large
@@ -36,6 +36,22 @@ cd compileflow
 Workbench development requires the Node.js and pnpm versions pinned under
 `compileflow-workbench/`. Use pnpm only.
 
+## Build And Delivery Baseline
+
+Repository delivery contracts are maintained here rather than in the application configuration reference:
+
+- Java source, published bytecode, and generated-flow bytecode target Java 17. CI verifies the same artifacts on Java
+  17, 21, and 25 LTS; runtime images include the standard `jdk.compiler` module.
+- The Maven Wrapper pins Maven 3.9.16 and verifies its distribution and wrapper JAR checksums.
+- `.node-version`, `release-baselines.json`, package `engines`, CI, and Docker builds must agree on the pinned Node.js 24
+  LTS patch. The root `packageManager` field pins pnpm 11.11.0.
+- pnpm uses strict engine and peer checks, a one-day `minimumReleaseAge`, and reviewed `allowBuilds` entries for dependency
+  lifecycle scripts.
+- Compose and CI use the supported PostgreSQL and MySQL baselines; database and API-key secrets are supplied externally.
+
+These are repository contracts, not application settings. Update the authoritative source and its consistency checks
+together.
+
 ## Repository Boundaries
 
 - `compileflow-api` contains the supported engine API and SPI.
@@ -44,26 +60,27 @@ Workbench development requires the Node.js and pnpm versions pinned under
 - Keep deployment control-plane state separate from node-local runtime state.
 - Keep browser credentials out of `VITE_*` variables and browser storage.
 - Keep external configuration parsing at module boundaries; pass immutable values into runtime code.
-- Update the relevant architecture decision when changing an invariant.
-- Keep Durable changes inside the documented product boundary unless an accepted ADR proves an independently useful
-  responsibility and dependency lifecycle. Do not make platform adapters a prerequisite for kernel correctness.
+- Update the relevant architecture, supported-surface, or specification document when changing an invariant.
+- Keep Durable changes inside the documented product boundary unless an accepted design proposal establishes an
+  independently useful responsibility and dependency lifecycle. Do not make platform adapters a prerequisite for
+  kernel correctness.
 
 The detailed module and supported-surface maps are in
-[docs/architecture/03-MODULE_MAP.en.md](docs/architecture/03-MODULE_MAP.en.md) and
-[docs/architecture/06-SUPPORTED_SURFACES.en.md](docs/architecture/06-SUPPORTED_SURFACES.en.md).
+[docs/en/architecture/module-map.md](docs/en/architecture/module-map.md) and
+[docs/en/architecture/supported-surfaces.md](docs/en/architecture/supported-surfaces.md).
 
 ## Implement the Change
 
 Prefer the existing module boundary and local design patterns. Keep the change focused, remove code and documentation
-made obsolete by it, and avoid compatibility shims unless the current compatibility policy requires one.
+made obsolete by it, and follow the compatibility policy for every change to a Supported contract.
 
 For Java:
 
 - write English Javadoc for supported public API and SPI;
 - write comments only when they explain a non-obvious invariant;
 - add no unresolved `TODO` or `FIXME` without a linked issue;
-- format sources with Spotless + Palantir Java Format (4-space indentation, 120-column limit, and lambda-friendly
-  wrapping); extract well-named local variables or methods when an expression remains deeply nested after formatting;
+- format sources with Spotless + Prince of Space (4-space indentation, 120-column target, WIDE wrapping);
+  extract well-named local variables or methods when an expression remains deeply nested after formatting;
 - use natural camel-case acronym segments in owned identifiers (`Jdbc`, `Hmac`, `Bpmn`, `Tbbpm`, `Xml`, `Ui`,
   `Url`); preserve uppercase spellings only for protocol constants, serialized values, and external API names;
 - name runtime types by stable facts and capabilities, not vague workflow phases: prefer `Resolved`, `Compiled`,
@@ -91,14 +108,15 @@ For documentation:
 - update English and Chinese user documentation together;
 - keep examples aligned with supported APIs;
 - use relative repository links;
-- distinguish implemented behavior from future work;
+- distinguish supported behavior from unsupported behavior;
 - verify commands, configuration names, defaults, version claims, API signatures, and links against the current code;
 - write direct, task-oriented prose and remove duplicated explanations or unsupported claims;
 - keep public compatibility commitments in specifications, the compatibility policy, or Supported Surfaces.
 
-Keep the root README focused on project selection and the first successful run. Put detailed procedures in `docs/en`
-and `docs/zh`, protocol rules in `docs/specs`, and current component boundaries in `docs/architecture`. Keep
-private research, temporary plans, generated review material, credentials, editor state, and local tool sessions
+Keep the root README focused on project selection and the first successful run. Put localized guides, specifications,
+policies, and architecture under `docs/en` and `docs/zh`; reserve `docs/specs` for generated or machine-validated
+contract artifacts. Keep
+local research and planning notes, credentials, editor state, and local tool sessions
 outside the repository. Do not duplicate version, support, or maturity claims across pages.
 
 ## Verify the Change
@@ -158,7 +176,7 @@ The pull request should state:
 - the chosen behavior and important alternatives;
 - exact validation commands and results;
 - public API, configuration, persistence, security, or operational impact;
-- migration notes for intentional breaking changes.
+- contract changes and their impact.
 
 Generated output, credentials, editor state, and unrelated formatting changes must not be included. A maintainer merges
 after the required CI checks and review are complete.

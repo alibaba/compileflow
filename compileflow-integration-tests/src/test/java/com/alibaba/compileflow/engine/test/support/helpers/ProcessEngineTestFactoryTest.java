@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.support.helpers;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
@@ -73,7 +74,8 @@ class ProcessEngineTestFactoryTest {
         assertThat(config.getDebugOutputDirectory()).isEqualTo(temporaryDirectory.toAbsolutePath().normalize());
         assertThat(config.isDebugBytecodeEnabled()).isTrue();
 
-        ProcessDefinition definition = ProcessDefinition.inline("test.compilation.debug-artifacts",
+        ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.TBBPM,
+                "test.compilation.debug-artifacts",
                 """
             <bpm code="test.compilation.debug-artifacts">
                 <start id="start" g="0,0,32,32">
@@ -82,7 +84,7 @@ class ProcessEngineTestFactoryTest {
                 <end id="end" g="80,0,32,32"/>
             </bpm>
             """);
-        try (ProcessEngine engine = ProcessEngineTestFactory.createTbbpm()) {
+        try (ProcessEngine engine = ProcessEngineTestFactory.create()) {
             assertThat(engine.execute(definition, Map.of()).isSuccess()).isTrue();
         }
 

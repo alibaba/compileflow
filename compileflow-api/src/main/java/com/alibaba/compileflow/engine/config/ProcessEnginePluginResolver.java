@@ -15,7 +15,7 @@ package com.alibaba.compileflow.engine.config;
 
 import com.alibaba.compileflow.engine.CompileFlowException;
 import com.alibaba.compileflow.engine.ErrorCode;
-import com.alibaba.compileflow.engine.ProcessModelType;
+import com.alibaba.compileflow.engine.ProcessIdentifiers;
 import com.alibaba.compileflow.engine.spi.ProcessEnginePlugin;
 import com.alibaba.compileflow.engine.spi.ProcessEnginePluginContext;
 import com.alibaba.compileflow.engine.spi.event.ProcessEventListener;
@@ -41,13 +41,13 @@ final class ProcessEnginePluginResolver {
     private ProcessEnginePluginResolver() {
     }
 
-    static Contributions resolve(ProcessModelType modelType, ClassLoader classLoader, boolean discoverPlugins,
+    static Contributions resolve(ClassLoader classLoader, boolean discoverPlugins,
             List<ProcessEnginePlugin> explicitPlugins) {
         List<PluginDescriptor> ordered = resolvePlugins(classLoader, discoverPlugins, explicitPlugins);
-        Contributions aggregate = new Contributions(modelType);
+        Contributions aggregate = new Contributions();
         for (PluginDescriptor descriptor : ordered) {
             ProcessEnginePlugin plugin = descriptor.plugin();
-            Contributions contribution = new Contributions(modelType);
+            Contributions contribution = new Contributions();
             try {
                 plugin.apply(contribution);
             } catch (CompileFlowException exception) {
@@ -74,8 +74,7 @@ final class ProcessEnginePluginResolver {
         ordered.sort(Comparator
             .comparingInt((PluginDescriptor descriptor) -> descriptor.source().precedence())
             .thenComparingInt(PluginDescriptor::priority)
-            .thenComparing(PluginDescriptor::id)
-            .thenComparing(descriptor -> descriptor.plugin().getClass().getName()));
+            .thenComparing(PluginDescriptor::id));
         return ordered;
     }
 
@@ -109,7 +108,7 @@ final class ProcessEnginePluginResolver {
     private static PluginDescriptor describePlugin(ProcessEnginePlugin plugin, PluginSource source) {
         String className = plugin.getClass().getName();
         try {
-            String id = normalizePluginId(plugin.id(), className);
+            String id = requirePluginId(plugin.id(), className);
             return new PluginDescriptor(source, id, plugin.priority(), plugin);
         } catch (CompileFlowException exception) {
             throw exception;
@@ -119,24 +118,14 @@ final class ProcessEnginePluginResolver {
         }
     }
 
-    private static String normalizePluginId(String id, String className) {
-        if (id == null || id.isBlank()) {
+    private static String requirePluginId(String id, String className) {
+        try {
+            return ProcessIdentifiers.requireExactIdentity(id, "ProcessEnginePlugin id",
+                    ProcessExtensionNames.MAX_LENGTH);
+        } catch (IllegalArgumentException | NullPointerException invalid) {
             throw new CompileFlowException.ConfigurationException(ErrorCode.CF_CONFIG_001,
-                    "ProcessEnginePlugin id must not be blank: " + className);
+                    invalid.getMessage() + ": " + className, invalid);
         }
-        if (!id.equals(id.trim())) {
-            throw new CompileFlowException.ConfigurationException(ErrorCode.CF_CONFIG_001,
-                    "ProcessEnginePlugin id must not contain surrounding whitespace: " + className);
-        }
-        if (id.length() > ProcessExtensionNames.MAX_LENGTH) {
-            throw new CompileFlowException.ConfigurationException(ErrorCode.CF_CONFIG_001,
-                    "ProcessEnginePlugin id must not exceed " + ProcessExtensionNames.MAX_LENGTH + " characters: " + className);
-        }
-        if (id.codePoints().anyMatch(Character::isISOControl)) {
-            throw new CompileFlowException.ConfigurationException(ErrorCode.CF_CONFIG_001,
-                    "ProcessEnginePlugin id must not contain control characters: " + className);
-        }
-        return id;
     }
 
     private enum PluginSource {
@@ -165,21 +154,11 @@ final class ProcessEnginePluginResolver {
      * Contributions collected from plugins before explicit builder overrides apply.
      */
     static final class Contributions implements ProcessEnginePluginContext {
-        private final ProcessModelType modelType;
         private final List<ProcessEventListener> eventListeners = new ArrayList<>();
         private final Map<String, ScriptExecutor> scriptExecutors = new LinkedHashMap<>();
         private final Map<String, ProcessAliasTargetingPolicy> aliasTargetingPolicies = new LinkedHashMap<>();
         private final Map<String, RetryPolicy> retryPolicies = new LinkedHashMap<>();
         private final Map<String, FailureHandler> failureHandlers = new LinkedHashMap<>();
-
-        private Contributions(ProcessModelType modelType) {
-            this.modelType = Objects.requireNonNull(modelType, "modelType");
-        }
-
-        @Override
-        public ProcessModelType getModelType() {
-            return modelType;
-        }
 
         @Override
         public ProcessEnginePluginContext eventListener(ProcessEventListener listener) {

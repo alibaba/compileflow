@@ -44,12 +44,10 @@ import org.junit.jupiter.api.Test;
 class BpmnSemanticFrontendTest {
     @Test
     void normalizesScriptTasksAndDefaultSequenceFlows() {
-        BpmnModel model = new BpmnModel();
-        model.setCode("semantic.bpmn");
-        model.setVars(List.of(variable("value")));
         Process process = new Process();
-        process.setId("process");
-        model.addProcess(process);
+        process.setId("semantic.bpmn");
+        process.addVariable(variable("value"));
+        BpmnModel model = new BpmnModel(process);
         StartEvent start = node(new StartEvent(), "start");
         ExclusiveGateway gateway = node(new ExclusiveGateway(), "gateway");
         EndEvent preferred = node(new EndEvent(), "preferred");
@@ -80,11 +78,9 @@ class BpmnSemanticFrontendTest {
 
     @Test
     void retainsSubProcessEntryAndExitAsOwnedScopeSemantics() {
-        BpmnModel model = new BpmnModel();
-        model.setCode("semantic.bpmn.subprocess");
         Process process = new Process();
-        process.setId("process");
-        model.addProcess(process);
+        process.setId("semantic.bpmn.subprocess");
+        BpmnModel model = new BpmnModel(process);
         SubProcess subProcess = node(new SubProcess(), "sub");
         StartEvent childStart = node(new StartEvent(), "child-start");
         EndEvent childEnd = node(new EndEvent(), "child-end");
@@ -147,13 +143,11 @@ class BpmnSemanticFrontendTest {
     }
 
     private static BpmnModel model(com.alibaba.compileflow.engine.bpmn.model.FlowNode flowNode, Message... messages) {
-        BpmnModel model = new BpmnModel();
-        model.setCode("semantic.bpmn.event");
-        model.setMessages(List.of(messages));
         Process process = new Process();
-        process.setId("process");
+        process.setId("semantic.bpmn.event");
         process.addNode(flowNode);
-        model.addProcess(process);
+        BpmnModel model = new BpmnModel(process);
+        model.setMessages(List.of(messages));
         return model;
     }
 

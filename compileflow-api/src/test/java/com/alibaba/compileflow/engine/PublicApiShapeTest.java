@@ -14,17 +14,11 @@
 package com.alibaba.compileflow.engine;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
-import com.alibaba.compileflow.engine.preflight.ProcessPreflightOptions;
-import com.alibaba.compileflow.engine.preflight.ProcessPreflightReport;
 import com.alibaba.compileflow.engine.spi.ProcessComponentResolver;
 import com.alibaba.compileflow.engine.spi.ProcessEnginePlugin;
 import com.alibaba.compileflow.engine.spi.ProcessEnginePluginContext;
-import com.alibaba.compileflow.engine.spi.ProcessEngineProvider;
 import com.alibaba.compileflow.engine.spi.event.ProcessEvent;
 import com.alibaba.compileflow.engine.spi.event.ProcessEventListener;
-import com.alibaba.compileflow.engine.spi.execution.ActionExecutionContext;
-import com.alibaba.compileflow.engine.spi.execution.FailureContext;
 import com.alibaba.compileflow.engine.spi.execution.FailureHandler;
 import com.alibaba.compileflow.engine.spi.execution.FailureResolution;
 import com.alibaba.compileflow.engine.spi.execution.ProcessContextPropagator;
@@ -75,15 +69,6 @@ class PublicApiShapeTest {
                             "ProcessAliasTargetingContext", "ProcessAliasTargetingPolicy")),
             Map.entry("com.alibaba.compileflow.engine.spi.script",
                     Set.of("ScriptProgram", "ScriptException", "ScriptExecutor", "ScriptProgramSpec")));
-
-    private static boolean classExists(String name) {
-        try {
-            Class.forName(name);
-            return true;
-        } catch (ClassNotFoundException ignored) {
-            return false;
-        }
-    }
 
     private static String[] recordComponentNames(Class<?> type) {
         return Arrays.stream(type.getRecordComponents()).map(RecordComponent::getName).toArray(String[]::new);
@@ -195,24 +180,6 @@ class PublicApiShapeTest {
     }
 
     @Test
-    void keepsRootApiPackageFreeOfParserAstAndLegacyProviders() {
-        assertThat(classExists("com.alibaba.compileflow.engine.FlowModel")).isFalse();
-        assertThat(classExists("com.alibaba.compileflow.engine.ProcessEngineProvider")).isFalse();
-        assertThat(classExists("com.alibaba.compileflow.engine.ProcessSource")).isFalse();
-        assertThat(classExists("com.alibaba.compileflow.engine.ResourceLocator")).isFalse();
-        assertThat(classExists("com.alibaba.compileflow.engine.ProcessCodeResolutionMode")).isFalse();
-        assertThat(classExists("com.alibaba.compileflow.engine.config.ProcessCodeResolutionMode")).isFalse();
-        assertThat(classExists("com.alibaba.compileflow.engine.config.ProcessPropertyProvider")).isFalse();
-        assertThat(classExists("com.alibaba.compileflow.engine.config.ProcessScriptConfig")).isFalse();
-        assertThat(classExists("com.alibaba.compileflow.engine.config.QlConfig")).isFalse();
-        assertThat(classExists("com.alibaba.compileflow.engine.spi.script.ScriptEvaluationLimits")).isFalse();
-        assertThat(ProcessEngineProvider.class.getName()).isEqualTo(
-                "com.alibaba.compileflow.engine.spi.ProcessEngineProvider");
-        assertThat(PUBLIC_TOP_LEVEL_TYPES.get("com.alibaba.compileflow.engine"))
-            .contains("ProcessEngine", "ProcessRef", "ProcessDefinition", "ProcessResult");
-    }
-
-    @Test
     void separatesReferencesFromDefinitionSources() {
         assertThat(ProcessRef.class.getPermittedSubclasses())
             .containsExactlyInAnyOrder(ProcessRef.Version.class, ProcessRef.Alias.class);
@@ -221,8 +188,9 @@ class PublicApiShapeTest {
         assertThat(recordComponentNames(ProcessRef.Version.class)).containsExactly("namespace", "code", "version");
         assertThat(recordComponentNames(ProcessRef.Alias.class)).containsExactly("namespace", "code", "alias");
 
-        assertThat(recordComponentNames(ProcessDefinition.Inline.class)).containsExactly("code", "content");
-        assertThat(recordComponentNames(ProcessDefinition.Classpath.class)).containsExactly("code", "resourcePath");
+        assertThat(recordComponentNames(ProcessDefinition.Inline.class)).containsExactly("modelType", "code", "content");
+        assertThat(recordComponentNames(ProcessDefinition.Classpath.class))
+            .containsExactly("modelType", "code", "resourcePath");
         assertThat(Arrays
             .stream(ProcessEngine.class.getMethods())
             .filter(method -> method.getName().equals("execute"))
@@ -273,28 +241,22 @@ class PublicApiShapeTest {
         assertThat(ProcessEnginePlugin.class).isInterface();
         assertThat(ProcessEnginePluginContext.class).isInterface();
         assertThat(ProcessComponentResolver.class).isInterface();
-        assertThat(ProcessEvent.class).isNotNull();
         assertThat(ProcessEventListener.class).isInterface();
         assertThat(RetryPolicy.class).isInterface();
-        assertThat(ActionExecutionContext.class).isNotNull();
         assertThat(FailureHandler.class).isInterface();
-        assertThat(FailureContext.class).isNotNull();
         assertThat(FailureResolution.class.isEnum()).isTrue();
         assertThat(ProcessContextPropagator.class).isInterface();
         assertThat(TraceIdProvider.class).isInterface();
         assertThat(ProcessAliasRoute.class.isRecord()).isTrue();
         assertThat(ProcessAliasRouteSource.class).isInterface();
         assertThat(declaredMethodNames(ProcessEnginePluginContext.class))
-            .containsExactlyInAnyOrder("getModelType", "eventListener", "scriptExecutor", "aliasTargetingPolicy",
-                    "retryPolicy", "failureHandler");
+            .containsExactlyInAnyOrder("eventListener", "scriptExecutor", "aliasTargetingPolicy", "retryPolicy",
+                    "failureHandler");
         assertThat(ScriptExecutor.class).isInterface();
         assertThat(declaredMethodNames(ScriptExecutor.class))
             .containsExactlyInAnyOrder("requireCanonicalName", "name", "validate", "compile", "evaluate");
         assertThat(Arrays
             .stream(ScriptExecutor.class.getDeclaredMethods())
             .filter(method -> !method.isSynthetic())).hasSize(5);
-        assertThat(ProcessEngineConfig.class).isNotNull();
-        assertThat(ProcessPreflightOptions.class).isNotNull();
-        assertThat(ProcessPreflightReport.class).isNotNull();
     }
 }

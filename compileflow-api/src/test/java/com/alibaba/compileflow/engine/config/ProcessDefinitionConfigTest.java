@@ -26,10 +26,10 @@ class ProcessDefinitionConfigTest {
     }
 
     @Test
-    void toBuilderPreservesTheSizeLimit() {
+    void exposesTheConfiguredSizeLimit() {
         ProcessDefinitionConfig config = ProcessDefinitionConfig.builder().maxBytes(1024).build();
 
-        assertThat(config.toBuilder().build().getMaxBytes()).isEqualTo(1024);
+        assertThat(config.getMaxBytes()).isEqualTo(1024);
         assertThat(config.toString()).isEqualTo("ProcessDefinitionConfig{maxBytes=1024}");
     }
 

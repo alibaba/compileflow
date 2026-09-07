@@ -8,13 +8,12 @@ import { useNavigate } from 'react-router-dom'
 
 import {
   createProcess,
-  importXml,
   loadProcess,
   loadOperateProcess,
-  updateProcessInfo,
+  selectCurrentProcess,
 } from '../designer/store/editorSlice'
 
-import { useAppDispatch } from '@/app/hooks'
+import { useAppDispatch, useAppSelector } from '@/app/hooks'
 import type { AppDispatch } from '@/app/store'
 import { UndoActionCreators } from '@/app/store'
 import { ROUTES } from '@/shared/constants'
@@ -101,7 +100,7 @@ async function resolveExampleById(id: string, t: TFunction): Promise<LearnExampl
 }
 
 async function loadFromExampleId(request: ProcessInitRequest): Promise<void> {
-  const { cancelled, dispatch, entryPayload, markFailed, messageApi, setReady, t } = request
+  const { cancelled, dispatch, entryPayload, markFailed, messageApi, t } = request
   if (cancelled.value) return
   if (!entryPayload.exampleId) {
     markFailed(t('designer.flowInit.invalidEntry'), ROUTES.LEARN_EXAMPLES)
@@ -112,9 +111,15 @@ async function loadFromExampleId(request: ProcessInitRequest): Promise<void> {
     const example = await resolveExampleById(entryPayload.exampleId, t)
     if (cancelled.value) return
 
-    await awaitAbortableLoad(
+    const flow = await awaitAbortableLoad(
       cancelled,
-      dispatch(importXml({ xml: example.processXml, type: example.modelType }))
+      dispatch(
+        createProcess({
+          definition: example.processXml,
+          type: example.modelType,
+          name: example.processName || t('designer.flow.exampleName'),
+        })
+      )
     )
 
     if (cancelled.value) return
@@ -122,13 +127,11 @@ async function loadFromExampleId(request: ProcessInitRequest): Promise<void> {
     messageApi.success(
       t('designer.flowInit.exampleLoaded', { name: example.processName || example.exampleId })
     )
-    await dispatch(
-      updateProcessInfo({
-        name: example.processName || t('designer.flow.exampleName'),
-        updatedAt: Date.now(),
-      })
+    openDesignerFromWorkspaceProcess(
+      request.navigate,
+      { processId: flow.id, modelType: flow.type },
+      { replace: true }
     )
-    setReady()
   } catch (err: unknown) {
     if (!cancelled.value) {
       const msg = toError(err, t('designer.flowInit.exampleCheckData')).message
@@ -161,7 +164,7 @@ async function loadFromIndexedDb(request: ProcessInitRequest): Promise<void> {
 }
 
 async function createProcessFromTemplate(request: ProcessInitRequest): Promise<void> {
-  const { cancelled, dispatch, entryPayload, markFailed, messageApi, navigate, t } = request
+  const { cancelled, dispatch, entryPayload, markFailed, messageApi, t } = request
   if (cancelled.value) return
   if (!entryPayload.templateId) {
     markFailed(t('designer.flowInit.invalidEntry'), ROUTES.BUILD)
@@ -170,8 +173,11 @@ async function createProcessFromTemplate(request: ProcessInitRequest): Promise<v
   const { processStorage } = await import('../designer/api/processStorage')
   try {
     const { ensureBuiltInTemplates } = await import('../designer/api/builtInTemplates')
+    if (cancelled.value) return
     await ensureBuiltInTemplates()
+    if (cancelled.value) return
     const template = await processStorage.getTemplate(entryPayload.templateId)
+    if (cancelled.value) return
     if (!template) {
       throw new Error(t('designer.flowInit.templateNotFound', { id: entryPayload.templateId }))
     }
@@ -179,23 +185,23 @@ async function createProcessFromTemplate(request: ProcessInitRequest): Promise<v
     const translatedTemplateName = t(templateNameKey)
     const localizedTemplateName =
       translatedTemplateName === templateNameKey ? template.name : translatedTemplateName
-    const newProcess = await dispatch(
-      createProcess({
-        type: template.type,
-        name: t('designer.flowInit.templateFrom', { name: localizedTemplateName }),
-        definition: template.content,
-      })
-    ).unwrap()
+    const newProcess = await awaitAbortableLoad(
+      cancelled,
+      dispatch(
+        createProcess({
+          type: template.type,
+          name: t('designer.flowInit.templateFrom', { name: localizedTemplateName }),
+          definition: template.content,
+        })
+      )
+    )
 
     if (cancelled.value) return
 
     messageApi.success(t('designer.flowInit.templateCreated', { name: localizedTemplateName }))
     openDesignerFromWorkspaceProcess(
-      navigate,
-      {
-        processId: newProcess.id,
-        modelType: newProcess.type,
-      },
+      request.navigate,
+      { processId: newProcess.id, modelType: newProcess.type },
       { replace: true }
     )
   } catch (err: unknown) {
@@ -208,25 +214,25 @@ async function createProcessFromTemplate(request: ProcessInitRequest): Promise<v
 }
 
 async function createNewProcess(request: ProcessInitRequest): Promise<void> {
-  const { cancelled, dispatch, entryPayload, markFailed, messageApi, navigate, t } = request
+  const { cancelled, dispatch, entryPayload, markFailed, messageApi, t } = request
   if (cancelled.value) return
   const runtimeType = entryPayload.modelType === 'bpmn' ? 'BPMN' : 'TBBPM'
   try {
-    const flow = await dispatch(
-      createProcess({
-        type: runtimeType,
-        name: t('designer.flow.defaultName', { type: runtimeType }),
-      })
-    ).unwrap()
+    const flow = await awaitAbortableLoad(
+      cancelled,
+      dispatch(
+        createProcess({
+          type: runtimeType,
+          name: t('designer.flow.defaultName', { type: runtimeType }),
+        })
+      )
+    )
 
     if (cancelled.value) return
 
     openDesignerFromWorkspaceProcess(
-      navigate,
-      {
-        processId: flow.id,
-        modelType: entryPayload.modelType,
-      },
+      request.navigate,
+      { processId: flow.id, modelType: flow.type },
       { replace: true }
     )
   } catch {
@@ -296,6 +302,11 @@ export const useProcessInitialization = ({
   const { t } = useTranslation()
   const { source, processId, modelType, templateId, exampleId, processCode } = entryPayload
   const dispatch = useAppDispatch()
+  const currentProcess = useAppSelector(selectCurrentProcess)
+  const workspaceProcessIsCurrent =
+    source === 'workspaceProcess' &&
+    processId === currentProcess?.id &&
+    modelType === currentProcess.type.toLowerCase()
   const navigate = useNavigate()
   const { message: messageApi } = App.useApp()
 
@@ -303,7 +314,6 @@ export const useProcessInitialization = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [exitRoute, setExitRoute] = useState<string | null>(null)
   const [retryToken, setRetryToken] = useState(0)
-
   const retry = useCallback(() => {
     setStatus('loading')
     setErrorMessage(null)
@@ -321,6 +331,14 @@ export const useProcessInitialization = ({
 
   useEffect(() => {
     const cancelled: CancellationToken = { value: false, abortCurrentLoad: null }
+
+    if (workspaceProcessIsCurrent) {
+      dispatch(UndoActionCreators.clearHistory())
+      setStatus('ready')
+      setErrorMessage(null)
+      setExitRoute(null)
+      return
+    }
 
     const run = async () => {
       if (cancelled.value) return
@@ -362,6 +380,7 @@ export const useProcessInitialization = ({
     templateId,
     exampleId,
     processCode,
+    workspaceProcessIsCurrent,
     retryToken,
     dispatch,
     markFailed,

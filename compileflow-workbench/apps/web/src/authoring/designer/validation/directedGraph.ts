@@ -54,7 +54,10 @@ export function findDirectedCycles(
       if (cycleStart === undefined) continue
       const normalized = normalizeCycle([...path.slice(cycleStart), neighborId])
       const signature = normalized.join('\u0000')
-      if (seenCycles.add(signature)) cycles.push(normalized)
+      if (!seenCycles.has(signature)) {
+        seenCycles.add(signature)
+        cycles.push(normalized)
+      }
     }
   }
 

@@ -44,7 +44,7 @@ const mockExamples: readonly Example[] = [
     nextSteps:
       'Add a string input variable with a default value, map it into the action, and build a personalized greeting.',
     documentation:
-      'See the [TBBPM specification](https://github.com/alibaba/compileflow/blob/master/docs/specs/tbbpm-specification.en.md) and the [node support matrix](https://github.com/alibaba/compileflow/blob/master/docs/en/node-support.md).',
+      'See the [TBBPM specification](https://github.com/alibaba/compileflow/blob/master/docs/en/specifications/tbbpm.md) and the [node support matrix](https://github.com/alibaba/compileflow/blob/master/docs/en/node-support.md).',
   },
   {
     id: 'learn.bpmn.routing',
@@ -107,7 +107,7 @@ const mockExamples: readonly Example[] = [
     nextSteps:
       'Run the flow with `{"amount": 50}` and compare the returned `route`, then add a third policy through an explicit default sequence flow.',
     documentation:
-      'See the [Process model](https://github.com/alibaba/compileflow/blob/master/docs/architecture/07-PROCESS_MODEL.en.md) for BPMN extension placement and supported-node rules.',
+      'See the [Process model](https://github.com/alibaba/compileflow/blob/master/docs/en/architecture/process-model.md) for BPMN extension placement and supported-node rules.',
   },
   {
     id: 'learn.tbbpm.parallel',

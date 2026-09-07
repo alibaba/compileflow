@@ -27,7 +27,7 @@ public enum DeploymentErrorCode {
      */
     INVALID_ARGUMENT,
     /**
-     * An immutable version identity already exists with different content.
+     * An immutable version identity already exists with a different executable artifact.
      */
     VERSION_CONFLICT,
     /**
@@ -59,9 +59,9 @@ public enum DeploymentErrorCode {
      */
     IDEMPOTENCY_CONFLICT,
     /**
-     * Durable deployment state could not be read or written.
+     * Deployment state or immutable artifact storage could not be read or written.
      */
-    REPOSITORY_ERROR,
+    STORAGE_ERROR,
     /**
      * An optimistic-lock or Alias-revision precondition failed.
      */

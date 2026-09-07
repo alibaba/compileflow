@@ -46,6 +46,8 @@ import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Round-trip tests for every TBBPM node type: parse XML → Model → write XML →
@@ -55,6 +57,18 @@ import org.junit.jupiter.api.Test;
  * @author yusu
  */
 class TbbpmNodeRoundTripTest {
+    @ParameterizedTest
+    @ValueSource(strings = {"", "code=\"\"", "code=\"   \""})
+    void rejectsMissingOrBlankProcessCodeAsInvalidInput(String codeAttribute) {
+        String xml = "<bpm " + codeAttribute + "><start id=\"start\"><transition to=\"end\"/>"
+                + "</start><end id=\"end\"/></bpm>";
+
+        assertThatThrownBy(() -> parseWithoutSchema(xml))
+            .isInstanceOfSatisfying(CompileFlowException.class, failure -> assertThat(failure.getErrorCode())
+                .isEqualTo(com.alibaba.compileflow.engine.ErrorCode.CF_VALIDATION_002))
+            .hasMessageContaining("process code must not be blank");
+    }
+
     private static TbbpmModel parse(String xml) {
         return TbbpmXmlParser
             .getInstance()
@@ -91,6 +105,51 @@ class TbbpmNodeRoundTripTest {
                 <end id="end" name="End" g="100,0,32,32"/>
             </bpm>
             """;
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "   "})
+    void blankDefaultsSurviveRoundTrip(String value) {
+        String xml = autoTaskJavaFlow()
+            .replace("<start id=",
+                    "<var name=\"value\" dataType=\"java.lang.String\" inOutType=\"param\" defaultValue=\"" + value + "\"/>\n<start id=")
+            .replace("method=\"run\"/>",
+                    "method=\"run\"><input target=\"value\" dataType=\"java.lang.String\"" + " defaultValue=\"" + value + "\"/></action>");
+        TbbpmModel parsed = parse(xml);
+        assertThat(parsed.getVariables().get(0).getDefaultValue()).isEqualTo(value);
+        assertThat(((AutoTaskNode) parsed.getNode("task")).getAction().getInputMappings().get(0).getDefaultValue())
+            .isEqualTo(value);
+
+        TbbpmModel restored = parse(write(parsed));
+        assertThat(restored.getVariables().get(0).getDefaultValue()).isEqualTo(value);
+        assertThat(((AutoTaskNode) restored.getNode("task"))
+            .getAction()
+            .getInputMappings()
+            .get(0)
+            .getDefaultValue())
+            .isEqualTo(value);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "   "})
+    void rejectsBlankEffectRecoveryWithoutSchemaValidation(String recovery) {
+        String xml = autoTaskJavaFlow()
+            .replace("method=\"run\"/>", "method=\"run\"><effectPolicy recovery=\"" + recovery + "\"/></action>");
+
+        assertThatThrownBy(() -> parseWithoutSchema(xml))
+            .isInstanceOf(CompileFlowException.class)
+            .hasMessageContaining("Unsupported Effect recovery");
+    }
+
+    @Test
+    void rejectsDataTypeOnForEachOutputWithoutSchemaValidation() {
+        String xml = forEachFlow()
+            .replace("<transition to=\"end\"/>",
+                    "<output source=\"value\" target=\"results\" dataType=\"java.lang.String\"/><transition to=\"end\"/>");
+
+        assertThatThrownBy(() -> parseWithoutSchema(xml))
+            .isInstanceOf(CompileFlowException.class)
+            .hasMessageContaining("foreach output must not declare dataType");
     }
 
     static String autoTaskJavaFlow() {

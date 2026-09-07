@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.durable.runtime.program;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.durable.runtime.machine.DurableMachinePlan;
 import com.alibaba.compileflow.durable.runtime.kernel.ContinuationSnapshot;
@@ -119,8 +120,8 @@ public class TbbpmProcessDurableDifferentialTest {
 
     private Map<String, Object> executeProcess(String definition, Map<String, Object> input) throws Exception {
         String code = parse(definition).getCode();
-        try (ProcessEngine engine = ProcessEngineFactory.createTbbpm()) {
-            ProcessDefinition.Inline source = ProcessDefinition.inline(code, definition);
+        try (ProcessEngine engine = ProcessEngineFactory.create()) {
+            ProcessDefinition.Inline source = ProcessDefinition.inline(ProcessModelType.TBBPM, code, definition);
             engine.tooling().generateJavaCode(source);
             ProcessResult<Map<String, Object>> result = engine.execute(source, input);
             assertThat(result.isSuccess())

@@ -1,4 +1,4 @@
-# Workbench Contributing Addendum
+# Contributing to CompileFlow Workbench
 
 CompileFlow Workbench follows the repository-wide [contributing guide](../CONTRIBUTING.md),
 [code of conduct](../CODE_OF_CONDUCT.md), and [security policy](../SECURITY.md).
@@ -7,7 +7,7 @@ The rules below cover only Workbench-specific development expectations.
 
 ## Prerequisites
 
-- Node.js 24.18.0 (pinned by `.node-version`)
+- Node.js 24 LTS (use the version pinned by `.node-version`)
 - pnpm 11.11.0 (pinned by the root `packageManager` field)
 - Run commands from `compileflow-workbench/`
 
@@ -26,9 +26,9 @@ That starts Vite and the loopback development gateway together. Use
 Workbench Server and refuses
 `NODE_ENV=production`.
 
-For the bundled evaluation stack (not frontend HMR), run
-`pnpm up:all-in-one` and open `http://127.0.0.1:4173`. That script fills a blank `.env` database password; reset the
-Compose volume with `down -v` if an old volume rejects the new credential.
+For the bundled evaluation stack (without frontend HMR), run `pnpm up:all-in-one` and open
+`http://127.0.0.1:4173`. The script supplies a local database password when `.env` leaves it blank. Use a dedicated
+Compose volume and follow the storage rules in [`DEPLOYMENT.md`](DEPLOYMENT.md).
 
 Start `compileflow-workbench-server` from the repository root when validating Operate real mode:
 
@@ -80,3 +80,5 @@ behavior, or Workbench API contracts:
 - [DEPLOYMENT.md](DEPLOYMENT.md)
 - [apps/dev-gateway/README.md](apps/dev-gateway/README.md)
 - [apps/web/src/operate/API_SPEC.md](apps/web/src/operate/API_SPEC.md)
+- [docs/PRODUCT_SURFACES.md](docs/PRODUCT_SURFACES.md)
+- [docs/architecture/WEB_ARCHITECTURE.md](docs/architecture/WEB_ARCHITECTURE.md)

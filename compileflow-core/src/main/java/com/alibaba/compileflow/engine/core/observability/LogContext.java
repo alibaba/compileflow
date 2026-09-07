@@ -56,10 +56,6 @@ public final class LogContext {
         }
     }
 
-    public static void clear() {
-        MDC.clear();
-    }
-
     private static void putOrRemove(String key, String value) {
         if (value == null) {
             MDC.remove(key);

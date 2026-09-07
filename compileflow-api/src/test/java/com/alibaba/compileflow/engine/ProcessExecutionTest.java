@@ -50,7 +50,7 @@ class ProcessExecutionTest {
 
     @Test
     void rejectsAVersionFromAnotherProcessCode() {
-        assertThatThrownBy(() -> execution().processVersion(ProcessRef.version("trade", "payment", "v1")).build())
+        assertThatThrownBy(() -> execution().processVersion(ProcessRef.version("default", "payment", "v1")).build())
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("executed process");
     }

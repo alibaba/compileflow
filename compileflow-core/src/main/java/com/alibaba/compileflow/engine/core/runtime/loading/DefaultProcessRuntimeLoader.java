@@ -15,7 +15,6 @@ package com.alibaba.compileflow.engine.core.runtime.loading;
 
 import com.alibaba.compileflow.engine.CompileFlowException;
 import com.alibaba.compileflow.engine.ErrorCode;
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.core.observability.LogContext;
 import com.alibaba.compileflow.engine.core.runtime.ProcessRuntime;
 import com.alibaba.compileflow.engine.core.runtime.ProcessRuntimeEntry;
@@ -30,6 +29,7 @@ import com.alibaba.compileflow.engine.core.runtime.cache.ProcessRuntimeCache.Ins
 import com.alibaba.compileflow.engine.core.runtime.cache.RuntimeCacheKeys;
 import com.alibaba.compileflow.engine.core.runtime.concurrent.FutureTimeouts;
 import com.alibaba.compileflow.engine.core.semantic.SemanticText;
+import com.alibaba.compileflow.engine.core.semantic.ProcessSemanticCompiler.ProcessSemanticCompilation;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -47,6 +47,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,8 +61,8 @@ public final class DefaultProcessRuntimeLoader implements ProcessRuntimeLoader {
     private final long waitTimeoutMillis;
     private final ProcessRuntimeCache runtimeCache;
     private final ProcessDefinitionLoader definitionLoader;
+    private final Function<ProcessDefinitionSnapshot, ProcessSemanticCompilation> semanticCompiler;
     private final ProcessRuntimeFactory runtimeFactory;
-    private final ProcessModelType modelType;
     private final ProcessRuntimeIdentity.PipelineIdentity pipelineIdentity =
             ProcessRuntimeIdentity.newPipelineIdentity();
     private final ExecutorService runtimeLoadExecutor;
@@ -70,13 +71,13 @@ public final class DefaultProcessRuntimeLoader implements ProcessRuntimeLoader {
     private final Object cacheLifecycleMonitor = new Object();
 
     public DefaultProcessRuntimeLoader(ProcessRuntimeCache runtimeCache, ProcessDefinitionLoader definitionLoader,
-            ProcessRuntimeFactory runtimeFactory, ExecutorService runtimeLoadExecutor, Duration runtimeLoadTimeout,
-            ProcessModelType modelType) {
+            Function<ProcessDefinitionSnapshot, ProcessSemanticCompilation> semanticCompiler,
+            ProcessRuntimeFactory runtimeFactory, ExecutorService runtimeLoadExecutor, Duration runtimeLoadTimeout) {
         this.runtimeCache = Objects.requireNonNull(runtimeCache, "runtimeCache");
         this.definitionLoader = Objects.requireNonNull(definitionLoader, "definitionLoader");
+        this.semanticCompiler = Objects.requireNonNull(semanticCompiler, "semanticCompiler");
         this.runtimeFactory = Objects.requireNonNull(runtimeFactory, "runtimeFactory");
         this.runtimeLoadExecutor = Objects.requireNonNull(runtimeLoadExecutor, "runtimeLoadExecutor");
-        this.modelType = Objects.requireNonNull(modelType, "modelType");
         this.waitTimeoutMillis = Objects.requireNonNull(runtimeLoadTimeout, "runtimeLoadTimeout").toMillis();
     }
 
@@ -137,11 +138,7 @@ public final class DefaultProcessRuntimeLoader implements ProcessRuntimeLoader {
     }
 
     private static String failureType(Throwable failure) {
-        Throwable root = failure;
-        while (root.getCause() != null && root.getCause() != root) {
-            root = root.getCause();
-        }
-        return root.getClass().getName();
+        return failure.getClass().getName();
     }
 
     private static String bindingKey(ProcessDefinitionSnapshot definition) {
@@ -303,7 +300,8 @@ public final class DefaultProcessRuntimeLoader implements ProcessRuntimeLoader {
     private void runRuntimeLoad(ProcessDefinitionSnapshot source, ClassLoader classLoader,
             ProcessRuntimeIdentity runtimeIdentity, CompletableFuture<ProcessRuntimeEntry> proposed) {
         try {
-            proposed.complete(buildRuntime(source, runtimeIdentity, classLoader));
+            ProcessRuntimeEntry cached = runtimeCache.getIfPresent(runtimeIdentity);
+            proposed.complete(cached != null ? cached : buildRuntime(source, runtimeIdentity, classLoader));
         } catch (Throwable failure) {
             // Remove the failed owner before waking waiters so an immediate retry can become owner.
             inflightRuntimeLoadRegistry.remove(runtimeIdentity, proposed);
@@ -325,8 +323,16 @@ public final class DefaultProcessRuntimeLoader implements ProcessRuntimeLoader {
                     .withContext("processCode", source.getCode())
                     .withContext("durationMs", elapsedMillis(startedAtNanos));
             }
-            ProcessRuntime runtime = runtimeFactory.createRuntime(source, classLoader);
-            return new ProcessRuntimeEntry(runtime, runtimeIdentity);
+            Thread thread = Thread.currentThread();
+            ClassLoader previous = thread.getContextClassLoader();
+            try {
+                thread.setContextClassLoader(classLoader);
+                ProcessSemanticCompilation compilation = semanticCompiler.apply(source);
+                ProcessRuntime runtime = runtimeFactory.createRuntime(compilation, classLoader);
+                return new ProcessRuntimeEntry(runtime, runtimeIdentity);
+            } finally {
+                thread.setContextClassLoader(previous);
+            }
         } catch (RuntimeException failure) {
             long durationMs = elapsedMillis(startedAtNanos);
             if (failure instanceof CompileFlowException compileFlowException) {
@@ -594,7 +600,7 @@ public final class DefaultProcessRuntimeLoader implements ProcessRuntimeLoader {
 
     private ProcessDefinitionSnapshot resolveSource(ProcessRuntimeRequest request, ClassLoader classLoader) {
         ProcessRuntimeRequest supplied = Objects.requireNonNull(request, "request");
-        return Objects.requireNonNull(definitionLoader.load(supplied, modelType, classLoader),
+        return Objects.requireNonNull(definitionLoader.load(supplied, classLoader),
                 "ProcessDefinitionLoader must return a definition");
     }
 
@@ -612,15 +618,19 @@ public final class DefaultProcessRuntimeLoader implements ProcessRuntimeLoader {
         if (exact == null) {
             return null;
         }
-        InstallResult result = runtimeCache.install(bindingKey, bound, exact);
-        if (result == InstallResult.VERSION_CONFLICT) {
-            throw versionConflict(source, exact.getDigest());
+        synchronized (cacheLifecycleMonitor) {
+            if (!closed.get()) {
+                InstallResult result = runtimeCache.install(bindingKey, bound, exact);
+                if (result == InstallResult.VERSION_CONFLICT) {
+                    throw versionConflict(source, exact.getDigest());
+                }
+            }
         }
         return exact;
     }
 
     private ProcessRuntimeIdentity runtimeIdentity(ProcessDefinitionSnapshot definition, ClassLoader classLoader) {
-        return ProcessRuntimeIdentity.of(definition, modelType, pipelineIdentity, classLoader);
+        return ProcessRuntimeIdentity.of(definition, pipelineIdentity, classLoader);
     }
 
     private record BatchPlan(ProcessDefinitionSnapshot source, String bindingKey, ProcessRuntimeIdentity runtimeIdentity,

@@ -1,7 +1,7 @@
 # CompileFlow Quick Start
 
 Start with the repository's verified Spring Boot sample, then use the minimum example to embed the same TBBPM flow in
-an application. CompileFlow 2.0 is currently an unreleased snapshot.
+an application.
 
 ## Prerequisites
 
@@ -17,10 +17,10 @@ java -version
 
 ## Run The Verified Sample
 
-Install the current starter and its reactor dependencies, then run the sample:
+Install the starter and its reactor dependencies, then run the sample:
 
 ```bash
-./mvnw install -pl compileflow-spring-boot-starter -am -DskipTests
+./mvnw install -pl compileflow-spring-boot-starter-tbbpm -am -DskipTests
 cd examples/spring-boot-basic
 ../../mvnw -f pom.xml spring-boot:run
 ```
@@ -37,8 +37,8 @@ Run the sample's context test with:
 ../../mvnw -f pom.xml test -Dtest=SampleApplicationTest
 ```
 
-The sample is maintained at [examples/spring-boot-basic](../../examples/spring-boot-basic/README.md). Its test is the
-executable source of truth for this guide.
+The sample is maintained at [examples/spring-boot-basic](../../examples/spring-boot-basic/README.md), and its test
+verifies the behavior described here.
 
 ## Add The Starter
 
@@ -47,13 +47,36 @@ Add the starter to a Spring Boot 4.1 application:
 ```xml
 <dependency>
     <groupId>com.alibaba.compileflow</groupId>
-    <artifactId>compileflow-spring-boot-starter</artifactId>
+    <artifactId>compileflow-spring-boot-starter-tbbpm</artifactId>
     <version>2.0.0-SNAPSHOT</version>
 </dependency>
 ```
 
-The starter creates one thread-safe `ProcessEngine` bean. TBBPM is the default model type; select BPMN explicitly with
-`compileflow.engine.model-type=BPMN` when needed.
+The TBBPM starter creates one thread-safe `ProcessEngine` bean and installs the TBBPM frontend. Use
+`compileflow-spring-boot-starter-bpmn` for a BPMN-only application. To support both formats, use the format-neutral
+`compileflow-spring-boot-starter` plus `compileflow-tbbpm` and `compileflow-bpmn`; declare `ProcessModelType` explicitly
+on each definition.
+
+### Align multiple CompileFlow dependencies
+
+When an application uses multiple CompileFlow artifacts, import the BOM once and omit versions from the individual
+dependencies:
+
+```xml
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>com.alibaba.compileflow</groupId>
+            <artifactId>compileflow-bom</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+```
+
+The BOM only manages versions; it does not add dependencies to the application.
 
 ## Define A Flow
 
@@ -97,7 +120,7 @@ public final class PricingService {
 
     public int addTwo(int value) {
         ProcessDefinition definition = ProcessDefinition.classpath(
-                "bpm.sample.hello",
+                ProcessModelType.TBBPM, "bpm.sample.hello",
                 "flows/hello.bpm");
         ProcessResult<Map<String, Object>> result = processEngine.execute(
                 definition,
@@ -116,11 +139,11 @@ source bytes before exact cache matching; publish the definition and use
 
 ## Preflight And Warmup
 
-Validate and compile known flows during startup or release preparation:
+Validate and compile known flows during application startup:
 
 ```java
 ProcessDefinition definition = ProcessDefinition.classpath(
-        "bpm.sample.hello",
+        ProcessModelType.TBBPM, "bpm.sample.hello",
         "flows/hello.bpm");
 ProcessPreflightReport report = processEngine.tooling()
         .preflight(definition, ProcessPreflightOptions.strict());
@@ -154,7 +177,7 @@ For a non-Spring application, depend on one format module and own a single engin
 
 ```java
 public final class ProcessEngines {
-    private static final ProcessEngine TBBPM = ProcessEngineFactory.createTbbpm();
+    private static final ProcessEngine TBBPM = ProcessEngineFactory.create();
 
     private ProcessEngines() {
     }
@@ -171,22 +194,27 @@ public final class ProcessEngines {
 
 Register `ProcessEngines.close()` with the host application's lifecycle. Do not create an engine per request.
 
-## Production Boundary
+## Production Use
 
-- Publish each definition as a new immutable version; never reuse a version identifier for different content.
-- Change traffic through a revision-checked Alias rollout. Publishing alone never changes a route.
-- A deployment node executes only the selected version after local installation; it does not fall back to an older
-  artifact.
-- Keep routing attributes separate from process variables, and use `production` as the default environment alias.
-- Enable metrics and engine event listeners before production rollout.
+For direct in-process execution, package stable Classpath definitions with the application or provide immutable Inline
+content under application control.
+
+When using CompileFlow Deploy:
+
+- publish each definition as a new immutable version; never reuse a version identifier for different content;
+- change traffic through a revision-checked Alias rollout; publishing alone never changes a route;
+- execute a selected version only after it is installed locally; do not fall back to an older artifact.
+
+In every mode, keep routing attributes separate from process variables and enable metrics and engine event listeners
+before admitting production traffic.
 
 See [Hot Deployment](hot-deploy.md), [Configuration](configuration.md), [Monitoring](monitoring.md), and
-[Supported Surfaces](../architecture/06-SUPPORTED_SURFACES.en.md) for the production path.
+[Supported Surfaces](architecture/supported-surfaces.md) for production guidance.
 
-## Next Steps
+## Related Guides
 
 - [API Reference](api-reference.md)
-- [TBBPM Specification](../specs/tbbpm-specification.en.md)
+- [TBBPM Specification](specifications/tbbpm.md)
 - [BPMN Node Support](node-support.md)
 - [Extension Guide](extension-guide.md)
 - [Workbench Deployment](../../compileflow-workbench/DEPLOYMENT.md)

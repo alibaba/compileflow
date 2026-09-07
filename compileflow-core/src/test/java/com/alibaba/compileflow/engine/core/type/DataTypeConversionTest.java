@@ -92,13 +92,14 @@ class DataTypeConversionTest {
 
     @Test
     void generatedTemporalDefaultsAreValidatedAndCanonical() {
-        assertThat(defaultExpression(LocalDate.class, "2026-07-14")).isEqualTo("LocalDate.parse(\"2026-07-14\")");
+        assertThat(defaultExpression(LocalDate.class, "2026-07-14")).isEqualTo(
+                "java.time.LocalDate.parse(\"2026-07-14\")");
         assertThat(defaultExpression(Instant.class, "2026-07-14T12:34:56Z"))
-            .isEqualTo("Instant.parse(\"2026-07-14T12:34:56Z\")");
+            .isEqualTo("java.time.Instant.parse(\"2026-07-14T12:34:56Z\")");
         DataTypes.DefaultValueCode timestamp =
                 DataTypes.generateDefaultValueCode(Timestamp.class, "2026-07-14T12:34:56.123456789Z");
-        assertThat(timestamp.expression()).isEqualTo(
-                "Timestamp.from(Instant.parse(" + "\"2026-07-14T12:34:56.123456789Z\"))");
+        assertThat(timestamp.expression())
+            .isEqualTo("java.sql.Timestamp.from(java.time.Instant.parse(\"2026-07-14T12:34:56.123456789Z\"))");
         assertThat(timestamp.referencedTypes()).containsExactly(Timestamp.class, Instant.class);
 
         assertThatThrownBy(() -> DataTypes.generateDefaultValueCode(java.util.Date.class, "$now"))
@@ -112,23 +113,19 @@ class DataTypeConversionTest {
     }
 
     @Test
-    void generatedConversionsPreferJavaAssignmentAndValidSourceNames() {
-        assertThat(DataTypes.generateTypeConversionCode(ArrayList.class, List.class, "values")).isEqualTo("values");
-        assertThat(DataTypes.generateTypeConversionCode(Integer.class, long.class, "count")).isEqualTo("count");
-        assertThat(DataTypes.generateTypeConversionCode(Float.class, double.class, "ratio"))
-            .isEqualTo("DataTypes.transfer(ratio, Double.class).doubleValue()");
-        assertThat(DataTypes.generateTypeConversionCode(null, Integer.class, "value"))
-            .isEqualTo("DataTypes.transfer(value, Integer.class)");
-        assertThat(DataTypes.generateTypeConversionCode(Object.class, Map.Entry.class, "value"))
-            .isEqualTo("DataTypes.transfer(value, Entry.class)");
-        assertThat(DataTypes.generateTypeConversionCode(Object.class, Map.Entry[].class, "value"))
-            .isEqualTo("DataTypes.transfer(value, Entry[].class)");
+    void assignmentCompatibilityRetainsStrictConversionBoundaries() {
+        assertThat(DataTypes.isJavaAssignmentCompatible(ArrayList.class, List.class)).isTrue();
+        assertThat(DataTypes.isJavaAssignmentCompatible(Integer.class, long.class)).isTrue();
+        assertThat(DataTypes.isJavaAssignmentCompatible(Float.class, double.class)).isFalse();
+        assertThat(DataTypes.isJavaAssignmentCompatible(Object.class, Integer.class)).isFalse();
+        assertThat(DataTypes.isJavaAssignmentCompatible(Object.class, Map.Entry.class)).isFalse();
+        assertThat(DataTypes.isJavaAssignmentCompatible(Object.class, Map.Entry[].class)).isFalse();
     }
 
     @Test
     void generatedCharacterDefaultsEscapeTheCharacterDelimiter() {
         assertThat(defaultExpression(char.class, "'")).isEqualTo("'\\''");
-        assertThat(defaultExpression(Character.class, "'")).isEqualTo("Character.valueOf('\\'')");
+        assertThat(defaultExpression(Character.class, "'")).isEqualTo("java.lang.Character.valueOf('\\'')");
     }
 
     @Test

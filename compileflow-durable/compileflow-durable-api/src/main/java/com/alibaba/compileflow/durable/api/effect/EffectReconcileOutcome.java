@@ -13,8 +13,6 @@
  */
 package com.alibaba.compileflow.durable.api.effect;
 
-import com.alibaba.compileflow.durable.api.validation.DurablePayload;
-
 /**
  * Closed result of an Effect policy's recovery-only reconcile Action.
  *
@@ -32,19 +30,14 @@ public sealed interface EffectReconcileOutcome<R>
     /**
      * The external operation completed and produced the original result.
      *
+     * <p>The value retains its exact business type, including concrete collection types.
+     * Like an Action return value, it must not be mutated after return. The runtime maps and
+     * serializes it against the original Action output contract before persisting it.</p>
+     *
      * @param value confirmed business result
      * @param <R> original Effect Action return type
      */
     record ConfirmedResult<R>(R value) implements EffectReconcileOutcome<R> {
-        public ConfirmedResult {
-            value = DurablePayload.immutableValue(value, "reconcile result");
-        }
-
-        @Override
-        public R value() {
-            return DurablePayload.immutableValue(value, "reconcile result");
-        }
-
         @Override
         public String toString() {
             return "ConfirmedResult[value=<redacted>]";

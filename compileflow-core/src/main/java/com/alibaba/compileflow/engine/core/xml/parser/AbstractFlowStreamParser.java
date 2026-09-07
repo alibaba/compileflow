@@ -43,6 +43,8 @@ import org.xml.sax.SAXException;
  * @author yusu
  */
 public abstract class AbstractFlowStreamParser<R> {
+    private static final String MAX_ELEMENT_DEPTH_PROPERTY = "jdk.xml.maxElementDepth";
+    private static final String MAX_ELEMENT_DEPTH = "128";
     private volatile Schema schema;
 
     private static void configureSecureXmlInputFactory(XMLInputFactory factory) {
@@ -50,6 +52,7 @@ public abstract class AbstractFlowStreamParser<R> {
             factory.setProperty(XMLInputFactory.SUPPORT_DTD, Boolean.FALSE);
             factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, Boolean.FALSE);
             factory.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+            factory.setProperty(MAX_ELEMENT_DEPTH_PROPERTY, MAX_ELEMENT_DEPTH);
         } catch (IllegalArgumentException failure) {
             throw new CompileFlowException(ErrorCode.CF_CONFIG_003,
                     "XMLInputFactory does not support the required secure-processing properties", failure);
@@ -119,6 +122,7 @@ public abstract class AbstractFlowStreamParser<R> {
         Validator validator = schema().newValidator();
         validator.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
         validator.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+        validator.setProperty(MAX_ELEMENT_DEPTH_PROPERTY, MAX_ELEMENT_DEPTH);
         try {
             validator.validate(new StreamSource(flowStream));
         } catch (SAXException exception) {

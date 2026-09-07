@@ -20,6 +20,7 @@ import com.alibaba.compileflow.durable.runtime.codec.DurableValueSerializer;
 import com.alibaba.compileflow.durable.runtime.kernel.ProcessCallRequest;
 import com.alibaba.compileflow.durable.runtime.kernel.ContinuationSnapshot;
 import com.alibaba.compileflow.durable.runtime.kernel.ForEachFrame;
+import com.alibaba.compileflow.durable.runtime.kernel.ParallelForEachFrame;
 import com.alibaba.compileflow.durable.runtime.kernel.EffectRequest;
 import com.alibaba.compileflow.durable.runtime.kernel.ResumePoint;
 import com.alibaba.compileflow.durable.runtime.kernel.ScopeFrame;
@@ -156,8 +157,11 @@ public final class DurableExecutionContext {
         for (ScopeFrame frame : frames) {
             DurableMachinePlan.Iteration iteration = machinePlan.requireIteration(frame.loopId());
             if (iteration instanceof DurableMachinePlan.Iteration.ForEach loop) {
-                ForEachFrame forEach = (ForEachFrame) frame;
-                result.put(loop.itemVariable(), forEach.currentValue());
+                Object currentValue =
+                        frame instanceof ParallelForEachFrame parallel
+                        ? parallel.currentValue()
+                        : ((ForEachFrame) frame).currentValue();
+                result.put(loop.itemVariable(), currentValue);
                 if (loop.indexVariable() != null) {
                     result.put(loop.indexVariable(), frame.position());
                 }

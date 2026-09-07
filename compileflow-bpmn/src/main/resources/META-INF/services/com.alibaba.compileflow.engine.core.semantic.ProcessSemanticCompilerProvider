@@ -1,1 +1,1 @@
-com.alibaba.compileflow.engine.bpmn.BpmnProcessEngineProvider
+com.alibaba.compileflow.engine.bpmn.BpmnSemanticCompilerProvider

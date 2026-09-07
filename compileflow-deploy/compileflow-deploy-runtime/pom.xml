@@ -11,7 +11,7 @@
     </parent>
 
     <artifactId>compileflow-deploy-runtime</artifactId>
-    <name>CompileFlow Deployment Data Plane</name>
+    <name>CompileFlow Deployment Runtime</name>
     <description>Artifact resolution, runtime installation, and local-ready route convergence.</description>
 
     <properties>
@@ -33,19 +33,21 @@
         </dependency>
         <dependency>
             <groupId>com.alibaba.compileflow</groupId>
-            <artifactId>compileflow-deploy-api</artifactId>
-            <type>test-jar</type>
-            <classifier>tests</classifier>
+            <artifactId>compileflow-deploy-spi</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.compileflow</groupId>
+            <artifactId>compileflow-deploy-protocol</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.compileflow</groupId>
+            <artifactId>compileflow-deploy-testkit</artifactId>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
         </dependency>
         <!-- Test dependencies -->
         <dependency>

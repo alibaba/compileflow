@@ -44,10 +44,10 @@ class AsyncInvocationSchedulingConfigurationTest {
         Authentication authentication = new Authentication(AuthenticationMode.DISABLED, "", "local-test");
         Http http = new Http(DataSize.ofMegabytes(10));
         return new CompileFlowWorkbenchServerProperties(authentication, http,
-                new CompileFlowWorkbenchServerProperties.Database(true),
-                new CompileFlowWorkbenchServerProperties.PreviewExecution(false),
+                new CompileFlowWorkbenchServerProperties.Database(CompileFlowWorkbenchServerProperties.Database.Provider.POSTGRESQL,
+                        true), new CompileFlowWorkbenchServerProperties.PreviewExecution(false),
                 new CompileFlowWorkbenchServerProperties.ExecutionLog(10_000, 1_000),
-                new CompileFlowWorkbenchServerProperties.AsyncInvocation(2, 32, 8, Duration.ofMillis(250),
+                new CompileFlowWorkbenchServerProperties.AsyncInvocation(2, Duration.ofMillis(250),
                         Duration.ofSeconds(6), Duration.ofMillis(1250)));
     }
 

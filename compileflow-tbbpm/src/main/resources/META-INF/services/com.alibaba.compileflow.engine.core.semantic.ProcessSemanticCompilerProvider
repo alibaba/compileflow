@@ -1,1 +1,1 @@
-com.alibaba.compileflow.engine.tbbpm.TbbpmProcessEngineProvider
+com.alibaba.compileflow.engine.tbbpm.TbbpmSemanticCompilerProvider

@@ -3,6 +3,20 @@ import { describe, expect, it } from 'vitest'
 import { parseExecutionRequest } from '../executionRequest'
 
 describe('parseExecutionRequest', () => {
+  it.each([' invocation-1', 'invocation-1 ', '\tinvocation-1'])(
+    'rejects normalization of invocation identity: %j',
+    (invocationId) => {
+      expect(
+        parseExecutionRequest({
+          code: 'orders.approve',
+          modelType: 'BPMN',
+          xml: '<definitions/>',
+          invocationId,
+        })
+      ).toMatchObject({ ok: false, message: expect.stringContaining('invocationId') })
+    }
+  )
+
   it('parses an explicit draft preview', () => {
     expect(
       parseExecutionRequest({

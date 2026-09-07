@@ -17,10 +17,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static com.alibaba.compileflow.engine.core.runtime.RuntimeTestFixtures.rejectingProcessCallInvoker;
 import static org.assertj.core.api.Assertions.catchThrowable;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.alibaba.compileflow.engine.CompileFlowException;
 import com.alibaba.compileflow.engine.ErrorCode;
 import com.alibaba.compileflow.engine.ProcessModelType;
-import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
 import com.alibaba.compileflow.engine.config.ProcessExecutorConfig;
 import com.alibaba.compileflow.engine.core.concurrent.ProcessEngineExecutors;
 import com.alibaba.compileflow.engine.core.model.action.EffectiveInvocationPolicy;
@@ -33,6 +36,7 @@ import com.alibaba.compileflow.engine.spi.execution.ActionExecutionContext;
 import com.alibaba.compileflow.engine.spi.execution.FailureHandler;
 import com.alibaba.compileflow.engine.spi.execution.FailureResolution;
 import com.alibaba.compileflow.engine.spi.execution.RetryPolicy;
+import com.alibaba.compileflow.engine.spi.script.ScriptException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +50,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.slf4j.LoggerFactory;
 
 class ActionExecutorTest {
     private static final String SOURCE_DIGEST = "a".repeat(64);
@@ -73,6 +80,61 @@ class ActionExecutorTest {
         if (executors != null) {
             executors.close();
         }
+    }
+
+    @Test
+    void defaultAdmissionRejectsTimedWorkButLeavesUntimedWorkOnTheCaller() throws Exception {
+        installContext(Map.of(), Map.of(), true, ProcessExecutorConfig
+            .builder()
+            .actionTimeoutMaxConcurrency(1)
+            .build());
+        CountDownLatch workerStarted = new CountDownLatch(1);
+        CountDownLatch releaseWorker = new CountDownLatch(1);
+        executors
+            .action()
+            .execute(() -> await(workerStarted, releaseWorker));
+        try {
+            assertThat(workerStarted.await(5, TimeUnit.SECONDS)).isTrue();
+            AtomicBoolean actionRan = new AtomicBoolean();
+            Throwable failure = catchThrowable(() -> ActionExecutor.call("saturated",
+                    () -> actionRan.compareAndSet(false, true), attemptTimeoutPolicy(1000)));
+
+            assertThat(failure).isInstanceOf(CompileFlowException.class).hasRootCauseInstanceOf(
+                    RejectedExecutionException.class);
+            assertThat(((CompileFlowException) failure).getErrorCode()).isEqualTo(ErrorCode.CF_EXEC_005);
+            assertThat(actionRan).isFalse();
+            assertThat(ActionExecutor.call("untimed", Thread::currentThread, EffectiveInvocationPolicy.defaults()))
+                .isSameAs(Thread.currentThread());
+        } finally {
+            releaseWorker.countDown();
+        }
+    }
+
+    @Test
+    void retryWithoutTimeoutStaysOnTheCaller() throws Exception {
+        installContext();
+        Thread caller = Thread.currentThread();
+        AtomicInteger attempts = new AtomicInteger();
+        EffectiveInvocationPolicy policy =
+                EffectiveInvocationPolicy.of(0L, 0L, 2, 0L, 1.0, 0L, RetryJitter.NONE, "always", "propagate");
+
+        Thread result = ActionExecutor.call("retry", () -> {
+            assertThat(Thread.currentThread()).isSameAs(caller);
+            if (attempts.incrementAndGet() == 1) {
+                throw new IllegalStateException("retryable test failure");
+            }
+            return Thread.currentThread();
+        }, policy);
+
+        assertThat(result).isSameAs(caller);
+        assertThat(attempts).hasValue(2);
+    }
+
+    @Test
+    void timeoutEnforcementUsesAWorker() throws Exception {
+        installContext();
+        assertThat(ActionExecutor.call("timed", Thread::currentThread, attemptTimeoutPolicy(5000)))
+            .isNotSameAs(Thread.currentThread());
     }
 
     @Test
@@ -231,6 +293,38 @@ class ActionExecutorTest {
     }
 
     @Test
+    void continuedFailureDoesNotLogTheExtensionException() throws Exception {
+        installContext();
+        String secret = "secret-DO-NOT-LOG-12345";
+        EffectiveInvocationPolicy continuing =
+                EffectiveInvocationPolicy.of(0L, 0, 1, 0, 1.0, 0, RetryJitter.NONE, "never", "continue");
+        Logger logger = (Logger) LoggerFactory.getLogger(ActionExecutor.class);
+
+        synchronized (ActionExecutor.class) {
+            Level previousLevel = logger.getLevel();
+            ListAppender<ILoggingEvent> appender = new ListAppender<>();
+            appender.start();
+            logger.addAppender(appender);
+            logger.setLevel(Level.WARN);
+            try {
+                ActionExecutor.run("redacted", () -> {
+                    throw new IllegalStateException(secret);
+                }, continuing);
+
+                assertThat(appender.list)
+                    .extracting(ILoggingEvent::getFormattedMessage)
+                    .allMatch(message -> !message.contains(secret))
+                    .anyMatch(message -> message.contains(IllegalStateException.class.getName()));
+                assertThat(appender.list).extracting(ILoggingEvent::getThrowableProxy).containsOnlyNulls();
+            } finally {
+                logger.detachAppender(appender);
+                logger.setLevel(previousLevel);
+                appender.stop();
+            }
+        }
+    }
+
+    @Test
     void rejectsANullCustomFailureResolution() {
         installContext(Map.of(), Map.of("invalid-failure", context -> null));
         EffectiveInvocationPolicy customPolicies =
@@ -268,6 +362,23 @@ class ActionExecutorTest {
             .isInstanceOf(InterruptedException.class);
         assertThat(Thread.currentThread().isInterrupted()).isTrue();
         assertThat(attempts).hasValue(1);
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {0, 1000})
+    void propagatesClassifiedCancellationWithoutRetryOrFailureHandling(long attemptTimeoutMs) {
+        installContext();
+        AtomicInteger attempts = new AtomicInteger();
+        ScriptException cancellation = new ScriptException(ScriptException.Kind.CANCELLED, "stop");
+        EffectiveInvocationPolicy retrying =
+                EffectiveInvocationPolicy.of(0L, attemptTimeoutMs, 4, 0, 1.0, 0, RetryJitter.NONE, "always", "continue");
+
+        assertThatThrownBy(() -> ActionExecutor.call("cancelled-script", () -> {
+            attempts.incrementAndGet();
+            throw cancellation;
+        }, retrying)).isSameAs(cancellation);
+        assertThat(attempts).hasValue(1);
+        assertThat(Thread.currentThread().isInterrupted()).isFalse();
     }
 
     @Test
@@ -634,6 +745,11 @@ class ActionExecutorTest {
             .actionTimeoutMaxPending(1)
             .actionTimeoutCancellationGracePeriod(cancellationGracePeriod)
             .build();
+        installContext(retryPolicies, failureHandlers, recordRuntime, config);
+    }
+
+    private void installContext(Map<String, RetryPolicy> retryPolicies, Map<String, FailureHandler> failureHandlers,
+            boolean recordRuntime, ProcessExecutorConfig config) {
         executors = ProcessEngineExecutors.create("action-test", config);
         EngineExecutionContext context = EngineExecutionContext
             .builder()
@@ -645,7 +761,7 @@ class ActionExecutorTest {
             .processCallInvoker(rejectingProcessCallInvoker())
             .executors(executors)
             .componentResolver(ProcessComponentResolver.disabled())
-            .scriptExecutors(ScriptExecutorRegistry.builtIns(ProcessEngineConfig.tbbpm()))
+            .scriptExecutors(ScriptExecutorRegistry.from(List.of()))
             .retryPolicies(retryPolicies)
             .failureHandlers(failureHandlers)
             .build();

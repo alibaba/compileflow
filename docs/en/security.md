@@ -3,8 +3,8 @@
 CompileFlow compiles process definitions into Java code and runs them inside the host JVM. Treat every process
 definition as executable code.
 
-The [Threat Model](threat-model.md) records assets, actors, trust boundaries, mitigations, and residual deployment risks
-for release review. This guide turns those boundaries into configuration and operating requirements.
+The [Threat Model](threat-model.md) records assets, actors, trust boundaries, mitigations, and residual deployment risks.
+This guide turns those boundaries into configuration and operating requirements.
 
 ## Security Boundary
 
@@ -29,11 +29,7 @@ The embedded engine also performs no remote URL fetches for process definitions.
 the application or deployment resolver, where authentication, network allowlists, timeouts, size limits, and digest
 verification can be enforced before trusted content reaches the compiler.
 
-The regression coverage lives in:
-
-```text
-compileflow-bpmn/src/test/java/com/alibaba/compileflow/engine/bpmn/BpmnModelReaderTest.java
-```
+Repository regression tests cover these parser-hardening guarantees.
 
 ### Java Identifier Normalization
 
@@ -58,8 +54,8 @@ only with an explicit `dev` or `test` profile and never together with `prod`. Vi
 browser clients, so the Web configuration schema accepts no credential. Use an authentication-capable gateway to
 authenticate and authorize users, remove client-supplied internal headers, and inject the private Workbench Server
 credential only on its protected upstream hop. One shared server key identifies one service principal, not an end user.
-Do not accept an unsigned browser actor header. Per-user audit identity requires a future trusted authentication
-mechanism that verifies and propagates the user principal.
+Do not accept an unsigned browser actor header. Per-user audit identity is outside the API-key contract; a trusted
+authentication gateway must verify and propagate the user principal.
 
 The server compares the configured API key using a constant-time digest comparison. Only `/actuator/health`,
 `/actuator/health/liveness`, and `/actuator/health/readiness` are anonymous; do not expose other Actuator, deployment,
@@ -87,7 +83,7 @@ Prefer classpath, reviewed repository, or approved database sources:
 
 ```java
 ProcessDefinition definition =
-        ProcessDefinition.classpath("order.process", "flows/order.bpmn");
+        ProcessDefinition.classpath(ProcessModelType.BPMN, "order.process", "flows/order.bpmn");
 engine.runtime().warmUp(definition);
 ```
 
@@ -95,11 +91,16 @@ Avoid executing raw XML submitted directly by end users. If external content mus
 before deployment:
 
 ```java
-ProcessDefinition definition = ProcessDefinition.inline("order.process", xmlContent);
+ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.TBBPM, "order.process", xmlContent);
 ProcessPreflightOptions options = ProcessPreflightOptions.strict();
 ProcessPreflightReport report = engine.tooling().preflight(definition, options);
 if (report.getOverallStatus() == ProcessPreflightReport.OverallStatus.FAIL) {
-    throw new SecurityException("Flow preflight failed for " + report.getCode());
+    String reason = report.getItems().stream()
+            .filter(item -> item.getStatus() != ProcessPreflightReport.ItemStatus.PASS)
+            .map(ProcessPreflightReport.Item::getMessage)
+            .findFirst()
+            .orElse("Unknown preflight failure");
+    throw new SecurityException("Flow preflight failed: " + reason);
 }
 ```
 
@@ -109,7 +110,7 @@ Java actions, Java Code, and Spring bean actions execute with the host applicati
 core-provided QLExpress 4 executor is fixed to `ISOLATED`, a one-second deadline, a per-dimension array limit, and a
 fixed safe function set. Compiled QL programs belong to the exact Process runtime that loaded them; there is no
 provider-global expression cache. The bundled `qlexpress` provider has no host-access switch. A different function surface or
-access policy must use a new semantic language name and own its security and historical compatibility contract.
+access policy must use a new semantic language name and own its security and persistence contract.
 
 A Java action is generated as direct Java construction and invocation. Its class and method names are validated, and the
 declared class must expose a public no-argument constructor accessible to generated code. It does not fall back to
@@ -134,8 +135,8 @@ Runtime type conversion is strict and locale-independent: integral narrowing mus
 without an implicit default timezone, and conversion failures do not include the source value. See
 [Process Data Types and Conversion](type-system.md) for the complete contract.
 
-Groovy, MVEL, and other script languages are not core-provided executors. Registering one through `ScriptExecutor`
-explicitly adds that language and makes its security, timeout, cache, ClassLoader, and lifecycle policy the
+Custom script languages are not core-provided executors. Registering one through `ScriptExecutor` explicitly adds that
+language and makes its security, timeout, cache, ClassLoader, and lifecycle policy the
 application's responsibility. Production deployments should:
 
 - Allow only reviewed flow definitions.
@@ -152,7 +153,7 @@ application's responsibility. Production deployments should:
 - Serve APIs only over HTTPS or behind a trusted TLS-terminating gateway.
 - Keep Actuator and deployment/control APIs off the public internet. Only `/actuator/health`,
   `/actuator/health/liveness`, and `/actuator/health/readiness` are anonymous.
-- Keep Workbench Server and PostgreSQL on private networks behind the same access-control boundary as the trusted edge.
+- Keep Workbench Server and its selected database Provider on private networks behind the same access-control boundary as the trusted edge.
 - Never send the Server API key to a browser; CORS and plain Ingress routing are not authentication.
 - Configure the edge to strip a browser-supplied `X-API-Key`, internal identity headers, and untrusted
   forwarding/client-IP headers before adding its own service credential.
@@ -162,7 +163,7 @@ application's responsibility. Production deployments should:
 
 ### Isolate Tenants And Environments
 
-- Use namespaces for tenant or environment separation.
+- Embedded Engine/Deploy namespaces provide logical scoping, not authorization. Workbench supports only `default`; use separate deployments for isolated tenants.
 - Enforce authorization before publishing, creating or changing rollouts, rolling back, executing, or inspecting.
 - Use separate databases or row-level isolation where tenant data requires hard boundaries.
 - Do not rely on namespace strings alone as an authorization mechanism.
@@ -193,7 +194,7 @@ Store audit logs in append-only or centrally managed logging infrastructure.
 ## Dependency And CI Hygiene
 
 - Run targeted Maven tests for changed modules.
-- Run `./mvnw checkstyle:check` before release candidates.
+- Run `./mvnw checkstyle:check` before publishing a release.
 - Keep dependency scanning in CI or release preparation.
 - Review generated artifacts before publishing release assets.
 

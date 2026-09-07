@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { getDeploymentControlHealth } from '@/operate/api/deployments'
 import {
-  getDeployRuntimeDiagnostics,
+  getDeploymentRuntimeDiagnostics,
   getExecutionTrends,
   getMetrics,
   getRecentErrors,
@@ -15,7 +15,7 @@ import { TIMEOUTS } from '@/shared/constants'
 import type {
   AsyncInvocationHealth,
   DeploymentControlHealth,
-  DeployRuntimeDiagnostics,
+  DeploymentRuntimeDiagnostics,
   ErrorSummary,
   ExecutionTrend,
   MonitoringMetrics,
@@ -34,7 +34,7 @@ export interface MonitoringData {
   topProcesses: TopProcessStats[]
   errors: ErrorSummary[]
   versionDistribution: VersionDistributionStats[]
-  deployRuntime: DeployRuntimeDiagnostics | null
+  deployRuntime: DeploymentRuntimeDiagnostics | null
   routingOutboxControl: DeploymentControlHealth | null
   asyncHealth: AsyncInvocationHealth | null
 }
@@ -85,7 +85,7 @@ function createLoaders(timeRange: MonitoringTimeRange): MonitoringLoaders {
     topProcesses: () => getTopProcesses({ timeRange, limit: 10 }),
     errors: () => getRecentErrors({ timeRange, limit: 10 }),
     versionDistribution: () => getVersionDistribution({ timeRange, limit: 10 }),
-    deployRuntime: getDeployRuntimeDiagnostics,
+    deployRuntime: getDeploymentRuntimeDiagnostics,
     routingOutboxControl: getDeploymentControlHealth,
     asyncHealth: getAsyncInvocationHealth,
   }

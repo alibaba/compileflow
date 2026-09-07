@@ -116,6 +116,7 @@ public final class ProcessPreflightService {
 
     public ProcessPreflightReport preflight(ClassLoader classLoader, ProcessDefinition definition,
             ProcessPreflightOptions options) {
+        Objects.requireNonNull(classLoader, "classLoader");
         Objects.requireNonNull(definition, "definition");
         Objects.requireNonNull(options, "options");
         TaskProgress progress = new TaskProgress(initialStage(options));
@@ -123,7 +124,16 @@ public final class ProcessPreflightService {
         long timeoutNanos = TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
         Future<ProcessPreflightReport> future;
         try {
-            future = coordinator.submit(() -> preflightOne(definition, classLoader, options, progress));
+            future = coordinator.submit(() -> {
+                Thread thread = Thread.currentThread();
+                ClassLoader previous = thread.getContextClassLoader();
+                try {
+                    thread.setContextClassLoader(classLoader);
+                    return preflightOne(definition, classLoader, options, progress);
+                } finally {
+                    thread.setContextClassLoader(previous);
+                }
+            });
         } catch (RejectedExecutionException rejected) {
             throw ProcessFailureClassifier.classify(rejected);
         }

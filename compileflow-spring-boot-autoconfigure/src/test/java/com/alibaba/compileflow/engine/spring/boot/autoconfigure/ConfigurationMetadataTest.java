@@ -16,6 +16,7 @@ package com.alibaba.compileflow.engine.spring.boot.autoconfigure;
 import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -32,13 +33,28 @@ import tools.jackson.databind.ObjectMapper;
 class ConfigurationMetadataTest {
     private static final String METADATA = "META-INF/spring-configuration-metadata.json";
     private static final Pattern DOCUMENTED_PROPERTY = Pattern.compile(
-            "(?m)^\\|(?:[^|\\r\\n]*\\|)*\\s*`(compileflow\\.(?:engine|deploy)\\.[a-z0-9]" + "+(?:[.-][a-z0-9]+)*)`\\s*\\|");
+            "(?m)^\\|(?:[^|\\r\\n]*\\|)*\\s*`(compileflow\\.engine\\.[a-z0-9]" + "+(?:[.-][a-z0-9]+)*)`\\s*\\|");
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static JsonNode readMetadata() throws IOException {
-        try (InputStream input = ConfigurationMetadataTest.class.getClassLoader().getResourceAsStream(METADATA)) {
-            assertThat(input).as(METADATA).isNotNull();
+        Path metadata = moduleClassesDirectory().resolve(METADATA);
+        assertThat(metadata).isRegularFile();
+        try (InputStream input = Files.newInputStream(metadata)) {
             return OBJECT_MAPPER.readTree(input);
+        }
+    }
+
+    private static Path moduleClassesDirectory() throws IOException {
+        try {
+            Path testClasses =
+                    Path.of(ConfigurationMetadataTest.class
+                .getProtectionDomain()
+                .getCodeSource()
+                .getLocation()
+                .toURI());
+            return testClasses.getParent().resolve("classes");
+        } catch (URISyntaxException e) {
+            throw new IOException("Cannot locate this module's generated configuration metadata", e);
         }
     }
 
@@ -96,19 +112,6 @@ class ConfigurationMetadataTest {
         assertDefault(byName, "compileflow.engine.runtime-mode", "COMPILED");
         assertDefault(byName, "compileflow.engine.definition.max-size", "4MB");
         assertDefault(byName, "compileflow.engine.components.allowed-beans", List.of());
-        assertDefault(byName, "compileflow.deploy.enabled", false);
-        assertDefault(byName, "compileflow.deploy.topology", "EMBEDDED");
-        assertDefault(byName, "compileflow.deploy.control-plane-enabled", true);
-        assertDefault(byName, "compileflow.deploy.runtime-worker-enabled", false);
-        assertDefault(byName, "compileflow.deploy.runtime.convergence-timeout", "30s");
-        assertDefault(byName, "compileflow.deploy.runtime.concurrency", 1);
-        assertDefault(byName, "compileflow.deploy.artifact.mode", "DATABASE");
-        assertDefault(byName, "compileflow.deploy.outbox.lease-duration", "1m");
-        assertDefault(byName, "compileflow.deploy.outbox.dispatch-batch-size", 50);
-        assertDefault(byName, "compileflow.deploy.outbox.retry.initial-delay", "5s");
-        assertDefault(byName, "compileflow.deploy.outbox.retry.max-delay", "5m");
-        assertDefault(byName, "compileflow.deploy.outbox.retry.max-attempts", 10);
-        assertDefault(byName, "compileflow.deploy.reconciliation.mode", "REPAIR");
         assertDefault(byName, "compileflow.engine.plugins.discovery-enabled", false);
         assertDefault(byName, "compileflow.engine.call.max-depth", 32);
 
@@ -117,7 +120,7 @@ class ConfigurationMetadataTest {
             .isFalse();
         assertDefault(byName, "compileflow.engine.executor.runtime-load.max-pending", 4);
         assertThat(byName.get("compileflow.engine.executor.action-timeout.max-concurrency").has("defaultValue")).isFalse();
-        assertDefault(byName, "compileflow.engine.executor.action-timeout.max-pending", 32);
+        assertDefault(byName, "compileflow.engine.executor.action-timeout.max-pending", 0);
         assertDefault(byName, "compileflow.engine.executor.action-timeout.cancellation-grace-period", "2s");
         assertDefault(byName, "compileflow.engine.executor.parallel.cancellation-grace-period", "2s");
         assertThat(byName)
@@ -128,17 +131,8 @@ class ConfigurationMetadataTest {
                     "compileflow.engine.executor.parallel.max-platform-threads",
                     "compileflow.engine.executor.event.core-threads", "compileflow.engine.executor.event.max-threads",
                     "compileflow.engine.executor.shutdown.grace-period",
-                    "compileflow.engine.executor.shutdown.force-period",
-                    "compileflow.deploy.control.compilation.max-in-flight",
-                    "compileflow.deploy.control.compilation.admission-timeout",
-                    "compileflow.deploy.control.compilation.lease-timeout",
-                    "compileflow.deploy.artifact.require-content-digest");
-        assertThat(byName)
-            .doesNotContainKeys("compileflow.deploy.runtime.max-in-flight", "compileflow.deploy.routing.keys",
-                    "compileflow.deploy.reconciliation.enabled", "compileflow.deploy.reconciliation.repair-enabled",
-                    "compileflow.deploy.outbox.claim-lease", "compileflow.deploy.outbox.max-attempts",
-                    "compileflow.deploy.outbox.initial-retry-delay", "compileflow.deploy.outbox.max-retry-delay",
-                    "compileflow.deploy.outbox.batch-size");
+                    "compileflow.engine.executor.shutdown.force-period");
+        assertThat(byName.keySet()).allMatch(name -> name.startsWith("compileflow.engine."));
         assertThat(byName
             .entrySet()
             .stream()
@@ -162,14 +156,10 @@ class ConfigurationMetadataTest {
             hints.put(hint.path("name").stringValue(), values);
         }
 
-        assertThat(hints.get("compileflow.engine.model-type")).containsExactlyInAnyOrder("TBBPM", "BPMN");
+        assertThat(hints).doesNotContainKey("compileflow.engine.model-type");
         assertThat(hints.get("compileflow.engine.runtime-mode")).containsExactlyInAnyOrder("COMPILED", "INTERPRETED");
         assertThat(hints.get("compileflow.engine.java-diagnostics.debug.symbols"))
             .containsExactlyInAnyOrder("NONE", "LINES", "FULL");
-        assertThat(hints.get("compileflow.deploy.artifact.mode")).containsExactlyInAnyOrder("DATABASE", "CHANNEL");
-        assertThat(hints.get("compileflow.deploy.topology")).containsExactlyInAnyOrder("EMBEDDED", "DISTRIBUTED");
-        assertThat(hints.get("compileflow.deploy.reconciliation.mode"))
-            .containsExactlyInAnyOrder("DISABLED", "DETECT", "REPAIR");
     }
 
     @Test

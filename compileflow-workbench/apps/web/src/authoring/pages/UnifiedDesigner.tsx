@@ -19,6 +19,7 @@ import {
   useKeyboardShortcuts,
 } from '../designer/hooks/useKeyboardShortcuts'
 import { useUnsavedChangesGuard } from '../designer/hooks/useUnsavedChangesGuard'
+import { useXmlDraft } from '../designer/hooks/useXmlDraft'
 import type { UnifiedProcessDefinition } from '../designer/types/flowDefinition'
 import { useProcessInitialization } from '../hooks/useProcessInitialization'
 
@@ -264,15 +265,15 @@ function DesignerViewTabs({
 }
 
 function DesignerCanvas({
-  entryPayload,
+  modelType,
   onGraphReady,
   processVariablesDialog,
 }: {
-  entryPayload: DesignerEntryDescriptor
+  modelType: UnifiedProcessDefinition['type']
   onGraphReady: (graph: Graph | null) => void
   processVariablesDialog: ProcessVariablesDialogState
 }) {
-  if (entryPayload.modelType === 'bpmn') {
+  if (modelType === 'BPMN') {
     return (
       <BpmnDesigner onGraphReady={onGraphReady} processVariablesDialog={processVariablesDialog} />
     )
@@ -285,15 +286,13 @@ function DesignerCanvas({
 
 function DesignerBody({
   children,
-  currentXml,
+  xmlDraft,
   isModified,
-  onApplyXml,
   viewMode,
 }: {
   children: React.ReactNode
-  currentXml: string
+  xmlDraft: ReturnType<typeof useXmlDraft>
   isModified: boolean
-  onApplyXml: (xml: string) => Promise<void>
   viewMode: DesignerViewMode
 }) {
   const showXml = viewMode === 'xml' || viewMode === 'split'
@@ -312,8 +311,7 @@ function DesignerBody({
       {showXml && (
         <div className="unified-designer-xml-pane">
           <XmlCodeEditorPanel
-            sourceXml={currentXml}
-            onApply={onApplyXml}
+            editor={xmlDraft}
             showCanvasStaleHint={viewMode === 'split' && isModified}
           />
         </div>
@@ -365,6 +363,7 @@ function UnifiedDesignerContent({ entryPayload }: { entryPayload: DesignerEntryD
   const showGridlines = useAppSelector(selectShowGridlines)
   const operateBinding = useAppSelector(selectOperateBinding)
   const warnings = useAppSelector(selectWarnings)
+  const documentId = useAppSelector((state) => state.editor.present.documentRequestId)
 
   const { copyNodes, pasteNodes } = useClipboard()
   const [graph, setGraph] = useState<Graph | null>(null)
@@ -382,8 +381,29 @@ function UnifiedDesignerContent({ entryPayload }: { entryPayload: DesignerEntryD
     operateBinding,
   })
 
+  const { xml: currentXml, error: xmlGenerationError } = useCurrentXml(currentProcess)
+  const handleApplyXmlFromEditor = useCallback(
+    async (xml: string, signal: AbortSignal) => {
+      if (!currentProcess) throw new Error('No flow to edit')
+      await dispatch(importXml({ xml, type: currentProcess.type }, { signal })).unwrap()
+      signal.throwIfAborted()
+      message.success(t('designer.xmlEditor.applySuccess'))
+    },
+    [currentProcess, dispatch, message, t]
+  )
+  const xmlDraft = useXmlDraft({
+    sourceXml: currentXml,
+    documentId,
+    onApply: handleApplyXmlFromEditor,
+  })
+  const saveDocument = useCallback(
+    () => xmlDraft.save(actions.onSave),
+    [xmlDraft.save, actions.onSave]
+  )
+  const hasUnsavedChanges = isModified || xmlDraft.isDirty
+
   const shortcuts = createDesignerShortcuts({
-    onSave: actions.onSave,
+    onSave: saveDocument,
     onUndo: actions.onUndo,
     onRedo: actions.onRedo,
     onCopy: actions.onCopy,
@@ -391,28 +411,19 @@ function UnifiedDesignerContent({ entryPayload }: { entryPayload: DesignerEntryD
   })
 
   useKeyboardShortcuts(shortcuts)
-  const unsavedChangesDialog = useUnsavedChangesGuard(isModified, actions.onSave)
-  const { xml: currentXml, error: xmlGenerationError } = useCurrentXml(currentProcess)
+  const unsavedChangesDialog = useUnsavedChangesGuard(hasUnsavedChanges, saveDocument)
 
   const { autoSavePending } = useAutoSave({
     isModified,
     isSaving,
-    canSave: Boolean(currentProcess) && !xmlGenerationError,
+    canSave:
+      Boolean(currentProcess) && !xmlGenerationError && !xmlDraft.isDirty && !xmlDraft.isApplying,
     dispatch,
   })
 
   const handleBackToWorkspace = useCallback(() => {
     void navigate(flowInit.exitRoute ?? ROUTES.BUILD)
   }, [flowInit.exitRoute, navigate])
-
-  const handleApplyXmlFromEditor = useCallback(
-    async (xml: string) => {
-      if (!currentProcess) return
-      await dispatch(importXml({ xml, type: currentProcess.type })).unwrap()
-      message.success(t('designer.xmlEditor.applySuccess'))
-    },
-    [currentProcess, dispatch, t]
-  )
 
   const handleDismissWarnings = useCallback(() => {
     dispatch(clearWarnings())
@@ -432,13 +443,14 @@ function UnifiedDesignerContent({ entryPayload }: { entryPayload: DesignerEntryD
   }
 
   return (
-    <div className="unified-designer-container" data-type={entryPayload.modelType}>
+    <div className="unified-designer-container" data-type={currentProcess.type.toLowerCase()}>
       <DesignerHeaderBar
-        actions={actions}
+        key={documentId}
+        actions={{ ...actions, onSave: saveDocument }}
         canRedo={canRedo}
         canUndo={canUndo}
         currentProcess={currentProcess}
-        isModified={isModified}
+        isModified={hasUnsavedChanges}
         isSaving={isSaving}
         operateProcessCode={operateBinding?.processCode ?? null}
         onShowLocalSnapshots={() => setLocalSnapshotsOpen(true)}
@@ -447,21 +459,16 @@ function UnifiedDesignerContent({ entryPayload }: { entryPayload: DesignerEntryD
       <DesignerWarnings warnings={warnings} onDismiss={handleDismissWarnings} />
       <XmlGenerationErrorAlert error={xmlGenerationError} visible={showXml} />
       <DesignerViewTabs viewMode={viewMode} onChange={handleSwitchView} />
-      <DesignerBody
-        currentXml={currentXml}
-        isModified={isModified}
-        onApplyXml={handleApplyXmlFromEditor}
-        viewMode={viewMode}
-      >
+      <DesignerBody xmlDraft={xmlDraft} isModified={isModified} viewMode={viewMode}>
         <DesignerCanvas
-          entryPayload={entryPayload}
+          modelType={currentProcess.type}
           onGraphReady={setGraph}
           processVariablesDialog={processVariablesDialog}
         />
       </DesignerBody>
       <DesignerStatusBar
         graph={graph}
-        isModified={isModified}
+        isModified={hasUnsavedChanges}
         isSaving={isSaving}
         autoSavePending={autoSavePending}
       />

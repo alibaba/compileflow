@@ -49,6 +49,7 @@ import com.alibaba.compileflow.engine.core.semantic.plan.AwaitPlan;
 import com.alibaba.compileflow.engine.core.semantic.plan.ProcessCallPlan;
 import com.alibaba.compileflow.engine.core.semantic.plan.IterationPlan;
 import com.alibaba.compileflow.engine.core.semantic.plan.ProcessSemanticPlan;
+import com.alibaba.compileflow.engine.core.type.JavaSourceLiteral;
 import com.alibaba.compileflow.engine.core.semantic.plan.TimerPlan;
 import com.alibaba.compileflow.engine.core.runtime.execution.ConditionSemantics;
 import com.alibaba.compileflow.engine.core.type.DataTypes;
@@ -59,7 +60,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -206,11 +206,6 @@ final class DurableJavaProgramCodeGenerator {
                 + values.stream().map(DurableJavaProgramCodeGenerator::literal).collect(Collectors.joining(", ")) + ")";
     }
 
-    private static String stringList(List<String> values) {
-        return "List.of("
-                + values.stream().map(DurableJavaProgramCodeGenerator::literal).collect(Collectors.joining(", ")) + ")";
-    }
-
     private static String branchActivations(List<BranchActivation> values) {
         return "List.of("
                 + values
@@ -225,34 +220,7 @@ final class DurableJavaProgramCodeGenerator {
     }
 
     private static String literal(String value) {
-        return "\"" + escape(Objects.requireNonNull(value, "value")) + "\"";
-    }
-
-    private static String escape(String value) {
-        StringBuilder result = new StringBuilder();
-        value.codePoints().forEach(codePoint -> {
-            switch (codePoint) {
-                case '\\' -> result.append("\\\\");
-                case '"' -> result.append("\\\"");
-                case '\n' -> result.append("\\n");
-                case '\r' -> result.append("\\r");
-                case '\t' -> result.append("\\t");
-                default -> {
-                    if (Character.isISOControl(codePoint) || Character.getType(codePoint) == Character.FORMAT) {
-                        appendUnicodeEscape(result, codePoint);
-                    } else {
-                        result.appendCodePoint(codePoint);
-                    }
-                }
-            }
-        });
-        return result.toString();
-    }
-
-    private static void appendUnicodeEscape(StringBuilder target, int codePoint) {
-        for (char codeUnit : Character.toChars(codePoint)) {
-            target.append(String.format(Locale.ROOT, "\\u%04x", (int) codeUnit));
-        }
+        return JavaSourceLiteral.stringExpression(value);
     }
 
     private static void line(StringBuilder code, String line) {
@@ -970,7 +938,7 @@ final class DurableJavaProgramCodeGenerator {
         line(code, "          if (selected.isEmpty()) {");
         if (fork.defaultActivation() == null) {
             line(code,
-                    "            throw new IllegalStateException(\"No inclusive branch matched at " + escape(nodeId) + "\");");
+                    "            throw new IllegalStateException(" + literal("No inclusive branch matched at " + nodeId) + ");");
         } else {
             line(code,
                     "            selected.add(new BranchActivation(" + fork.defaultActivation().ordinal() + ", "
@@ -1081,7 +1049,7 @@ final class DurableJavaProgramCodeGenerator {
             return;
         }
         line(code,
-                "          throw new IllegalStateException(\"No decision branch matched at " + escape(nodeId) + "\");");
+                "          throw new IllegalStateException(" + literal("No decision branch matched at " + nodeId) + ");");
     }
 
     private void generateLoopAdvance(StringBuilder code) {

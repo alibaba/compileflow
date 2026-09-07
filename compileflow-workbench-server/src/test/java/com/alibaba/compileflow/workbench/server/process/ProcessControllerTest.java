@@ -78,7 +78,7 @@ class ProcessControllerTest {
 
     private static PublishedProcessVersion publishResult(PublishProcessVersionCommand command) {
         ProcessRef.Version ref = command.getRef();
-        return new PublishedProcessVersion(ref, command.getModelType(),
+        return new PublishedProcessVersion(ref, command.getDefinition().modelType(),
                 DigestUtils.sha256Hex(command.getDefinition().content()), command.getMetadata(), command.getActor(),
                 Instant.ofEpochMilli(1_700_000_000_000L));
     }

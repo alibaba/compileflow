@@ -13,34 +13,32 @@
  */
 package com.alibaba.compileflow.engine.spring.boot.autoconfigure.observability;
 
+import com.alibaba.compileflow.engine.ProcessEngine;
 import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
+import com.alibaba.compileflow.engine.core.DefaultProcessEngine;
+import com.alibaba.compileflow.engine.core.concurrent.ProcessExecutorMetrics;
 import com.alibaba.compileflow.engine.core.event.ProcessEventDeliveryMetrics;
 import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.binder.MeterBinder;
-import java.util.Collection;
-import java.util.List;
 import java.util.Objects;
 
 /**
- * Binds engine configuration metrics and JVM-process-wide event-delivery metrics to a Micrometer registry.
+ * Binds engine configuration and JVM-process-wide executor and event-delivery metrics.
  *
  * @author yusu
  */
 public class CompileFlowMetricsBinder implements MeterBinder {
     private static final String METRIC_PREFIX = "compileflow.engine.";
-    private final List<ProcessEngineConfig> configurations;
+    private final ProcessEngine engine;
 
-    public CompileFlowMetricsBinder(Collection<ProcessEngineConfig> configurations) {
-        this.configurations = List.copyOf(Objects.requireNonNull(configurations, "configurations"));
-        if (this.configurations.isEmpty()) {
-            throw new IllegalArgumentException("configurations must not be empty");
-        }
+    public CompileFlowMetricsBinder(ProcessEngine engine) {
+        this.engine = Objects.requireNonNull(engine, "engine");
     }
 
     private static void bindConfiguration(MeterRegistry registry, ProcessEngineConfig config) {
-        Tags tags = Tags.of("model.type", config.getModelType().name());
+        Tags tags = Tags.empty();
 
         registry.gauge(METRIC_PREFIX + "executor.runtime.load.max.concurrency", tags, config, c -> c
             .getExecutorConfig()
@@ -69,11 +67,26 @@ public class CompileFlowMetricsBinder implements MeterBinder {
 
     @Override
     public void bindTo(MeterRegistry registry) {
-        configurations.forEach(config -> bindConfiguration(registry, config));
+        if (engine instanceof DefaultProcessEngine defaultEngine) {
+            bindConfiguration(registry, defaultEngine.getConfiguration());
+            bindExecutor(registry, "runtime.load", defaultEngine.getRuntimeLoadMetrics());
+            bindExecutor(registry, "action.timeout", defaultEngine.getActionTimeoutMetrics());
+            bindExecutor(registry, "event.delivery", defaultEngine.getEventDeliveryMetrics());
+        }
         FunctionCounter
             .builder(METRIC_PREFIX + "events.dropped", ProcessEventDeliveryMetrics.global(),
                     ProcessEventDeliveryMetrics::droppedCount)
-            .description("Best-effort asynchronous lifecycle events rejected by the bounded event executor")
+            .description("JVM-wide best-effort asynchronous lifecycle events rejected by event executors")
+            .register(registry);
+    }
+
+    private static void bindExecutor(MeterRegistry registry, String name, ProcessExecutorMetrics metrics) {
+        String prefix = METRIC_PREFIX + "executor." + name;
+        registry.gauge(prefix + ".active", metrics, ProcessExecutorMetrics::activeCount);
+        registry.gauge(prefix + ".pending", metrics, ProcessExecutorMetrics::pendingCount);
+        FunctionCounter
+            .builder(prefix + ".rejected", metrics, ProcessExecutorMetrics::rejectedCount)
+            .description("Rejected submissions to this engine-owned executor, including saturation and shutdown")
             .register(registry);
     }
 }

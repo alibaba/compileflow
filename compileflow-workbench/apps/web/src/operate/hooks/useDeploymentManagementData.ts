@@ -9,6 +9,7 @@ import {
   rollbackDeployment,
 } from '@/operate/api/deployments'
 import type { Deployment, DeploymentListParams } from '@/shared/contracts'
+import { createUniqueId } from '@/shared/identifiers'
 
 export interface UseDeploymentManagementDataResult {
   deployments: Deployment[]
@@ -103,7 +104,7 @@ function useRestoreBaselineAction(
                   await abortCanary(id, deployment.revision, 'Operator restored the stable version')
                 } else {
                   const intent = `${id}\u0000${deployment.routeRevision}`
-                  const idempotencyKey = rollbackIntents.current.get(intent) ?? crypto.randomUUID()
+                  const idempotencyKey = rollbackIntents.current.get(intent) ?? createUniqueId()
                   rollbackIntents.current.set(intent, idempotencyKey)
                   await rollbackDeployment(id, deployment.routeRevision, idempotencyKey)
                   rollbackIntents.current.delete(intent)

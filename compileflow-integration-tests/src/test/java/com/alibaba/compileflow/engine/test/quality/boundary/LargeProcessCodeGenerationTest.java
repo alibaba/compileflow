@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.quality.boundary;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
@@ -163,12 +164,13 @@ class LargeProcessCodeGenerationTest {
 
     @Test
     void tenThousandNodeFlowGeneratesCompilesAndExecutesDeterministically() {
-        ProcessDefinition definition = ProcessDefinition.inline(CODE, linearDefinition(ACTION_COUNT));
+        ProcessDefinition definition =
+                ProcessDefinition.inline(ProcessModelType.TBBPM, CODE, linearDefinition(ACTION_COUNT));
 
         ProcessDefinitionConfig stressDefinitions =
                 ProcessDefinitionConfig.builder().maxBytes(STRESS_DEFINITION_MAX_BYTES).build();
         try (ProcessEngine engine = ProcessEngineFactory.create(ProcessEngineTestFactory
-            .tbbpmBuilder()
+            .builder()
             .runtimeLoadTimeout(Duration.ofSeconds(30))
             .definitions(stressDefinitions)
             .build())) {
@@ -206,9 +208,10 @@ class LargeProcessCodeGenerationTest {
     @Test
     void largeLoopBodyKeepsLocalVariablesInsideItsLexicalMethod() {
         String code = "quality.large.lexicalLoop";
-        ProcessDefinition definition = ProcessDefinition.inline(code, lexicalLoopDefinition(201));
+        ProcessDefinition definition =
+                ProcessDefinition.inline(ProcessModelType.TBBPM, code, lexicalLoopDefinition(201));
 
-        try (ProcessEngine engine = ProcessEngineTestFactory.createTbbpm()) {
+        try (ProcessEngine engine = ProcessEngineTestFactory.create()) {
             String source = engine.tooling().generateJavaCode(definition);
             ProcessResult<Map<String, Object>> result = engine.execute(definition, Map.of("items", List.of(1)));
 
@@ -232,10 +235,10 @@ class LargeProcessCodeGenerationTest {
 
     @Test
     void generatedLocalsDoNotCollideWithLoopVariableNames() {
-        ProcessDefinition definition =
-                ProcessDefinition.inline("quality.generated-local-collision", generatedLocalCollisionDefinition());
+        ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.TBBPM,
+                "quality.generated-local-collision", generatedLocalCollisionDefinition());
 
-        try (ProcessEngine engine = ProcessEngineTestFactory.createTbbpm()) {
+        try (ProcessEngine engine = ProcessEngineTestFactory.create()) {
             String source = engine.tooling().generateJavaCode(definition);
             ProcessResult<Map<String, Object>> result = engine.execute(definition, Map.of("items", List.of(2)));
 

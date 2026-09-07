@@ -40,12 +40,19 @@ public final class Awaiter {
                 if (Boolean.TRUE.equals(condition.call())) {
                     return;
                 }
+            } catch (InterruptedException failure) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError("Interrupted while awaiting: " + description, failure);
             } catch (Exception failure) {
                 lastError = failure;
             }
 
+            long remainingNanos = timeoutNanos - (System.nanoTime() - startedAt);
+            if (remainingNanos <= 0L) {
+                break;
+            }
             try {
-                TimeUnit.NANOSECONDS.sleep(intervalNanos);
+                TimeUnit.NANOSECONDS.sleep(Math.min(intervalNanos, remainingNanos));
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 throw new AssertionError("Interrupted while awaiting: " + description, ie);

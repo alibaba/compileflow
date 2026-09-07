@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.quality.concurrent;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessEngine;
@@ -47,7 +48,7 @@ class ConcurrentExecutionTest {
 
     @BeforeEach
     void setUp() {
-        engine = ProcessEngineTestFactory.createBpmn();
+        engine = ProcessEngineTestFactory.create();
     }
 
     @AfterEach
@@ -80,8 +81,8 @@ class ConcurrentExecutionTest {
                         .withCalculation(executionId % 100, (executionId + 1) % 100)
                         .build();
 
-                    ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpmn20."
-                                    + "compat.simple_service",
+                    ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                                    "bpmn20." + "compat.simple_service",
                                     "bpmn20.compat.simple_service".replace(".", "/") + ".bpmn"), context);
 
                     if (result.isSuccess()) {
@@ -102,6 +103,7 @@ class ConcurrentExecutionTest {
             completed = latch.await(30, TimeUnit.SECONDS);
         } finally {
             executor.shutdownNow();
+            assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
         }
 
         assertThat(completed).as("All executions should complete without deadlock").isTrue();
@@ -123,9 +125,9 @@ class ConcurrentExecutionTest {
                 Map<String, Object> context =
                         ProcessContextBuilder.newContext().withCalculation(i % 100, (i + 1) % 100).build();
 
-                ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpmn20."
-                                + "compat.simple_service", "bpmn20.compat.simple_service".replace(".", "/") + ".bpmn"),
-                        context);
+                ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                                "bpmn20." + "compat.simple_service",
+                                "bpmn20.compat.simple_service".replace(".", "/") + ".bpmn"), context);
 
                 if (result.isSuccess()) {
                     successCount.incrementAndGet();
@@ -157,8 +159,8 @@ class ConcurrentExecutionTest {
             for (int i = 0; i < threadsPerFlow; i++) {
                 executor.submit(() -> {
                     try {
-                        ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(flowCode,
-                                        flowCode.replace(".", "/") + ".bpmn"), compilationInput(flowCode));
+                        ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                                        flowCode, flowCode.replace(".", "/") + ".bpmn"), compilationInput(flowCode));
 
                         if (result.isSuccess()) {
                             successCount.incrementAndGet();
@@ -181,6 +183,7 @@ class ConcurrentExecutionTest {
             completed = latch.await(20, TimeUnit.SECONDS);
         } finally {
             executor.shutdownNow();
+            assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
         }
 
         assertThat(completed).as("All compilations should complete").isTrue();
@@ -216,8 +219,8 @@ class ConcurrentExecutionTest {
             executor.submit(() -> {
                 try {
                     // Add some execution pressure.
-                    ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpmn20."
-                                    + "compat.simple_service",
+                    ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                                    "bpmn20." + "compat.simple_service",
                                     "bpmn20.compat.simple_service".replace(".", "/") + ".bpmn"),
                             ProcessContextBuilder.newContext().withCalculation(taskId, taskId + 1).build());
 
@@ -239,6 +242,7 @@ class ConcurrentExecutionTest {
             completed = latch.await(60, TimeUnit.SECONDS);
         } finally {
             executor.shutdownNow();
+            assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
         }
 
         assertThat(completed).as("All tasks should complete despite saturation").isTrue();

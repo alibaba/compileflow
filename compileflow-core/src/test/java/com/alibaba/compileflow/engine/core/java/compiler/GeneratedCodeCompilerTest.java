@@ -116,7 +116,8 @@ class GeneratedCodeCompilerTest {
                 + "}\n";
 
         assertThatThrownBy(() -> new JdkJavaCompiler()
-            .compile(JavaSource.of(source, className), (name, bytes) -> {}, JavaCompileOptions.defaults()))
+            .compile(JavaSource.of(source, className), (name, bytes) -> {},
+                    new JavaCompileOptions(JavaDiagnosticsConfig.DebugSymbols.LINES, null)))
             .isInstanceOf(CompileFlowException.class)
             .hasMessageContaining("ofVirtual");
     }

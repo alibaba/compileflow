@@ -20,6 +20,7 @@ import { toError } from '@/shared/errors'
 export interface BpmnValidationError {
   id: string
   elementId: string
+  elementType?: 'connection'
   code: string
   params?: Record<string, string | number>
   severity: 'error' | 'warning' | 'info'
@@ -59,7 +60,14 @@ export class BpmnValidator {
     this.validateHierarchy()
     this.validateMessages()
     this.nodes.forEach((node) => this.validateNode(node))
-    this.connections.forEach((conn) => this.validateConnection(conn))
+    this.connections.forEach((conn) => {
+      const start = this.errors.length
+      this.validateConnection(conn)
+      this.errors.slice(start).forEach((error) => {
+        error.elementId = conn.id
+        error.elementType = 'connection'
+      })
+    })
     return this.errors
   }
 

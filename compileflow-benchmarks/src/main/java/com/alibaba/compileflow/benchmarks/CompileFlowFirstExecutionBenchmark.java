@@ -16,6 +16,7 @@ package com.alibaba.compileflow.benchmarks;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
 import com.alibaba.compileflow.engine.ProcessEngineFactory;
+import com.alibaba.compileflow.engine.ProcessModelType;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -60,8 +61,8 @@ public class CompileFlowFirstExecutionBenchmark {
      */
     @Setup
     public void setup() {
-        this.engine = ProcessEngineFactory.createTbbpm();
-        this.source = ProcessDefinition.classpath("bpm.sample.hello", "flows/hello.bpm");
+        this.engine = ProcessEngineFactory.create();
+        this.source = ProcessDefinition.classpath(ProcessModelType.TBBPM, "bpm.sample.hello", "flows/hello.bpm");
     }
 
     /**

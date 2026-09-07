@@ -12,7 +12,7 @@
 
     <artifactId>compileflow-deploy-api</artifactId>
     <name>CompileFlow Deployment API</name>
-    <description>Public deployment facade, commands, views, errors, protocols, and synchronization SPI.</description>
+    <description>Public deployment facade, commands, domain values, errors, and provider SPI.</description>
 
     <properties>
         <!-- Set the shared baseline version and activate api-compat after the first 2.x release. -->
@@ -24,23 +24,6 @@
             <groupId>com.alibaba.compileflow</groupId>
             <artifactId>compileflow-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>tools.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>tools.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-        </dependency>
-
         <!-- Test dependencies -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -66,30 +49,6 @@
 
     <build>
         <plugins>
-            <plugin>
-                <artifactId>maven-jar-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-test-fixtures</id>
-                        <phase>process-test-classes</phase>
-                        <goals>
-                            <goal>test-jar</goal>
-                        </goals>
-                        <configuration>
-                            <includes>
-                                <include>**/InMemoryDeploymentSyncChannel.class</include>
-                                <include>**/InMemoryDeploymentSyncChannel$*.class</include>
-                            </includes>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <configuration>
-                    <excludePackageNames>com.alibaba.compileflow.deploy.protocol.*</excludePackageNames>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -138,9 +97,6 @@
                         <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
                         <breakBuildOnSourceIncompatibleModifications>true</breakBuildOnSourceIncompatibleModifications>
                         <onlyModified>true</onlyModified>
-                        <excludes>
-                            <exclude>com.alibaba.compileflow.deploy.api.protocol.json.DeploymentProtocolJson</exclude>
-                        </excludes>
                     </parameter>
                 </configuration>
                 <executions>

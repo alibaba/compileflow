@@ -1,10 +1,10 @@
 import { App } from 'antd'
-import { isAxiosError } from 'axios'
+import { isAxiosError, isCancel } from 'axios'
 import type { ErrorInfo } from 'react'
 import { useEffect } from 'react'
 
 import { devError } from '../config/buildConfig'
-import { AppError, ErrorSeverity, NetworkError, toError } from '../errors'
+import { AppError, ErrorSeverity, NetworkError } from '../errors'
 import i18n from '../i18n'
 
 export { AppError, NetworkError, ErrorSeverity }
@@ -70,7 +70,6 @@ export class TimeoutError extends AppError {
   constructor(message = i18n.t('error.requestTimeout')) {
     super(message, 'TIMEOUT', ErrorSeverity.HIGH)
     this.name = 'TimeoutError'
-    Object.setPrototypeOf(this, TimeoutError.prototype)
   }
 }
 
@@ -79,6 +78,13 @@ export function handleApiError(error: unknown): AppError {
   if (error instanceof AppError) {
     devError('AppError:', error.toJSON())
     return error
+  }
+
+  if (isExpectedCancellation(error)) {
+    return new AppError(
+      error instanceof Error || error instanceof DOMException ? error.message : 'Canceled',
+      'REQUEST_CANCELLED'
+    )
   }
 
   if (isAxiosError<unknown>(error)) {
@@ -124,6 +130,13 @@ export function handleComponentError(error: Error, errorInfo: ErrorInfo): void {
   })
 }
 
+function isExpectedCancellation(error: unknown): boolean {
+  if (isCancel(error)) return true
+  if (error instanceof AppError) return error.code === 'REQUEST_CANCELLED'
+  if (!(error instanceof Error) && !(error instanceof DOMException)) return false
+  return error.name === 'AbortError' || (error.name === 'Canceled' && error.message === 'Canceled')
+}
+
 export function GlobalErrorHandler() {
   const { notification } = App.useApp()
 
@@ -136,10 +149,15 @@ export function GlobalErrorHandler() {
     }
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       event.preventDefault()
+      if (isExpectedCancellation(event.reason)) return
       devError('Unhandled Promise Rejection:', event.reason)
       notify(event.reason)
     }
     const handleWindowError = (event: ErrorEvent) => {
+      if (isExpectedCancellation(event.error)) {
+        event.preventDefault()
+        return
+      }
       devError('Global Error:', {
         message: event.message,
         filename: event.filename,
@@ -161,50 +179,14 @@ export function GlobalErrorHandler() {
   return null
 }
 
-export async function retryOperation<T>(
-  operation: () => Promise<T>,
-  options: {
-    maxRetries?: number
-    delay?: number
-    onRetry?: (attempt: number, error: Error) => void
-    isRetryable?: (error: Error) => boolean
-  } = {}
-): Promise<T> {
-  const { maxRetries = 3, delay = 1000, onRetry, isRetryable = () => true } = options
-  let lastError: Error | undefined
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await operation()
-    } catch (error) {
-      lastError = toError(error)
-      if (!isRetryable(lastError) || attempt >= maxRetries) {
-        break
-      }
-      onRetry?.(attempt, lastError)
-      // Full jitter: multiply base exponential by U(0.5, 1.0) to desynchronise concurrent retries.
-      const jitter = 0.5 + Math.random() * 0.5
-      await new Promise((resolve) => setTimeout(resolve, delay * Math.pow(2, attempt - 1) * jitter))
-    }
-  }
-
-  throw lastError ?? new Error(i18n.t('error.retryExhausted'))
-}
-
-/** Whether a fetch-based execution call should be retried (transient network / overload). */
-export function isTransientFetchError(error: Error): boolean {
-  if (error.name === 'AbortError') {
+/** Whether a classified query failure is transient. Mutating requests must not be replayed. */
+export function isTransientApiError(error: Error): boolean {
+  if (error instanceof NetworkError || error instanceof TimeoutError) {
     return true
   }
-  if (
+  return (
     error instanceof AppError &&
     typeof error.context?.statusCode === 'number' &&
     [408, 429, 502, 503, 504].includes(error.context.statusCode)
-  ) {
-    return true
-  }
-  if (/HTTP (408|429|502|503|504)/.test(error.message)) {
-    return true
-  }
-  return /fetch failed|network|ECONNRESET|ETIMEDOUT/i.test(error.message)
+  )
 }

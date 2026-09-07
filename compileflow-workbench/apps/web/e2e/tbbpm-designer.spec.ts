@@ -37,11 +37,28 @@ test.describe('TBBPM designer smoke', () => {
   })
 
   test('save shows success toast (Ctrl+S)', async ({ page }) => {
-    await page.keyboard.press('Control+S')
-    await expect(page.locator('.ant-message-notice').first()).toBeVisible({ timeout: 5000 })
+    const name = `Keyboard save ${crypto.randomUUID()}`
+    await page.getByRole('button', { name: '重命名流程' }).click()
+    await page.getByRole('searchbox', { name: '重命名流程' }).fill(name)
+    await page.getByRole('searchbox', { name: '重命名流程' }).press('Enter')
+    await expect(page.locator('.modified-indicator')).toHaveCount(1)
+    await page.locator('.tbbpm-canvas').click()
+
+    // Observe the transient result before dispatching the shortcut.
+    await Promise.all([
+      expect(page.locator('.ant-message-success').filter({ hasText: /^已保存$/ })).toBeVisible({
+        timeout: 5000,
+      }),
+      page.keyboard.press('Control+S'),
+    ])
+    await expect(page.locator('.header-save-btn')).toHaveText('已保存')
+    await expect(page.locator('.modified-indicator')).toHaveCount(0)
+    await page.reload()
+    await expect(page.locator('.flow-name-display')).toHaveText(name)
   })
 
   test('node search modal opens (Ctrl+F)', async ({ page }) => {
+    await page.locator('.tbbpm-canvas').click()
     await page.keyboard.press('Control+F')
     await expect(page.getByText('搜索节点')).toBeVisible({ timeout: 5000 })
   })

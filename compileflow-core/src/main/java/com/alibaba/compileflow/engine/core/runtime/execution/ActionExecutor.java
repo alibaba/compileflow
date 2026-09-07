@@ -169,7 +169,7 @@ public final class ActionExecutor {
                     submitted = true;
                 } catch (RejectedExecutionException rejected) {
                     failure = rejected;
-                    LOGGER.warn("action submit rejected: node={}, invocationKey={}, attempt={}", exactNodeId,
+                    LOGGER.debug("action submit rejected: node={}, invocationKey={}, attempt={}", exactNodeId,
                             actionContext.getInvocationKey(), attempt);
                 }
                 if (submitted) {
@@ -214,8 +214,9 @@ public final class ActionExecutor {
                 Thread.currentThread().interrupt();
                 throw interrupted;
             }
-            if (failure instanceof CancellationException cancellation) {
-                throw actionFailure(actionContext, timeoutMs, attemptTimeoutMs, maxAttempts, cancellation);
+            if (failure instanceof CancellationException
+                    || failure instanceof CompileFlowException classified && classified.getErrorCode() == ErrorCode.CF_EXEC_007) {
+                throw actionFailure(actionContext, timeoutMs, attemptTimeoutMs, maxAttempts, failure);
             }
             boolean retry = !(failure instanceof InvocationTimeoutException) && attempt < maxAttempts
                     && shouldRetry(retryPolicy, policy.getRetryOn(), failure);
@@ -248,7 +249,7 @@ public final class ActionExecutor {
             FailureContext failureContext = new FailureContext(actionContext, failure);
             FailureResolution resolution = handleFailure(failureHandler, policy.getOnFailure(), failureContext);
             if (resolution == FailureResolution.CONTINUE_PROCESS) {
-                LOGGER.warn("action continued after failure: {}", failureContext, failure);
+                LOGGER.warn("action continued after failure: {}", failureContext);
                 return ActionOutcome.skip();
             }
 

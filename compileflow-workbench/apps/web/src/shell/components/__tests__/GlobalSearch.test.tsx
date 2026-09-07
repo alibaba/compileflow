@@ -77,12 +77,12 @@ describe('GlobalSearch catalog lifecycle', () => {
     renderSearch(loadExamples, loadProcesses)
 
     fireEvent.click(screen.getByRole('button', { name: /打开全局搜索/ }))
-    expect(await screen.findByText('部分搜索来源暂时不可用')).toBeInTheDocument()
+    expect(await screen.findByText('部分搜索来源暂时不可用，请稍后重试')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /重\s*试/ }))
     await waitFor(() => expect(loadExamples).toHaveBeenCalledTimes(2))
     await waitFor(() =>
-      expect(screen.queryByText('部分搜索来源暂时不可用')).not.toBeInTheDocument()
+      expect(screen.queryByText('部分搜索来源暂时不可用，请稍后重试')).not.toBeInTheDocument()
     )
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })

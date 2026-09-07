@@ -1,7 +1,7 @@
 # Workbench Design System
 
-Workbench is an operational product surface, so its UI prioritizes scanability, predictable navigation, dense
-information, and efficient repeated actions. This guide defines contribution rules; token values remain in code.
+Workbench prioritizes clear scanning, predictable navigation, compact information, and efficient repeated actions. This
+guide defines UI contribution rules; token values remain in code.
 
 ## Sources Of Truth
 
@@ -20,9 +20,9 @@ Do not copy token values into documentation or component-local variables. Add a 
 ## Visual Principles
 
 - Keep application chrome quiet and consistent across Learn, Build, and Operate.
-- Use full-width page sections and stable layout regions rather than nested decorative cards.
-- Reserve cards for repeated records, metrics, or genuinely framed tools.
-- Keep compact panel headings compact; large display type belongs only to true page-level introductions.
+- Use full-width page sections and stable layout regions instead of nested decorative cards.
+- Reserve cards for repeated records, metrics, or dedicated work areas.
+- Keep panel headings concise; use display type only for page-level introductions.
 - Use semantic status colors in addition to text or icons, never as the only signal.
 - Keep borders, shadows, gradients, and animation restrained in operational views.
 - Preserve stable dimensions for toolbars, graph controls, counters, and table actions.
@@ -82,6 +82,3 @@ must be tested through that context rather than by mutating document styles from
 4. Check keyboard interaction and focus order.
 5. Check narrow and wide layouts for overflow and overlap.
 6. Run type-check, lint, focused unit tests, and the relevant Playwright smoke path.
-
-Do not document screenshots, pixel values, or performance claims as permanent contracts unless an automated check keeps
-them current.

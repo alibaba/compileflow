@@ -13,17 +13,14 @@
  */
 package com.alibaba.compileflow.engine;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.Objects;
 import java.util.StringJoiner;
 
 /**
- * Supplies or locates a process definition without carrying namespace, version, alias, or model
- * type.
+ * Supplies or locates a typed process definition without carrying namespace, version, or alias.
  *
- * <p>The receiving execution configuration determines the model type. Inline content is
- * intentionally redacted from string representations.
+ * <p>The definition declares its semantic format. Inline content is intentionally redacted
+ * from string representations.
  *
  * @author yusu
  */
@@ -31,35 +28,30 @@ public sealed interface ProcessDefinition permits ProcessDefinition.Inline, Proc
     /**
      * Creates an inline definition.
      *
+     * @param modelType process definition format
      * @param code process code
      * @param content process-definition content
      * @return inline definition
      */
-    static Inline inline(String code, String content) {
-        return new Inline(code, content);
+    static Inline inline(ProcessModelType modelType, String code, String content) {
+        return new Inline(modelType, code, content);
     }
 
     /**
      * Creates a classpath-backed definition.
      *
+     * @param modelType process definition format
      * @param code process code
      * @param resourcePath classpath resource name
      * @return classpath-backed definition
      */
-    static Classpath classpath(String code, String resourcePath) {
-        return new Classpath(code, resourcePath);
-    }
-
-    private static String requireCode(String value) {
-        return ProcessIdentifiers.requireCode(value);
+    static Classpath classpath(ProcessModelType modelType, String code, String resourcePath) {
+        return new Classpath(modelType, code, resourcePath);
     }
 
     private static String normalizeResourcePath(String value) {
         String resource = Objects.requireNonNull(value, "resourcePath").replace('\\', '/');
-        while (resource.startsWith("/")) {
-            resource = resource.substring(1);
-        }
-        Deque<String> segments = new ArrayDeque<>();
+        StringJoiner normalized = new StringJoiner("/");
         for (String segment : resource.split("/")) {
             if (segment.isEmpty() || segment.equals(".")) {
                 continue;
@@ -67,14 +59,9 @@ public sealed interface ProcessDefinition permits ProcessDefinition.Inline, Proc
             if (segment.equals("..")) {
                 throw new IllegalArgumentException("resourcePath must not contain parent traversal");
             }
-            segments.addLast(segment);
+            normalized.add(segment);
         }
-        if (segments.isEmpty()) {
-            throw new IllegalArgumentException("resourcePath must not be blank");
-        }
-        StringJoiner normalized = new StringJoiner("/");
-        segments.forEach(normalized::add);
-        return normalized.toString();
+        return ProcessText.requireNonBlank(normalized.toString(), "resourcePath");
     }
 
     /**
@@ -85,39 +72,49 @@ public sealed interface ProcessDefinition permits ProcessDefinition.Inline, Proc
     String code();
 
     /**
+     * Returns the explicitly declared semantic format.
+     * @return process definition format
+     */
+    ProcessModelType modelType();
+
+    /**
      * Carries inline process-definition content.
      *
+     * @param modelType process definition format
      * @param code process code
      * @param content process-definition content
      */
-    record Inline(String code, String content) implements ProcessDefinition {
+    record Inline(ProcessModelType modelType, String code, String content) implements ProcessDefinition {
         public Inline {
-            code = requireCode(code);
-            content = Objects.requireNonNull(content, "content");
-            ProcessText.requireNonBlank(content, "content");
+            modelType = Objects.requireNonNull(modelType, "modelType");
+            code = ProcessIdentifiers.requireCode(code);
+            content = ProcessText.requireNonBlank(content, "content");
         }
 
         @Override
         public String toString() {
-            return "ProcessDefinition.Inline{code='" + code + "', content=<redacted>}";
+            return "ProcessDefinition.Inline{modelType=" + modelType + ", code='" + code + "', content=<redacted>}";
         }
     }
 
     /**
      * References a process definition on the engine classpath.
      *
+     * @param modelType process definition format
      * @param code process code
      * @param resourcePath normalized classpath resource name
      */
-    record Classpath(String code, String resourcePath) implements ProcessDefinition {
+    record Classpath(ProcessModelType modelType, String code, String resourcePath) implements ProcessDefinition {
         public Classpath {
-            code = requireCode(code);
+            modelType = Objects.requireNonNull(modelType, "modelType");
+            code = ProcessIdentifiers.requireCode(code);
             resourcePath = normalizeResourcePath(resourcePath);
         }
 
         @Override
         public String toString() {
-            return "ProcessDefinition.Classpath{code='" + code + "', resource='" + resourcePath + "'}";
+            return "ProcessDefinition.Classpath{modelType=" + modelType + ", code='" + code + "', resource='"
+                    + resourcePath + "'}";
         }
     }
 }

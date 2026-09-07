@@ -2,7 +2,7 @@ packages:
   - 'apps/*'
 
 engineStrict: true
-nodeVersion: 24.18.0
+nodeVersion: 24.20.0
 autoInstallPeers: false
 strictPeerDependencies: true
 peerDependencyRules:

@@ -1,311 +1,145 @@
-# CompileFlow Workbench Deployment
+# Workbench Deployment
 
-Workbench supports a bundled application image and a split Web/Server topology. Both expose one browser origin and use
-the same Workbench Server API.
+This guide covers local evaluation and production deployment of the Workbench web app with
+`compileflow-workbench-server`. Workbench Web and Server are released and deployed together. For incident procedures,
+see the repository [operations playbook](../docs/en/operations-playbook.md). For all configuration properties, see the
+[configuration guide](../docs/en/configuration.md).
 
-## Architecture
+## Components
 
-### Bundled Application
+| Component                      | Role                                                             |
+| ------------------------------ | ---------------------------------------------------------------- |
+| `apps/web`                     | Static Workbench frontend.                                       |
+| `apps/dev-gateway`             | Loopback development status and preview mock.                    |
+| `compileflow-workbench-server` | Java API, persistence, execution worker, and deployment control. |
+| PostgreSQL or MySQL            | Supported Server database.                                       |
 
-```text
-Browser
-  |
-  | HTTPS, authenticated user
-  v
-Authentication-capable gateway
-  |
-  | private hop, injected Workbench Server API key
-  v
-Workbench Server
-  |- compiled React SPA
-  |- /api/**
-  |- /actuator/health
-  |- /actuator/health/liveness
-  `- /actuator/health/readiness
-  |
-  v
-PostgreSQL
-```
+The frontend and Server must use the same CompileFlow version. The committed OpenAPI description under `docs/specs/openapi`
+is the wire authority; generated frontend types and runtime validators must be regenerated together with Server changes.
 
-`docker/Dockerfile.all-in-one` builds one executable Java process containing the SPA and API. "All-in-one" means one
-Workbench application process; PostgreSQL and the production authentication gateway remain external.
+## Prerequisites
 
-The 2.0 release workflow is configured to attach
-`compileflow-workbench-all-in-one-<version>.jar`. After a release is published, run it like the split Server JAR, with
-the same database, authentication, and gateway configuration:
+- Java 17, 21, or 25; Java 17 is the build baseline.
+- Node.js 24 LTS and the repository-pinned pnpm version.
+- PostgreSQL 16, 17, or 18, or MySQL 8.4 for a database-backed Server.
+- A supported browser for the web app.
+
+H2 is a test database only. Do not use it to validate a production deployment.
+
+## Build the web app
+
+From this directory:
 
 ```bash
-java -jar compileflow-workbench-all-in-one-2.0.0.jar \
-  --spring.profiles.active=prod
-```
-
-The bundled JAR and image contain the same Web build. The separate
-`compileflow-workbench-server-<version>.jar` contains no SPA.
-
-### Split
-
-```text
-Browser
-  |
-  v
-Authentication-capable gateway
-  |- static routes/assets -> Web image
-  `- /api/**            -> Workbench Server -> PostgreSQL
-```
-
-Use split deployment only when static delivery and Java capacity need separate scaling or release control. The browser
-still uses relative same-origin paths.
-
-### Frontend Development
-
-`apps/dev-gateway` is a loopback-only mock of `/api/status` and
-`/api/executions/preview`. It is not a production component and cannot proxy Workbench Server.
-
-## Local Evaluation
-
-The Compose files bind published ports to loopback. They are evaluation topologies, not examples of production end-user
-authentication.
-
-Local Compose inputs:
-
-| Variable                                                               | Default                   | Applies to      |
-| ---------------------------------------------------------------------- | ------------------------- | --------------- |
-| `COMPILEFLOW_WORKBENCH_DATABASE_NAME`                                  | `compileflow`             | Both topologies |
-| `COMPILEFLOW_WORKBENCH_DATABASE_USERNAME`                              | `compileflow`             | Both topologies |
-| `COMPILEFLOW_WORKBENCH_DATABASE_PASSWORD`                              | Required                  | Both topologies |
-| `COMPILEFLOW_WORKBENCH_SERVER_CONFIG_AUTHENTICATION_API_KEY`           | Required                  | Split topology  |
-| `COMPILEFLOW_WORKBENCH_SERVER_CONFIG_AUTHENTICATION_SERVICE_PRINCIPAL` | `workbench-local-gateway` | Split topology  |
-| `COMPILEFLOW_WORKBENCH_SERVER_CONFIG_PREVIEW_EXECUTION_ENABLED`        | `false`                   | Split topology  |
-| `VITE_COMPILEFLOW_DEBUG`                                               | `false`                   | Split Web build |
-| `VITE_COMPILEFLOW_USE_BUILT_IN_EXAMPLES`                               | `false`                   | Split Web build |
-
-These names are Compose interpolation inputs, not another application configuration namespace. Compose maps the database
-values to PostgreSQL and standard Spring datasource variables. Its private local-gateway variable is derived from the
-required Server API key and is not a separate user input.
-
-Create a database password:
-
-```bash
-export COMPILEFLOW_WORKBENCH_DATABASE_PASSWORD='replace-with-a-local-password'
-```
-
-Bundled application:
-
-```bash
-docker compose -f compileflow-workbench/docker-compose.all-in-one.yml up --build
-```
-
-Equivalent from `compileflow-workbench/` (writes a non-empty `.env` database password when unset or blank; accepts only
-`up` flags such as `-d`):
-
-```bash
-pnpm up:all-in-one
-```
-
-If datasource auth fails against an existing Postgres volume after a password change, reset the volume with
-`docker compose -f compileflow-workbench/docker-compose.all-in-one.yml down -v`.
-
-Open `http://127.0.0.1:4173`.
-
-This Compose file activates the `dev` profile: API-key authentication is disabled and trusted draft execution is
-enabled. Its loopback port is a hard deployment boundary; do not expose this profile or topology publicly.
-
-Split application:
-
-```bash
-export COMPILEFLOW_WORKBENCH_SERVER_CONFIG_AUTHENTICATION_API_KEY="$(openssl rand -hex 32)"
-docker compose -f compileflow-workbench/docker-compose.yml up --build
-```
-
-Draft execution is disabled by default. For trusted local authoring only, set
-`COMPILEFLOW_WORKBENCH_SERVER_CONFIG_PREVIEW_EXECUTION_ENABLED=true`. This endpoint executes submitted Java, scripts,
-and Spring actions with Server privileges; it must not be enabled as an anonymous validation service.
-
-Open `http://127.0.0.1:4173`. A dedicated loopback-only nginx gateway routes Web and API traffic and injects the private
-server key because this evaluation stack has no external identity gateway. The Web image itself contains no credential
-or API proxy. The local gateway does not authenticate human users and must not be exposed publicly. Its fixed `100m`
-transport ceiling prevents NGINX's smaller implicit default from overriding the Server contract; the Server's
-`max-request-size` remains the authoritative effective limit.
-
-## Production Edge Requirements
-
-The edge must provide all of the following:
-
-- TLS termination and an HTTPS-only public origin;
-- end-user authentication and authorization;
-- rate limits and request limits appropriate to administrative APIs;
-- same-origin routing for Web assets and `/api/**`;
-- removal of client-supplied `X-API-Key`, forwarding, and internal identity headers;
-- injection of the private Workbench Server API key only after authorization;
-- network policy that prevents direct public access to Workbench Server;
-- trusted proxy and audit logging configuration;
-- an orchestrator termination grace period longer than the configured Spring lifecycle and engine-executor shutdown
-  budgets. The provided Compose topologies use 75 seconds for the default budgets.
-
-Plain Kubernetes Ingress provides routing and may terminate TLS; it is not automatically an authentication or
-authorization boundary. Use an authentication-capable gateway or pair the router with an identity-aware proxy.
-
-The current Workbench Server API key identifies the gateway service. The configured service principal is the durable
-audit actor represented by that credential. Do not forward an arbitrary browser user header and treat it as a verified
-identity.
-
-## Workbench Server Configuration
-
-Required production values:
-
-| Variable                                                               | Purpose                                                                       |
-| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `SPRING_PROFILES_ACTIVE=prod`                                          | Enables production guardrails                                                 |
-| `SPRING_DATASOURCE_URL`                                                | PostgreSQL JDBC URL                                                           |
-| `SPRING_DATASOURCE_USERNAME`                                           | Database role                                                                 |
-| `SPRING_DATASOURCE_PASSWORD`                                           | Database credential                                                           |
-| `COMPILEFLOW_WORKBENCH_SERVER_CONFIG_DATABASE_MIGRATE=false`           | Keep DDL in the deployment pipeline while retaining startup schema validation |
-| `COMPILEFLOW_WORKBENCH_SERVER_CONFIG_AUTHENTICATION_MODE=API_KEY`      | Private service authentication                                                |
-| `COMPILEFLOW_WORKBENCH_SERVER_CONFIG_AUTHENTICATION_API_KEY`           | 32..256 URL-safe-character gateway credential                                 |
-| `COMPILEFLOW_WORKBENCH_SERVER_CONFIG_AUTHENTICATION_SERVICE_PRINCIPAL` | Stable service audit actor                                                    |
-
-Optional resource policy:
-
-| Variable                                                                   | Default | Purpose                              |
-| -------------------------------------------------------------------------- | ------- | ------------------------------------ |
-| `COMPILEFLOW_WORKBENCH_SERVER_CONFIG_HTTP_MAX_REQUEST_SIZE`                | `10MB`  | Request body limit                   |
-| `COMPILEFLOW_WORKBENCH_SERVER_CONFIG_EXECUTION_LOG_MAX_QUERY_ROWS`         | `10000` | Complete log query/export limit      |
-| `COMPILEFLOW_WORKBENCH_SERVER_CONFIG_ASYNC_INVOCATION_CONCURRENCY`         | `4`     | Concurrent ProcessEngine invocations |
-| `COMPILEFLOW_WORKBENCH_SERVER_CONFIG_ASYNC_INVOCATION_QUEUE_CAPACITY`      | `256`   | Local waiting queue capacity         |
-| `COMPILEFLOW_WORKBENCH_SERVER_CONFIG_ASYNC_INVOCATION_DISPATCH_BATCH_SIZE` | `50`    | Claim batch size                     |
-
-See [`../docs/en/configuration.md`](../docs/en/configuration.md) for the full strict configuration contract.
-
-Production platforms should supply the database password and API key through their secret manager. For file-mounted
-secrets, set
-`spring.config.import=configtree:/run/secrets/` and name the files
-`spring.datasource.password` and
-`compileflow.workbench.server.authentication.api-key`. The Compose files use environment interpolation only because they
-are loopback evaluation stacks.
-
-Before a rollout with `DATABASE_MIGRATE=false`, the deployment identity must apply the exact packaged Deploy V1 and
-Workbench V2 Flyway migrations. The runtime database role needs DML on the owned tables and read access to
-`flyway_schema_history`, but does not need migration DDL. Keep
-`spring.flyway.enabled=true`: the Server uses Flyway validation and pending migration detection as a mandatory startup
-admission gate even when it does not execute DDL.
-
-## Browser Build Configuration
-
-Production Web builds accept only public `VITE_COMPILEFLOW_*` values. Never put API keys, tokens, database credentials,
-or internal URLs in Vite variables; they are embedded in browser assets.
-
-```bash
-VITE_COMPILEFLOW_OPERATE_MODE=real \
-VITE_COMPILEFLOW_DEBUG=false \
-VITE_COMPILEFLOW_USE_BUILT_IN_EXAMPLES=false \
-pnpm --filter @compileflow/workbench-web build
-```
-
-Routing is a deployment concern, so the browser has no API base URL variable.
-
-## Build A Bundled JAR
-
-From a source checkout:
-
-```bash
-cd compileflow-workbench
 pnpm install --frozen-lockfile
-pnpm --filter @compileflow/workbench-web build
-cd ..
-./mvnw package -pl compileflow-workbench-server -am \
-  -Pworkbench-bundled -DskipTests
+pnpm type-check
+pnpm build
 ```
 
-The profile fails if `apps/web/dist/index.html` is absent. Its output is
-`compileflow-workbench-server/target/compileflow-workbench-all-in-one-<version>.jar`. Before copying the current Web
-build, the profile removes the previous
-`target/classes/static` tree so an incremental package cannot retain obsolete hashed assets.
-`scripts/verify-bundled-web-assets.sh` then requires the JAR's static-file manifest to match `apps/web/dist` exactly.
-Delivery and release CI run this check; the presence of `index.html` alone is not sufficient.
+The build produces static web assets. `VITE_COMPILEFLOW_*` values are embedded at build time and visible to browser
+users; never store credentials or private keys in them.
 
-## Release-Like Acceptance
+For local authoring, start the development gateway using the command in `package.json`. Configure its port and log
+level with the documented `COMPILEFLOW_DEV_GATEWAY_*` variables. The gateway is only for local development and testing.
 
-`pnpm verify:delivery` builds the production Web bundle, assembles the all-in-one JAR, and checks the cross-stack
-contracts. The managed Playwright suite then starts that JAR with the `prod` profile, a real PostgreSQL database,
-API-key authentication, and a loopback trusted edge:
+## Run the Server locally
 
-```bash
-pnpm test:e2e:integration
-pnpm test:e2e:process-lifecycle
-```
+Build the matching Java Server artifact from the repository root, apply the packaged migrations for the selected
+database, and start it with the `dev` profile. Server startup fails if the schema, data source, or required authentication
+configuration is unavailable.
 
-The lifecycle scenario publishes immutable v1 and v2 artifacts, replays a publication idempotency key after the draft
-changes, deploys v2 as a canary, selects stable and candidate cohorts with the runtime's deterministic routing hash,
-evaluates observed health, promotes, rolls back, and executes the final effective version. It also rejects browser
-credential leakage and any failed browser API response.
+The local Compose setup is useful for evaluating the full product. It must not be copied into production without replacing development credentials, network exposure, and storage settings.
 
-The process-lifecycle experiment runs a flow for twice its configured ownership lease. It sends `SIGTERM` to prove HTTP
-admission closes while the in-flight attempt keeps renewing and commits exactly once, then sends `SIGKILL` to prove a
-fresh Server recovers the abandoned lease as the second fenced attempt. The machine-readable result is written to
-`apps/web/test-results/async-invocation-process-lifecycle.json` and retained by delivery CI with the Playwright report.
+### PostgreSQL Compose storage
 
-## Health and Readiness
+Both `docker-compose.yml` and `docker-compose.all-in-one.yml` mount the `compileflow_pg_data` named volume at
+`/var/lib/postgresql`. The PostgreSQL 18 image defaults to `PGDATA=/var/lib/postgresql/18/docker`, so a new database
+is stored under `18/docker` inside that volume. PostgreSQL 18 and later use a version-specific data directory and
+therefore require the parent mount.
 
-Infrastructure probes call Workbench Server directly on its private network:
+Use a dedicated named volume and mount it at `/var/lib/postgresql`, not at the version-specific data directory. Both
+templates use the same volume key within a Compose project, so switching templates continues to use the same database.
+Run `docker compose down` to stop the stack while retaining data. The `-v` option permanently deletes the volume and
+must be used only when the local database is intentionally disposable.
 
-```text
-/actuator/health/liveness
-/actuator/health/readiness
-```
+## Production topology
 
-The browser-facing `/api/status` reports product availability. It is protected like the rest of `/api/**` and is not a
-replacement for platform probes.
+Use a private network between the browser gateway and Server. Put TLS termination, authentication, authorization, rate
+limits, and request-size limits at the trusted ingress. The Server API key authenticates the gateway service; it does
+not identify individual users.
 
-The split Web image may expose its own container health endpoint. Do not infer database or engine readiness from static
-Web health.
+The minimum production arrangement is:
 
-## OpenAPI Contract
+1. Serve the built web assets from a static server or trusted gateway.
+2. Run one or more matching Workbench Server instances with one configured database.
+3. Apply and verify the exact packaged migrations before enabling traffic.
+4. Configure the Server API key or trusted authentication integration through environment or secret management.
+5. Restrict access to the database and deployment data to the Server roles that need it.
+6. Expose health and metrics only to the monitoring network.
 
-The committed description is:
+For multiple Server instances, use one shared supported database and configure deployment and runtime roles
+consistently. Do not combine PostgreSQL and MySQL schemas in one Server installation.
 
-```text
-docs/specs/openapi/compileflow-workbench-server.openapi.json
-```
+## Authentication and browser configuration
 
-After a deliberate Server API change:
+The browser must never receive the shared Server API key. Do not expose it in browser JavaScript, build-time variables,
+local storage, or source control. A trusted gateway authenticates users, strips client-controlled `X-API-Key`,
+`Authorization`, and forwarded identity headers, and injects the private Server credential only on the upstream request.
+Use TLS and rotate the credential through secret management.
 
-```bash
-./mvnw test -pl compileflow-workbench-server -am \
-  -Dtest=OpenApiContractTest \
-  -Dcompileflow.openapi.update=true \
-  -Dsurefire.failIfNoSpecifiedTests=false
+Do not trust an actor, user, or role supplied only by a browser header. Per-user authorization requires a trusted authenticated gateway or an application-specific integration that establishes the identity before the request reaches the Server.
 
-cd compileflow-workbench
-pnpm generate:workbench-server-contract
-pnpm check:workbench-server-contract
-```
+Browser requests use relative, same-origin paths; there is no public API base URL build variable. Configure production
+upstream routing at the trusted gateway. `VITE_COMPILEFLOW_DEBUG` controls browser debug logging and should remain
+disabled in production.
 
-Review route, method, request, response, and schema changes together. Generated TypeScript is committed so downstream
-diffs remain visible.
+## Health checks
 
-## Production Checklist
+Before admitting traffic, verify:
 
-- Workbench Server, PostgreSQL, and any credential-injecting internal proxy are not publicly reachable.
-- The edge authenticates and authorizes users before forwarding `/api/**`.
-- The edge strips user-supplied internal headers and injects its own service credential.
-- Server authentication remains `API_KEY`; `DISABLED` is limited to explicit development and test profiles.
-- TLS, secure cookies or bearer-token policy, CSP, request limits, and rate limits are tested at the actual edge
-  implementation.
-- PostgreSQL backups, restore drills, Flyway migration policy, and credential rotation are documented operationally.
-- Liveness and readiness probes target Actuator directly.
-- Logs and metrics are collected from Workbench Server and the edge.
-- The committed OpenAPI snapshot and generated TypeScript are current.
-- The bundled image runs one Java process; no hidden Node supervisor exists.
+- the Server process becomes ready only after Flyway validates the database schema;
+- Flyway reports the expected migration baseline with no pending migrations;
+- engine preflight and one representative execution succeed;
+- deployment control-plane and runtime health are available for the enabled roles;
+- asynchronous invocation health has no unexplained dead letters or expired leases;
+- logs, metrics, and alerts do not contain process payloads, routing keys, API keys, or lease tokens.
 
-## Extraction Criteria
+After a publish or rollout, verify both the control-plane revision and the effective version observed by a real execution. In distributed mode, runtime readiness is asynchronous; a successful control-plane command alone does not prove that every worker has installed the version.
 
-Do not extract a separate Workbench control-plane service merely because a second client appears. Revisit the boundary
-when production evidence shows one or more independent requirements:
+## Configuration ownership
 
-- materially different scaling profile;
-- distinct availability objective;
-- security or compliance isolation;
-- independent persistence ownership;
-- separate release cadence or team ownership.
+Keep configuration in the layer that owns it:
 
-Until then, the Workbench Server remains a modular monolith.
+| Concern                         | Reference                                                                          |
+| ------------------------------- | ---------------------------------------------------------------------------------- |
+| Engine and Deploy properties    | [Configuration guide](../docs/en/configuration.md)                                 |
+| Server properties and auth mode | `compileflow-workbench-server` configuration metadata and root configuration guide |
+| Web build-time inputs           | `apps/web/.env.example` and the root configuration guide                           |
+| Gateway development inputs      | `apps/dev-gateway/.env.example`                                                    |
+| HTTP fields                     | committed OpenAPI description under `docs/specs/openapi`                           |
+
+Keep deployment manifests aligned with these configuration sources. Regenerate the OpenAPI and TypeScript artifacts
+together when an endpoint changes.
+
+## Updating the OpenAPI contract
+
+When a Server endpoint changes:
+
+1. update the controller and response/request types;
+2. regenerate the committed OpenAPI description;
+3. regenerate Workbench TypeScript contract types;
+4. update runtime validation, adapters, mocks, and tests;
+5. run the Server contract tests and the relevant Workbench checks.
+
+The generated document defines the wire contract between Workbench Web and Server. The Workbench HTTP API is intended
+for that product integration rather than as a general-purpose engine API.
+
+## Operational boundaries
+
+- Publish immutable process versions; do not edit stored version content.
+- Treat stale route revisions as concurrency failures and reread authority before retrying.
+- Do not bypass schema admission, authentication, digest verification, or local-ready checks.
+- Schema validation is fail-closed; the Server does not become ready with pending or inconsistent migrations.
+- Database backups and retention are owned by the database operations policy.
+
+For canary, promotion, abort, rollback, outbox, and async invocation procedures, use [Operations playbook](../docs/en/operations-playbook.md) and [Hot deployment](../docs/en/hot-deploy.md).

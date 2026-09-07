@@ -40,7 +40,7 @@ import com.alibaba.compileflow.engine.ProcessDefinitionDigest;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.AliasRoutingOptions;
 import com.alibaba.compileflow.engine.config.JavaDiagnosticsConfig;
-import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
+import com.alibaba.compileflow.engine.config.ProcessDefinitionConfig;
 import com.alibaba.compileflow.engine.core.routing.DeterministicAliasSelector;
 import com.alibaba.compileflow.engine.spi.routing.ProcessAliasRoute;
 import java.lang.reflect.InvocationHandler;
@@ -118,7 +118,8 @@ class DefaultDurableProcessEngineTest {
     void explicitStartUsesTheBoundLocalModelType() {
         CapturingStore store = new CapturingStore(false);
         ProcessDefinition.Inline requested =
-                ProcessDefinition.inline("approval", new String(DEFINITION, StandardCharsets.UTF_8));
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "approval",
+                        new String(DEFINITION, StandardCharsets.UTF_8));
         DefaultDurableProcessEngine engine = engine(store, null, DurableVersionDefinitionSource.empty());
 
         ProcessRun run = engine.start(OTHER_RUN_ID, requested, Map.of("approved", true));
@@ -218,8 +219,8 @@ class DefaultDurableProcessEngineTest {
         store.startResult.set(store.view(RUN_ID, expectedProcess));
         DurableVersionDefinitionSource versions =
                 version -> Optional.of(
-                        new DurableVersionDefinitionSource.VersionDefinition(ProcessModelType.TBBPM,
-                                ProcessDefinition.inline(version.code(), new String(DEFINITION, StandardCharsets.UTF_8))));
+                        new DurableVersionDefinitionSource.VersionDefinition(ProcessDefinition.inline(ProcessModelType.TBBPM,
+                                version.code(), new String(DEFINITION, StandardCharsets.UTF_8))));
         DefaultDurableProcessEngine engine = engine(store, new AliasAdmission(alias -> Optional.of(state)), versions);
 
         ProcessRun run = engine.start(RUN_ID, ALIAS, Map.of());
@@ -257,9 +258,8 @@ class DefaultDurableProcessEngineTest {
         CapturingStore store = new CapturingStore(false);
         DurableVersionDefinitionSource bpmnSource =
                 version -> Optional.of(
-                        new DurableVersionDefinitionSource.VersionDefinition(ProcessModelType.BPMN,
-                                ProcessDefinition.inline(version.code(),
-                                        new String(BPMN_DEFINITION, StandardCharsets.UTF_8))));
+                        new DurableVersionDefinitionSource.VersionDefinition(ProcessDefinition.inline(ProcessModelType.BPMN,
+                                version.code(), new String(BPMN_DEFINITION, StandardCharsets.UTF_8))));
 
         ProcessRun run = engine(store, null, bpmnSource).start(RUN_ID, VERSION, Map.of());
 
@@ -329,24 +329,22 @@ class DefaultDurableProcessEngineTest {
         DurableVersionDefinitionSource versionSource =
                 version -> version.equals(VERSION)
                 ? Optional.of(
-                        new DurableVersionDefinitionSource.VersionDefinition(ProcessModelType.TBBPM,
-                                ProcessDefinition.inline(version.code(), new String(DEFINITION, StandardCharsets.UTF_8))))
+                        new DurableVersionDefinitionSource.VersionDefinition(ProcessDefinition.inline(ProcessModelType.TBBPM,
+                                version.code(), new String(DEFINITION, StandardCharsets.UTF_8))))
                 : Optional.empty();
         return engine(store, aliasAdmission, versionSource);
     }
 
     private DefaultDurableProcessEngine engine(CapturingStore store, AliasAdmission aliasAdmission,
             DurableVersionDefinitionSource versionSource) {
-        ProcessEngineConfig config =
-                ProcessEngineConfig
-            .tbbpmBuilder()
-            .classLoader(getClass().getClassLoader())
-            .discoverPlugins(false)
-            .build();
-        DurableProcessRuntimeManager processManager = new DurableProcessRuntimeManager(store.proxy(),
-                new InMemoryDurableProcessRuntimeCache(),
-                new DurableJavaProgramCompiler(JavaDiagnosticsConfig.defaults()), config, versionSource);
-        return new DefaultDurableProcessEngine(store.proxy(), processManager, aliasAdmission);
+        ClassLoader classLoader = getClass().getClassLoader();
+        InMemoryDurableProcessRuntimeCache cache = new InMemoryDurableProcessRuntimeCache();
+        DurableProcessRuntimeManager processManager = new DurableProcessRuntimeManager(store.proxy(), cache,
+                new DurableJavaProgramCompiler(JavaDiagnosticsConfig.defaults()), ProcessDefinitionConfig.defaults(),
+                classLoader, 32, versionSource);
+        return new DefaultDurableProcessEngine(store.proxy(), processManager, aliasAdmission, cache,
+                com.alibaba.compileflow.engine.core.runtime.script.ScriptExecutorRegistry.builtIns(classLoader), null,
+                null, new com.alibaba.compileflow.durable.runtime.observability.DurableRuntimeMetrics(), false);
     }
 
     private static final class CapturingStore {

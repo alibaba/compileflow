@@ -103,6 +103,10 @@ def verify_measurement_matrix(
                 f"{len(measurements)} measurement(s), expected "
                 f"{expected_iterations}"
             )
+        elif field == "rawData" and any(not is_finite_number(value) for value in measurements):
+            errors.append(
+                f"{location} {benchmark}: {field}[{fork_index}] measurements must each be a finite number"
+            )
     return errors
 
 

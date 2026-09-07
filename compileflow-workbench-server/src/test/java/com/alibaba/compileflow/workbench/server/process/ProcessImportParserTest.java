@@ -81,6 +81,15 @@ class ProcessImportParserTest {
     }
 
     @Test
+    void rejectsExcessiveElementDepth() {
+        String xml = "<bpm code=\"order.flow\">" + "<node>".repeat(128) + "</node>".repeat(128) + "</bpm>";
+
+        assertThatThrownBy(() -> parser.parse(xml))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Imported file is not well-formed XML");
+    }
+
+    @Test
     void rejectsMalformedUtf8BeforeParsingXml() {
         byte[] malformed = new byte[] {'<', 'b', 'p', 'm', ' ', 'c', 'o', 'd', 'e', '=', '"', 'x', '"', ' ', 'n', 'a',
                 'm', 'e', '=', '"', (byte) 0xC3, (byte) 0x28, '"',

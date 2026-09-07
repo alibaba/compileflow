@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.quality.boundary;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -58,8 +59,10 @@ class ProcessEngineLifecycleIntegrationTest {
             <end id="end" name="End" g="320,50,32,32"/>
         </bpm>
         """;
-    private static final ProcessDefinition.Inline SOURCE = ProcessDefinition.inline("test.lifecycle", FLOW);
-    private static final ProcessDefinition.Inline SIMPLE_SOURCE = ProcessDefinition.inline("test.lifecycle.simple",
+    private static final ProcessDefinition.Inline SOURCE =
+            ProcessDefinition.inline(ProcessModelType.TBBPM, "test.lifecycle", FLOW);
+    private static final ProcessDefinition.Inline SIMPLE_SOURCE = ProcessDefinition.inline(ProcessModelType.TBBPM,
+            "test.lifecycle.simple",
             """
             <?xml version="1.0" encoding="UTF-8" ?>
             <bpm code="test.lifecycle.simple" name="Simple Lifecycle">
@@ -69,8 +72,8 @@ class ProcessEngineLifecycleIntegrationTest {
                 <end id="end" name="End" g="160,50,32,32"/>
             </bpm>
             """);
-    private static final ProcessDefinition.Inline CLOSE_FROM_ACTION_SOURCE = ProcessDefinition.inline("test."
-            + "lifecycle.close-from-action",
+    private static final ProcessDefinition.Inline CLOSE_FROM_ACTION_SOURCE = ProcessDefinition.inline(ProcessModelType.TBBPM,
+            "test." + "lifecycle.close-from-action",
             """
             <?xml version="1.0" encoding="UTF-8" ?>
             <bpm code="test.lifecycle.close-from-action"
@@ -150,7 +153,7 @@ class ProcessEngineLifecycleIntegrationTest {
         CountDownLatch executionStarted = new CountDownLatch(1);
         CountDownLatch allowExecutionToFinish = new CountDownLatch(1);
         ProcessEngineConfig config = ProcessEngineTestFactory
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .scriptExecutor(blockingExecutor(executionStarted, allowExecutionToFinish))
             .build();
@@ -169,10 +172,11 @@ class ProcessEngineLifecycleIntegrationTest {
 
             assertClosed(() -> engine.execute(SOURCE, Map.of()));
             assertClosed(() -> engine.execute(SOURCE, "input", String.class, ProcessExecutionOptions.defaults()));
-            assertClosed(() -> engine.trigger(ProcessDefinition.classpath(SOURCE.code(), "test/lifecycle.bpm"),
-                    ProcessTrigger.on("node", "event"), Map.of()));
-            assertClosed(() -> engine.trigger(ProcessDefinition.classpath(SOURCE.code(), "test/lifecycle.bpm"),
-                    ProcessTrigger.on("node", "event"), "input", String.class, ProcessExecutionOptions.defaults()));
+            assertClosed(() -> engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM, SOURCE.code(),
+                            "test/lifecycle.bpm"), ProcessTrigger.on("node", "event"), Map.of()));
+            assertClosed(() -> engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM, SOURCE.code(),
+                            "test/lifecycle.bpm"), ProcessTrigger.on("node", "event"), "input", String.class,
+                    ProcessExecutionOptions.defaults()));
             ProcessRef.Version version = ProcessRef.version(ProcessRef.DEFAULT_NAMESPACE, SOURCE.code(), "v1");
             assertClosed(() -> engine.runtime().warmUp(SOURCE));
             assertClosed(() -> engine.runtime().load(version, SOURCE));
@@ -190,7 +194,7 @@ class ProcessEngineLifecycleIntegrationTest {
         AtomicReference<ProcessEngine> engineReference = new AtomicReference<>();
         AtomicReference<RuntimeException> closeFailure = new AtomicReference<>();
         ProcessEngineConfig config = ProcessEngineTestFactory
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .scriptExecutor(closingExecutor(engineReference, closeFailure))
             .build();
@@ -225,7 +229,7 @@ class ProcessEngineLifecycleIntegrationTest {
 
         ProcessEngineConfig config =
                 ProcessEngineTestFactory
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .eventListener(event -> {
                 if (!firstEvent.compareAndSet(true, false)) {
@@ -233,7 +237,7 @@ class ProcessEngineLifecycleIntegrationTest {
                 }
                 listenerStarted.countDown();
                 try {
-                    allowReentry.await();
+                    assertThat(allowReentry.await(10, TimeUnit.SECONDS)).isTrue();
                     engineReference.get().tooling().generateJavaCode(SIMPLE_SOURCE);
                 } catch (InterruptedException interrupted) {
                     Thread.currentThread().interrupt();

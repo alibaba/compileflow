@@ -16,6 +16,7 @@ package com.alibaba.compileflow.benchmarks;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
 import com.alibaba.compileflow.engine.ProcessEngineFactory;
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -60,14 +61,26 @@ public class ProcessCallExecuteBenchmark {
      */
     @Setup
     public void setup() {
-        engine = ProcessEngineFactory.createTbbpm();
-        for (int level = callDepth; level >= 0; level--) {
-            String code = code(level);
-            String source = level == callDepth ? leafFlow(code) : callerFlow(code, code(level + 1));
-            engine.runtime().load(ProcessRef.version(NAMESPACE, code, VERSION), ProcessDefinition.inline(code, source));
+        engine = ProcessEngineFactory.create();
+        try {
+            for (int level = callDepth; level >= 0; level--) {
+                String code = code(level);
+                String source = level == callDepth ? leafFlow(code) : callerFlow(code, code(level + 1));
+                engine
+                    .runtime()
+                    .load(ProcessRef.version(NAMESPACE, code, VERSION),
+                            ProcessDefinition.inline(ProcessModelType.TBBPM, code, source));
+            }
+            root = ProcessRef.version(NAMESPACE, code(0), VERSION);
+            engine.execute(root, Map.of()).orElseThrow();
+        } catch (RuntimeException | Error failure) {
+            try {
+                engine.close();
+            } catch (RuntimeException | Error closing) {
+                failure.addSuppressed(closing);
+            }
+            throw failure;
         }
-        root = ProcessRef.version(NAMESPACE, code(0), VERSION);
-        engine.execute(root, Map.of()).orElseThrow();
     }
 
     /**

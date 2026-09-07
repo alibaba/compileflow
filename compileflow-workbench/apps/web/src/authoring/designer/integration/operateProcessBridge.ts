@@ -61,6 +61,7 @@ export function mapOperateDefinitionToUnified(def: ProcessDefinition): {
       code: def.code,
       name: def.name,
       description: def.description,
+      tags: [...def.tags],
       createdAt: parsedCreatedAt,
       updatedAt: parsedUpdatedAt,
     },

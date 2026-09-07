@@ -19,7 +19,7 @@
 <!--
 Describe public API, configuration, persistence, protocol, security,
 performance, and operational impact. Write "None" where appropriate.
-Include migration notes for intentional breaking changes.
+Describe required schema transitions and rollback constraints when persistence changes.
 -->
 
 ## Checklist
@@ -30,5 +30,5 @@ Include migration notes for intentional breaking changes.
 - [ ] No credentials, private data, or unbounded metric labels are introduced.
 - [ ] Required local checks pass; remaining validation or risk is stated above.
 - [ ] Every contribution commit has an author-matching DCO `Signed-off-by` trailer (`git commit -s`).
-- [ ] For a Durable public or persisted contract change, the dedicated design issue and completed fifteen-section ADR
+- [ ] For a Durable public or persisted contract change, the dedicated Durable Kernel Change issue and completed form
   are linked above; otherwise this item is not applicable.

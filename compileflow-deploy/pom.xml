@@ -14,12 +14,24 @@
     <artifactId>compileflow-deploy</artifactId>
     <packaging>pom</packaging>
     <name>CompileFlow Deployment</name>
-    <description>Deployment API, control plane, runtime, and transport SPI.</description>
+    <description>Deployment API, wire protocol, control plane, and node-local runtime.</description>
 
     <modules>
         <module>compileflow-deploy-api</module>
+        <module>compileflow-deploy-protocol</module>
+        <module>compileflow-deploy-spi</module>
+        <module>compileflow-deploy-testkit</module>
         <module>compileflow-deploy-control-plane</module>
         <module>compileflow-deploy-runtime</module>
+        <module>compileflow-deploy-jdbc</module>
+        <module>compileflow-deploy-postgresql</module>
+        <module>compileflow-deploy-mysql</module>
+        <module>compileflow-deploy-spring-boot-autoconfigure</module>
+        <module>compileflow-deploy-spring-boot-autoconfigure-postgresql</module>
+        <module>compileflow-deploy-spring-boot-autoconfigure-mysql</module>
+        <module>compileflow-deploy-spring-boot-starter</module>
+        <module>compileflow-deploy-spring-boot-starter-postgresql</module>
+        <module>compileflow-deploy-spring-boot-starter-mysql</module>
     </modules>
 
 </project>

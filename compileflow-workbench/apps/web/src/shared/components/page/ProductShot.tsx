@@ -1,12 +1,10 @@
 import styles from './ProductShot.module.css'
 
-/**
- * Product stage — studio-lit designer visual.
- */
+/** Decorative product screenshot used in page headers. */
 export function ProductShot({
   className,
-  src = '/images/product-designer-hero.png',
-  alt = 'CompileFlow designer',
+  src = '/images/product-designer-hero.svg',
+  alt = '',
 }: {
   className?: string
   src?: string

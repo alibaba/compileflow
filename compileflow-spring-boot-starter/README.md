@@ -1,16 +1,12 @@
 # CompileFlow Spring Boot Starter
 
-Dependency-only Spring Boot starter for embedding CompileFlow. It includes the auto-configuration module, Spring Boot
-infrastructure, validation, and the TBBPM format provider.
+Format-neutral dependency-only Spring Boot starter for embedding CompileFlow. It includes the auto-configuration
+module, Spring Boot infrastructure, and validation, but selects no process format.
 
-The starter creates one application-scoped, lifecycle-managed `ProcessEngine`
-by default. To use BPMN, add `compileflow-bpmn` and set:
-
-```yaml
-compileflow:
-  engine:
-    model-type: BPMN
-```
+Use `compileflow-spring-boot-starter-tbbpm` or `compileflow-spring-boot-starter-bpmn` for a single-format application.
+Applications supporting both formats may depend on this base starter plus `compileflow-tbbpm` and `compileflow-bpmn`;
+each `ProcessDefinition` declares its own model type. The starter creates one application-scoped, lifecycle-managed
+`ProcessEngine`, independent of how many frontends are present.
 
 The starter defines no independent Java API. Use the contracts from `compileflow-api`, and see
 the [quick start](../docs/en/quick-start.md) and

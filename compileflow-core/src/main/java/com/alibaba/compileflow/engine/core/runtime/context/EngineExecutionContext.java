@@ -71,7 +71,7 @@ public final class EngineExecutionContext {
     private final List<String> processCallPath;
     private final int maxProcessCallDepth;
     private final ProcessRef.Alias admittedAlias;
-    private final ProcessModelType modelType;
+    private ProcessModelType modelType;
     private final Instant startedAt;
     private final long startedAtNanos;
     private final ConcurrentMap<String, AtomicLong> actionInvocationOrdinals = new ConcurrentHashMap<>();
@@ -83,7 +83,7 @@ public final class EngineExecutionContext {
     private final Duration parallelCancellationGracePeriod;
     private final ProcessComponentResolver componentResolver;
     private final ScriptExecutorRegistry scriptExecutors;
-    private final Deque<Map<ScriptProgramSpec, ScriptProgram>> scriptProgramScopes = new ArrayDeque<>();
+    private final Deque<ScriptProgramsScope> scriptProgramScopes = new ArrayDeque<>();
     private final Map<String, RetryPolicy> retryPolicies;
     private final Map<String, FailureHandler> failureHandlers;
     private final boolean mdcPropagationEnabled;
@@ -188,20 +188,21 @@ public final class EngineExecutionContext {
     public ScriptProgramsScope openScriptPrograms(Map<ScriptProgramSpec, ScriptProgram> scriptPrograms) {
         Map<ScriptProgramSpec, ScriptProgram> catalog =
                 Map.copyOf(Objects.requireNonNull(scriptPrograms, "scriptPrograms"));
+        ScriptProgramsScope scope = new ScriptProgramsScope(this, catalog);
         synchronized (scriptProgramScopes) {
-            scriptProgramScopes.addLast(catalog);
+            scriptProgramScopes.addLast(scope);
         }
-        return new ScriptProgramsScope(this, catalog);
+        return scope;
     }
 
     private ScriptProgram scriptProgram(ScriptProgramSpec spec) {
         Objects.requireNonNull(spec, "spec");
         synchronized (scriptProgramScopes) {
-            Map<ScriptProgramSpec, ScriptProgram> active = scriptProgramScopes.peekLast();
+            ScriptProgramsScope active = scriptProgramScopes.peekLast();
             if (active == null) {
                 throw new IllegalStateException("No script program catalog is active for the current Process runtime");
             }
-            ScriptProgram program = active.get(spec);
+            ScriptProgram program = active.catalog.get(spec);
             if (program == null) {
                 throw new IllegalArgumentException(
                         "No script program is available for language '" + spec.language() + "'");
@@ -229,7 +230,7 @@ public final class EngineExecutionContext {
                 if (closed) {
                     return;
                 }
-                if (owner.scriptProgramScopes.peekLast() != catalog) {
+                if (owner.scriptProgramScopes.peekLast() != this) {
                     throw new IllegalStateException("Script program catalogs must close in invocation order");
                 }
                 owner.scriptProgramScopes.removeLast();
@@ -355,9 +356,6 @@ public final class EngineExecutionContext {
             AliasSelection aliasSelection) {
         ProcessCallGraph.ProcessNode target = Objects.requireNonNull(processNode, "processNode");
         ProcessRuntimeIdentity runtime = target.runtimeEntry().getRuntimeIdentity();
-        if (modelType != runtime.getModelType()) {
-            throw new IllegalStateException("Resolved runtime model type does not match the executing engine");
-        }
         ProcessRef.Version targetVersion = target.version();
         String version = targetVersion == null ? null : targetVersion.version();
         AdmittedAliasSelection admittedSelection = admittedSelection(aliasSelection);
@@ -366,6 +364,7 @@ public final class EngineExecutionContext {
         if (boundExecution.bound()) {
             throw new IllegalStateException("Process invocation was already bound");
         }
+        this.modelType = runtime.getModelType();
         this.boundExecution = binding;
     }
 
@@ -530,7 +529,7 @@ public final class EngineExecutionContext {
         }
 
         public Builder modelType(ProcessModelType value) {
-            this.modelType = Objects.requireNonNull(value, "modelType cannot be null");
+            this.modelType = value;
             return this;
         }
 
@@ -596,9 +595,6 @@ public final class EngineExecutionContext {
             }
             if (processCode == null) {
                 throw new IllegalStateException("processCode is required");
-            }
-            if (modelType == null) {
-                throw new IllegalStateException("modelType is required");
             }
             if (processCallInvoker == null) {
                 throw new IllegalStateException("processCallInvoker is required");

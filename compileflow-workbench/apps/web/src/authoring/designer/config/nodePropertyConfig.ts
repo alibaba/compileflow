@@ -1,73 +1,18 @@
-import { lazy } from 'react'
-
+import { AutoTaskPropertiesTab } from '../components/properties/AutoTaskPropertiesTab'
+import { BpmCallPropertiesTab } from '../components/properties/BpmCallPropertiesTab'
+import { BreakPropertiesTab } from '../components/properties/BreakPropertiesTab'
+import { ContinuePropertiesTab } from '../components/properties/ContinuePropertiesTab'
+import { ExclusivePropertiesTab } from '../components/properties/ExclusivePropertiesTab'
+import { InclusivePropertiesTab } from '../components/properties/InclusivePropertiesTab'
+import { LoopPropertiesTab } from '../components/properties/LoopPropertiesTab'
+import { NotePropertiesTab } from '../components/properties/NotePropertiesTab'
+import { ParallelPropertiesTab } from '../components/properties/ParallelPropertiesTab'
+import { ScriptTaskTbbpmPropertiesTab } from '../components/properties/ScriptTaskTbbpmPropertiesTab'
+import { SubBpmPropertiesTab } from '../components/properties/SubBpmPropertiesTab'
+import { TimerTaskPropertiesTab } from '../components/properties/TimerTaskPropertiesTab'
+import { WaitTaskPropertiesTab } from '../components/properties/WaitTaskPropertiesTab'
 import type { NodePropertyTabConfig } from '../types/propertyTabs'
 import type { TbbpmNodeType } from '../types/tbbpm'
-
-const AutoTaskPropertiesTab = lazy(() =>
-  import('../components/properties/AutoTaskPropertiesTab').then((m) => ({
-    default: m.AutoTaskPropertiesTab,
-  }))
-)
-const ScriptTaskTbbpmPropertiesTab = lazy(() =>
-  import('../components/properties/ScriptTaskTbbpmPropertiesTab').then((m) => ({
-    default: m.ScriptTaskTbbpmPropertiesTab,
-  }))
-)
-const ExclusivePropertiesTab = lazy(() =>
-  import('../components/properties/ExclusivePropertiesTab').then((m) => ({
-    default: m.ExclusivePropertiesTab,
-  }))
-)
-const ParallelPropertiesTab = lazy(() =>
-  import('../components/properties/ParallelPropertiesTab').then((m) => ({
-    default: m.ParallelPropertiesTab,
-  }))
-)
-const InclusivePropertiesTab = lazy(() =>
-  import('../components/properties/InclusivePropertiesTab').then((m) => ({
-    default: m.InclusivePropertiesTab,
-  }))
-)
-const BpmCallPropertiesTab = lazy(() =>
-  import('../components/properties/BpmCallPropertiesTab').then((m) => ({
-    default: m.BpmCallPropertiesTab,
-  }))
-)
-const SubBpmPropertiesTab = lazy(() =>
-  import('../components/properties/SubBpmPropertiesTab').then((m) => ({
-    default: m.SubBpmPropertiesTab,
-  }))
-)
-const WaitTaskPropertiesTab = lazy(() =>
-  import('../components/properties/WaitTaskPropertiesTab').then((m) => ({
-    default: m.WaitTaskPropertiesTab,
-  }))
-)
-const TimerTaskPropertiesTab = lazy(() =>
-  import('../components/properties/TimerTaskPropertiesTab').then((m) => ({
-    default: m.TimerTaskPropertiesTab,
-  }))
-)
-const LoopPropertiesTab = lazy(() =>
-  import('../components/properties/LoopPropertiesTab').then((m) => ({
-    default: m.LoopPropertiesTab,
-  }))
-)
-const BreakPropertiesTab = lazy(() =>
-  import('../components/properties/BreakPropertiesTab').then((m) => ({
-    default: m.BreakPropertiesTab,
-  }))
-)
-const ContinuePropertiesTab = lazy(() =>
-  import('../components/properties/ContinuePropertiesTab').then((m) => ({
-    default: m.ContinuePropertiesTab,
-  }))
-)
-const NotePropertiesTab = lazy(() =>
-  import('../components/properties/NotePropertiesTab').then((m) => ({
-    default: m.NotePropertiesTab,
-  }))
-)
 
 const NODE_PROPERTY_CONFIGS: Record<TbbpmNodeType, NodePropertyTabConfig | null> = {
   start: null,

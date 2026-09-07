@@ -17,8 +17,8 @@ import com.alibaba.compileflow.engine.AliasRoutingOptions;
 import com.alibaba.compileflow.engine.ProcessAliasTarget;
 import com.alibaba.compileflow.engine.ProcessExecutionOptions;
 import com.alibaba.compileflow.engine.ProcessRef;
-import com.alibaba.compileflow.deploy.runtime.install.RuntimeInstallationLease;
-import com.alibaba.compileflow.deploy.runtime.install.RuntimeInstaller;
+import com.alibaba.compileflow.deploy.runtime.version.VersionRuntimeLease;
+import com.alibaba.compileflow.deploy.runtime.version.VersionRuntimeManager;
 import com.alibaba.compileflow.workbench.server.config.CompileFlowWorkbenchServerProperties;
 import jakarta.annotation.PreDestroy;
 import java.time.Duration;
@@ -29,12 +29,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -54,7 +57,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * Polls, leases, recovers, and executes persisted whole-process invocations.
@@ -85,21 +87,19 @@ class AsyncInvocationWorker
     private static final Sort RECOVERY_ORDER =
             Sort.by(Sort.Order.asc("leaseUntil"), Sort.Order.asc("createdAt"), Sort.Order.asc("invocationId"));
     private final AsyncInvocationRepository repository;
-    private final AsyncInvocationStateMachine stateMachine;
+    private final AsyncInvocationStore store;
     private final PublishedProcessExecutionService executionService;
-    private final RuntimeInstaller runtimeInstaller;
+    private final VersionRuntimeManager versionRuntimeManager;
     private final AsyncInvocationPayloadCodec payloadCodec;
-    private final LeaseRenewal leaseRenewal;
     private volatile Executor executor;
     private final boolean ownsExecutor;
-    private final int ownedExecutorConcurrency;
-    private final int ownedExecutorQueueCapacity;
-    private final int dispatchBatchSize;
+    private final int concurrency;
+    private final Semaphore executionSlots;
     private final long leaseDurationMs;
     private final long shutdownGracePeriodMs;
     private final String workerId;
     private final ConcurrentMap<String, String> localRunningInvocations = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, Boolean> dispatchedInvocations = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, InvocationTask> dispatchedInvocations = new ConcurrentHashMap<>();
     private final AtomicReference<Executor> admissionExecutor = new AtomicReference<>();
     private final ThreadLocal<Boolean> workerInvocation = new ThreadLocal<>();
     private volatile ApplicationContext applicationContext;
@@ -110,63 +110,38 @@ class AsyncInvocationWorker
     private boolean destroyed;
 
     @Autowired
-    public AsyncInvocationWorker(AsyncInvocationRepository repository, AsyncInvocationStateMachine stateMachine,
-            PublishedProcessExecutionService executionService, RuntimeInstaller runtimeInstaller,
-            AsyncInvocationLeaseBatchRepository leaseBatchRepository, CompileFlowWorkbenchServerProperties properties,
-            LifecycleProperties lifecycleProperties, ObjectMapper objectMapper) {
-        this(repository, stateMachine, executionService, runtimeInstaller, leaseBatchRepository::renew, objectMapper,
-                null, true, properties.getAsyncInvocation().getConcurrency(),
-                properties.getAsyncInvocation().getQueueCapacity(),
-                properties.getAsyncInvocation().getDispatchBatchSize(),
-                properties.getAsyncInvocation().getLeaseDuration(), lifecycleProperties.getTimeoutPerShutdownPhase());
+    public AsyncInvocationWorker(AsyncInvocationRepository repository, AsyncInvocationStore store,
+            PublishedProcessExecutionService executionService, VersionRuntimeManager versionRuntimeManager,
+            CompileFlowWorkbenchServerProperties properties, LifecycleProperties lifecycleProperties) {
+        this(repository, store, executionService, versionRuntimeManager, null, true,
+                properties.getAsyncInvocation().getConcurrency(), properties.getAsyncInvocation().getLeaseDuration(),
+                lifecycleProperties.getTimeoutPerShutdownPhase());
     }
 
-    AsyncInvocationWorker(AsyncInvocationRepository repository, AsyncInvocationStateMachine stateMachine,
-            PublishedProcessExecutionService executionService, RuntimeInstaller runtimeInstaller,
-            ObjectMapper objectMapper, Executor executor, int dispatchBatchSize, Duration leaseDuration) {
-        this(repository, stateMachine, executionService, runtimeInstaller, sequentialLeaseRenewal(repository),
-                objectMapper, executor, false, 0, 0, dispatchBatchSize, leaseDuration, Duration.ZERO);
+    AsyncInvocationWorker(AsyncInvocationRepository repository, AsyncInvocationStore store,
+            PublishedProcessExecutionService executionService, VersionRuntimeManager versionRuntimeManager,
+            Executor executor, int concurrency, Duration leaseDuration) {
+        this(repository, store, executionService, versionRuntimeManager, executor, false, concurrency, leaseDuration,
+                Duration.ZERO);
     }
 
-    AsyncInvocationWorker(AsyncInvocationRepository repository, AsyncInvocationStateMachine stateMachine,
-            PublishedProcessExecutionService executionService, RuntimeInstaller runtimeInstaller,
-            CompileFlowWorkbenchServerProperties properties, LifecycleProperties lifecycleProperties,
-            ObjectMapper objectMapper) {
-        this(repository, stateMachine, executionService, runtimeInstaller, sequentialLeaseRenewal(repository),
-                objectMapper, null, true, properties.getAsyncInvocation().getConcurrency(),
-                properties.getAsyncInvocation().getQueueCapacity(),
-                properties.getAsyncInvocation().getDispatchBatchSize(),
-                properties.getAsyncInvocation().getLeaseDuration(), lifecycleProperties.getTimeoutPerShutdownPhase());
-    }
-
-    private AsyncInvocationWorker(AsyncInvocationRepository repository, AsyncInvocationStateMachine stateMachine,
-            PublishedProcessExecutionService executionService, RuntimeInstaller runtimeInstaller,
-            LeaseRenewal leaseRenewal, ObjectMapper objectMapper, Executor executor, boolean ownsExecutor,
-            int ownedExecutorConcurrency, int ownedExecutorQueueCapacity, int dispatchBatchSize, Duration leaseDuration,
+    private AsyncInvocationWorker(AsyncInvocationRepository repository, AsyncInvocationStore store,
+            PublishedProcessExecutionService executionService, VersionRuntimeManager versionRuntimeManager,
+            Executor executor, boolean ownsExecutor, int concurrency, Duration leaseDuration,
             Duration shutdownGracePeriod) {
         this.repository = Objects.requireNonNull(repository, "repository");
-        this.stateMachine = Objects.requireNonNull(stateMachine, "stateMachine");
+        this.store = Objects.requireNonNull(store, "store");
         this.executionService = Objects.requireNonNull(executionService, "executionService");
-        this.runtimeInstaller = Objects.requireNonNull(runtimeInstaller, "runtimeInstaller");
-        this.leaseRenewal = Objects.requireNonNull(leaseRenewal, "leaseRenewal");
-        this.payloadCodec = new AsyncInvocationPayloadCodec(objectMapper);
+        this.versionRuntimeManager = Objects.requireNonNull(versionRuntimeManager, "versionRuntimeManager");
+        this.payloadCodec = new AsyncInvocationPayloadCodec();
         this.ownsExecutor = ownsExecutor;
-        this.ownedExecutorConcurrency = ownsExecutor ? requirePositive(ownedExecutorConcurrency, "concurrency") : 0;
-        this.ownedExecutorQueueCapacity = ownsExecutor
-                ? requirePositive(ownedExecutorQueueCapacity, "queueCapacity")
-                : 0;
-        this.executor = ownsExecutor
-                ? createExecutor(this.ownedExecutorConcurrency, this.ownedExecutorQueueCapacity)
-                : Objects.requireNonNull(executor, "executor");
+        this.concurrency = requirePositive(concurrency, "concurrency");
+        this.executionSlots = new Semaphore(this.concurrency);
+        this.executor = ownsExecutor ? createExecutor(this.concurrency) : Objects.requireNonNull(executor, "executor");
         admissionExecutor.set(this.executor);
-        this.dispatchBatchSize = requirePositive(dispatchBatchSize, "dispatchBatchSize");
         this.leaseDurationMs = requirePositiveMillis(leaseDuration, "leaseDuration");
         this.shutdownGracePeriodMs = requireNonNegativeMillis(shutdownGracePeriod, "shutdownGracePeriod");
         this.workerId = "worker-" + UUID.randomUUID();
-    }
-
-    private static ProcessExecutionOptions toExecutionOptions(String invocationId, PersistedInvocationRouting routing) {
-        return ProcessExecutionOptions.builder().invocationId(invocationId).build();
     }
 
     private static PublishedProcessExecutionService.AliasPin toAliasPin(String processCode,
@@ -222,14 +197,6 @@ class AsyncInvocationWorker
         return StringUtils.abbreviate(normalized, MAX_ERROR_MESSAGE_LENGTH);
     }
 
-    private static Throwable rootCause(Throwable failure) {
-        Throwable current = Objects.requireNonNull(failure, "failure");
-        while (current.getCause() != null && current.getCause() != current) {
-            current = current.getCause();
-        }
-        return current;
-    }
-
     private static int requirePositive(int value, String name) {
         if (value <= 0) {
             throw new IllegalArgumentException(name + " must be greater than 0");
@@ -268,31 +235,10 @@ class AsyncInvocationWorker
         return millis;
     }
 
-    private static long saturatingAdd(long value, long increment) {
-        if (increment > 0L && value > Long.MAX_VALUE - increment) {
-            return Long.MAX_VALUE;
-        }
-        return value + increment;
-    }
-
-    private static LeaseRenewal sequentialLeaseRenewal(AsyncInvocationRepository repository) {
-        return (authorities, runningStatus, extensionMillis) -> {
-            long now = repository.currentTimeMillis();
-            long leaseUntil = saturatingAdd(now, extensionMillis);
-            Set<String> renewed = new java.util.LinkedHashSet<>();
-            for (Map.Entry<String, String> authority : authorities.entrySet()) {
-                if (repository.extendLease(authority.getKey(), runningStatus, authority.getValue(), leaseUntil, now) == 1) {
-                    renewed.add(authority.getKey());
-                }
-            }
-            return Set.copyOf(renewed);
-        };
-    }
-
-    private static ExecutorService createExecutor(int concurrency, int queueCapacity) {
+    private static ExecutorService createExecutor(int concurrency) {
         int threads = requirePositive(concurrency, "concurrency");
-        int capacity = requirePositive(queueCapacity, "queueCapacity");
-        return new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(capacity),
+        // A task releases its slot before its executor thread returns; allow that bounded handoff.
+        return new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(threads),
                 new AsyncInvocationThreadFactory(), new ThreadPoolExecutor.AbortPolicy());
     }
 
@@ -317,8 +263,8 @@ class AsyncInvocationWorker
         try {
             recoverExpiredRunningInvocations();
             dispatchQueuedInvocations();
-            LOGGER.info("Async invocation worker started: workerId={}, leaseDurationMs={}, dispatchBatchSize={}",
-                    workerId, leaseDurationMs, dispatchBatchSize);
+            LOGGER.info("Async invocation worker started: workerId={}, leaseDurationMs={}, concurrency={}", workerId,
+                    leaseDurationMs, concurrency);
         } catch (RuntimeException | Error failure) {
             admissionExecutor.compareAndSet(startupExecutor, null);
             synchronized (this) {
@@ -338,21 +284,25 @@ class AsyncInvocationWorker
     }
 
     public boolean dispatchQueuedInvocations() {
-        long now = repository.currentTimeMillis();
+        int capacity = executionSlots.availablePermits();
+        if (admissionExecutor.get() == null || capacity == 0) {
+            return false;
+        }
+        long now = store.currentTimeMillis();
         Page<AsyncInvocationEntity> invocations = repository.findByStatusAndAvailableAtLessThanEqual(STATUS_QUEUED, now,
-                PageRequest.of(0, dispatchBatchSize, DISPATCH_ORDER));
+                PageRequest.of(0, capacity, DISPATCH_ORDER));
         int accepted = 0;
         for (AsyncInvocationEntity invocation : invocations.getContent()) {
             if (dispatch(invocation.getInvocationId())) {
                 accepted++;
             }
         }
-        return accepted > 0 && invocations.getNumberOfElements() >= dispatchBatchSize;
+        return accepted > 0 && invocations.getNumberOfElements() >= capacity;
     }
 
     public void renewLocalRunningLeases() {
         Map<String, String> snapshot = Map.copyOf(localRunningInvocations);
-        Set<String> renewed = leaseRenewal.renew(snapshot, STATUS_RUNNING, leaseDurationMs);
+        Set<String> renewed = store.renewLeases(snapshot, STATUS_RUNNING, leaseDurationMs);
         if (!snapshot.keySet().containsAll(renewed)) {
             throw new IllegalStateException("Lease renewal returned an invocation outside the requested snapshot");
         }
@@ -364,12 +314,12 @@ class AsyncInvocationWorker
     }
 
     public boolean recoverExpiredRunningInvocations() {
-        long now = repository.currentTimeMillis();
+        long now = store.currentTimeMillis();
         Page<AsyncInvocationEntity> expiredInvocations = repository.findByStatusAndLeaseUntilLessThan(STATUS_RUNNING,
                 now, PageRequest.of(0, RECOVERY_SLICE_SIZE, RECOVERY_ORDER));
         int recovered = 0;
         for (AsyncInvocationEntity invocation : expiredInvocations.getContent()) {
-            recovered += stateMachine.recoverExpired(invocation, LEASE_EXPIRED_ERROR_CODE, LEASE_EXPIRED_ERROR);
+            recovered += store.recoverExpired(invocation, LEASE_EXPIRED_ERROR_CODE, LEASE_EXPIRED_ERROR);
         }
         return recovered > 0 && expiredInvocations.getNumberOfElements() >= RECOVERY_SLICE_SIZE;
     }
@@ -474,7 +424,7 @@ class AsyncInvocationWorker
         if (executor instanceof ExecutorService executorService && !executorService.isShutdown()) {
             return;
         }
-        executor = createExecutor(ownedExecutorConcurrency, ownedExecutorQueueCapacity);
+        executor = createExecutor(concurrency);
     }
 
     private void shutdownExecutor(Executor executorToStop) {
@@ -502,6 +452,14 @@ class AsyncInvocationWorker
             }
         } catch (InterruptedException interrupted) {
             releaseCancelledDispatches(executorService.shutdownNow());
+            try {
+                long remaining = remainingNanos(startedAt, totalNanos);
+                if (remaining > 0L && !executorService.awaitTermination(remaining, TimeUnit.NANOSECONDS)) {
+                    LOGGER.warn("Async worker tasks remain active after interrupted shutdown");
+                }
+            } catch (InterruptedException forceInterrupted) {
+                LOGGER.warn("Interrupted again while waiting for forced async worker shutdown");
+            }
             Thread.currentThread().interrupt();
         }
     }
@@ -509,26 +467,34 @@ class AsyncInvocationWorker
     private void releaseCancelledDispatches(List<Runnable> cancelledTasks) {
         for (Runnable task : cancelledTasks) {
             if (task instanceof InvocationTask invocationTask) {
-                dispatchedInvocations.remove(invocationTask.invocationId);
+                invocationTask.release();
             }
         }
     }
 
     boolean dispatch(String invocationId) {
-        if (dispatchedInvocations.putIfAbsent(invocationId, Boolean.TRUE) != null) {
+        if (!executionSlots.tryAcquire()) {
+            return false;
+        }
+        InvocationTask task = new InvocationTask(invocationId);
+        if (dispatchedInvocations.putIfAbsent(invocationId, task) != null) {
+            executionSlots.release();
             return false;
         }
         try {
             Executor dispatchExecutor = admissionExecutor.get();
             if (dispatchExecutor == null) {
-                dispatchedInvocations.remove(invocationId);
+                task.release();
                 return false;
             }
-            dispatchExecutor.execute(new InvocationTask(invocationId));
+            dispatchExecutor.execute(task);
             return true;
         } catch (RejectedExecutionException failure) {
-            dispatchedInvocations.remove(invocationId);
+            task.release();
             return false;
+        } catch (RuntimeException | Error failure) {
+            task.release();
+            throw failure;
         }
     }
 
@@ -548,8 +514,8 @@ class AsyncInvocationWorker
         return leaseDurationMs;
     }
 
-    int dispatchBatchSize() {
-        return dispatchBatchSize;
+    int concurrency() {
+        return concurrency;
     }
 
     private void awaitLifecycleTransition() {
@@ -578,6 +544,12 @@ class AsyncInvocationWorker
             this.invocationId = invocationId;
         }
 
+        private void release() {
+            if (dispatchedInvocations.remove(invocationId, this)) {
+                executionSlots.release();
+            }
+        }
+
         @Override
         public void run() {
             workerInvocation.set(Boolean.TRUE);
@@ -588,18 +560,17 @@ class AsyncInvocationWorker
                         failure.getClass().getName());
             } finally {
                 workerInvocation.remove();
-                dispatchedInvocations.remove(invocationId);
+                release();
             }
         }
     }
 
     private void executeOnce(String invocationId) {
-        Optional<AsyncInvocationStateMachine.Claim> claimed =
-                stateMachine.claim(invocationId, workerId, leaseDurationMs);
+        Optional<AsyncInvocationStore.Claim> claimed = store.claim(invocationId, workerId, leaseDurationMs);
         if (claimed.isEmpty()) {
             return;
         }
-        AsyncInvocationStateMachine.Claim claim = claimed.get();
+        AsyncInvocationStore.Claim claim = claimed.get();
         String leaseToken = claim.leaseToken();
         localRunningInvocations.put(invocationId, leaseToken);
         try {
@@ -613,14 +584,15 @@ class AsyncInvocationWorker
                     return;
                 }
                 ProcessRef.Version exactRef = toExactProcessRef(invocation.getProcessCode(), routing);
-                RuntimeInstallationLease installation = acquireRuntimeInstallation(exactRef);
+                VersionRuntimeLease installation = acquireRuntimeInstallation(exactRef);
                 try {
                     if (!renewBeforeExecution(invocation, leaseToken)) {
                         return;
                     }
                     PublishedProcessExecutionService.AliasPin aliasPin =
                             toAliasPin(invocation.getProcessCode(), routing);
-                    ProcessExecutionOptions options = toExecutionOptions(invocation.getInvocationId(), routing);
+                    ProcessExecutionOptions options =
+                            ProcessExecutionOptions.builder().invocationId(invocation.getInvocationId()).build();
                     ProcessExecutionResponse response = aliasPin == null
                             ? executionService.executeInstalled(exactRef, installation, params, options)
                             : executionService.execute(aliasPin, params, options);
@@ -637,7 +609,7 @@ class AsyncInvocationWorker
                 transitionFailure(claim, RUNTIME_LOAD_ERROR_CODE, RUNTIME_LOAD_ERROR, false);
             } catch (Exception failure) {
                 LOGGER.error("Unexpected async invocation failure: invocationId={}, processCode={}, failureType={}",
-                        invocation.getInvocationId(), invocation.getProcessCode(), failure.getClass().getName());
+                        invocation.getInvocationId(), invocation.getProcessCode(), failure.getClass().getName(), failure);
                 transitionFailure(claim, UNEXPECTED_EXECUTION_ERROR_CODE, UNEXPECTED_EXECUTION_ERROR, false);
             }
         } finally {
@@ -654,9 +626,7 @@ class AsyncInvocationWorker
                 routing.namespace(), routing.alias(), new AliasRoutingOptions(invocation.getInvocationId()));
         PersistedInvocationRouting pinnedRouting = routing.pin(pin);
         String routingJson = payloadCodec.write(pinnedRouting.asMap());
-        long now = repository.currentTimeMillis();
-        int pinned =
-                repository.pinOwnedRouting(invocation.getInvocationId(), STATUS_RUNNING, leaseToken, routingJson, now);
+        int pinned = store.pinRouting(invocation.getInvocationId(), STATUS_RUNNING, leaseToken, routingJson);
         if (pinned == 0) {
             logDiscardedTransition(invocation.getInvocationId(), pinned);
             return null;
@@ -665,11 +635,23 @@ class AsyncInvocationWorker
         return pinnedRouting;
     }
 
-    private RuntimeInstallationLease acquireRuntimeInstallation(ProcessRef.Version ref) {
+    private VersionRuntimeLease acquireRuntimeInstallation(ProcessRef.Version ref) {
         try {
-            return runtimeInstaller.acquireInstallation(ref).join();
-        } catch (CompletionException failure) {
-            throw new AsyncRuntimeLoadException(rootCause(failure));
+            CompletableFuture<VersionRuntimeLease> installation = versionRuntimeManager.acquireInstallation(ref);
+            try {
+                return installation.get();
+            } catch (InterruptedException interrupted) {
+                if (!installation.cancel(false)) {
+                    // Completion may win the cancellation race; release its unconsumed lease.
+                    installation.thenAccept(VersionRuntimeLease::close);
+                }
+                throw interrupted;
+            }
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new AsyncRuntimeLoadException(interrupted);
+        } catch (ExecutionException | CompletionException failure) {
+            throw new AsyncRuntimeLoadException(failure.getCause() == null ? failure : failure.getCause());
         } catch (RuntimeException failure) {
             throw new AsyncRuntimeLoadException(failure);
         }
@@ -677,7 +659,7 @@ class AsyncInvocationWorker
 
     private boolean renewBeforeExecution(AsyncInvocationEntity invocation, String leaseToken) {
         Set<String> renewed =
-                leaseRenewal.renew(Map.of(invocation.getInvocationId(), leaseToken), STATUS_RUNNING, leaseDurationMs);
+                store.renewLeases(Map.of(invocation.getInvocationId(), leaseToken), STATUS_RUNNING, leaseDurationMs);
         if (!renewed.contains(invocation.getInvocationId())) {
             LOGGER.warn("Skipped async invocation after its ownership lease was lost during runtime loading: "
                     + "invocationId={}", invocation.getInvocationId());
@@ -687,12 +669,7 @@ class AsyncInvocationWorker
         return true;
     }
 
-    @FunctionalInterface
-    private interface LeaseRenewal {
-        Set<String> renew(Map<String, String> authorities, String runningStatus, long extensionMillis);
-    }
-
-    private void transitionResponse(AsyncInvocationStateMachine.Claim claim, PersistedInvocationRouting requestedRouting,
+    private void transitionResponse(AsyncInvocationStore.Claim claim, PersistedInvocationRouting requestedRouting,
             ProcessExecutionResponse response) {
         AsyncInvocationEntity invocation = claim.invocation();
         ProcessExecutionResponse publicResponse = payloadCodec.withRoutingSnapshot(requestedRouting, response);
@@ -703,19 +680,18 @@ class AsyncInvocationWorker
         long durationMs = publicResponse.durationMs();
         int transitioned;
         if (publicResponse.success()) {
-            transitioned = stateMachine.complete(claim, routingJson, resultJson, traceId, durationMs);
+            transitioned = store.complete(claim, routingJson, resultJson, traceId, durationMs);
         } else {
-            transitioned = stateMachine.fail(claim, routingJson, resultJson,
-                    normalizeErrorCode(publicResponse.errorCode()),
+            transitioned = store.fail(claim, routingJson, resultJson, normalizeErrorCode(publicResponse.errorCode()),
                     normalizeError(publicResponse.error(), "Execution failed"), traceId, durationMs, false);
         }
         logDiscardedTransition(invocation.getInvocationId(), transitioned);
     }
 
-    private void transitionFailure(AsyncInvocationStateMachine.Claim claim, String errorCode, String errorMessage,
+    private void transitionFailure(AsyncInvocationStore.Claim claim, String errorCode, String errorMessage,
             boolean permanent) {
         AsyncInvocationEntity invocation = claim.invocation();
-        int transitioned = stateMachine.fail(claim, invocation.getRoutingJson(), null, errorCode,
+        int transitioned = store.fail(claim, invocation.getRoutingJson(), null, errorCode,
                 normalizeError(errorMessage, permanent ? "Invalid async invocation payload" : "Execution failed"), null,
                 null, permanent);
         logDiscardedTransition(invocation.getInvocationId(), transitioned);

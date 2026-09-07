@@ -1,0 +1,31 @@
+{
+  "properties": [
+    {
+      "name": "compileflow.durable.database.provider",
+      "description": "Explicit first-party Durable Store Provider selection when multiple Provider compositions are present."
+    },
+    {
+      "name": "compileflow.durable.database.migrate",
+      "description": "Whether the selected Durable Store may apply its packaged migration."
+    },
+    {
+      "name": "compileflow.durable.shutdown.timeout",
+      "description": "Worker drain budget used by stop and close. Excludes admitted application operations and subsequent resource cleanup; providers must bound their own blocking calls."
+    }
+  ],
+  "hints": [
+    {
+      "name": "compileflow.durable.database.provider",
+      "values": [
+        {
+          "value": "POSTGRESQL",
+          "description": "Select the PostgreSQL Durable Store composition."
+        },
+        {
+          "value": "MYSQL",
+          "description": "Select the MySQL Durable Store composition."
+        }
+      ]
+    }
+  ]
+}

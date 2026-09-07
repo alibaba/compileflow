@@ -23,8 +23,12 @@ import java.util.Optional;
 import java.util.Set;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import tools.jackson.core.StreamReadFeature;
+import tools.jackson.core.json.JsonFactory;
 import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Loads and serves bundled Learn example catalog entries.
@@ -37,11 +41,14 @@ public class ExampleCatalogService {
     private static final TypeReference<List<ExampleResponse>> CATALOG_TYPE =
             new TypeReference<List<ExampleResponse>>() {
     };
-    private final ObjectMapper objectMapper;
+    private static final ObjectMapper CATALOG_MAPPER = JsonMapper
+        .builder(JsonFactory.builder().enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION).build())
+        .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+        .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+        .build();
     private List<ExampleResponse> examples = List.of();
 
-    public ExampleCatalogService(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    public ExampleCatalogService() {
     }
 
     private static List<ExampleResponse> validateCatalog(List<ExampleResponse> loaded) {
@@ -62,7 +69,7 @@ public class ExampleCatalogService {
     void loadCatalog() throws IOException {
         ClassPathResource resource = new ClassPathResource(CATALOG_PATH);
         try (InputStream input = resource.getInputStream()) {
-            List<ExampleResponse> loaded = objectMapper.readValue(input, CATALOG_TYPE);
+            List<ExampleResponse> loaded = CATALOG_MAPPER.readValue(input, CATALOG_TYPE);
             examples = validateCatalog(loaded);
         }
     }

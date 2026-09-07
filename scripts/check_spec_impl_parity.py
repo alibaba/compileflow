@@ -408,12 +408,12 @@ def main() -> None:
         project_root / "compileflow-bpmn/src/main/resources/BPMN20.xsd"
     )
     bpmn_specifications = [
-        project_root / "docs/specs/bpmn-extension-specification.en.md",
-        project_root / "docs/specs/bpmn-extension-specification.zh.md",
+        project_root / "docs/en/specifications/bpmn-extensions.md",
+        project_root / "docs/zh/specifications/bpmn-extensions.md",
     ]
     tbbpm_specifications = [
-        project_root / "docs/specs/tbbpm-specification.en.md",
-        project_root / "docs/specs/tbbpm-specification.zh.md",
+        project_root / "docs/en/specifications/tbbpm.md",
+        project_root / "docs/zh/specifications/tbbpm.md",
     ]
     java_root = (
         project_root

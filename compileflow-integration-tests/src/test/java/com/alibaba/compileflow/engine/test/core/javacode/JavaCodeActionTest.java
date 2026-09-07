@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.core.javacode;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.alibaba.compileflow.engine.ProcessDefinition;
@@ -25,9 +26,9 @@ import org.junit.jupiter.api.Test;
 class JavaCodeActionTest {
     @Test
     void executesAJavaCodeTaskThroughExplicitTypedBindings() {
-        try (ProcessEngine engine = ProcessEngineTestFactory.createTbbpm()) {
-            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpm.java-code."
-                            + "javaCodeSum", "bpm.java-code.javaCodeSum".replace(".", "/") + ".bpm"),
+        try (ProcessEngine engine = ProcessEngineTestFactory.create()) {
+            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            "bpm.java-code." + "javaCodeSum", "bpm.java-code.javaCodeSum".replace(".", "/") + ".bpm"),
                     Map.of("inputA", 25, "inputB", 35));
 
             assertThat(result.isSuccess()).isTrue();
@@ -37,9 +38,10 @@ class JavaCodeActionTest {
 
     @Test
     void preservesActionFailureForInvalidBusinessInput() {
-        try (ProcessEngine engine = ProcessEngineTestFactory.createTbbpm()) {
-            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpm.java-code."
-                            + "javaCodeCalculator", "bpm.java-code.javaCodeCalculator".replace(".", "/") + ".bpm"),
+        try (ProcessEngine engine = ProcessEngineTestFactory.create()) {
+            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            "bpm.java-code." + "javaCodeCalculator",
+                            "bpm.java-code.javaCodeCalculator".replace(".", "/") + ".bpm"),
                     Map.of("inputA", 10, "inputB", 0, "op", "/"));
 
             assertThat(result.isSuccess()).isFalse();
@@ -49,7 +51,7 @@ class JavaCodeActionTest {
 
     @Test
     void rejectsInvalidJavaCodeDuringCompilation() {
-        ProcessDefinition definition = ProcessDefinition.inline("test.java-code.invalid",
+        ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.TBBPM, "test.java-code.invalid",
                 """
             <bpm code="test.java-code.invalid">
               <var name="result" dataType="java.lang.Integer" inOutType="return"/>
@@ -66,7 +68,7 @@ class JavaCodeActionTest {
             </bpm>
             """);
 
-        try (ProcessEngine engine = ProcessEngineTestFactory.createTbbpm()) {
+        try (ProcessEngine engine = ProcessEngineTestFactory.create()) {
             assertThatThrownBy(() -> engine.tooling().generateJavaCode(definition)).hasMessageContaining(
                     "missingSymbol");
         }

@@ -66,10 +66,6 @@ public final class LocalAliasRouteState {
         return applied[0];
     }
 
-    void clear() {
-        routes.clear();
-    }
-
     private static final class Entry {
         private final ProcessAliasRoute route;
         private final long revision;

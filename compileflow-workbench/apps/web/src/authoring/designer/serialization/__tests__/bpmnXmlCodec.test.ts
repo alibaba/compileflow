@@ -38,6 +38,64 @@ function draft(overrides: Partial<BpmnProcessDefinition> = {}): BpmnProcessDefin
 }
 
 describe('bpmnXmlCodec', () => {
+  test('rejects a renamed process code colliding with preserved definitions identity', () => {
+    const parsed = parseBpmnXml(xml(''))
+    expect(parsed.success, parsed.error?.message).toBe(true)
+    expect(() => generateBpmnXml(parsed.data!)).not.toThrow()
+    const renamed = { ...parsed.data!, code: 'Definitions_test' }
+    expect(() => generateBpmnXml(renamed)).toThrow('Duplicate BPMN id: Definitions_test')
+  })
+
+  test('rejects collaboration participants outside the editable profile', () => {
+    const parsed = parseBpmnXml(
+      xml(
+        '',
+        '<bpmn:collaboration id="collab"><bpmn:participant id="pool" processRef="process"/></bpmn:collaboration>'
+      )
+    )
+    expect(parsed.success).toBe(false)
+    expect(parsed.error?.message).toContain('collaboration')
+  })
+
+  test('preserves accepted definitions metadata through visual editing', () => {
+    const source = xml('').replace(
+      'id="Definitions_test"',
+      'id="Definitions_test" exporter="Example" exporterVersion="2" typeLanguage="urn:types" expressionLanguage="urn:expressions" xsi:schemaLocation="urn:example example.xsd"'
+    )
+    const parsed = parseBpmnXml(source)
+    expect(parsed.success, parsed.error?.message).toBe(true)
+    const output = new DOMParser().parseFromString(
+      generateBpmnXml(parsed.data!),
+      'application/xml'
+    ).documentElement
+    const input = new DOMParser().parseFromString(source, 'application/xml').documentElement
+    for (const attribute of [
+      'id',
+      'exporter',
+      'exporterVersion',
+      'typeLanguage',
+      'expressionLanguage',
+      'xsi:schemaLocation',
+    ]) {
+      expect(output.getAttribute(attribute), attribute).toBe(input.getAttribute(attribute))
+    }
+  })
+  test('preserves significant script and documentation boundary whitespace', () => {
+    const text = '\n  value + 1;\n  '
+    const parsed = parseBpmnXml(
+      xml(`<bpmn:documentation>${text}</bpmn:documentation>
+      <bpmn:scriptTask id="script" scriptFormat="qlexpress">
+        <bpmn:documentation>${text}</bpmn:documentation>
+        <bpmn:script><![CDATA[${text}]]></bpmn:script>
+      </bpmn:scriptTask>`)
+    )
+    expect(parsed.success, parsed.error?.message).toBe(true)
+    expect(parsed.data?.description).toBe(text)
+    expect(parsed.data?.nodes[0].properties.script).toBe(text)
+    const reparsed = parseBpmnXml(generateBpmnXml(parsed.data!))
+    expect(reparsed.data?.nodes[0].documentation).toBe(text)
+    expect(reparsed.data?.nodes[0].properties.script).toBe(text)
+  })
   test('assigns non-overlapping fallback geometry when BPMN DI is absent', () => {
     const parsed = parseBpmnXml(
       xml(`<bpmn:startEvent id="start"/>

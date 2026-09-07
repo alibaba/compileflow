@@ -22,15 +22,15 @@ import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.core.routing.LocalRoutingState;
 import com.alibaba.compileflow.engine.core.routing.AliasAdmission;
-import com.alibaba.compileflow.deploy.api.protocol.routing.RoutingStateKeys;
-import com.alibaba.compileflow.deploy.api.protocol.routing.RoutingStatePayloads;
-import com.alibaba.compileflow.deploy.api.sync.inmemory.InMemoryDeploymentSyncChannel;
-import com.alibaba.compileflow.deploy.control.repository.InMemoryProcessVersionRepository;
-import com.alibaba.compileflow.deploy.control.repository.ProcessVersionRecord;
-import com.alibaba.compileflow.deploy.runtime.DeployRuntime;
+import com.alibaba.compileflow.deploy.protocol.RoutingStateKeys;
+import com.alibaba.compileflow.deploy.protocol.RoutingStateCodec;
+import com.alibaba.compileflow.deploy.testkit.InMemoryDeploymentProjectionStore;
+import com.alibaba.compileflow.deploy.testkit.InMemoryProcessVersionStore;
+import com.alibaba.compileflow.deploy.spi.store.ProcessVersionRecord;
+import com.alibaba.compileflow.deploy.runtime.DeploymentRuntime;
 import com.alibaba.compileflow.engine.test.support.config.ProcessEngineTestConfiguration;
 import com.alibaba.compileflow.engine.test.support.helpers.Awaiter;
-import com.alibaba.compileflow.engine.test.support.helpers.DeployRuntimeTestSupport;
+import com.alibaba.compileflow.engine.test.support.helpers.DeploymentRuntimeTestSupport;
 import com.alibaba.compileflow.engine.test.support.helpers.ProcessEngineTestFactory;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -58,20 +58,20 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @Tag("concurrency")
 @Execution(ExecutionMode.SAME_THREAD)
 class RoutingStateConcurrentIntegrationTest {
-    private static final Duration CHANNEL_TIMEOUT = Duration.ofSeconds(2);
+    private static final Duration OPERATION_TIMEOUT = Duration.ofSeconds(2);
     private static final String STATE_PREFIX = "compileflow.test.concurrent.";
     private static final String NAMESPACE = "default";
     private static final String ALIAS = "prod";
-    private InMemoryProcessVersionRepository versionRepository;
+    private InMemoryProcessVersionStore versionRepository;
     private ProcessEngine engine;
     private LocalRoutingState localRoutingState;
-    private InMemoryDeploymentSyncChannel channel;
+    private InMemoryDeploymentProjectionStore projectionStore;
     private ExecutorService runtimeExecutor;
-    private DeployRuntime runtime;
+    private DeploymentRuntime runtime;
     private AliasAdmission aliasAdmission;
 
     private static String aliasPayload(String code, String version, long revision) {
-        return RoutingStatePayloads.aliasStateJson(NAMESPACE, code, ALIAS, version, null, null, revision, "test",
+        return RoutingStateCodec.aliasStateJson(NAMESPACE, code, ALIAS, version, null, null, revision, "test",
                 System.currentTimeMillis());
     }
 
@@ -89,10 +89,10 @@ class RoutingStateConcurrentIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        versionRepository = new InMemoryProcessVersionRepository();
-        engine = ProcessEngineTestFactory.createTbbpm();
+        versionRepository = new InMemoryProcessVersionStore();
+        engine = ProcessEngineTestFactory.create();
         localRoutingState = new LocalRoutingState();
-        channel = new InMemoryDeploymentSyncChannel();
+        projectionStore = new InMemoryDeploymentProjectionStore();
         runtimeExecutor = Executors.newSingleThreadExecutor(runnable -> {
             Thread thread = new Thread(runnable, "test-deploy-runtime");
             thread.setDaemon(true);
@@ -103,17 +103,21 @@ class RoutingStateConcurrentIntegrationTest {
 
     @AfterEach
     void tearDown() throws Exception {
-        if (runtime != null) {
-            runtime.close();
-        }
-        if (engine != null) {
-            engine.close();
-        }
-        if (runtimeExecutor != null) {
-            runtimeExecutor.shutdown();
-        }
-        if (localRoutingState != null) {
-            localRoutingState.clear();
+        try {
+            if (runtime != null) {
+                runtime.close();
+            }
+        } finally {
+            try {
+                if (engine != null) {
+                    engine.close();
+                }
+            } finally {
+                if (runtimeExecutor != null) {
+                    runtimeExecutor.shutdownNow();
+                    assertThat(runtimeExecutor.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+                }
+            }
         }
     }
 
@@ -123,8 +127,8 @@ class RoutingStateConcurrentIntegrationTest {
         deployReady(code, "v1", flowReturningMarker(code, "v1"));
         deployReady(code, "v2", flowReturningMarker(code, "v2"));
         String key = RoutingStateKeys.aliasState(STATE_PREFIX, NAMESPACE, code, ALIAS);
-        runtime = DeployRuntimeTestSupport.dbRuntime(channel, Collections.singletonList(key), engine,
-                ProcessModelType.TBBPM, versionRepository, CHANNEL_TIMEOUT, runtimeExecutor, localRoutingState);
+        runtime = DeploymentRuntimeTestSupport.sourceRuntime(projectionStore, Collections.singletonList(key), engine,
+                versionRepository, OPERATION_TIMEOUT, runtimeExecutor, localRoutingState);
         runtime.start();
 
         int writers = 12;
@@ -138,8 +142,8 @@ class RoutingStateConcurrentIntegrationTest {
                 final String version = revision % 2 == 0 ? "v2" : "v1";
                 writerPool.submit(() -> {
                     try {
-                        start.await();
-                        replaceChannelValue(key, aliasPayload(code, version, revision));
+                        assertThat(start.await(10, TimeUnit.SECONDS)).isTrue();
+                        replaceProjectionStoreValue(key, aliasPayload(code, version, revision));
                     } catch (Throwable error) {
                         errors.add(error);
                     } finally {
@@ -152,23 +156,26 @@ class RoutingStateConcurrentIntegrationTest {
             assertThat(done.await(10, TimeUnit.SECONDS)).isTrue();
         } finally {
             writerPool.shutdownNow();
+            assertThat(writerPool.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
         }
 
         assertThat(errors).isEmpty();
-        Awaiter.await("alias route converges to the highest revision", Duration.ofSeconds(5), Duration.ofMillis(50), () -> route(
-                code)
-            .equals("v2"), () -> "localRoutingState=" + localRoutingState);
+        Awaiter.await("alias route converges to the highest revision", Duration.ofSeconds(5), Duration.ofMillis(50), () -> localRoutingState
+            .getAliasRouteState()
+            .resolve(NAMESPACE, code, ALIAS)
+            .filter(route -> route.revision() == writers && route.stableVersion().version().equals("v2"))
+            .isPresent(), () -> "localRoutingState=" + localRoutingState);
         assertThat(route(code)).isEqualTo("v2");
     }
 
-    private void replaceChannelValue(String key, String payload) {
+    private void replaceProjectionStoreValue(String key, String payload) {
         for (int attempt = 0; attempt < 1_000; attempt++) {
-            String current = channel.read(key, CHANNEL_TIMEOUT);
-            if (channel.compareAndSet(key, current, payload, "json", CHANNEL_TIMEOUT)) {
+            String current = projectionStore.read(key, OPERATION_TIMEOUT);
+            if (projectionStore.compareAndSet(key, current, payload, "json", OPERATION_TIMEOUT)) {
                 return;
             }
         }
-        throw new IllegalStateException("Channel remained contended: key=" + key);
+        throw new IllegalStateException("ProjectionStore remained contended: key=" + key);
     }
 
     private void deployReady(String code, String version, String content) {
@@ -177,14 +184,16 @@ class RoutingStateConcurrentIntegrationTest {
             .namespace(NAMESPACE)
             .code(code)
             .version(version)
-            .modelType(ProcessModelType.TBBPM)
-            .processDefinition(ProcessDefinition.inline(code, content))
-            .artifactDigest(ProcessArtifactDigest.compute(ProcessModelType.TBBPM,
-                    ProcessDefinition.inline(code, content), Map.of()))
+            .processDefinition(ProcessDefinition.inline(ProcessModelType.TBBPM, code, content))
+            .artifactDigest(ProcessArtifactDigest.compute(ProcessDefinition.inline(ProcessModelType.TBBPM, code, content),
+                    Map.of()))
             .actor("test")
             .createdAt(System.currentTimeMillis())
             .build());
-        engine.runtime().load(ProcessRef.version(NAMESPACE, code, version), ProcessDefinition.inline(code, content));
+        engine
+            .runtime()
+            .load(ProcessRef.version(NAMESPACE, code, version),
+                    ProcessDefinition.inline(ProcessModelType.TBBPM, code, content));
     }
 
     private String route(String code) {

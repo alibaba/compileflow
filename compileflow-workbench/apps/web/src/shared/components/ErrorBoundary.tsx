@@ -114,12 +114,12 @@ class ErrorBoundary extends Component<Props, State> {
                       wordBreak: 'break-word',
                     }}
                   >
-                    <strong>Error:</strong> {error.toString()}
+                    <strong>{i18n.t('errorBoundary.errorLabel')}</strong> {error.toString()}
                     {errorInfo && (
                       <>
                         <br />
                         <br />
-                        <strong>Component Stack:</strong>
+                        <strong>{i18n.t('errorBoundary.componentStackLabel')}</strong>
                         {errorInfo.componentStack}
                       </>
                     )}

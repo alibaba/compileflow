@@ -27,13 +27,13 @@ test.describe('Workbench semantic and edge-state journeys', () => {
   }) => {
     await page.goto('/learn')
     await page.keyboard.press(browserName === 'webkit' ? 'Alt+Tab' : 'Tab')
-    const skipLink = page.getByRole('link', { name: /跳到主要内容|Skip to main content/i })
+    const skipLink = page.getByRole('link', { name: /跳转到主要内容|Skip to main content/i })
     await expect(skipLink).toBeFocused()
     await expect(skipLink).toBeVisible()
     await page.keyboard.press('Enter')
     await expect(page.locator('main#main-content')).toBeFocused()
 
-    await page.goto('/build/designer?modelType=tbbpm&source=new')
+    await page.goto('/build/designer?modelType=tbbpm&source=new', { waitUntil: 'domcontentloaded' })
     await expect(page.locator('main')).toHaveCount(1)
     const processHeading = page.getByRole('heading', { level: 1 })
     await expect(processHeading).toBeAttached()
@@ -51,10 +51,19 @@ test.describe('Workbench semantic and edge-state journeys', () => {
     }
   })
 
+  test('learn hero product image is loaded, not only present in the DOM', async ({ page }) => {
+    await page.goto('/learn')
+    const image = page.getByTestId('product-shot').locator('img')
+    await expect(image).toBeVisible({ timeout: TIMEOUT })
+    await expect
+      .poll(() => image.evaluate((element: HTMLImageElement) => element.naturalWidth))
+      .toBeGreaterThan(0)
+  })
+
   test('home document title follows the selected language', async ({ page }) => {
     await page.goto('/learn')
     await expect(page).toHaveTitle('学习 | CompileFlow Workbench')
-    await page.getByRole('button', { name: /切换为英文|Switch to English/i }).click()
+    await page.getByRole('button', { name: /切换到英文|Switch to English/i }).click()
     await expect(page).toHaveTitle('Learn | CompileFlow Workbench')
   })
 
@@ -127,7 +136,7 @@ test.describe('Workbench semantic and edge-state journeys', () => {
   test('designer palette and monitoring visualizations have meaningful accessible names', async ({
     page,
   }) => {
-    await page.goto('/build/designer?modelType=bpmn&source=new')
+    await page.goto('/build/designer?modelType=bpmn&source=new', { waitUntil: 'domcontentloaded' })
     await expect(page.getByRole('textbox', { name: /搜索节点|Search nodes/i }).first()).toBeVisible(
       { timeout: TIMEOUT }
     )
@@ -138,7 +147,7 @@ test.describe('Workbench semantic and edge-state journeys', () => {
     })
     await expect(page.getByRole('img', { name: /执行趋势|Trends/i })).toBeVisible()
     await expect(page.getByRole('img', { name: /版本分布|Version distribution/i })).toBeVisible()
-    await expect(page.getByRole('img', { name: /热门流程|Top flows/i })).toBeVisible()
+    await expect(page.getByRole('img', { name: /流程排行|Process ranking/i })).toBeVisible()
     const recentErrors = page.locator('section').filter({
       has: page.getByRole('heading', { name: /最近错误|Recent errors/i }),
     })
@@ -176,7 +185,9 @@ test.describe('Workbench semantic and edge-state journeys', () => {
       if (message.type() === 'error') errors.push(message.text())
     })
 
-    await page.goto('/build/designer?modelType=unknown&source=new')
+    await page.goto('/build/designer?modelType=unknown&source=new', {
+      waitUntil: 'domcontentloaded',
+    })
     await expect(page.getByRole('banner', { name: /主导航|Main navigation/i })).toBeVisible()
     await expect(
       page.getByText(/设计器链接不完整或无效|designer link is incomplete or invalid/i)
@@ -197,28 +208,30 @@ test.describe('Workbench semantic and edge-state journeys', () => {
     await expect(page.getByRole('heading', { name: '下一步' })).toBeVisible()
     await expect(page.getByText('声明流程输入变量和返回变量')).toBeVisible()
 
-    await page.getByRole('button', { name: /切换为英文|Switch to English/i }).click()
+    await page.getByRole('button', { name: /切换到英文|Switch to English/i }).click()
     await expect(page.getByRole('heading', { name: 'How it works' })).toBeVisible()
     await expect(page.getByText('Declare process input and return variables')).toBeVisible()
-    await page.getByRole('button', { name: /切换为中文|Switch to Chinese/i }).click()
+    await page.getByRole('button', { name: /切换到中文|Switch to Chinese/i }).click()
     await expect(page.getByRole('button', { name: /下一个 BPMN 金额路由/ })).toBeVisible()
 
     await expect(page.getByRole('radio')).toHaveCount(0)
     await expect(page.locator('main aside')).toHaveCount(1)
-    await expect(page.getByRole('region', { name: /这篇教程有帮助吗/ })).toBeVisible()
+    await expect(page.getByRole('region', { name: /这个示例有帮助吗/ })).toBeVisible()
 
     await page.getByRole('tab', { name: '执行' }).click()
-    await expect(page.getByRole('navigation', { name: '本页目录' })).toContainText('执行参数')
+    await expect(page.getByRole('navigation', { name: '本页目录' })).toContainText(
+      '输入参数（JSON）'
+    )
     await expect(page.getByRole('navigation', { name: '本页目录' })).not.toContainText('你将学到')
 
-    const params = page.getByRole('textbox', { name: '执行参数（JSON）' })
+    const params = page.getByRole('textbox', { name: '输入参数（JSON）' })
     await params.fill('{"cursor":1}')
     await params.press('ArrowRight')
     await expect(page).toHaveURL(/learn\/examples\/learn\.tbbpm\.greeting$/)
 
-    await page.getByRole('button', { name: /标为已完成|Mark complete/i }).click()
+    await page.getByRole('button', { name: /标记为已完成|Mark as complete/i }).click()
     await expect(page.getByText('1 / 4', { exact: true })).toBeVisible()
-    await page.reload()
+    await page.reload({ waitUntil: 'domcontentloaded' })
     await expect(page.getByText('1 / 4', { exact: true })).toBeVisible({ timeout: TIMEOUT })
     await expect(page.getByText(/已完成|Completed/i).first()).toBeVisible()
   })
@@ -254,9 +267,12 @@ test.describe('Workbench semantic and edge-state journeys', () => {
     test.setTimeout(60_000)
     await page.goto('/operate/deployments')
     const search = page.getByRole('searchbox', {
-      name: /搜索流程编码 \/ 部署 ID|Search by process code or deployment ID/i,
+      name: /按流程编码或部署 ID 搜索|Search by process code or deployment ID/i,
     })
     const deploymentRows = page.locator('main .ant-table-tbody > tr.ant-table-row')
+    await expect(deploymentRows.first()).toBeVisible({ timeout: TIMEOUT })
+    await expect(page.locator('main')).not.toContainText(/\ball_at_once\b|\bcanary\b/)
+    await expect(page.locator('main')).toContainText(/全量切换|灰度发布|All at once|Canary release/)
     await search.fill('PAYMENT')
 
     await expect(deploymentRows).toHaveCount(1, { timeout: TIMEOUT })
@@ -271,7 +287,7 @@ test.describe('Workbench semantic and edge-state journeys', () => {
     await expect(page).not.toHaveURL(/searchText=/)
     await expect(deploymentRows).toHaveCount(4, { timeout: TIMEOUT })
     const alias = page.getByRole('combobox', {
-      name: /按别名筛选|Alias/i,
+      name: /选择别名|Select alias/i,
     })
     await alias.click()
     await page.keyboard.press('ArrowDown')
@@ -292,6 +308,11 @@ test.describe('Workbench semantic and edge-state journeys', () => {
     })
     await expect(page.getByText('deploy-001', { exact: true })).toBeVisible()
     await expect(page.getByRole('heading', { name: /部署历史|Deployment history/i })).toBeVisible()
+
+    await page.goto('/operate/deployments/deploy-002')
+    await expect(
+      page.getByRole('slider', { name: /灰度流量权重|Canary traffic weight/i })
+    ).toHaveAttribute('aria-valuetext', /bps/)
   })
 
   test('invalid and incomplete log filters normalize without deleting unrelated URL state', async ({
@@ -348,9 +369,20 @@ test.describe('Workbench semantic and edge-state journeys', () => {
         timeout: TIMEOUT,
       })
       await expect(page.getByText(`${template.edges} 连线`, { exact: true })).toBeVisible()
+      if (template.name.source.includes('问候')) {
+        const [taskBox, endBox] = await Promise.all([
+          page.locator('.x6-node[data-cell-id="buildGreeting"]').boundingBox(),
+          page.locator('.x6-node[data-cell-id="end"]').boundingBox(),
+        ])
+        expect(taskBox).not.toBeNull()
+        expect(endBox).not.toBeNull()
+        expect(endBox!.x - (taskBox!.x + taskBox!.width)).toBeGreaterThan(20)
+      }
       await page.goto('/build')
     }
+  })
 
+  test('operate create menu offers TBBPM before BPMN', async ({ page }) => {
     await page.goto('/operate/processes')
     await page.getByRole('button', { name: /创建流程|Create flow/i }).click()
     const createItems = page.locator('.ant-dropdown-menu').getByRole('menuitem')
@@ -365,7 +397,7 @@ test.describe('Workbench semantic and edge-state journeys', () => {
     await page.getByRole('button', { name: /切换到深色模式|Switch to dark mode/i }).click()
     await expect(secondPage.locator('html')).toHaveAttribute('data-theme', 'dark')
 
-    await page.getByRole('button', { name: /切换为英文|Switch to English/i }).click()
+    await page.getByRole('button', { name: /切换到英文|Switch to English/i }).click()
     await expect(secondPage.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible()
     await expect(secondPage.locator('html')).toHaveAttribute('lang', 'en')
     await secondPage.close()
@@ -421,7 +453,7 @@ test.describe('Workbench semantic and edge-state journeys', () => {
       timeout: TIMEOUT,
     })
 
-    await page.goto('/build/designer?modelType=bpmn&source=new')
+    await page.goto('/build/designer?modelType=bpmn&source=new', { waitUntil: 'domcontentloaded' })
     await expect(page.getByRole('heading', { level: 1 })).toBeAttached({ timeout: TIMEOUT })
     const designerViewport = await page.evaluate(() => ({
       documentHeight: document.documentElement.scrollHeight,
@@ -444,7 +476,7 @@ test.describe('Workbench semantic and edge-state journeys', () => {
       has: page.getByText(/未保存的更改|Unsaved changes/i),
     })
 
-    await page.goto('/build/designer?modelType=tbbpm&source=new')
+    await page.goto('/build/designer?modelType=tbbpm&source=new', { waitUntil: 'domcontentloaded' })
     await expect(page.locator('.flow-name-display')).toBeVisible({ timeout: TIMEOUT })
     await editProcessName('导航保护验证')
 

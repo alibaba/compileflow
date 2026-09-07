@@ -11,6 +11,22 @@ export const SIM_ERROR_CALLED_PROCESS_UNSUPPORTED = 'SIM_ERROR_CALLED_PROCESS_UN
 export const SIM_ERROR_EMBEDDED_PROCESS_UNSUPPORTED = 'SIM_ERROR_EMBEDDED_PROCESS_UNSUPPORTED'
 export const SIM_ERROR_EXPRESSION_EVALUATION_FAILED = 'SIM_ERROR_EXPRESSION_EVALUATION_FAILED'
 export const SIM_ERROR_DEAD_END = 'SIM_ERROR_DEAD_END'
+export const SIM_ERROR_CYCLE = 'SIM_ERROR_CYCLE'
+export const SIM_ERROR_STEP_LIMIT = 'SIM_ERROR_STEP_LIMIT'
+export const SIM_ERROR_RUN_SUPERSEDED = 'SIM_ERROR_RUN_SUPERSEDED'
+
+const NODE_ERROR_KEYS = new Map([
+  [SIM_ERROR_NODE_NOT_FOUND, 'designer.debug.sim.errorNodeNotFound'],
+  [SIM_ERROR_NO_BRANCH_MATCHED, 'designer.debug.sim.errorNoBranchMatched'],
+  [SIM_ERROR_TRIGGER_ENTRY_UNSUPPORTED, 'designer.debug.sim.errorTriggerEntryUnsupported'],
+  [SIM_ERROR_TIMER_UNSUPPORTED, 'designer.debug.sim.errorTimerUnsupported'],
+  [SIM_ERROR_LOOP_UNSUPPORTED, 'designer.debug.sim.errorLoopUnsupported'],
+  [SIM_ERROR_CALLED_PROCESS_UNSUPPORTED, 'designer.debug.sim.errorCalledProcessUnsupported'],
+  [SIM_ERROR_EMBEDDED_PROCESS_UNSUPPORTED, 'designer.debug.sim.errorEmbeddedProcessUnsupported'],
+  [SIM_ERROR_DEAD_END, 'designer.debug.sim.errorDeadEnd'],
+  [SIM_ERROR_CYCLE, 'designer.debug.sim.errorCycle'],
+  [SIM_ERROR_STEP_LIMIT, 'designer.debug.sim.errorStepLimit'],
+])
 
 export function formatSimulationError(
   codeOrMessage: string,
@@ -25,43 +41,19 @@ export function formatSimulationError(
       return t('designer.debug.sim.errorContinueNotPaused')
     case SIM_ERROR_CONCURRENT_GATEWAY_UNSUPPORTED:
       return t('designer.debug.sim.errorConcurrentGatewayUnsupported')
-    default:
-      if (codeOrMessage.startsWith(SIM_ERROR_NODE_NOT_FOUND + ':')) {
-        const nodeId = codeOrMessage.slice(SIM_ERROR_NODE_NOT_FOUND.length + 1)
-        return t('designer.debug.sim.errorNodeNotFound', { nodeId })
-      }
-      if (codeOrMessage.startsWith(SIM_ERROR_NO_BRANCH_MATCHED + ':')) {
-        const nodeId = codeOrMessage.slice(SIM_ERROR_NO_BRANCH_MATCHED.length + 1)
-        return t('designer.debug.sim.errorNoBranchMatched', { nodeId })
-      }
-      if (codeOrMessage.startsWith(SIM_ERROR_TRIGGER_ENTRY_UNSUPPORTED + ':')) {
-        const nodeId = codeOrMessage.slice(SIM_ERROR_TRIGGER_ENTRY_UNSUPPORTED.length + 1)
-        return t('designer.debug.sim.errorTriggerEntryUnsupported', { nodeId })
-      }
-      if (codeOrMessage.startsWith(SIM_ERROR_TIMER_UNSUPPORTED + ':')) {
-        const nodeId = codeOrMessage.slice(SIM_ERROR_TIMER_UNSUPPORTED.length + 1)
-        return t('designer.debug.sim.errorTimerUnsupported', { nodeId })
-      }
-      if (codeOrMessage.startsWith(SIM_ERROR_LOOP_UNSUPPORTED + ':')) {
-        const nodeId = codeOrMessage.slice(SIM_ERROR_LOOP_UNSUPPORTED.length + 1)
-        return t('designer.debug.sim.errorLoopUnsupported', { nodeId })
-      }
-      if (codeOrMessage.startsWith(SIM_ERROR_CALLED_PROCESS_UNSUPPORTED + ':')) {
-        const nodeId = codeOrMessage.slice(SIM_ERROR_CALLED_PROCESS_UNSUPPORTED.length + 1)
-        return t('designer.debug.sim.errorCalledProcessUnsupported', { nodeId })
-      }
-      if (codeOrMessage.startsWith(SIM_ERROR_EMBEDDED_PROCESS_UNSUPPORTED + ':')) {
-        const nodeId = codeOrMessage.slice(SIM_ERROR_EMBEDDED_PROCESS_UNSUPPORTED.length + 1)
-        return t('designer.debug.sim.errorEmbeddedProcessUnsupported', { nodeId })
-      }
+    case SIM_ERROR_RUN_SUPERSEDED:
+      return t('designer.debug.sim.errorRunSuperseded')
+    default: {
       if (codeOrMessage.startsWith(SIM_ERROR_EXPRESSION_EVALUATION_FAILED + ':')) {
         const elementId = codeOrMessage.slice(SIM_ERROR_EXPRESSION_EVALUATION_FAILED.length + 1)
         return t('designer.debug.sim.errorExpressionEvaluationFailed', { elementId })
       }
-      if (codeOrMessage.startsWith(SIM_ERROR_DEAD_END + ':')) {
-        const nodeId = codeOrMessage.slice(SIM_ERROR_DEAD_END.length + 1)
-        return t('designer.debug.sim.errorDeadEnd', { nodeId })
+      const separator = codeOrMessage.indexOf(':')
+      const nodeErrorKey = NODE_ERROR_KEYS.get(codeOrMessage.slice(0, separator))
+      if (separator >= 0 && nodeErrorKey) {
+        return t(nodeErrorKey, { nodeId: codeOrMessage.slice(separator + 1) })
       }
       return codeOrMessage
+    }
   }
 }

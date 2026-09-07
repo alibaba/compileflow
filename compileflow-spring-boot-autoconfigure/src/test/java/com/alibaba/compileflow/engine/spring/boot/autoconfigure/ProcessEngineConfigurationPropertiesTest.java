@@ -28,6 +28,18 @@ class ProcessEngineConfigurationPropertiesTest {
         .withConfiguration(AutoConfigurations.of(CompileFlowEnginePropertiesAutoConfiguration.class));
 
     @Test
+    void defaultsRejectQueuedTimedActionsWhileRetainingColdLoadBuffer() {
+        contextRunner.run(context -> {
+            assertThat(context).hasNotFailed();
+            ProcessEngineConfig config =
+                    context.getBean(ProcessEngineProperties.class).toProcessEngineConfigBuilder().build();
+            assertThat(config.getExecutorConfig().getActionTimeoutMaxPending()).isZero();
+            assertThat(config.getExecutorConfig().getRuntimeLoadMaxPending()).isEqualTo(4);
+            assertThat(config.getRuntimeMode()).isEqualTo(ProcessRuntimeMode.COMPILED);
+        });
+    }
+
+    @Test
     void shouldRejectInvalidEngineEnableValueEvenWhenCoreIsDisabled() {
         contextRunner
             .withPropertyValues("compileflow.engine.enabled=maybe")
@@ -67,7 +79,7 @@ class ProcessEngineConfigurationPropertiesTest {
                 assertThat(engine.getObservability().getEvents().getMaxConcurrency()).isEqualTo(3);
                 assertThat(engine.getObservability().getEvents().getMaxPending()).isEqualTo(5);
                 assertThat(engine.getShutdown().getTimeout()).isEqualTo(Duration.ofSeconds(9));
-                ProcessEngineConfig engineConfig = engine.toProcessEngineConfigBuilder(engine.getModelType()).build();
+                ProcessEngineConfig engineConfig = engine.toProcessEngineConfigBuilder().build();
                 assertThat(engineConfig.getMaxCallDepth()).isEqualTo(24);
                 assertThat(engineConfig.getExecutorConfig().getActionTimeoutMaxConcurrency()).isEqualTo(17);
                 assertThat(engineConfig.getExecutorConfig().getActionTimeoutMaxPending()).isEqualTo(23);
@@ -88,10 +100,9 @@ class ProcessEngineConfigurationPropertiesTest {
     void shouldKeepSpringEngineDefaultsAlignedWithTheCoreConfiguration() {
         contextRunner.run(context -> {
             ProcessEngineProperties properties = context.getBean(ProcessEngineProperties.class);
-            ProcessEngineConfig springConfig =
-                    properties.toProcessEngineConfigBuilder(properties.getModelType()).build();
+            ProcessEngineConfig springConfig = properties.toProcessEngineConfigBuilder().build();
 
-            assertThat(springConfig).usingRecursiveComparison().isEqualTo(ProcessEngineConfig.tbbpm());
+            assertThat(springConfig).usingRecursiveComparison().isEqualTo(ProcessEngineConfig.defaults());
         });
     }
 

@@ -1,31 +1,36 @@
 # CompileFlow Order Fulfillment Example
 
-This runnable Spring Boot service uses CompileFlow to orchestrate order validation, pricing, risk assessment, inventory,
-payment, shipment, and notifications. It demonstrates a realistic HTTP workflow rather than a single calculation.
+This Spring Boot service uses CompileFlow to coordinate order validation, pricing, risk assessment, inventory, payment,
+shipment, and notifications through a REST endpoint. It listens only on `127.0.0.1` and does not implement
+authentication or authorization, so do not expose it on a shared network.
 
-## What It Demonstrates
+## What it demonstrates
 
-| Capability | Use in this example |
-|---|---|
-| Spring Boot auto-configuration | Injects one `ProcessEngine` and Spring Bean actions |
-| Least-privilege component access | Exposes only `orderOperations` through `allowed-beans` |
-| Strict preflight | Validates the main process and pricing subprocess at startup |
-| Structured business data | Passes `OrderRequest` and `OrderItem` as typed process variables |
-| Process Call | Invokes a separately defined pricing process through `bpmCall` |
-| Java Script | Calculates the member discount, payable amount, and business status |
-| Exclusive gateway | Routes low-, medium-, and high-risk orders |
-| Parallel gateway | Reserves inventory and authorizes payment concurrently, then joins |
-| Invocation Policy | Applies a timeout, exponential backoff, and up to three payment attempts |
-| Foreach and Continue | Iterates over line items and skips shipment for digital products |
-| Inclusive gateway | Runs applicable loyalty, customs, gift, and notification actions |
-| Invocation attribution | Maps `X-Invocation-Id` to `ProcessExecutionOptions.invocationId` |
-| Controlled response | Maps process variables to a stable `OrderResponse` |
-| Failure contract | Maps an exhausted `ProcessError` to a stable HTTP 422 response |
-| Actuator | Exposes health, info, and metrics endpoints |
+| Capability                       | Use in this example                                                                                   |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Spring Boot auto-configuration   | Injects a `ProcessEngine` and Spring bean actions                                                     |
+| Least-privilege component access | Exposes only `orderOperations` through `allowed-beans`                                                |
+| Strict preflight                 | Validates the main process and pricing subprocess at startup                                          |
+| Structured business data         | Passes `OrderRequest` and `OrderItem` as typed process variables                                      |
+| Process call                     | Invokes a separately defined pricing process through `bpmCall`                                        |
+| Java script                      | Calculates the member discount, payable amount, and business status                                   |
+| Exclusive gateway                | Routes low-, medium-, and high-risk orders                                                            |
+| Parallel gateway                 | Reserves inventory and authorizes payment concurrently, then joins                                    |
+| Invocation policy                | Retries simulated failures that occur before payment acceptance; the adapter deduplicates by order ID |
+| Foreach and Continue             | Iterates over line items and excludes digital products from shipment                                  |
+| Inclusive gateway                | Runs applicable loyalty, customs, gift, and notification actions                                      |
+| Invocation attribution           | Maps `X-Invocation-Id` to `ProcessExecutionOptions.invocationId`                                      |
+| Controlled response              | Maps process variables to a stable `OrderResponse`                                                    |
+| Failure contract                 | Maps an exhausted `ProcessError` to a stable HTTP 422 response                                        |
+| Actuator                         | Exposes health, info, and metrics endpoints                                                           |
 
-Persistent Timer, Wait, Trigger, Outbox, and crash-recovery behavior belongs to the Durable execution model. See the
-adjacent [`spring-boot-durable-postgres`](../spring-boot-durable-postgres/README.md) example. Keeping the examples
-separate makes the synchronous Engine and Durable Run semantics explicit.
+For persistent Timer, Wait, Outbox, and recovery behavior, see the
+[`spring-boot-durable-postgresql`](../spring-boot-durable-postgresql/README.md) example.
+
+The simulated payment adapter uses the order ID as its idempotency key. Repeating the same order and amount returns the
+original authorization; reusing the order ID with a different amount fails. Retries occur only for failures raised
+before payment acceptance. Do not retry a real payment after a timeout or connection loss unless its acceptance status
+can be reconciled; use Durable Effect recovery for uncertain outcomes.
 
 ## Workflow
 
@@ -55,12 +60,11 @@ flowchart LR
 
 ## Run
 
-Install the required modules from the repository root, then start the example:
+Install the required modules and start the example from the repository root:
 
 ```bash
-./mvnw install -pl compileflow-spring-boot-starter -am -DskipTests
-cd examples/spring-boot-order-fulfillment
-../../mvnw spring-boot:run
+./mvnw install -pl compileflow-spring-boot-starter-tbbpm -am -DskipTests
+./mvnw -f examples/spring-boot-order-fulfillment/pom.xml spring-boot:run
 ```
 
 Send an order that succeeds after one transient payment failure:
@@ -88,14 +92,14 @@ The response includes:
 
 ```json
 {
-  "status": "FULFILLED",
-  "riskScore": 10,
-  "discountCents": 2400,
-  "payableCents": 9600,
-  "shipmentPlan": "SKU-PHYSICALx2",
-  "loyaltyEvent": "LOYALTY:PLATINUM:order-1001",
-  "customsDocument": "CUSTOMS:US:order-1001",
-  "giftPacking": "GIFT_PACK:order-1001"
+    "status": "FULFILLED",
+    "riskScore": 10,
+    "discountCents": 2400,
+    "payableCents": 9600,
+    "shipmentPlan": "SKU-PHYSICALx2",
+    "loyaltyEvent": "LOYALTY:PLATINUM:order-1001",
+    "customsDocument": "CUSTOMS:US:order-1001",
+    "giftPacking": "GIFT_PACK:order-1001"
 }
 ```
 

@@ -15,7 +15,6 @@ package com.alibaba.compileflow.durable.runtime.machine;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.durable.runtime.kernel.ResumePoint;
-import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
 import com.alibaba.compileflow.engine.core.xml.parser.FlowSource;
 import com.alibaba.compileflow.engine.core.semantic.plan.ActionInvocation;
 import com.alibaba.compileflow.engine.core.semantic.plan.ActionPlan;
@@ -62,8 +61,7 @@ class DurableProcessEligibilityCheckerTest {
         TbbpmModel model = goldenFixture();
         ProcessSemanticPlan semantics = new TbbpmSemanticFrontend().compile(model);
 
-        ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder().discoverPlugins(false).build();
-        try (ScriptExecutorRegistry scripts = ScriptExecutorRegistry.builtIns(config)) {
+        try (ScriptExecutorRegistry scripts = ScriptExecutorRegistry.builtIns(getClass().getClassLoader())) {
             DurableProcessCompiler compiler = new DurableProcessCompiler(scripts);
             assertThat(compiler.check(semantics).problems()).isEmpty();
             DurableMachinePlan plan = compiler.lower(semantics);
@@ -95,9 +93,7 @@ class DurableProcessEligibilityCheckerTest {
             validations.incrementAndGet();
             return List.of();
         };
-        ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder().discoverPlugins(false).build();
-
-        try (ScriptExecutorRegistry scripts = ScriptExecutorRegistry.builtIns(config)) {
+        try (ScriptExecutorRegistry scripts = ScriptExecutorRegistry.builtIns(getClass().getClassLoader())) {
             new DurableProcessCompiler(scripts, validator, true).lower(semantics);
         }
 
@@ -118,9 +114,7 @@ class DurableProcessEligibilityCheckerTest {
             """
                         .getBytes(java.nio.charset.StandardCharsets.UTF_8)));
         ProcessSemanticPlan semantics = new TbbpmSemanticFrontend().compile(model);
-        ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder().discoverPlugins(false).build();
-
-        try (ScriptExecutorRegistry scripts = ScriptExecutorRegistry.builtIns(config)) {
+        try (ScriptExecutorRegistry scripts = ScriptExecutorRegistry.builtIns(getClass().getClassLoader())) {
             assertThat(new DurableProcessCompiler(scripts).check(semantics).problems()).isEmpty();
         }
     }
@@ -135,9 +129,7 @@ class DurableProcessEligibilityCheckerTest {
                 ProcessSemanticPlan.ROOT_SCOPE_ID, null, List.of(), null, null, null);
         ProcessSemanticPlan semantics =
                 new ProcessSemanticPlan("durable.id.bound", Map.of(), Map.of(oversizedId, start, "end", end));
-        ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder().discoverPlugins(false).build();
-
-        try (ScriptExecutorRegistry scripts = ScriptExecutorRegistry.builtIns(config)) {
+        try (ScriptExecutorRegistry scripts = ScriptExecutorRegistry.builtIns(getClass().getClassLoader())) {
             assertThat(new DurableProcessCompiler(scripts).check(semantics).problems())
                 .extracting(DurableModelEligibility.Problem::code)
                 .contains("DURABLE_ELEMENT_ID_TOO_LONG");

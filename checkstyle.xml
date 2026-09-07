@@ -18,13 +18,13 @@
     </module>
 
     <!--
-        Deliberate exception: PostgresDurableStore is the transaction and lock-order
-        authority for the seven-table Durable Kernel. Splitting it solely by operation
-        count would hide cross-table invariants behind forwarding classes. Only its
-        FileLength finding is suppressed; every syntax-level check still applies.
+        Deliberate exception: the first-party Durable Stores are the transaction and
+        lock-order authorities for the seven-table Durable Kernel. Splitting them solely
+        by operation count would hide cross-table invariants behind forwarding classes.
+        Only their FileLength findings are suppressed; every syntax-level check still applies.
     -->
     <module name="SuppressionSingleFilter">
-        <property name="files" value="[/\\]PostgresDurableStore\.java$"/>
+        <property name="files" value="[/\\](?:Postgres|MySql)DurableStore\.java$"/>
         <property name="checks" value="FileLength"/>
     </module>
 
@@ -46,7 +46,7 @@
         <module name="GenericWhitespace"/>
         <module name="WhitespaceAfter"/>
         <module name="WhitespaceAround">
-            <!-- Palantir Java Format renders empty bodies as "{}". -->
+            <!-- Prince of Space renders empty bodies as "{}". -->
             <property name="allowEmptyConstructors" value="true"/>
             <property name="allowEmptyMethods" value="true"/>
             <property name="allowEmptyTypes" value="true"/>
@@ -57,7 +57,10 @@
         <module name="ModifierOrder"/>
 
         <!-- Blocks -->
-        <module name="EmptyBlock"/>
+        <!-- Permit an intentionally statement-free block only when its rationale is documented. -->
+        <module name="EmptyBlock">
+            <property name="option" value="text"/>
+        </module>
         <module name="LeftCurly"/>
         <module name="NeedBraces"/>
 

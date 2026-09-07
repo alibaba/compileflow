@@ -55,7 +55,7 @@
 }
 
 .monospace {
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-code);
 }
 
 .detail {

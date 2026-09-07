@@ -17,7 +17,7 @@ import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.preflight.ProcessPreflightOptions;
 import com.alibaba.compileflow.engine.preflight.ProcessPreflightReport;
-import com.alibaba.compileflow.engine.spring.boot.autoconfigure.ProcessEngineRegistry;
+import com.alibaba.compileflow.engine.ProcessEngine;
 import java.io.Serial;
 import java.util.Objects;
 import org.springframework.stereotype.Service;
@@ -29,20 +29,20 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public final class ProcessDefinitionPreflightService {
-    private final ProcessEngineRegistry engineRegistry;
+    private final ProcessEngine engine;
 
-    public ProcessDefinitionPreflightService(ProcessEngineRegistry engineRegistry) {
-        this.engineRegistry = Objects.requireNonNull(engineRegistry, "engineRegistry");
+    public ProcessDefinitionPreflightService(ProcessEngine engine) {
+        this.engine = Objects.requireNonNull(engine, "engine");
     }
 
     public ProcessPreflightReport preflight(String code, ProcessModelType modelType, String xmlContent) {
         ProcessDefinition definition;
         try {
-            definition = ProcessDefinition.inline(code, xmlContent);
+            definition = ProcessDefinition.inline(modelType, code, xmlContent);
         } catch (IllegalArgumentException exception) {
             throw new InvalidProcessDefinitionException(exception.getMessage(), exception);
         }
-        return engineRegistry.preflight(modelType, definition, ProcessPreflightOptions.strict());
+        return engine.tooling().preflight(definition, ProcessPreflightOptions.strict());
     }
 
     static final class InvalidProcessDefinitionException extends IllegalArgumentException {

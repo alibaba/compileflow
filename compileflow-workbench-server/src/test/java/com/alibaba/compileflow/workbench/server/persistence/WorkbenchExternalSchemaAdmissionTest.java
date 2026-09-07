@@ -40,12 +40,20 @@ class WorkbenchExternalSchemaAdmissionTest {
     private static final boolean POSTGRES_CONFIGURED = hasText(System.getenv("COMPILEFLOW_WORKBENCH_TEST_POSTGRES_URL"))
             && hasText(System.getenv("COMPILEFLOW_WORKBENCH_TEST_POSTGRES_USERNAME"))
             && hasText(System.getenv("COMPILEFLOW_WORKBENCH_TEST_POSTGRES_PASSWORD"));
-    private static final String URL =
-            POSTGRES_CONFIGURED ? System.getenv("COMPILEFLOW_WORKBENCH_TEST_POSTGRES_URL") : H2_URL;
-    private static final String USERNAME =
-            POSTGRES_CONFIGURED ? System.getenv("COMPILEFLOW_WORKBENCH_TEST_POSTGRES_USERNAME") : "sa";
-    private static final String PASSWORD =
-            POSTGRES_CONFIGURED ? System.getenv("COMPILEFLOW_WORKBENCH_TEST_POSTGRES_PASSWORD") : "";
+    private static final boolean MYSQL_CONFIGURED = !POSTGRES_CONFIGURED
+            && "MYSQL".equalsIgnoreCase(System.getenv("COMPILEFLOW_WORKBENCH_SERVER_CONFIG_DATABASE_PROVIDER"))
+            && hasText(System.getenv("SPRING_DATASOURCE_URL"))
+            && System.getenv("SPRING_DATASOURCE_URL").startsWith("jdbc:mysql:")
+            && hasText(System.getenv("SPRING_DATASOURCE_USERNAME"));
+    private static final String URL = POSTGRES_CONFIGURED
+            ? System.getenv("COMPILEFLOW_WORKBENCH_TEST_POSTGRES_URL")
+            : MYSQL_CONFIGURED ? System.getenv("SPRING_DATASOURCE_URL") : H2_URL;
+    private static final String USERNAME = POSTGRES_CONFIGURED
+            ? System.getenv("COMPILEFLOW_WORKBENCH_TEST_POSTGRES_USERNAME")
+            : MYSQL_CONFIGURED ? System.getenv("SPRING_DATASOURCE_USERNAME") : "sa";
+    private static final String PASSWORD = POSTGRES_CONFIGURED
+            ? System.getenv("COMPILEFLOW_WORKBENCH_TEST_POSTGRES_PASSWORD")
+            : MYSQL_CONFIGURED ? System.getenv().getOrDefault("SPRING_DATASOURCE_PASSWORD", "") : "";
     @Autowired
     private Flyway flyway;
 
@@ -56,15 +64,22 @@ class WorkbenchExternalSchemaAdmissionTest {
         registry.add("spring.datasource.password", () -> PASSWORD);
         registry.add("spring.datasource.driver-class-name", () -> POSTGRES_CONFIGURED
                 ? "org.postgresql.Driver"
-                : "org.h2.Driver");
-        registry.add("spring.flyway.locations", () -> String.join(",", migrationLocations()));
+                : MYSQL_CONFIGURED ? "com.mysql.cj.jdbc.Driver" : "org.h2.Driver");
+        registry.add("compileflow.workbench.server.database.provider", () -> MYSQL_CONFIGURED ? "MYSQL" : "POSTGRESQL");
+        registry.add("spring.flyway.locations", WorkbenchExternalSchemaAdmissionTest::workbenchMigrationLocation);
+        registry.add("spring.flyway.table", () -> "cf_workbench_schema_history");
     }
 
-    private static String[] migrationLocations() {
-        return new String[] {POSTGRES_CONFIGURED
-                ? "classpath:db/compileflow-deploy/migration"
-                : "classpath:db/compileflow-deploy-h2/migration",
-                "classpath:db/compileflow-workbench-server/migration"};
+    private static String deployMigrationLocation() {
+        return POSTGRES_CONFIGURED
+                ? "classpath:db/compileflow-deploy/postgres/migration"
+                : MYSQL_CONFIGURED
+                ? "classpath:db/compileflow-deploy/mysql/migration"
+                : "classpath:db/compileflow-deploy-h2/migration";
+    }
+
+    private static String workbenchMigrationLocation() {
+        return "classpath:db/compileflow-workbench-server/" + (MYSQL_CONFIGURED ? "mysql" : "postgres") + "/migration";
     }
 
     private static boolean hasText(String value) {
@@ -73,20 +88,33 @@ class WorkbenchExternalSchemaAdmissionTest {
 
     @Test
     void startsAfterExternalMigrationWithoutApplicationDdl() {
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("2");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("1");
         assertThat(flyway.info().pending()).isEmpty();
     }
 
     static final class ExternalMigration implements ApplicationContextInitializer<ConfigurableApplicationContext> {
         @Override
         public void initialize(ConfigurableApplicationContext applicationContext) {
-            Flyway
+            Flyway deployFlyway = Flyway
                 .configure()
                 .dataSource(URL, USERNAME, PASSWORD)
-                .locations(migrationLocations())
+                .locations(deployMigrationLocation())
+                .table("cf_deploy_schema_history")
+                .baselineOnMigrate(true)
+                .baselineVersion("0")
                 .cleanDisabled(true)
-                .load()
-                .migrate();
+                .load();
+            deployFlyway.migrate();
+            Flyway workbenchFlyway = Flyway
+                .configure()
+                .dataSource(URL, USERNAME, PASSWORD)
+                .locations(workbenchMigrationLocation())
+                .table("cf_workbench_schema_history")
+                .baselineOnMigrate(true)
+                .baselineVersion("0")
+                .cleanDisabled(true)
+                .load();
+            workbenchFlyway.migrate();
         }
     }
 }

@@ -45,6 +45,7 @@
                         <configurationParameters>
                             <!-- Disable parallel test execution for baseline verification -->
                             junit.jupiter.execution.parallel.enabled=false
+                            junit.jupiter.execution.timeout.default=120 s
                         </configurationParameters>
                     </properties>
                 </configuration>
@@ -71,6 +72,11 @@
     </build>
 
     <dependencies>
+        <dependency>
+            <groupId>com.alibaba.compileflow</groupId>
+            <artifactId>compileflow-durable-spring-boot-autoconfigure</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!--
           Production modules use compile scope so JaCoCo report-aggregate can
           resolve their classes. This test-only module is never deployed.
@@ -98,17 +104,18 @@
             <artifactId>compileflow-tbbpm</artifactId>
         </dependency>
 
-        <!-- Deploy API and data-plane runtime -->
+        <!-- Deploy API and deployment runtime -->
         <dependency>
             <groupId>com.alibaba.compileflow</groupId>
             <artifactId>compileflow-deploy-api</artifactId>
         </dependency>
         <dependency>
             <groupId>com.alibaba.compileflow</groupId>
-            <artifactId>compileflow-deploy-api</artifactId>
-            <type>test-jar</type>
-            <classifier>tests</classifier>
-            <scope>test</scope>
+            <artifactId>compileflow-deploy-protocol</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.compileflow</groupId>
+            <artifactId>compileflow-deploy-spi</artifactId>
         </dependency>
         <dependency>
             <groupId>com.alibaba.compileflow</groupId>
@@ -122,9 +129,12 @@
         </dependency>
         <dependency>
             <groupId>com.alibaba.compileflow</groupId>
-            <artifactId>compileflow-deploy-control-plane</artifactId>
-            <type>test-jar</type>
-            <classifier>tests</classifier>
+            <artifactId>compileflow-deploy-testkit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.compileflow</groupId>
+            <artifactId>compileflow-deploy-postgresql</artifactId>
             <scope>test</scope>
         </dependency>
 

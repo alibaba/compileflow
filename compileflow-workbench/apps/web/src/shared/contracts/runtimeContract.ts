@@ -47,54 +47,54 @@ export type ErrorSummary = ServerSchema<'ErrorSummaryResponse'>
 
 export type VersionDistributionStats = ServerSchema<'VersionDistributionResponse'>
 
-type DeployRuntimeVersionRef = ServerSchema<'DeployRuntimeVersionResponse'>
+type DeploymentRuntimeVersionRef = ServerSchema<'DeploymentRuntimeVersionResponse'>
 
-type DeployRuntimeBackedOffVersion = ServerSchema<'DeployRuntimeBackedOffVersionResponse'>
+type DeploymentRuntimeBackedOffVersion = ServerSchema<'DeploymentRuntimeBackedOffVersionResponse'>
 
-type DeployRuntimeDeployedProcess = ServerSchema<'DeployRuntimeDeployedProcessResponse'>
+type DeploymentRuntimeDeployedProcess = ServerSchema<'DeploymentRuntimeDeployedProcessResponse'>
 
-type DeployRuntimeAliasConvergenceState = 'local_ready' | 'pending' | 'failed'
+type DeploymentRuntimeAliasConvergenceState = 'local_ready' | 'pending' | 'failed'
 
-type DeployRuntimeAliasState = RefinedServerSchema<
-  'DeployRuntimeAliasResponse',
-  { state: DeployRuntimeAliasConvergenceState }
+type DeploymentRuntimeAliasState = RefinedServerSchema<
+  'DeploymentRuntimeAliasResponse',
+  { state: DeploymentRuntimeAliasConvergenceState }
 >
 
-interface DeployRuntimeDiagnosticsBase {
+interface DeploymentRuntimeDiagnosticsBase {
   timestamp: string
   available: boolean
   started: boolean
 }
 
-interface DeployRuntimeUnavailableDiagnostics extends DeployRuntimeDiagnosticsBase {
+interface DeploymentRuntimeUnavailableDiagnostics extends DeploymentRuntimeDiagnosticsBase {
   available: false
   started: false
   message: string
 }
 
-export interface DeployRuntimeAvailableDiagnostics extends DeployRuntimeDiagnosticsBase {
+export interface DeploymentRuntimeAvailableDiagnostics extends DeploymentRuntimeDiagnosticsBase {
   available: true
   topology: 'embedded' | 'distributed'
   desiredAliasCount: number
   localReadyAliasCount: number
   pendingAliasCount: number
   failedAliasCount: number
-  aliases: DeployRuntimeAliasState[]
+  aliases: DeploymentRuntimeAliasState[]
   inflightCount: number
   inflightCapacity: number
   inflightAvailablePermits: number
   failureBackoffMs: number
   retainedRuntimeCount: number
-  inflightVersions: DeployRuntimeVersionRef[]
-  demandedVersions: DeployRuntimeVersionRef[]
-  pendingReleaseVersions: DeployRuntimeVersionRef[]
-  backedOffVersions: DeployRuntimeBackedOffVersion[]
-  deployedVersions: DeployRuntimeDeployedProcess[]
+  inflightVersions: DeploymentRuntimeVersionRef[]
+  demandedVersions: DeploymentRuntimeVersionRef[]
+  pendingReleaseVersions: DeploymentRuntimeVersionRef[]
+  backedOffVersions: DeploymentRuntimeBackedOffVersion[]
+  deployedVersions: DeploymentRuntimeDeployedProcess[]
 }
 
-export type DeployRuntimeDiagnostics =
-  | DeployRuntimeUnavailableDiagnostics
-  | DeployRuntimeAvailableDiagnostics
+export type DeploymentRuntimeDiagnostics =
+  | DeploymentRuntimeUnavailableDiagnostics
+  | DeploymentRuntimeAvailableDiagnostics
 // ==================== 异步调用契约 ====================
 
 export type AsyncInvocationStatus = 'queued' | 'running' | 'succeeded' | 'dead_letter'

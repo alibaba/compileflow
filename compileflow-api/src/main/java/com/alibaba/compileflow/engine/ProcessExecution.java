@@ -19,9 +19,10 @@ import java.util.Objects;
 /**
  * Immutable facts about one completed process invocation.
  *
- * <p>This value describes what ran. Alias routing inputs and source metadata end at their owning
- * admission, publication or runtime boundaries. An exact published Version is retained only as
- * execution attribution.
+ * <p>This value provides caller-facing invocation attribution, not the complete semantic identity
+ * of the executed definition. Alias routing inputs and source metadata end at their owning
+ * admission, publication or runtime boundaries. An exact Version is retained only as execution
+ * attribution.
  *
  * @author yusu
  */
@@ -81,7 +82,7 @@ public final class ProcessExecution {
     }
 
     /**
-     * Returns the exact published Version that selected this invocation.
+     * Returns the exact Version that selected this invocation.
      *
      * @return exact version, or {@code null} for unversioned execution
      */

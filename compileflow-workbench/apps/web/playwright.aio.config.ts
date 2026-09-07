@@ -11,15 +11,18 @@ const JAVA_HOME = process.env.COMPILEFLOW_E2E_JAVA_HOME?.trim()
 const JAVA_COMMAND = JAVA_HOME
   ? `JAVA_HOME="${JAVA_HOME}" PATH="${JAVA_HOME}/bin:$PATH" java`
   : 'java'
-const JAR = path.join(
-  REPO_ROOT,
-  'compileflow-workbench-server/target/compileflow-workbench-all-in-one-2.0.0-SNAPSHOT.jar'
-)
+const JAR =
+  process.env.COMPILEFLOW_E2E_SERVER_JAR ??
+  path.join(
+    REPO_ROOT,
+    'compileflow-workbench-server/target/compileflow-workbench-all-in-one-2.0.0-SNAPSHOT.jar'
+  )
 const DATABASE_URL =
   process.env.COMPILEFLOW_E2E_DATABASE_URL ?? 'jdbc:postgresql://localhost:5432/compileflow'
 const DATABASE_USERNAME = process.env.COMPILEFLOW_E2E_DATABASE_USERNAME ?? 'compileflow'
 const DATABASE_PASSWORD =
   process.env.COMPILEFLOW_E2E_DATABASE_PASSWORD ?? 'compileflow_test_password'
+const SERVER_URL = process.env.COMPILEFLOW_E2E_SERVER_URL ?? 'http://127.0.0.1:8083'
 
 /**
  * All-in-one JAR: embedded static UI + API on :8083 (dev profile, auth DISABLED).
@@ -36,7 +39,7 @@ export default defineConfig({
   outputDir: 'test-results/journey-aio-output',
   use: {
     ...workbenchChineseLocale,
-    baseURL: 'http://127.0.0.1:8083',
+    baseURL: SERVER_URL,
     trace: 'retain-on-failure',
     screenshot: 'off',
     video: 'retain-on-failure',
@@ -44,8 +47,8 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: `${JAVA_COMMAND} -jar "${JAR}" ` + '--spring.profiles.active=dev --server.port=8083',
-    url: 'http://127.0.0.1:8083/actuator/health',
+    command: `${JAVA_COMMAND} -jar "${JAR}" --spring.profiles.active=dev --server.address=127.0.0.1 --server.port=${new URL(SERVER_URL).port}`,
+    url: `${SERVER_URL}/actuator/health`,
     reuseExistingServer: false,
     timeout: 180_000,
     cwd: path.join(WEB_ROOT, 'apps/web'),

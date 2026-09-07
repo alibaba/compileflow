@@ -5,7 +5,7 @@ import Monitoring from '../Monitoring'
 
 import { getDeploymentControlHealth, requeueDeploymentDeadLetters } from '@/operate/api/deployments'
 import {
-  getDeployRuntimeDiagnostics,
+  getDeploymentRuntimeDiagnostics,
   getExecutionTrends,
   getMetrics,
   getRecentErrors,
@@ -36,7 +36,7 @@ vi.mock('@/shared/api/processes', () => ({
   requeueAsyncInvocationDeadLetters: vi.fn(),
 }))
 vi.mock('@/operate/api/monitoring', () => ({
-  getDeployRuntimeDiagnostics: vi.fn(),
+  getDeploymentRuntimeDiagnostics: vi.fn(),
   getExecutionTrends: vi.fn(),
   getMetrics: vi.fn(),
   getRecentErrors: vi.fn(),
@@ -69,7 +69,7 @@ const asyncHealth = {
   dispatchedCount: 1,
   workerId: 'worker-test',
   leaseDurationMs: 30000,
-  dispatchBatchSize: 50,
+  concurrency: 4,
   checkedAt: '2026-08-02T00:00:00Z',
 }
 
@@ -135,7 +135,7 @@ describe('Monitoring operations control plane', () => {
     vi.mocked(getTopProcesses).mockResolvedValue([])
     vi.mocked(getRecentErrors).mockResolvedValue([])
     vi.mocked(getVersionDistribution).mockResolvedValue([])
-    vi.mocked(getDeployRuntimeDiagnostics).mockResolvedValue({
+    vi.mocked(getDeploymentRuntimeDiagnostics).mockResolvedValue({
       available: false,
       started: false,
       message: 'Deploy runtime is not configured',
@@ -190,9 +190,9 @@ describe('Monitoring operations control plane', () => {
     renderMonitoring()
 
     expect(await screen.findByText('部分监控数据刷新失败')).toBeInTheDocument()
-    expect(screen.getByText(/不可用数据源：执行指标/)).toBeInTheDocument()
-    expect(screen.getByText('路由投递中')).toBeInTheDocument()
-    expect(screen.getByText('持久化调用重试管道')).toBeInTheDocument()
+    expect(screen.getByText(/不可用的数据源：执行指标/)).toBeInTheDocument()
+    expect(screen.getByText('部署任务投递中')).toBeInTheDocument()
+    expect(screen.getByText('异步调用的持久化重试队列')).toBeInTheDocument()
     expect(screen.getByText('2.5 s')).toBeInTheDocument()
   })
 
@@ -218,11 +218,20 @@ describe('Monitoring operations control plane', () => {
       })
 
     renderMonitoring()
-    fireEvent.click(await screen.findByRole('button', { name: '重新入队部署死信' }))
+    fireEvent.click(await screen.findByRole('button', { name: '重新入队部署死信任务' }))
 
     await waitFor(() => expect(requeueDeploymentDeadLetters).toHaveBeenCalledOnce())
     await waitFor(() => expect(getDeploymentControlHealth).toHaveBeenCalledTimes(2))
-    expect(await screen.findByText('路由投递已停止')).toBeInTheDocument()
+    expect(await screen.findByText('部署任务投递已停止')).toBeInTheDocument()
+    expect(screen.getByText('否')).toBeInTheDocument()
+  })
+
+  it('localizes the deployment dispatcher state', async () => {
+    renderMonitoring()
+
+    expect(await screen.findByText('部署任务投递中')).toBeInTheDocument()
+    expect(screen.getByText('是')).toBeInTheDocument()
+    expect(screen.queryByText('on')).not.toBeInTheDocument()
   })
 
   it('refreshes the invocation ledger after a bounded dead-letter redrive', async () => {
@@ -241,12 +250,12 @@ describe('Monitoring operations control plane', () => {
       .mockRejectedValue(new Error('health unavailable'))
 
     renderMonitoring()
-    expect(await screen.findByText('路由投递中')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '重新入队部署死信' }))
+    expect(await screen.findByText('部署任务投递中')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '重新入队部署死信任务' }))
 
-    expect(await screen.findByText('刷新失败，当前显示最近一次成功值')).toBeInTheDocument()
-    expect(screen.getByText('路由投递中')).toBeInTheDocument()
-    expect(screen.getByText(/不可用数据源：部署投递队列/)).toBeInTheDocument()
+    expect(await screen.findByText('无法刷新，当前显示最近可用数据')).toBeInTheDocument()
+    expect(screen.getByText('部署任务投递中')).toBeInTheDocument()
+    expect(screen.getByText(/不可用的数据源：部署任务队列/)).toBeInTheDocument()
   })
 
   it('shows the physical attempt ledger even when an attempt produced no execution trace', async () => {
@@ -266,7 +275,7 @@ describe('Monitoring operations control plane', () => {
     renderMonitoring()
     fireEvent.click(await screen.findByRole('button', { name: /查看/ }))
     fireEvent.click(await screen.findByRole('button', { name: '重新入队' }))
-    expect(await screen.findByText('重新入队这条死信调用？')).toBeInTheDocument()
+    expect(await screen.findByText('是否重新入队这条死信调用？')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /确\s*认/ }))
 
     await waitFor(() => expect(requeueAsyncInvocation).toHaveBeenCalledWith('order-async-42'))
@@ -282,9 +291,7 @@ describe('Monitoring operations control plane', () => {
     expect(await screen.findByText('order.fulfill')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /刷新/ }))
 
-    expect(
-      await screen.findByText('调用记录刷新失败，当前显示最近一次成功结果')
-    ).toBeInTheDocument()
+    expect(await screen.findByText('调用记录刷新失败，当前显示最近可用数据')).toBeInTheDocument()
     expect(screen.getByText('order.fulfill')).toBeInTheDocument()
   })
 })

@@ -72,21 +72,6 @@ public final class DurablePayload {
         return Collections.unmodifiableMap(copy);
     }
 
-    /**
-     * Validates and recursively detaches one portable value graph.
-     *
-     * @param source source value
-     * @param name field name used in failures
-     * @param <T> value type
-     * @return detached value
-     */
-    @SuppressWarnings("unchecked")
-    public static <T> T immutableValue(T source, String name) {
-        IdentityHashMap<Object, Boolean> active = new IdentityHashMap<>();
-        int[] remainingEntries = {MAX_COLLECTION_ENTRIES};
-        return (T) immutableValue(source, active, remainingEntries, 0, name);
-    }
-
     private static Object immutableValue(Object value, IdentityHashMap<Object, Boolean> active, int[] remainingEntries,
             int depth, String name) {
         if (depth > MAX_DEPTH) {

@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.quality.boundary;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessEngine;
@@ -27,7 +28,8 @@ import org.junit.jupiter.api.Test;
 class NestedProcessFailureIntegrationTest {
     private static final String MISSING_CHILD = "test.nested.missing-child";
     private static final String RECURSIVE_CHILD = "bpm.subprocess.recursive";
-    private static final ProcessDefinition PARENT = ProcessDefinition.inline("test.nested.parent",
+    private static final ProcessDefinition PARENT = ProcessDefinition.inline(ProcessModelType.TBBPM,
+            "test.nested.parent",
             """
         <?xml version="1.0" encoding="UTF-8" ?>
         <bpm code="test.nested.parent" name="Nested failure parent">
@@ -46,11 +48,11 @@ class NestedProcessFailureIntegrationTest {
 
     @Test
     void nestedExecutionPreservesTheChildTypedFailureAndParentAttribution() {
-        ProcessEngineConfig config = ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory.builder().discoverPlugins(false).build();
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
-            ProcessResult<Map<String, Object>> directChild = engine.execute(ProcessDefinition.classpath(MISSING_CHILD,
-                            MISSING_CHILD.replace(".", "/") + ".bpm"), Map.of());
+            ProcessResult<Map<String, Object>> directChild = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            MISSING_CHILD, MISSING_CHILD.replace(".", "/") + ".bpm"), Map.of());
             ProcessResult<Map<String, Object>> parent = engine.execute(PARENT, Map.of());
 
             assertThat(directChild.isFailure()).isTrue();
@@ -63,11 +65,11 @@ class NestedProcessFailureIntegrationTest {
 
     @Test
     void recursiveProcessCallsAreRejectedDuringGraphResolution() {
-        ProcessEngineConfig config = ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory.builder().discoverPlugins(false).build();
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
-            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(RECURSIVE_CHILD,
-                            RECURSIVE_CHILD.replace(".", "/") + ".bpm"), Map.of());
+            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            RECURSIVE_CHILD, RECURSIVE_CHILD.replace(".", "/") + ".bpm"), Map.of());
 
             assertThat(result.isFailure()).isTrue();
             assertThat(result.getError().getCode()).isEqualTo("CF_EXEC_014");
@@ -79,7 +81,7 @@ class NestedProcessFailureIntegrationTest {
     @Test
     void invalidProcessCallContractIsRejectedBeforeParentActionsRun() {
         ProcessCallAdmissionTestService.reset();
-        ProcessEngineConfig config = ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory.builder().discoverPlugins(false).build();
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
             ProcessResult<Map<String, Object>> result = engine.execute(invalidMappingParent(), Map.of("value", 1));
@@ -91,7 +93,7 @@ class NestedProcessFailureIntegrationTest {
     }
 
     private static ProcessDefinition invalidMappingParent() {
-        return ProcessDefinition.inline("test.nested.invalid-contract",
+        return ProcessDefinition.inline(ProcessModelType.TBBPM, "test.nested.invalid-contract",
                 """
             <bpm code="test.nested.invalid-contract">
               <var name="value" dataType="java.lang.Integer" inOutType="param"/>

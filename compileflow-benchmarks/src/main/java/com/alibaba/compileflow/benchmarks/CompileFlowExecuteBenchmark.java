@@ -16,6 +16,7 @@ package com.alibaba.compileflow.benchmarks;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
 import com.alibaba.compileflow.engine.ProcessEngineFactory;
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import java.util.HashMap;
 import java.util.Map;
@@ -68,11 +69,21 @@ public class CompileFlowExecuteBenchmark {
      */
     @Setup
     public void setup() {
-        this.engine = ProcessEngineFactory.createTbbpm();
-        ProcessDefinition definition = ProcessDefinition.classpath("bpm.sample.hello", "flows/hello.bpm");
-        this.ref = ProcessRef.version("bpm.sample.hello", "benchmark-v1");
-        this.engine.runtime().load(ref, definition);
-        verifyResult(engine.execute(ref, Map.of("value", 40)).orElseThrow());
+        this.engine = ProcessEngineFactory.create();
+        try {
+            ProcessDefinition definition =
+                    ProcessDefinition.classpath(ProcessModelType.TBBPM, "bpm.sample.hello", "flows/hello.bpm");
+            this.ref = ProcessRef.version("bpm.sample.hello", "benchmark-v1");
+            this.engine.runtime().load(ref, definition);
+            verifyResult(engine.execute(ref, Map.of("value", 40)).orElseThrow());
+        } catch (RuntimeException | Error failure) {
+            try {
+                engine.close();
+            } catch (RuntimeException | Error closing) {
+                failure.addSuppressed(closing);
+            }
+            throw failure;
+        }
     }
 
     /**

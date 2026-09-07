@@ -16,8 +16,8 @@ package com.alibaba.compileflow.durable.api.error;
 /**
  * Bounded failure categories returned by Durable Process operations.
  *
- * <p>This Developer Preview contract classifies failures observed by an API
- * caller. Persisted Run, Effect, and Outbox diagnostic codes are a separate
+ * <p>This contract classifies failures observed by an API caller. Persisted
+ * Run, Effect, and Outbox diagnostic codes are a separate
  * storage concern and must not be inferred from these enum names.</p>
  *
  * @author yusu

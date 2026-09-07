@@ -14,6 +14,7 @@
 package com.alibaba.compileflow.engine.test.support.mocks;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Coordinates generated-code tests that verify parallel commit atomicity.
@@ -39,7 +40,9 @@ public class AtomicParallelService {
     }
 
     public void failAfterOutputWritten() throws InterruptedException {
-        outputWritten.await();
+        if (!outputWritten.await(5, TimeUnit.SECONDS)) {
+            throw new IllegalStateException("Timed out waiting for branch output confirmation");
+        }
         throw new IllegalStateException("planned branch failure");
     }
 }

@@ -1,6 +1,16 @@
 import { describe, expect, test } from 'vitest'
 
-import { toError } from '../errors'
+import { AppError, NetworkError, toError } from '../errors'
+
+test('native error inheritance preserves the concrete subtype', () => {
+  class ConnectionError extends NetworkError {}
+  const error = new ConnectionError('disconnected')
+
+  expect(error).toBeInstanceOf(ConnectionError)
+  expect(error).toBeInstanceOf(NetworkError)
+  expect(error).toBeInstanceOf(AppError)
+  expect(error).toBeInstanceOf(Error)
+})
 
 describe('toError', () => {
   test('preserves Error instances', () => {

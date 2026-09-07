@@ -24,15 +24,15 @@ class ProcessEngineConfigDataMapperTest {
     void explicitMapperIsPreservedInTheImmutableEngineConfiguration() {
         ProcessDataMapper mapper = new StubMapper();
 
-        ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder().dataMapper(mapper).build();
+        ProcessEngineConfig config = ProcessEngineConfig.builder().dataMapper(mapper).build();
 
         assertThat(config.getDataMapper()).isSameAs(mapper);
-        assertThat(ProcessEngineConfig.tbbpm().getDataMapper()).isNull();
+        assertThat(ProcessEngineConfig.defaults().getDataMapper()).isNull();
     }
 
     @Test
     void builderRejectsANullExplicitMapper() {
-        assertThatThrownBy(() -> ProcessEngineConfig.tbbpmBuilder().dataMapper(null))
+        assertThatThrownBy(() -> ProcessEngineConfig.builder().dataMapper(null))
             .isInstanceOf(NullPointerException.class)
             .hasMessage("dataMapper");
     }

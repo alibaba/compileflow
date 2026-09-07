@@ -9,7 +9,7 @@ conversion failed.
 `execute(...)` and `trigger(...)` return `ProcessResult<T>` for failures that occur inside the process execution
 pipeline. Every result contains controlled `ProcessExecution` attribution and exactly one outcome:
 
-- success: `data` and no error;
+- success: `output` and no error;
 - failure: a `ProcessError` with a stable `code` and a safe human-readable `message`.
 
 `ProcessExecution` exposes only trace and invocation IDs, namespace, process code, an optional exact published Version,
@@ -23,8 +23,10 @@ Callers branch on `isSuccess()` or `getError().getCode()`, never on message text
 Invalid Java API arguments are rejected by throwing before an invocation is accepted. Typed adapter failures are
 represented as results because callers need their retry semantics:
 
-- malformed process definitions, including XSD violations, throw `CompileFlowException` with `CF_VALIDATION_002` during
-  parsing or preflight; they are authoring errors, not infrastructure failures;
+- malformed process definitions, including XSD violations, are authoring errors classified as `CF_VALIDATION_002`.
+  Execution reports pipeline failures in `ProcessResult`; `tooling().preflight(...)` returns a failed report with
+  stage diagnostics instead of throwing the definition-validation failure. Invalid API arguments, lifecycle misuse,
+  and infrastructure interruption/rejection can still throw;
 - input mapping returns `CF_EXEC_010` before the process starts;
 - output mapping returns `CF_EXEC_009` after the process completes and warns that side effects may already have
   occurred;
@@ -37,28 +39,28 @@ Neither result exposes the mapper exception or the original application object.
 
 ## Execution HTTP Contract
 
-Workbench Server and the development preview mock use a discriminated execution response. A process outcome is returned
+Workbench Server and the local development gateway use a discriminated execution response. A process outcome is returned
 with HTTP 200:
 
 ```json
 {
-  "success": false,
-  "message": "Flow execution failed",
-  "errorCode": "CF_EXEC_004",
-  "error": "Process execution failed",
-  "traceId": "4a04d9f8d8bb4d6fb2ae1e577d99dfe2",
-  "invocationId": "inv-...",
-  "modelType": "TBBPM",
-  "sourceDigest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-  "durationMs": 12,
-  "routing": {
-    "namespace": "default",
-    "requestedAlias": "production",
-    "effectiveVersion": "2026.07.1",
-    "alias": "production",
-    "routeRevision": 8,
-    "target": "STABLE"
-  }
+    "success": false,
+    "message": "Flow execution failed",
+    "errorCode": "CF_EXEC_004",
+    "error": "Process execution failed",
+    "traceId": "4a04d9f8d8bb4d6fb2ae1e577d99dfe2",
+    "invocationId": "inv-...",
+    "modelType": "TBBPM",
+    "sourceDigest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "durationMs": 12,
+    "routing": {
+        "namespace": "default",
+        "requestedAlias": "production",
+        "effectiveVersion": "2026.07.1",
+        "alias": "production",
+        "routeRevision": 8,
+        "target": "STABLE"
+    }
 }
 ```
 
@@ -70,12 +72,12 @@ use non-2xx status codes and RFC 9457 Problem Details:
 
 ```json
 {
-  "type": "urn:compileflow:problem:invalid-request",
-  "title": "Invalid request",
-  "status": 400,
-  "detail": "request body is required",
-  "instance": "/api/executions/preview",
-  "code": "INVALID_REQUEST"
+    "type": "urn:compileflow:problem:invalid-request",
+    "title": "Invalid request",
+    "status": 400,
+    "detail": "request body is required",
+    "instance": "/api/executions/preview",
+    "code": "INVALID_REQUEST"
 }
 ```
 

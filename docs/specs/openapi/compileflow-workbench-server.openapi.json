@@ -124,16 +124,16 @@
           "checkedAt" : {
             "type" : "string"
           },
+          "concurrency" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
           "deadLetterCount" : {
             "format" : "int64",
             "type" : "integer"
           },
           "delayedQueuedCount" : {
             "format" : "int64",
-            "type" : "integer"
-          },
-          "dispatchBatchSize" : {
-            "format" : "int32",
             "type" : "integer"
           },
           "dispatchedCount" : {
@@ -179,7 +179,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "checkedAt", "deadLetterCount", "delayedQueuedCount", "dispatchBatchSize", "dispatchedCount", "expiredRunningCount", "leaseDurationMs", "localRunningCount", "oldestReadyAgeMs", "queuedCount", "readyQueuedCount", "runningCount", "status", "succeededCount", "workerId" ],
+        "required" : [ "checkedAt", "concurrency", "deadLetterCount", "delayedQueuedCount", "dispatchedCount", "expiredRunningCount", "leaseDurationMs", "localRunningCount", "oldestReadyAgeMs", "queuedCount", "readyQueuedCount", "runningCount", "status", "succeededCount", "workerId" ],
         "type" : "object"
       },
       "AsyncInvocationListResponse" : {
@@ -471,198 +471,6 @@
         },
         "type" : "object"
       },
-      "DeployRuntimeAliasResponse" : {
-        "properties" : {
-          "alias" : {
-            "type" : "string"
-          },
-          "code" : {
-            "type" : "string"
-          },
-          "desiredDeleted" : {
-            "type" : "boolean"
-          },
-          "desiredRevision" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "failureReason" : {
-            "type" : "string"
-          },
-          "localReadyDeleted" : {
-            "type" : "boolean"
-          },
-          "localReadyRevision" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "namespace" : {
-            "type" : "string"
-          },
-          "state" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "alias", "code", "desiredDeleted", "desiredRevision", "localReadyDeleted", "localReadyRevision", "namespace", "state" ],
-        "type" : "object"
-      },
-      "DeployRuntimeBackedOffVersionResponse" : {
-        "properties" : {
-          "blockedUntil" : {
-            "type" : "string"
-          },
-          "code" : {
-            "type" : "string"
-          },
-          "id" : {
-            "type" : "string"
-          },
-          "namespace" : {
-            "type" : "string"
-          },
-          "reason" : {
-            "type" : "string"
-          },
-          "remainingMs" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "version" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "blockedUntil", "code", "id", "namespace", "reason", "remainingMs", "version" ],
-        "type" : "object"
-      },
-      "DeployRuntimeDeployedProcessResponse" : {
-        "properties" : {
-          "code" : {
-            "type" : "string"
-          },
-          "namespace" : {
-            "type" : "string"
-          },
-          "versions" : {
-            "items" : {
-              "type" : "string"
-            },
-            "type" : "array"
-          }
-        },
-        "required" : [ "code", "namespace", "versions" ],
-        "type" : "object"
-      },
-      "DeployRuntimeDiagnosticsResponse" : {
-        "properties" : {
-          "aliases" : {
-            "items" : {
-              "$ref" : "#/components/schemas/DeployRuntimeAliasResponse"
-            },
-            "type" : "array"
-          },
-          "available" : {
-            "type" : "boolean"
-          },
-          "backedOffVersions" : {
-            "items" : {
-              "$ref" : "#/components/schemas/DeployRuntimeBackedOffVersionResponse"
-            },
-            "type" : "array"
-          },
-          "demandedVersions" : {
-            "items" : {
-              "$ref" : "#/components/schemas/DeployRuntimeVersionResponse"
-            },
-            "type" : "array"
-          },
-          "deployedVersions" : {
-            "items" : {
-              "$ref" : "#/components/schemas/DeployRuntimeDeployedProcessResponse"
-            },
-            "type" : "array"
-          },
-          "desiredAliasCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "failedAliasCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "failureBackoffMs" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "inflightAvailablePermits" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "inflightCapacity" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "inflightCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "inflightVersions" : {
-            "items" : {
-              "$ref" : "#/components/schemas/DeployRuntimeVersionResponse"
-            },
-            "type" : "array"
-          },
-          "localReadyAliasCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "pendingAliasCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "pendingReleaseVersions" : {
-            "items" : {
-              "$ref" : "#/components/schemas/DeployRuntimeVersionResponse"
-            },
-            "type" : "array"
-          },
-          "retainedRuntimeCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "started" : {
-            "type" : "boolean"
-          },
-          "timestamp" : {
-            "type" : "string"
-          },
-          "topology" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "available", "started", "timestamp" ],
-        "type" : "object"
-      },
-      "DeployRuntimeVersionResponse" : {
-        "properties" : {
-          "code" : {
-            "type" : "string"
-          },
-          "id" : {
-            "type" : "string"
-          },
-          "namespace" : {
-            "type" : "string"
-          },
-          "version" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "code", "id", "namespace", "version" ],
-        "type" : "object"
-      },
       "DeploymentControlHealthResponse" : {
         "properties" : {
           "checkedAt" : {
@@ -858,6 +666,198 @@
           }
         },
         "required" : [ "alias", "processCode", "revision", "stableVersion", "updatedAt", "updatedBy" ],
+        "type" : "object"
+      },
+      "DeploymentRuntimeAliasResponse" : {
+        "properties" : {
+          "alias" : {
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "desiredDeleted" : {
+            "type" : "boolean"
+          },
+          "desiredRevision" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "failureReason" : {
+            "type" : "string"
+          },
+          "localReadyDeleted" : {
+            "type" : "boolean"
+          },
+          "localReadyRevision" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "namespace" : {
+            "type" : "string"
+          },
+          "state" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "alias", "code", "desiredDeleted", "desiredRevision", "localReadyDeleted", "localReadyRevision", "namespace", "state" ],
+        "type" : "object"
+      },
+      "DeploymentRuntimeBackedOffVersionResponse" : {
+        "properties" : {
+          "blockedUntil" : {
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "namespace" : {
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "remainingMs" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "blockedUntil", "code", "id", "namespace", "reason", "remainingMs", "version" ],
+        "type" : "object"
+      },
+      "DeploymentRuntimeDeployedProcessResponse" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "namespace" : {
+            "type" : "string"
+          },
+          "versions" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "code", "namespace", "versions" ],
+        "type" : "object"
+      },
+      "DeploymentRuntimeDiagnosticsResponse" : {
+        "properties" : {
+          "aliases" : {
+            "items" : {
+              "$ref" : "#/components/schemas/DeploymentRuntimeAliasResponse"
+            },
+            "type" : "array"
+          },
+          "available" : {
+            "type" : "boolean"
+          },
+          "backedOffVersions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/DeploymentRuntimeBackedOffVersionResponse"
+            },
+            "type" : "array"
+          },
+          "demandedVersions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/DeploymentRuntimeVersionResponse"
+            },
+            "type" : "array"
+          },
+          "deployedVersions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/DeploymentRuntimeDeployedProcessResponse"
+            },
+            "type" : "array"
+          },
+          "desiredAliasCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "failedAliasCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "failureBackoffMs" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "inflightAvailablePermits" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "inflightCapacity" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "inflightCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "inflightVersions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/DeploymentRuntimeVersionResponse"
+            },
+            "type" : "array"
+          },
+          "localReadyAliasCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "pendingAliasCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "pendingReleaseVersions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/DeploymentRuntimeVersionResponse"
+            },
+            "type" : "array"
+          },
+          "retainedRuntimeCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "started" : {
+            "type" : "boolean"
+          },
+          "timestamp" : {
+            "type" : "string"
+          },
+          "topology" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "available", "started", "timestamp" ],
+        "type" : "object"
+      },
+      "DeploymentRuntimeVersionResponse" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "namespace" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "code", "id", "namespace", "version" ],
         "type" : "object"
       },
       "DuplicateProcessRequest" : {
@@ -1148,7 +1148,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "callDepth", "duration", "endTime", "id", "invocationId", "modelType", "namespace", "processCode", "startTime", "status", "traceId" ],
+        "required" : [ "callDepth", "duration", "endTime", "id", "invocationId", "namespace", "processCode", "startTime", "status", "traceId" ],
         "type" : "object"
       },
       "ExecutionRoutingRequest" : {
@@ -2636,12 +2636,12 @@
             "content" : {
               "text/csv" : {
                 "schema" : {
-                  "format" : "byte",
+                  "format" : "binary",
                   "type" : "string"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Raw UTF-8 CSV attachment (not base64 encoded)"
           }
         },
         "tags" : [ "execution-log-controller" ]
@@ -2731,20 +2731,20 @@
     },
     "/api/monitoring/deploy-runtime" : {
       "get" : {
-        "operationId" : "getDeployRuntimeDiagnostics",
+        "operationId" : "getDeploymentRuntimeDiagnostics",
         "responses" : {
           "200" : {
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/DeployRuntimeDiagnosticsResponse"
+                  "$ref" : "#/components/schemas/DeploymentRuntimeDiagnosticsResponse"
                 }
               }
             },
             "description" : "OK"
           }
         },
-        "tags" : [ "deploy-runtime-diagnostics-controller" ]
+        "tags" : [ "deployment-runtime-diagnostics-controller" ]
       }
     },
     "/api/monitoring/errors" : {
@@ -3303,12 +3303,12 @@
             "content" : {
               "application/xml" : {
                 "schema" : {
-                  "format" : "byte",
+                  "format" : "binary",
                   "type" : "string"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Raw UTF-8 XML attachment (not base64 encoded)"
           }
         },
         "tags" : [ "process-controller" ]

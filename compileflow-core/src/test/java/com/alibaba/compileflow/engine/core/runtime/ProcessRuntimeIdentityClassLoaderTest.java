@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.core.runtime;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.core.source.ProcessDefinitionSnapshot;
 import static com.alibaba.compileflow.engine.core.runtime.RuntimeTestFixtures.runtimeIdentity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -38,10 +39,10 @@ class ProcessRuntimeIdentityClassLoaderTest {
         ClassLoader classLoader = getClass().getClassLoader();
         ProcessRuntimeIdentity.PipelineIdentity pipelineIdentity = ProcessRuntimeIdentity.newPipelineIdentity();
         byte[] bytes = "<flow/>".getBytes(StandardCharsets.UTF_8);
-        ProcessRuntimeIdentity first = runtimeIdentity(ProcessDefinitionSnapshot.of("default", "test", null, bytes,
-                        "file first.bpm"), pipelineIdentity, classLoader);
-        ProcessRuntimeIdentity repeated = runtimeIdentity(ProcessDefinitionSnapshot.of("default", "test", null, bytes,
-                        "classpath flows/second.bpm"), pipelineIdentity, classLoader);
+        ProcessRuntimeIdentity first = runtimeIdentity(ProcessDefinitionSnapshot.of(ProcessModelType.TBBPM, "default",
+                        "test", null, bytes, "file first.bpm"), pipelineIdentity, classLoader);
+        ProcessRuntimeIdentity repeated = runtimeIdentity(ProcessDefinitionSnapshot.of(ProcessModelType.TBBPM, "default",
+                        "test", null, bytes, "classpath flows/second.bpm"), pipelineIdentity, classLoader);
 
         assertThat(repeated).isEqualTo(first);
     }
@@ -49,8 +50,8 @@ class ProcessRuntimeIdentityClassLoaderTest {
     @Test
     void compilationPipelineComparisonUsesReferenceIdentity() {
         ClassLoader classLoader = getClass().getClassLoader();
-        ProcessDefinitionSnapshot definition =
-                ProcessDefinitionSnapshot.of("default", "test", null, "<flow/>".getBytes(StandardCharsets.UTF_8), "test");
+        ProcessDefinitionSnapshot definition = ProcessDefinitionSnapshot.of(ProcessModelType.TBBPM, "default", "test",
+                null, "<flow/>".getBytes(StandardCharsets.UTF_8), "test");
         ProcessRuntimeIdentity.PipelineIdentity firstScope = ProcessRuntimeIdentity.newPipelineIdentity();
         ProcessRuntimeIdentity.PipelineIdentity secondScope = ProcessRuntimeIdentity.newPipelineIdentity();
         ProcessRuntimeIdentity first = runtimeIdentity(definition, firstScope, classLoader);

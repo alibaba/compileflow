@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.feature.routing;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
@@ -31,7 +32,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 public class DebugVersionRoutingTest {
     @Test
     void returnsDeclaredValueFromInlineDefinition() {
-        ProcessEngine engine = ProcessEngineTestFactory.createTbbpm();
+        ProcessEngine engine = ProcessEngineTestFactory.create();
 
         String flowXml =
                 "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + "<bpm code=\"debug.return\" name=\"debug\">\n"
@@ -44,7 +45,7 @@ public class DebugVersionRoutingTest {
                 + "        <transition to=\"end\"/>\n" + "    </scriptTask>\n" + "\n"
                 + "    <end id=\"end\" name=\"End\" g=\"300,50,32,32\"/>\n" + "</bpm>";
 
-        ProcessDefinition.Inline definition = ProcessDefinition.inline("debug.return", flowXml);
+        ProcessDefinition.Inline definition = ProcessDefinition.inline(ProcessModelType.TBBPM, "debug.return", flowXml);
 
         try {
             engine.runtime().warmUp(definition);

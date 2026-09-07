@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessModelType;
 import java.util.Comparator;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -27,10 +28,54 @@ import org.springframework.transaction.annotation.Transactional;
 @ActiveProfiles("test")
 @Transactional
 class ExecutionLogAggregationPersistenceTest {
+    @Test
+    void unresolvedVersionFailurePersistsWithoutInventingAFormat() {
+        logService.persist(
+                new ExecutionLogRecord("missing", "failed", 1L, "CF_EXEC_001", "Unavailable", 1_000L,
+                        "unresolved-invocation", null, 0, "trace", "default", null, null, "v1", null, "version", null,
+                        null));
+        logRepository.flush();
+        assertThat(logRepository.findAll())
+            .filteredOn(row -> "unresolved-invocation".equals(row.getInvocationId()))
+            .singleElement()
+            .satisfies(row -> {
+                assertThat(row.getModelType()).isNull();
+                assertThat(row.getSourceDigest()).isNull();
+                assertThat(row.getRequestedVersion()).isEqualTo("v1");
+            });
+    }
+
+    @Test
+    void topNGroupsUseAllDimensionsAndExplicitNullOrdering() {
+        for (String namespace : List.of("z", "a")) {
+            for (String alias : new String[] {"z", "a", null}) {
+                logService.persist(
+                        new ExecutionLogRecord("tied", "failed", 1L, "E", "same", 1_000L, namespace + "-" + alias, null,
+                                0, "trace", namespace, ProcessModelType.TBBPM, "a".repeat(64), null, "v1", "alias",
+                                alias, alias == null ? null : 1L));
+            }
+        }
+        for (int limit = 1; limit <= 6; limit++) {
+            List<String> expected =
+                    java.util.Arrays.asList("a:null", "a:a", "a:z", "z:null", "z:a", "z:z").subList(0, limit);
+            assertThat(logService.aggregateErrors(0L, 2_000L, limit))
+                .extracting(row -> row.namespace() + ":" + row.routeAlias())
+                .containsExactlyElementsOf(expected);
+            assertThat(logService.aggregateVersions("tied", 0L, 2_000L, limit))
+                .extracting(row -> row.namespace() + ":" + row.routeAlias())
+                .containsExactlyElementsOf(expected);
+        }
+    }
+
     @Autowired
     private ExecutionLogService logService;
     @Autowired
     private ExecutionLogRepository logRepository;
+
+    @BeforeEach
+    void isolateLogsWithinTheTestTransaction() {
+        logRepository.deleteAllInBatch();
+    }
 
     private static ExecutionLogRecord record(String processCode, String status, long durationMs, String errorCode,
             String errorMessage, long loggedAt) {
@@ -99,6 +144,18 @@ class ExecutionLogAggregationPersistenceTest {
                 assertThat(bucket.successCount()).isEqualTo(2L);
                 assertThat(bucket.failedCount()).isEqualTo(3L);
             });
+    }
+
+    @Test
+    void trendBucketsUseFloorAtNonAlignedBoundaries() {
+        logService.persist(record("bucket.flow", "success", 1L, null, null, 1_001L));
+        logService.persist(record("bucket.flow", "failed", 1L, "E", "failed", 1_999L));
+        logService.persist(record("bucket.flow", "success", 1L, null, null, 2_001L));
+        logService.persist(record("bucket.flow", "success", 1L, null, null, 4_001L));
+
+        assertThat(logService.aggregateTrends(1_001L, 4_001L, 1_000L))
+            .containsExactly(new ExecutionLogService.TrendAggregate(0L, 2L, 1L, 1L),
+                    new ExecutionLogService.TrendAggregate(1L, 1L, 1L, 0L));
     }
 
     @Test

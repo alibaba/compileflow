@@ -1,0 +1,31 @@
+server:
+  address: 127.0.0.1
+  port: 8080
+  shutdown: graceful
+
+spring:
+  application:
+    name: compileflow-deployment-example
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/compileflow}
+    username: ${SPRING_DATASOURCE_USERNAME:compileflow}
+    password: ${SPRING_DATASOURCE_PASSWORD:compileflow}
+  flyway:
+    enabled: false
+
+compileflow:
+  deploy:
+    enabled: true
+    topology: EMBEDDED
+    control-plane-enabled: true
+    runtime-worker-enabled: false
+    artifact:
+      mode: SOURCE
+    database:
+      migrate: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

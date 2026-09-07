@@ -33,7 +33,7 @@
 
 .confirmGrid {
   display: grid;
-  grid-template-columns: 120px 1fr;
+  grid-template-columns: 120px minmax(0, 1fr);
   gap: var(--spacing-3) var(--spacing-4);
   margin: 0;
   line-height: 2;
@@ -46,6 +46,19 @@
 
 .confirmGrid dd {
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 575px) {
+  .confirmGrid {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--spacing-1);
+  }
+
+  .confirmGrid dd:not(:last-child) {
+    margin-bottom: var(--spacing-3);
+  }
 }
 
 .aliasName {

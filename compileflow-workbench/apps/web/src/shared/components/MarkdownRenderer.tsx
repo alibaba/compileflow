@@ -1,4 +1,5 @@
 import { Typography } from 'antd'
+import { isValidElement } from 'react'
 import type { Components } from 'react-markdown'
 import ReactMarkdown from 'react-markdown'
 import vs from 'react-syntax-highlighter/dist/esm/styles/prism/vs'
@@ -17,10 +18,7 @@ interface MarkdownRendererProps {
 
 type SyntaxTheme = typeof vscDarkPlus
 
-interface MarkdownCodeProps extends React.ComponentPropsWithoutRef<'code'> {
-  node?: unknown
-  inline?: boolean
-}
+type MarkdownCodeProps = React.ComponentPropsWithoutRef<'code'>
 
 const titleSpacing = {
   h1: { marginTop: 'var(--spacing-6)', marginBottom: 'var(--spacing-4)' },
@@ -57,32 +55,12 @@ const tableCellStyle: React.CSSProperties = {
 }
 
 const MarkdownCode: React.FC<MarkdownCodeProps & { codeHighlightStyle: SyntaxTheme }> = ({
-  inline,
   className,
   children,
   codeHighlightStyle,
-  ...props
 }) => {
   const match = /language-(\w+)/.exec(className || '')
   const language = match ? match[1] : ''
-
-  if (inline) {
-    return (
-      <code
-        style={{
-          background: 'var(--code-bg)',
-          padding: '2px 6px',
-          borderRadius: 'var(--radius-sm)',
-          fontSize: '0.9em',
-          fontFamily: 'var(--font-family-code)',
-          color: 'var(--error-main)',
-        }}
-        {...props}
-      >
-        {children}
-      </code>
-    )
-  }
 
   return (
     <SyntaxHighlighter
@@ -127,7 +105,28 @@ const createMarkdownComponents = (codeHighlightStyle: SyntaxTheme): Components =
       {children}
     </Paragraph>
   ),
-  code: (props) => <MarkdownCode {...props} codeHighlightStyle={codeHighlightStyle} />,
+  code: ({ children }) => (
+    <code
+      style={{
+        background: 'var(--code-bg)',
+        padding: '2px 6px',
+        borderRadius: 'var(--radius-sm)',
+        fontSize: '0.9em',
+        fontFamily: 'var(--font-family-code)',
+        color: 'var(--error-main)',
+      }}
+    >
+      {children}
+    </code>
+  ),
+  pre: ({ children }) =>
+    isValidElement<MarkdownCodeProps>(children) ? (
+      <MarkdownCode className={children.props.className} codeHighlightStyle={codeHighlightStyle}>
+        {children.props.children}
+      </MarkdownCode>
+    ) : (
+      <pre>{children}</pre>
+    ),
   ul: ({ children }) => <ul style={listStyle}>{children}</ul>,
   ol: ({ children }) => <ol style={listStyle}>{children}</ol>,
   li: ({ children }) => <li style={{ marginBottom: 'var(--spacing-2)' }}>{children}</li>,

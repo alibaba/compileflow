@@ -48,18 +48,46 @@ import java.util.Optional;
  * or continuation semantics.</p>
  *
  * <p>Starting a Process creates a persistent Run. Subsequent mutations and queries operate on
- * persisted Run state, while independently managed Durable Workers advance eligible Runs. This
- * interface does not own Durable Worker lifecycle.</p>
+ * persisted Run state. This engine owns its node-local runtimes and optional Workers, which
+ * advance eligible Runs after {@link #start()}. Closing an engine never closes the shared Store
+ * or controls Workers on another node.</p>
  *
  * @author yusu
  * @see ProcessEngine
  */
-public interface DurableProcessEngine {
+public interface DurableProcessEngine extends AutoCloseable {
+    /**
+     * Starts this node's configured workers; repeated calls are idempotent.
+     */
+    void start();
+
+    /**
+     * Stops work acquisition and drains this node's active workers without closing admission.
+     * The configured worker drain budget bounds the wait; unfinished workers are interrupted
+     * and reported as a failure. Restart requires those workers to have terminated.
+     */
+    void stop();
+
+    /**
+     * Returns whether this node's configured workers are running.
+     *
+     * @return {@code true} when the workers are running; otherwise {@code false}
+     */
+    boolean isRunning();
+
+    /**
+     * Rejects new operations, drains active work, and releases node-local resources.
+     * Admitted application operations drain before the worker shutdown budget starts.
+     * Store and other application-owned collaborators must bound their own blocking calls.
+     */
+    @Override
+    void close();
+
     /**
      * Starts a caller-identified Run from an explicit definition source.
      *
-     * <p>The definition is source-only. The receiving Engine configuration supplies its model
-     * format.</p>
+     * <p>The definition carries its semantic model type, code, and source. The Engine configuration
+     * controls runtime realization rather than interpreting definition identity.</p>
      *
      * <p>The caller must never reuse {@code runId} for another Run, including after retention.</p>
      *

@@ -52,7 +52,7 @@ class EngineExecutionContextProcessCallTest {
         if (executors == null) {
             executors = ProcessEngineExecutors.create("process-call-context-test",
                     ProcessExecutorConfig.builder().runtimeLoadMaxConcurrency(1).actionTimeoutMaxConcurrency(1).build());
-            scripts = ScriptExecutorRegistry.builtIns(ProcessEngineConfig.tbbpm());
+            scripts = ScriptExecutorRegistry.builtIns(ProcessEngineConfig.defaults().getClassLoader());
         }
         return EngineExecutionContext
             .builder()

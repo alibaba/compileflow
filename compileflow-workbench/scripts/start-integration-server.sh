@@ -22,4 +22,5 @@ export COMPILEFLOW_WORKBENCH_SERVER_CONFIG_AUTHENTICATION_SERVICE_PRINCIPAL=work
 
 exec java -jar "${bundled_jars[0]}" \
   --spring.profiles.active=prod \
+  --compileflow.workbench.server.database.migrate=true \
   --server.port=8080

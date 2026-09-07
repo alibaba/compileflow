@@ -11,7 +11,7 @@ const renderWithApp = (ui: React.ReactElement) => render(<App>{ui}</App>)
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, params?: Record<string, string>) =>
-      key === 'designer.palette.dragToAdd' && params?.label ? `${key}:${params.label}` : key,
+      key === 'designer.palette.addNode' && params?.label ? `${key}:${params.label}` : key,
   }),
 }))
 
@@ -35,20 +35,47 @@ describe('NodePalette', () => {
     it('should render all node categories', () => {
       renderWithApp(<NodePalette graph={null} />)
 
-      expect(screen.getByText('designer.palette.tbbpm.cat.flow')).toBeInTheDocument()
-      expect(screen.getByText('designer.palette.tbbpm.cat.task')).toBeInTheDocument()
-      expect(screen.getByText('designer.palette.tbbpm.cat.gateway')).toBeInTheDocument()
-      expect(screen.getByText('designer.palette.tbbpm.cat.subprocess')).toBeInTheDocument()
-      expect(screen.getByText('designer.palette.tbbpm.cat.control')).toBeInTheDocument()
+      for (const category of [
+        'flow',
+        'task',
+        'gateway',
+        'subprocess',
+        'loop',
+        'control',
+        'annotation',
+      ]) {
+        expect(screen.getByText(`designer.palette.tbbpm.cat.${category}`)).toBeInTheDocument()
+      }
     })
 
     it('should render all node types', () => {
       renderWithApp(<NodePalette graph={null} />)
 
-      expect(screen.getByText('designer.palette.tbbpm.node.start')).toBeInTheDocument()
-      expect(screen.getByText('designer.palette.tbbpm.node.end')).toBeInTheDocument()
-      expect(screen.getByText('designer.palette.tbbpm.node.autoTask')).toBeInTheDocument()
-      expect(screen.getByText('designer.palette.tbbpm.node.exclusive')).toBeInTheDocument()
+      for (const category of ['subprocess', 'loop', 'control', 'annotation']) {
+        fireEvent.click(screen.getByText(`designer.palette.tbbpm.cat.${category}`))
+      }
+
+      for (const type of [
+        'start',
+        'end',
+        'autoTask',
+        'waitTask',
+        'waitEventTask',
+        'timerTask',
+        'scriptTask',
+        'exclusive',
+        'parallel',
+        'inclusive',
+        'subBpm',
+        'bpmCall',
+        'while',
+        'foreach',
+        'continue',
+        'break',
+        'note',
+      ]) {
+        expect(screen.getByText(`designer.palette.tbbpm.node.${type}`)).toBeInTheDocument()
+      }
     })
 
     it('should display node counts in badges', () => {
@@ -73,7 +100,7 @@ describe('NodePalette', () => {
         expect(screen.getByText('designer.palette.tbbpm.node.scriptTask')).toBeInTheDocument()
         expect(
           screen.getByRole('button', {
-            name: 'designer.palette.dragToAdd:designer.palette.tbbpm.node.autoTask',
+            name: 'designer.palette.addNode:designer.palette.tbbpm.node.autoTask',
           })
         ).toBeInTheDocument()
       })

@@ -1,6 +1,9 @@
 import { z } from 'zod'
 
-import type { BaseNode } from '../types/flowDefinition'
+import type { BaseConnection, BaseNode, BpmnMessageDefinition } from '../types/flowDefinition'
+import { isBpmnNode, isTbbpmNode } from '../types/typeGuards'
+
+import type { ProcessModelType } from '@/shared/contracts'
 
 export const DESIGNER_CLIPBOARD_KEY = 'compileflow:designer-clipboard'
 export const DESIGNER_CLIPBOARD_TTL_MS = 60 * 60 * 1000
@@ -33,15 +36,28 @@ const nodeSchema = z.object({
 })
 
 const clipboardDataSchema = z.object({
-  nodes: z.array(nodeSchema),
+  modelType: z.enum(['TBBPM', 'BPMN']),
+  nodes: z.array(nodeSchema).min(1),
+  connections: z.array(
+    z.object({
+      id: z.string().min(1),
+      sourceId: z.string().min(1),
+      targetId: z.string().min(1),
+      name: z.string().optional(),
+      condition: z.string().optional(),
+      waypoints: z.array(z.object({ x: z.number().finite(), y: z.number().finite() })).optional(),
+    })
+  ),
+  messages: z.array(z.object({ id: z.string().min(1), name: z.string() })),
   timestamp: z.number().finite().nonnegative(),
-  source: z.string().min(1),
 })
 
 export interface ClipboardData {
+  modelType: ProcessModelType
   nodes: BaseNode[]
+  connections: BaseConnection[]
+  messages: BpmnMessageDefinition[]
   timestamp: number
-  source: string
 }
 
 export function parseClipboardData(raw: string | null): ClipboardData | null {
@@ -49,7 +65,36 @@ export function parseClipboardData(raw: string | null): ClipboardData | null {
 
   try {
     const result = clipboardDataSchema.safeParse(JSON.parse(raw))
-    return result.success ? result.data : null
+    if (!result.success) return null
+    const data = result.data
+    const nodes = new Map(data.nodes.map((node) => [node.id, node]))
+    const identifiers = [
+      ...nodes.keys(),
+      ...data.connections.map((connection) => connection.id),
+      ...data.messages.map((message) => message.id),
+    ]
+    if (
+      nodes.size !== data.nodes.length ||
+      new Set(identifiers).size !== identifiers.length ||
+      data.nodes.some(
+        (node) => !(data.modelType === 'BPMN' ? isBpmnNode(node) : isTbbpmNode(node))
+      ) ||
+      data.connections.some(
+        (connection) => !nodes.has(connection.sourceId) || !nodes.has(connection.targetId)
+      )
+    ) {
+      return null
+    }
+    for (const node of data.nodes) {
+      const ancestors = new Set([node.id])
+      let parentId = node.parentId
+      while (parentId) {
+        if (ancestors.has(parentId) || !nodes.has(parentId)) return null
+        ancestors.add(parentId)
+        parentId = nodes.get(parentId)?.parentId
+      }
+    }
+    return data
   } catch {
     return null
   }

@@ -72,7 +72,7 @@
 }
 
 :global([data-hub-surface='true']) .title {
-  color: #f8fafc;
+  color: var(--hub-ink, var(--text-primary));
 }
 
 :global([data-hub-surface='true']) .bodyInteractive :global(.ant-list-item:hover) {

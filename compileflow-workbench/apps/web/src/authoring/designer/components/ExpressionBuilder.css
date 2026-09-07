@@ -5,7 +5,7 @@
 }
 
 .expression-builder-textarea {
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-code);
 }
 
 .expression-builder-func-item {
@@ -15,9 +15,9 @@
 .expression-builder-code {
   padding: 2px 6px;
   background-color: var(--color-fill-secondary);
-  border-radius: var(--radius-xs);
+  border-radius: 2px;
   margin-right: var(--spacing-2);
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-code);
   font-size: var(--font-size-xs);
 }
 
@@ -42,8 +42,8 @@
   font-size: 11px;
   padding: 2px 6px;
   background-color: var(--color-fill-secondary);
-  border-radius: var(--radius-xs);
-  font-family: var(--font-family-mono);
+  border-radius: 2px;
+  font-family: var(--font-family-code);
 }
 
 .expression-builder-template-desc {

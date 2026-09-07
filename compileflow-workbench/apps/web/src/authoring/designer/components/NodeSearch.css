@@ -65,8 +65,8 @@
 .node-search-meta-code {
   padding: 2px 6px;
   background-color: var(--color-fill-secondary);
-  border-radius: var(--radius-xs);
-  font-family: var(--font-family-mono);
+  border-radius: 2px;
+  font-family: var(--font-family-code);
   font-size: var(--font-size-xs);
 }
 

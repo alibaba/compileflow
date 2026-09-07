@@ -6,6 +6,7 @@ import {
   SIM_ERROR_CALLED_PROCESS_UNSUPPORTED,
   SIM_ERROR_CONCURRENT_GATEWAY_UNSUPPORTED,
   SIM_ERROR_CONTINUE_NOT_PAUSED,
+  SIM_ERROR_CYCLE,
   SIM_ERROR_DEAD_END,
   SIM_ERROR_EMBEDDED_PROCESS_UNSUPPORTED,
   SIM_ERROR_EXPRESSION_EVALUATION_FAILED,
@@ -13,6 +14,8 @@ import {
   SIM_ERROR_NO_BRANCH_MATCHED,
   SIM_ERROR_NO_START,
   SIM_ERROR_NODE_NOT_FOUND,
+  SIM_ERROR_RUN_SUPERSEDED,
+  SIM_ERROR_STEP_LIMIT,
   SIM_ERROR_STEP_NOT_PAUSED,
   SIM_ERROR_TIMER_UNSUPPORTED,
   SIM_ERROR_TRIGGER_ENTRY_UNSUPPORTED,
@@ -135,6 +138,7 @@ export class ProcessSimulationEngine {
   private state: ExecutionState
   private eventListeners: Array<(event: ExecutionEvent) => void>
   private pausedExecution: PausedExecution | null
+  private generation = 0
 
   constructor(flowDef: UnifiedProcessDefinition) {
     this.flowDef = flowDef
@@ -198,16 +202,17 @@ export class ProcessSimulationEngine {
       logger.warn(
         '[ProcessSimulationEngine] start() ignored: engine is already running or paused. Call reset() first.'
       )
-      return {
-        state: this.state,
-        context: this.context,
-        events: this.events,
-        finalVariables: this.getVariablesSnapshot(),
-        duration: 0,
-        error: 'Engine is already running or paused',
-      }
+      return this.result(
+        this.state,
+        this.context,
+        this.events,
+        'Engine is already running or paused'
+      )
     }
     this.initializeRun(initialVariables)
+    const generation = this.generation
+    const context = this.context
+    const events = this.events
 
     // 找到起点节点
     const startNode = this.flowDef.nodes.find(
@@ -215,41 +220,21 @@ export class ProcessSimulationEngine {
     )
 
     if (!startNode) {
-      this.state = ExecutionState.ERROR
-      return {
-        state: this.state,
-        context: this.context,
-        events: this.events,
-        finalVariables: this.getVariablesSnapshot(),
-        duration: 0,
-        error: SIM_ERROR_NO_START,
-      }
+      this.failRun(new Error(SIM_ERROR_NO_START))
+      return this.result(ExecutionState.ERROR, context, events, SIM_ERROR_NO_START)
     }
 
     try {
-      await this.executeNode(startNode.id)
-
-      this.completeRunIfActive()
-
-      return {
-        state: this.state,
-        context: this.context,
-        events: this.events,
-        finalVariables: this.getVariablesSnapshot(),
-        duration: this.elapsedDuration(),
-      }
+      await this.executeNode(startNode.id, generation)
+      this.requireGeneration(generation)
+      return this.result(this.state, context, events)
     } catch (error) {
+      if (generation !== this.generation) {
+        return this.result(ExecutionState.ERROR, context, events, SIM_ERROR_RUN_SUPERSEDED)
+      }
       const failure = toError(error)
       this.failRun(failure)
-
-      return {
-        state: this.state,
-        context: this.context,
-        events: this.events,
-        finalVariables: this.getVariablesSnapshot(),
-        duration: Date.now() - this.context.startTime,
-        error: failure.message,
-      }
+      return this.result(ExecutionState.ERROR, context, events, failure.message)
     }
   }
 
@@ -266,18 +251,19 @@ export class ProcessSimulationEngine {
   }
 
   getContext(): ExecutionContext {
-    return { ...this.context }
+    return structuredClone(this.context)
   }
 
   getEvents(): ExecutionEvent[] {
-    return [...this.events]
+    return structuredClone(this.events)
   }
 
   getBreakpoints(): Breakpoint[] {
-    return Array.from(this.breakpoints.values())
+    return structuredClone(Array.from(this.breakpoints.values()))
   }
 
   reset() {
+    this.generation++
     this.state = ExecutionState.READY
     this.context = {
       variables: new Map(),
@@ -307,16 +293,22 @@ export class ProcessSimulationEngine {
   }
 
   private emitEvent(event: ExecutionEvent) {
-    this.events.push(event)
-    this.eventListeners.forEach((listener) => listener(event))
+    const generation = this.generation
+    this.events.push(structuredClone(event))
+    for (const listener of [...this.eventListeners]) {
+      if (generation !== this.generation) break
+      listener(structuredClone(event))
+    }
   }
 
   private async executeNode(
     nodeId: string,
+    generation: number,
     visited = new Set<string>(),
     pauseBeforeExecution = false
   ): Promise<void> {
-    if (this.shouldStopTraversal(nodeId, visited)) return
+    this.requireGeneration(generation)
+    this.visitNode(nodeId, visited)
 
     const node = this.nodeMap.get(nodeId)
     if (!node) {
@@ -327,37 +319,43 @@ export class ProcessSimulationEngine {
       this.state = ExecutionState.PAUSED
     }
     this.enterNode(nodeId)
+    this.requireGeneration(generation)
 
     if (pauseBeforeExecution) {
       this.pausedExecution = { nodeId, visited: new Set(visited) }
       return
     }
-    if (await this.checkBreakpoint(nodeId)) {
+    if (this.checkBreakpoint(nodeId)) {
       this.pauseAtBreakpoint(nodeId, visited)
       return
     }
 
     await this.executeNodeLogic(node)
+    this.requireGeneration(generation)
     this.exitNode(nodeId)
+    this.requireGeneration(generation)
 
-    if (this.isEndNode(node)) return
+    if (this.isEndNode(node)) {
+      this.completeRun()
+      return
+    }
 
-    await this.executeOutgoingConnections(node, this.connectionMap.get(nodeId) || [], visited)
+    await this.executeOutgoingConnections(
+      node,
+      this.connectionMap.get(nodeId) || [],
+      visited,
+      generation
+    )
   }
 
-  private shouldStopTraversal(nodeId: string, visited: Set<string>): boolean {
+  private visitNode(nodeId: string, visited: Set<string>): void {
     if (visited.has(nodeId)) {
-      logger.warn(`[ProcessSimulationEngine] Cycle detected at node ${nodeId}; stopping traversal.`)
-      return true
+      throw new Error(`${SIM_ERROR_CYCLE}:${nodeId}`)
     }
     if (visited.size >= ProcessSimulationEngine.MAX_VISITED) {
-      logger.warn(
-        `[ProcessSimulationEngine] MAX_VISITED (${ProcessSimulationEngine.MAX_VISITED}) exceeded; stopping traversal.`
-      )
-      return true
+      throw new Error(`${SIM_ERROR_STEP_LIMIT}:${nodeId}`)
     }
     visited.add(nodeId)
-    return false
   }
 
   private enterNode(nodeId: string): void {
@@ -386,70 +384,105 @@ export class ProcessSimulationEngine {
     node: BaseNode,
     outgoingConnections: BaseConnection[],
     visited: Set<string>,
+    generation: number,
     pauseAtTarget = false
   ): Promise<void> {
     if (node.type === 'exclusive' || node.type === 'bpmn:ExclusiveGateway') {
-      await this.executeExclusiveBranch(node.id, outgoingConnections, visited, pauseAtTarget)
+      await this.executeExclusiveBranch(
+        node.id,
+        outgoingConnections,
+        visited,
+        generation,
+        pauseAtTarget
+      )
       return
     }
     if (node.type === 'parallel' || node.type === 'bpmn:ParallelGateway') {
-      await this.executeParallelBranches(node.id, outgoingConnections, visited, pauseAtTarget)
+      await this.executeParallelBranches(
+        node.id,
+        outgoingConnections,
+        visited,
+        generation,
+        pauseAtTarget
+      )
       return
     }
     if (node.type === 'inclusive' || node.type === 'bpmn:InclusiveGateway') {
-      await this.executeConcurrentGateway(node.id, outgoingConnections, visited, pauseAtTarget)
+      await this.executeConcurrentGateway(
+        node.id,
+        outgoingConnections,
+        visited,
+        generation,
+        pauseAtTarget
+      )
       return
     }
-    await this.executeFirstOutgoingConnection(node.id, outgoingConnections, visited, pauseAtTarget)
+    await this.executeFirstOutgoingConnection(
+      node.id,
+      outgoingConnections,
+      visited,
+      generation,
+      pauseAtTarget
+    )
   }
 
   private async executeExclusiveBranch(
     nodeId: string,
     connections: BaseConnection[],
     visited: Set<string>,
+    generation: number,
     pauseAtTarget: boolean
   ): Promise<void> {
-    const selectedConnection = await this.evaluateExclusive(connections)
+    const selectedConnection = this.evaluateExclusive(connections)
     if (!selectedConnection) {
       throw new Error(`${SIM_ERROR_NO_BRANCH_MATCHED}:${nodeId}`)
     }
-    await this.traverseEdge(selectedConnection)
-    await this.executeNode(selectedConnection.targetId, visited, pauseAtTarget)
+    this.traverseEdge(selectedConnection)
+    await this.executeNode(selectedConnection.targetId, generation, visited, pauseAtTarget)
   }
 
   private async executeParallelBranches(
     nodeId: string,
     connections: BaseConnection[],
     visited: Set<string>,
+    generation: number,
     pauseAtTarget: boolean
   ): Promise<void> {
-    await this.executeConcurrentGateway(nodeId, connections, visited, pauseAtTarget)
+    await this.executeConcurrentGateway(nodeId, connections, visited, generation, pauseAtTarget)
   }
 
   private async executeConcurrentGateway(
     nodeId: string,
     connections: BaseConnection[],
     visited: Set<string>,
+    generation: number,
     pauseAtTarget: boolean
   ): Promise<void> {
     if (connections.length > 1) {
       throw new Error(SIM_ERROR_CONCURRENT_GATEWAY_UNSUPPORTED)
     }
-    await this.executeFirstOutgoingConnection(nodeId, connections, visited, pauseAtTarget)
+    await this.executeFirstOutgoingConnection(
+      nodeId,
+      connections,
+      visited,
+      generation,
+      pauseAtTarget
+    )
   }
 
   private async executeFirstOutgoingConnection(
     nodeId: string,
     connections: BaseConnection[],
     visited: Set<string>,
+    generation: number,
     pauseAtTarget: boolean
   ): Promise<void> {
     const connection = connections[0]
     if (!connection) {
       throw new Error(`${SIM_ERROR_DEAD_END}:${nodeId}`)
     }
-    await this.traverseEdge(connection)
-    await this.executeNode(connection.targetId, visited, pauseAtTarget)
+    this.traverseEdge(connection)
+    await this.executeNode(connection.targetId, generation, visited, pauseAtTarget)
   }
 
   private async executeNodeLogic(node: BaseNode): Promise<void> {
@@ -482,14 +515,14 @@ export class ProcessSimulationEngine {
 
   private async executeScript(node: BaseNode): Promise<void> {
     const action = node.properties?.action as ActionDefinition | undefined
-    const rawScript = action?.source || node.properties?.script
-    if (!rawScript) return
-    const script = String(rawScript)
+    const rawScript = action?.source ?? node.properties?.script
 
     try {
-      // 简化：只支持变量赋值
-      // 例如：result = amount * 0.1
-      const assignmentMatch = script.match(/(\w+)\s*=\s*(.+)/)
+      // This local calculator previews one assignment over process variables only.
+      // Providers, mappings and Effect execution require the real engine.
+      requireAssignmentPreview(action)
+      if (typeof rawScript !== 'string') throw new Error('Script source is required')
+      const assignmentMatch = rawScript.trim().match(/^([A-Za-z_$][\w$]*)\s*=\s*(.+?)\s*;?$/s)
       if (!assignmentMatch) {
         throw new Error('Only one variable assignment can be simulated')
       }
@@ -503,7 +536,7 @@ export class ProcessSimulationEngine {
     }
   }
 
-  private async evaluateExclusive(connections: BaseConnection[]): Promise<BaseConnection | null> {
+  private evaluateExclusive(connections: BaseConnection[]): BaseConnection | null {
     for (const connection of connections) {
       if (!connection.condition) continue
       try {
@@ -526,7 +559,7 @@ export class ProcessSimulationEngine {
     return evaluateSafeJavaCondition(condition, this.context.variables)
   }
 
-  private async traverseEdge(connection: BaseConnection): Promise<void> {
+  private traverseEdge(connection: BaseConnection): void {
     this.emitEvent({
       type: 'edge-traverse',
       timestamp: Date.now(),
@@ -534,7 +567,7 @@ export class ProcessSimulationEngine {
     })
   }
 
-  private async checkBreakpoint(nodeId: string): Promise<boolean> {
+  private checkBreakpoint(nodeId: string): boolean {
     for (const bp of this.breakpoints.values()) {
       if (bp.nodeId === nodeId && bp.enabled) {
         // 条件断点：评估条件
@@ -543,8 +576,7 @@ export class ProcessSimulationEngine {
             const conditionMet = this.evaluateCondition(bp.condition)
             if (!conditionMet) continue
           } catch (_error) {
-            logger.warn(`Breakpoint condition evaluation failed: ${bp.condition}`)
-            continue
+            throw new Error(`${SIM_ERROR_EXPRESSION_EVALUATION_FAILED}:${nodeId}`)
           }
         }
 
@@ -567,20 +599,9 @@ export class ProcessSimulationEngine {
     })
   }
 
-  private getVariablesSnapshot(): Record<string, unknown> {
-    const snapshot: Record<string, unknown> = {}
-    this.context.variables.forEach((value, key) => {
-      snapshot[key] = value
-    })
-    return snapshot
-  }
-
   private initializeRun(initialVariables: Record<string, unknown>): void {
-    const variables =
-      this.state === ExecutionState.READY
-        ? new Map(this.context.variables)
-        : new Map<string, unknown>()
-    Object.entries(initialVariables).forEach(([key, value]) => variables.set(key, value))
+    const variables = new Map(Object.entries(structuredClone(initialVariables)))
+    this.generation++
     this.state = ExecutionState.RUNNING
     this.context = {
       variables,
@@ -597,6 +618,7 @@ export class ProcessSimulationEngine {
     invalidStateError: string
   ): Promise<void> {
     const paused = this.pausedExecution
+    const generation = this.generation
     if (this.state !== ExecutionState.PAUSED || !paused) {
       throw new Error(invalidStateError)
     }
@@ -610,17 +632,23 @@ export class ProcessSimulationEngine {
     this.pausedExecution = null
     try {
       await this.executeNodeLogic(node)
+      this.requireGeneration(generation)
       this.exitNode(node.id)
+      this.requireGeneration(generation)
       if (!this.isEndNode(node)) {
         await this.executeOutgoingConnections(
           node,
           this.connectionMap.get(node.id) || [],
           paused.visited,
+          generation,
           pauseAtNextNode
         )
+      } else {
+        this.completeRun()
       }
-      this.completeRunIfActive()
+      this.requireGeneration(generation)
     } catch (error) {
+      this.requireGeneration(generation)
       const failure = toError(error)
       this.failRun(failure)
       throw error
@@ -642,12 +670,6 @@ export class ProcessSimulationEngine {
     this.context.endTime = Date.now()
   }
 
-  private completeRunIfActive(): void {
-    if (this.state === ExecutionState.RUNNING) {
-      this.completeRun()
-    }
-  }
-
   private failRun(error: Error): void {
     this.state = ExecutionState.ERROR
     this.context.endTime = Date.now()
@@ -659,8 +681,39 @@ export class ProcessSimulationEngine {
     })
   }
 
-  private elapsedDuration(): number {
-    return (this.context.endTime ?? Date.now()) - this.context.startTime
+  private requireGeneration(generation: number): void {
+    if (generation !== this.generation) throw new Error(SIM_ERROR_RUN_SUPERSEDED)
+  }
+
+  private result(
+    state: ExecutionState,
+    context: ExecutionContext,
+    events: ExecutionEvent[],
+    error?: string
+  ): SimulationResult {
+    return {
+      state,
+      context: structuredClone(context),
+      events: structuredClone(events),
+      finalVariables: Object.fromEntries(structuredClone(context.variables)),
+      duration: context.startTime === 0 ? 0 : (context.endTime ?? Date.now()) - context.startTime,
+      ...(error === undefined ? {} : { error }),
+    }
+  }
+}
+
+function requireAssignmentPreview(action: ActionDefinition | undefined): void {
+  if (
+    action &&
+    (action.actionType !== 'script' ||
+      !['java', 'qlexpress'].includes(action.language ?? '') ||
+      action.mappings?.length ||
+      action.execution === 'effect')
+  ) {
+    throw new Error('Script action semantics are outside the assignment preview subset')
+  }
+  if (Object.values(action?.invocationPolicy ?? {}).some((value) => value !== undefined)) {
+    throw new Error('Invocation policy requires the real engine')
   }
 }
 

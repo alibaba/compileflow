@@ -15,7 +15,7 @@ package com.alibaba.compileflow.deploy.control.projection;
 
 import com.alibaba.compileflow.deploy.api.error.DeploymentErrorCode;
 import com.alibaba.compileflow.deploy.api.error.DeploymentException;
-import com.alibaba.compileflow.deploy.control.repository.ProcessVersionRecord;
+import com.alibaba.compileflow.deploy.spi.store.ProcessVersionRecord;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,25 +38,25 @@ public final class ArtifactProjectionCoordinator {
         this.repairProjection = Objects.requireNonNull(repairProjection, "repairProjection");
     }
 
-    public static ArtifactProjectionCoordinator database() {
+    public static ArtifactProjectionCoordinator source() {
         ArtifactProjection notRequired =
                 version -> {
-            LOGGER.debug("Artifact projection skipped (DATABASE mode): ns={} code={} version={}", version.getNamespace(),
+            LOGGER.debug("Artifact projection skipped (SOURCE mode): ns={} code={} version={}", version.getNamespace(),
                     version.getCode(), version.getVersion());
             return ArtifactProjectionStatus.NOT_REQUIRED;
         };
         return new ArtifactProjectionCoordinator(false, notRequired, notRequired);
     }
 
-    public static ArtifactProjectionCoordinator channel(ProcessArtifactProjector projector) {
+    public static ArtifactProjectionCoordinator projectionStore(ProcessArtifactProjector projector) {
         ProcessArtifactProjector artifactProjector =
-                Objects.requireNonNull(projector, "ProcessArtifactProjector is required for CHANNEL mode");
+                Objects.requireNonNull(projector, "ProcessArtifactProjector is required for PROJECTION_STORE mode");
         ArtifactProjection inspectProjection =
-                version -> artifactProjector.inspect(version.getRef(), version.getModelType(),
-                        version.getProcessDefinition(), version.getArtifactDigest(), version.getCallBindings());
+                version -> artifactProjector.inspect(version.getRef(), version.getProcessDefinition(),
+                        version.getArtifactDigest(), version.getCallBindings());
         ArtifactProjection repairProjection =
-                version -> artifactProjector.repair(version.getRef(), version.getModelType(),
-                        version.getProcessDefinition(), version.getArtifactDigest(), version.getCallBindings());
+                version -> artifactProjector.repair(version.getRef(), version.getProcessDefinition(),
+                        version.getArtifactDigest(), version.getCallBindings());
         return new ArtifactProjectionCoordinator(true, inspectProjection, repairProjection);
     }
 

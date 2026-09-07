@@ -22,6 +22,9 @@ TEMURIN_IMAGE_PATTERN = re.compile(
     r"eclipse-temurin:(?P<runtime>\d+\.\d+\.\d+(?:\.\d+)?_\d+)"
     r"-jdk-noble@sha256:[0-9a-f]{64}"
 )
+NODE_IMAGE_PATTERN = re.compile(
+    r"node:(?P<version>\d+\.\d+\.\d+)-alpine\d+\.\d+@sha256:[0-9a-f]{64}"
+)
 POSTGRES_MATRIX_FILES = (
     ".github/workflows/durable-ci.yml",
     ".github/workflows/durable-visibility-feasibility.yml",
@@ -32,10 +35,19 @@ POSTGRES_18_FILES = (
     ".github/workflows/workbench-ci.yml",
     "compileflow-workbench/docker-compose.yml",
     "compileflow-workbench/docker-compose.all-in-one.yml",
-    "examples/spring-boot-durable-postgres/src/test/java/com/alibaba/compileflow/examples/durable/DurableSampleApplicationTest.java",
+    "examples/spring-boot-durable-postgresql/src/test/java/com/alibaba/compileflow/examples/durable/DurableSampleApplicationTest.java",
+)
+MYSQL_FILES = (
+    ".github/workflows/workbench-server-ci.yml",
+    ".github/workflows/durable-ci.yml",
+    "compileflow-durable/compileflow-durable-mysql/src/test/java/com/alibaba/compileflow/durable/mysql/MySqlDurableStoreContractTest.java",
 )
 JAVA_DOCKERFILES = (
     "compileflow-workbench/docker/Dockerfile.workbench-server",
+    "compileflow-workbench/docker/Dockerfile.all-in-one",
+)
+NODE_DOCKERFILES = (
+    "compileflow-workbench/docker/Dockerfile.web",
     "compileflow-workbench/docker/Dockerfile.all-in-one",
 )
 
@@ -58,8 +70,8 @@ def load_baselines() -> dict[str, Any]:
         document = json.loads(BASELINES.read_text(encoding="utf-8"), object_pairs_hook=strict_object)
     except (OSError, json.JSONDecodeError) as error:
         raise BaselineError(f"cannot read {BASELINES}: {error}") from error
-    if not isinstance(document, dict) or document.get("schemaVersion") != 3:
-        raise BaselineError("release baseline schemaVersion must be 3")
+    if not isinstance(document, dict) or document.get("schemaVersion") != 5:
+        raise BaselineError("release baseline schemaVersion must be 5")
     return document
 
 
@@ -75,6 +87,13 @@ def temurin_runtime(image: str) -> str:
     if match is None:
         raise BaselineError("workbenchJava.image must be an immutable Eclipse Temurin JDK Noble image")
     return match.group("runtime").replace("_", "+")
+
+
+def node_image_version(image: str) -> str:
+    match = NODE_IMAGE_PATTERN.fullmatch(image)
+    if match is None:
+        raise BaselineError("workbenchNode.image must be an immutable official Node Alpine image")
+    return match.group("version")
 
 
 def read_repository_file(relative: str) -> str:
@@ -112,6 +131,19 @@ def validate_offline(document: dict[str, Any]) -> list[str]:
         if images["18"] not in read_repository_file(relative):
             raise BaselineError(f"{relative} does not consume the recommended PostgreSQL image exactly")
 
+    mysql = document.get("mysql")
+    if not isinstance(mysql, dict) or set(mysql) != {"version", "image"}:
+        raise BaselineError("mysql must contain exactly version and image")
+    mysql_version = require_text(mysql, "version")
+    if re.fullmatch(r"8[.]4[.]\d+", mysql_version) is None:
+        raise BaselineError("mysql.version must be an exact MySQL 8.4 LTS release")
+    mysql_image = require_text(mysql, "image")
+    if re.fullmatch(rf"mysql:{re.escape(mysql_version)}@sha256:[0-9a-f]{{64}}", mysql_image) is None:
+        raise BaselineError("mysql.image must be an immutable official image matching mysql.version")
+    for relative in MYSQL_FILES:
+        if mysql_image not in read_repository_file(relative):
+            raise BaselineError(f"{relative} does not consume the MySQL baseline exactly")
+
     java = document.get("workbenchJava")
     expected_java_fields = {"upstreamChannel", "image"}
     if not isinstance(java, dict) or set(java) != expected_java_fields:
@@ -134,9 +166,30 @@ def validate_offline(document: dict[str, Any]) -> list[str]:
     for relative in JAVA_DOCKERFILES:
         if image not in read_repository_file(relative):
             raise BaselineError(f"{relative} does not consume the Workbench Java baseline exactly")
+
+    node = document.get("workbenchNode")
+    expected_node_fields = {"version", "image"}
+    if not isinstance(node, dict) or set(node) != expected_node_fields:
+        raise BaselineError("workbenchNode fields do not match the release-baseline schema")
+    node_version = require_text(node, "version")
+    if re.fullmatch(r"24\.\d+\.\d+", node_version) is None:
+        raise BaselineError("workbenchNode.version must be an exact Node 24 LTS release")
+    node_image = require_text(node, "image")
+    if node_image_version(node_image) != node_version:
+        raise BaselineError("Workbench Node image version must equal workbenchNode.version")
+    if read_repository_file("compileflow-workbench/.node-version").strip() != node_version:
+        raise BaselineError("compileflow-workbench/.node-version does not consume the Node baseline exactly")
+    workspace = read_repository_file("compileflow-workbench/pnpm-workspace.yaml")
+    if re.search(rf"(?m)^nodeVersion:\s*{re.escape(node_version)}\s*$", workspace) is None:
+        raise BaselineError("compileflow-workbench/pnpm-workspace.yaml does not consume the Node baseline exactly")
+    for relative in NODE_DOCKERFILES:
+        if node_image not in read_repository_file(relative):
+            raise BaselineError(f"{relative} does not consume the Workbench Node baseline exactly")
     notes = [
         "PostgreSQL " + "/".join(versions[major] for major in ("16", "17", "18")),
+        f"MySQL {mysql_version}",
         f"Workbench Java container={container_runtime}, upstream={upstream_channel}",
+        f"Workbench Node={node_version}",
     ]
     return notes
 
@@ -180,6 +233,12 @@ def validate_online(document: dict[str, Any]) -> list[str]:
         if result is None or result.get("digest") != f"sha256:{expected_digest}":
             errors.append(f"PostgreSQL image manifest changed or is unavailable: {tag}")
 
+    mysql = document["mysql"]
+    mysql_tag, expected_mysql_digest = mysql["image"].removeprefix("mysql:").split("@sha256:", 1)
+    mysql_image = docker_tag("mysql", mysql_tag)
+    if mysql_image is None or mysql_image.get("digest") != f"sha256:{expected_mysql_digest}":
+        errors.append(f"MySQL image manifest changed or is unavailable: {mysql_tag}")
+
     java = document["workbenchJava"]
     # Temurin's standalone binaries and Docker Official Images are separate
     # publication channels. Validate the artifact we actually ship against its
@@ -199,9 +258,30 @@ def validate_online(document: dict[str, Any]) -> list[str]:
             "Workbench Java image is not current on the official Eclipse Temurin "
             f"{java['upstreamChannel']} channel"
         )
+
+    node = document["workbenchNode"]
+    node_releases = request_json("https://nodejs.org/dist/index.json")
+    current_node = next(
+        (
+            item.get("version", "").removeprefix("v")
+            for item in node_releases
+            if isinstance(item, dict)
+            and re.fullmatch(r"v24\.\d+\.\d+", str(item.get("version", "")))
+            and bool(item.get("lts"))
+        ),
+        None,
+    )
+    if current_node is None:
+        errors.append("Node.js release index contains no Node 24 LTS release")
+    elif node["version"] != current_node:
+        errors.append(f"Workbench Node baseline is not current Node 24 LTS {current_node}")
+    pinned_node_tag, expected_node_digest = node["image"].removeprefix("node:").split("@sha256:", 1)
+    pinned_node_image = docker_tag("node", pinned_node_tag)
+    if pinned_node_image is None or pinned_node_image.get("digest") != f"sha256:{expected_node_digest}":
+        errors.append(f"Node image manifest changed or is unavailable: {pinned_node_tag}")
     if errors:
         raise BaselineError("; ".join(errors))
-    return ["Official PostgreSQL and Eclipse Temurin container channels are current"]
+    return ["Official PostgreSQL, MySQL, Eclipse Temurin, and Node release channels are current"]
 
 
 def parse_args() -> argparse.Namespace:

@@ -19,7 +19,6 @@ import com.alibaba.compileflow.engine.bpmn.model.BpmnModelConstants;
 import com.alibaba.compileflow.engine.bpmn.model.ReceiveTask;
 import com.alibaba.compileflow.engine.core.xml.parser.ParseContext;
 import com.alibaba.compileflow.engine.core.xml.parser.XmlSource;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * XML parser for BPMN receive tasks.
@@ -34,7 +33,7 @@ public class ReceiveTaskParser extends AbstractBpmnElementParser<ReceiveTask> {
         receiveTask.setMessageRef(xmlSource.getString(BpmnModelConstants.BPMN_ATTRIBUTE_MESSAGE_REF));
         String implementation = xmlSource.getString(BpmnModelConstants.BPMN_ATTRIBUTE_IMPLEMENTATION);
         String operationRef = xmlSource.getString(BpmnModelConstants.BPMN_ATTRIBUTE_OPERATION_REF);
-        if (StringUtils.isNotBlank(implementation) || StringUtils.isNotBlank(operationRef)) {
+        if (implementation != null || operationRef != null) {
             throw new CompileFlowException(ErrorCode.CF_VALIDATION_002,
                     "BPMN receiveTask implementation and operationRef are not"
                     + " supported; CompileFlow trigger entries route by messageRef", null);

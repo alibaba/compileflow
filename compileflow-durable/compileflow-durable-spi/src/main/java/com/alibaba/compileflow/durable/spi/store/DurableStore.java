@@ -15,6 +15,7 @@ package com.alibaba.compileflow.durable.spi.store;
 
 import com.alibaba.compileflow.durable.api.effect.EffectRecoveryPlan;
 import com.alibaba.compileflow.durable.api.command.EffectResolutionDecision;
+import com.alibaba.compileflow.durable.api.command.OutboxResolutionDecision;
 import com.alibaba.compileflow.durable.api.validation.DurableIdentifiers;
 import com.alibaba.compileflow.durable.api.validation.DurableNumbers;
 import com.alibaba.compileflow.durable.api.model.OutboxEventStatus;
@@ -34,6 +35,7 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -49,10 +51,20 @@ import java.util.stream.Collectors;
  * @author yusu
  */
 public interface DurableStore
-        extends DurableCatalogStore, DurableProcessStore, DurableOperatorStore, DurableTurnStore, DurableEffectStore,
+        extends DurableCatalogStore, DurableOperatorStore, DurableTurnStore, DurableEffectStore,
         DurableOutboxDeliveryStore, DurableLeaseStore, DurableMaintenanceStore {
     int MAX_DEFINITION_BYTES = 4 * 1024 * 1024;
     int MAX_ENVELOPE_BYTES = 4 * 1024 * 1024;
+
+    ProcessRun start(NewRun command);
+
+    ProcessRun completeWait(WaitCompletion completion);
+
+    ProcessRun requestCancel(CancelCommand command);
+
+    Optional<RunResultProjection> findRunResult(ProcessRunId runId);
+
+    Optional<WaitTarget> findWaitTarget(String tokenDigest);
 
     /**
      * Exact stored Process identity and admission attribution selected for one Run.
@@ -411,14 +423,6 @@ public interface DurableStore
     }
 
     /**
-     * Closed provider vocabulary for the OutboxResolutionDecision contract.
-     */
-    enum OutboxResolutionDecision {
-        RETRY,
-        ABANDON
-    }
-
-    /**
      * Immutable provider value for the RunQuery contract.
      */
     record RunQuery(String namespace, String code, Set<ProcessRunStatus> statuses, Instant beforeCreatedAt,
@@ -602,9 +606,8 @@ public interface DurableStore
                 throw new IllegalArgumentException(
                         "readyRootProcessIds must contain at most " + MAX_READY_PROCESS_IDS + " Processes");
             }
-            readyRootProcessIds.forEach(processId -> Objects.requireNonNull(processId,
-                    "readyRootProcessIds contains null"));
-            leaseDuration = requirePositive(leaseDuration, "leaseDuration", Duration.ofHours(1));
+            leaseDuration = DurableNumbers.requirePositiveDurationMillis(leaseDuration, Duration.ofHours(1),
+                    "leaseDuration");
         }
     }
 
@@ -724,7 +727,8 @@ public interface DurableStore
     }
 
     /**
-     * Immutable provider value for the TimerResult contract.
+     * A committed Timer firing. Absolute dueAt may precede scheduling, but resolution must
+     * follow both scheduling and the requested due time.
      */
     record TimerResult(OccurrenceKey occurrence, long occurrenceSequence, UUID processId, long processInvocationId,
             String frontierId, String elementId, Envelope result, Instant scheduledAt, Instant dueAt,
@@ -740,8 +744,8 @@ public interface DurableStore
             scheduledAt = Objects.requireNonNull(scheduledAt, "scheduledAt");
             dueAt = Objects.requireNonNull(dueAt, "dueAt");
             resolvedAt = Objects.requireNonNull(resolvedAt, "resolvedAt");
-            if (dueAt.isBefore(scheduledAt)) {
-                throw new IllegalArgumentException("Timer dueAt must not be before scheduledAt");
+            if (resolvedAt.isBefore(scheduledAt)) {
+                throw new IllegalArgumentException("Timer resolvedAt must not be before scheduledAt");
             }
             if (resolvedAt.isBefore(dueAt)) {
                 throw new IllegalArgumentException("Timer resolvedAt must not be before dueAt");
@@ -807,7 +811,8 @@ public interface DurableStore
     }
 
     /**
-     * Immutable provider value for the TimerCommit contract.
+     * A relative delay or an absolute due time. An absolute time in the past is immediately
+     * eligible after commit; providers must preserve it rather than clamp it to authority time.
      */
     record TimerCommit(OccurrenceKey occurrence, long occurrenceSequence, UUID processId, long processInvocationId,
             String frontierId, String elementId, Duration delay, Instant dueAt) implements OccurrenceCommit {
@@ -936,7 +941,8 @@ public interface DurableStore
         public EffectClaimRequest {
             workerId = DurableIdentifiers.requireIdentity(workerId, "workerId", 128);
             operation = Objects.requireNonNull(operation, "operation");
-            leaseDuration = requirePositive(leaseDuration, "leaseDuration", Duration.ofHours(1));
+            leaseDuration = DurableNumbers.requirePositiveDurationMillis(leaseDuration, Duration.ofHours(1),
+                    "leaseDuration");
         }
     }
 
@@ -1003,7 +1009,8 @@ public interface DurableStore
     record OutboxClaimRequest(String workerId, Duration leaseDuration) {
         public OutboxClaimRequest {
             workerId = DurableIdentifiers.requireIdentity(workerId, "workerId", 128);
-            leaseDuration = requirePositive(leaseDuration, "leaseDuration", Duration.ofHours(1));
+            leaseDuration = DurableNumbers.requirePositiveDurationMillis(leaseDuration, Duration.ofHours(1),
+                    "leaseDuration");
         }
     }
 
@@ -1039,16 +1046,6 @@ public interface DurableStore
             attempt = DurableNumbers.requireRange(attempt, 1, Integer.MAX_VALUE, "attempt");
             leaseUntil = Objects.requireNonNull(leaseUntil, "leaseUntil");
         }
-    }
-
-    private static Duration requirePositive(Duration value, String name, Duration maximum) {
-        Duration duration = Objects.requireNonNull(value, name);
-        if (duration.compareTo(Duration.ofMillis(1)) < 0 || duration.compareTo(maximum) > 0
-                || duration.toNanosPart() % 1_000_000 != 0) {
-            throw new IllegalArgumentException(
-                    name + " must be a positive whole-millisecond duration at most " + maximum);
-        }
-        return duration;
     }
 
     private static long positiveOccurrence(long value) {

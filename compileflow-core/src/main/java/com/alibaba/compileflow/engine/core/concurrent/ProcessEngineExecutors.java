@@ -60,6 +60,9 @@ public final class ProcessEngineExecutors implements AutoCloseable {
     private final ExecutorService actionExecutor;
     private final ExecutorService parallelExecutor;
     private final ExecutorService eventExecutor;
+    private final ProcessExecutorMetrics runtimeLoadMetrics;
+    private final ProcessExecutorMetrics actionMetrics;
+    private final ProcessExecutorMetrics eventMetrics;
     private final AtomicBoolean closed = new AtomicBoolean();
     private final ThreadLocal<Boolean> parallelExecution = new ThreadLocal<>();
 
@@ -96,6 +99,9 @@ public final class ProcessEngineExecutors implements AutoCloseable {
         this.actionExecutor = createdAction;
         this.parallelExecutor = createdParallel;
         this.eventExecutor = createdEvent;
+        this.runtimeLoadMetrics = new ProcessExecutorMetrics((ThreadPoolExecutor) createdRuntimeLoad);
+        this.actionMetrics = new ProcessExecutorMetrics((ThreadPoolExecutor) createdAction);
+        this.eventMetrics = new ProcessExecutorMetrics((ThreadPoolExecutor) createdEvent);
 
         LOGGER.info("Engine executors initialized: engineId={}, runtime-load[maxConcurrency={}, maxPending={}], "
                 + "preflight[maxConcurrency={}, maxPending={}], "
@@ -222,12 +228,20 @@ public final class ProcessEngineExecutors implements AutoCloseable {
         return runtimeLoadExecutor;
     }
 
+    public ProcessExecutorMetrics runtimeLoadMetrics() {
+        return runtimeLoadMetrics;
+    }
+
     public ExecutorService preflight() {
         return preflightExecutor;
     }
 
     public ExecutorService action() {
         return actionExecutor;
+    }
+
+    public ProcessExecutorMetrics actionMetrics() {
+        return actionMetrics;
     }
 
     public Duration actionTimeoutCancellationGracePeriod() {
@@ -248,6 +262,10 @@ public final class ProcessEngineExecutors implements AutoCloseable {
 
     public ExecutorService event() {
         return eventExecutor;
+    }
+
+    public ProcessExecutorMetrics eventMetrics() {
+        return eventMetrics;
     }
 
     public String engineId() {
@@ -311,6 +329,11 @@ public final class ProcessEngineExecutors implements AutoCloseable {
             }
         } catch (InterruptedException interrupted) {
             forceShutdown(executors);
+            try {
+                awaitAll(executors, forceBudget);
+            } catch (InterruptedException repeatedInterruption) {
+                interrupted.addSuppressed(repeatedInterruption);
+            }
             Thread.currentThread().interrupt();
             LOGGER.warn("Interrupted while shutting down engine executors; forced shutdown requested: engineId={}",
                     engineId);

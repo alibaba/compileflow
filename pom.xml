@@ -15,6 +15,7 @@
 
     <!-- Modules -->
     <modules>
+        <module>compileflow-bom</module>
         <module>compileflow-api</module>
         <module>compileflow-core</module>
         <module>compileflow-tbbpm</module>
@@ -23,6 +24,8 @@
         <module>compileflow-durable</module>
         <module>compileflow-spring-boot-autoconfigure</module>
         <module>compileflow-spring-boot-starter</module>
+        <module>compileflow-spring-boot-starter-tbbpm</module>
+        <module>compileflow-spring-boot-starter-bpmn</module>
         <module>compileflow-workbench-server</module>
         <module>compileflow-integration-tests</module>
     </modules>
@@ -228,7 +231,12 @@
             </dependency>
             <dependency>
                 <groupId>com.alibaba.compileflow</groupId>
-                <artifactId>compileflow-durable-postgres</artifactId>
+                <artifactId>compileflow-durable-postgresql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.compileflow</groupId>
+                <artifactId>compileflow-durable-mysql</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -238,12 +246,27 @@
             </dependency>
             <dependency>
                 <groupId>com.alibaba.compileflow</groupId>
+                <artifactId>compileflow-durable-spring-boot-autoconfigure-postgresql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.compileflow</groupId>
+                <artifactId>compileflow-durable-spring-boot-autoconfigure-mysql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.compileflow</groupId>
                 <artifactId>compileflow-durable-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba.compileflow</groupId>
-                <artifactId>compileflow-durable-spring-boot-starter-postgres</artifactId>
+                <artifactId>compileflow-durable-spring-boot-starter-postgresql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.compileflow</groupId>
+                <artifactId>compileflow-durable-spring-boot-starter-mysql</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -260,26 +283,72 @@
             </dependency>
             <dependency>
                 <groupId>com.alibaba.compileflow</groupId>
-                <artifactId>compileflow-deploy-api</artifactId>
+                <artifactId>compileflow-deploy-protocol</artifactId>
                 <version>${project.version}</version>
-                <type>test-jar</type>
-                <classifier>tests</classifier>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.compileflow</groupId>
+                <artifactId>compileflow-deploy-spi</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.compileflow</groupId>
+                <artifactId>compileflow-deploy-testkit</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba.compileflow</groupId>
                 <artifactId>compileflow-deploy-control-plane</artifactId>
                 <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba.compileflow</groupId>
-                <artifactId>compileflow-deploy-control-plane</artifactId>
-                <version>${project.version}</version>
-                <type>test-jar</type>
-                <classifier>tests</classifier>
             </dependency>
             <dependency>
                 <groupId>com.alibaba.compileflow</groupId>
                 <artifactId>compileflow-deploy-runtime</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.compileflow</groupId>
+                <artifactId>compileflow-deploy-jdbc</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.compileflow</groupId>
+                <artifactId>compileflow-deploy-postgresql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.compileflow</groupId>
+                <artifactId>compileflow-deploy-mysql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.compileflow</groupId>
+                <artifactId>compileflow-deploy-spring-boot-autoconfigure</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.compileflow</groupId>
+                <artifactId>compileflow-deploy-spring-boot-autoconfigure-postgresql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.compileflow</groupId>
+                <artifactId>compileflow-deploy-spring-boot-autoconfigure-mysql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.compileflow</groupId>
+                <artifactId>compileflow-deploy-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.compileflow</groupId>
+                <artifactId>compileflow-deploy-spring-boot-starter-postgresql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.compileflow</groupId>
+                <artifactId>compileflow-deploy-spring-boot-starter-mysql</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -290,6 +359,16 @@
             <dependency>
                 <groupId>com.alibaba.compileflow</groupId>
                 <artifactId>compileflow-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.compileflow</groupId>
+                <artifactId>compileflow-spring-boot-starter-tbbpm</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.compileflow</groupId>
+                <artifactId>compileflow-spring-boot-starter-bpmn</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -541,6 +620,7 @@
                         <propertyExpansion>checkstyle.header.file=${checkstyle.header.file}</propertyExpansion>
                         <consoleOutput>true</consoleOutput>
                         <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                        <excludeGeneratedSources>true</excludeGeneratedSources>
                         <failsOnError>true</failsOnError>
                         <failOnViolation>true</failOnViolation>
                         <violationSeverity>error</violationSeverity>
@@ -858,7 +938,8 @@
             <modules>
                 <module>examples/spring-boot-basic</module>
                 <module>examples/spring-boot-order-fulfillment</module>
-                <module>examples/spring-boot-durable-postgres</module>
+                <module>examples/spring-boot-deployment</module>
+                <module>examples/spring-boot-durable-postgresql</module>
             </modules>
         </profile>
 

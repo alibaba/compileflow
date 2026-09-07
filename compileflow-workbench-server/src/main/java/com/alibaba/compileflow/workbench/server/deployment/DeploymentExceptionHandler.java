@@ -41,7 +41,7 @@ public final class DeploymentExceptionHandler {
     private static String publicMessage(DeploymentErrorCode code) {
         return switch (code) {
             case INVALID_ARGUMENT -> "Invalid deployment request";
-            case VERSION_CONFLICT -> "The process version already exists with different content";
+            case VERSION_CONFLICT -> "The process version already exists with a different executable artifact";
             case ARTIFACT_IDENTITY_MISMATCH -> "The resolved artifact does not match the requested process version";
             case ARTIFACT_DIGEST_MISMATCH -> "The artifact content failed integrity verification";
             case DEPENDENCY_NOT_FOUND -> "An exact child-process version referenced by the model was not found";
@@ -49,7 +49,7 @@ public final class DeploymentExceptionHandler {
             case ROLLOUT_NOT_FOUND -> "The rollout was not found";
             case ROLLOUT_CONFLICT -> "The rollout cannot be changed in its current state";
             case IDEMPOTENCY_CONFLICT -> "The idempotency key was reused for a different request";
-            case REPOSITORY_ERROR -> "Deployment storage is temporarily unavailable";
+            case STORAGE_ERROR -> "Deployment storage is temporarily unavailable";
             case CONCURRENT_MODIFICATION -> "Deployment state changed; retry with the latest revision";
             case CONVERGENCE_FAILED -> "The deployment could not converge to a ready state";
             case ARTIFACT_PROJECTION_FAILED -> "The deployment artifact could not be published";
@@ -65,7 +65,7 @@ public final class DeploymentExceptionHandler {
             case CONCURRENT_MODIFICATION -> HttpStatus.PRECONDITION_FAILED;
             case VERSION_CONFLICT, ROLLOUT_CONFLICT, IDEMPOTENCY_CONFLICT, ARTIFACT_DIGEST_MISMATCH,
                     ARTIFACT_IDENTITY_MISMATCH -> HttpStatus.CONFLICT;
-            case CONVERGENCE_FAILED, REPOSITORY_ERROR, ARTIFACT_PROJECTION_FAILED -> HttpStatus.SERVICE_UNAVAILABLE;
+            case CONVERGENCE_FAILED, STORAGE_ERROR, ARTIFACT_PROJECTION_FAILED -> HttpStatus.SERVICE_UNAVAILABLE;
             case INTERNAL_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
     }

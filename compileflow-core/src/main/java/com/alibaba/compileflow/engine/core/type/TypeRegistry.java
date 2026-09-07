@@ -13,7 +13,9 @@
  */
 package com.alibaba.compileflow.engine.core.type;
 
+import com.google.common.primitives.Primitives;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -22,54 +24,25 @@ import java.util.Map;
  * @author yusu
  */
 final class TypeRegistry {
-    private static final Map<String, JavaTypeDescriptor> TYPES = createTypes();
+    private static final Map<String, Class<?>> TYPES = createTypes();
 
     private TypeRegistry() {
     }
 
-    static JavaTypeDescriptor getDescriptor(String typeName) {
+    static Class<?> getJavaClass(String typeName) {
         return typeName == null ? null : TYPES.get(typeName);
     }
 
-    static Class<?> getJavaClass(String typeName) {
-        JavaTypeDescriptor descriptor = getDescriptor(typeName);
-        return descriptor == null ? null : descriptor.getJavaClass();
-    }
-
-    private static Map<String, JavaTypeDescriptor> createTypes() {
-        Map<String, JavaTypeDescriptor> types = new LinkedHashMap<>();
-
-        register(types, String.class, null, "String", "java.lang.String");
-        register(types, Object.class, null, "Object", "java.lang.Object");
-
-        register(types, Short.class, short.class, "Short", "java.lang.Short");
-        register(types, Integer.class, int.class, "Integer", "java.lang.Integer");
-        register(types, Long.class, long.class, "Long", "java.lang.Long");
-        register(types, Double.class, double.class, "Double", "java.lang.Double");
-        register(types, Float.class, float.class, "Float", "java.lang.Float");
-        register(types, Byte.class, byte.class, "Byte", "java.lang.Byte");
-        register(types, Character.class, char.class, "Character", "java.lang.Character");
-        register(types, Boolean.class, boolean.class, "Boolean", "java.lang.Boolean");
-
-        register(types, short.class, short.class, "short");
-        register(types, int.class, int.class, "int");
-        register(types, long.class, long.class, "long");
-        register(types, double.class, double.class, "double");
-        register(types, float.class, float.class, "float");
-        register(types, byte.class, byte.class, "byte");
-        register(types, char.class, char.class, "char");
-        register(types, boolean.class, boolean.class, "boolean");
-
-        return Map.copyOf(types);
-    }
-
-    private static void register(Map<String, JavaTypeDescriptor> types, Class<?> javaClass, Class<?> primitiveClass,
-            String... names) {
-        JavaTypeDescriptor descriptor = new JavaTypeDescriptor(javaClass, primitiveClass);
-        for (String name : names) {
-            if (types.putIfAbsent(name, descriptor) != null) {
-                throw new IllegalStateException("Duplicate built-in type name: " + name);
-            }
+    private static Map<String, Class<?>> createTypes() {
+        Map<String, Class<?>> types = new LinkedHashMap<>();
+        for (Class<?> type :
+                List.of(String.class, Object.class, short.class, int.class, long.class, double.class, float.class,
+                        byte.class, char.class, boolean.class)) {
+            Class<?> reference = Primitives.wrap(type);
+            types.put(type.getName(), type);
+            types.put(reference.getSimpleName(), reference);
+            types.put(reference.getName(), reference);
         }
+        return Map.copyOf(types);
     }
 }

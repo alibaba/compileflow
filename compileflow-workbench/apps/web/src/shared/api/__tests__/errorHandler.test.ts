@@ -4,7 +4,7 @@ import {
   AppError,
   ErrorSeverity,
   handleApiError,
-  isTransientFetchError,
+  isTransientApiError,
   NetworkError,
   TimeoutError,
 } from '@/shared/api/errorHandler'
@@ -98,6 +98,13 @@ describe('handleApiError', () => {
       })
     )
 
-    expect(isTransientFetchError(result)).toBe(true)
+    expect(isTransientApiError(result)).toBe(true)
+  })
+
+  it('does not infer retry authority from error prose', () => {
+    expect(isTransientApiError(new Error('HTTP 503 network failure'))).toBe(false)
+    expect(isTransientApiError(handleApiError(axiosError(400)))).toBe(false)
+    expect(isTransientApiError(new NetworkError('disconnected'))).toBe(true)
+    expect(isTransientApiError(new TimeoutError())).toBe(true)
   })
 })

@@ -97,7 +97,7 @@ class ReleaseSingleSourceOfTruthTest {
                 "com.alibaba.compileflow.workbench.server.persistence.repository.DeploymentRepository"))
             .isInstanceOf(ClassNotFoundException.class);
         assertThatThrownBy(() -> Class.forName(
-                "com.alibaba.compileflow.workbench.server.persistence.repository.ProcessVersionRepository"))
+                "com.alibaba.compileflow.workbench.server.persistence.repository.ProcessVersionStore"))
             .isInstanceOf(ClassNotFoundException.class);
     }
 

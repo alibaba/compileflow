@@ -15,6 +15,7 @@ package com.alibaba.compileflow.engine.bpmn.model;
 
 import com.alibaba.compileflow.engine.CompileFlowException;
 import com.alibaba.compileflow.engine.ErrorCode;
+import com.alibaba.compileflow.engine.core.model.AbstractElement;
 import com.alibaba.compileflow.engine.core.model.AbstractFlowElement;
 import com.alibaba.compileflow.engine.core.model.ProcessVariableContainer;
 import com.alibaba.compileflow.engine.core.model.variable.Variable;
@@ -28,10 +29,19 @@ import java.util.stream.Collectors;
  *
  * @author yusu
  */
-public class Process extends CallableElement implements BpmnElementContainer, ProcessVariableContainer {
+public class Process extends AbstractElement implements BpmnElementContainer, ProcessVariableContainer {
     private final List<AbstractFlowElement> flowElements = new ArrayList<>();
     private final List<Variable> vars = new ArrayList<>();
+    private String name;
     private Boolean isExecutable;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 
     public List<AbstractFlowElement> getFlowElements() {
         return flowElements;

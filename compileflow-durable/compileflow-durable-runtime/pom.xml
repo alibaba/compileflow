@@ -15,6 +15,10 @@
     <name>CompileFlow Durable Runtime</name>
     <description>Durable compiler, runtime services, preparation, and workers.</description>
 
+    <properties>
+        <test.jvm.args>-javaagent:${org.mockito:mockito-core:jar}</test.jvm.args>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.alibaba.compileflow</groupId>
@@ -51,6 +55,15 @@
             <artifactId>jackson-databind</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

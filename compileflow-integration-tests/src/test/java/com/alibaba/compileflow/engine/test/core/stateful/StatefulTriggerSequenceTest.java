@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.core.stateful;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessEngine;
@@ -44,7 +45,7 @@ public class StatefulTriggerSequenceTest {
 
     @BeforeEach
     void setUp() {
-        engine = ProcessEngineTestFactory.createTbbpm();
+        engine = ProcessEngineTestFactory.create();
     }
 
     @AfterEach
@@ -67,8 +68,8 @@ public class StatefulTriggerSequenceTest {
             context.put("triggerId", "trigger_" + i);
             context.put("triggerData", "data_" + i);
 
-            ProcessResult<Map<String, Object>> result = engine.trigger(ProcessDefinition.classpath(code,
-                            code.replace(".", "/") + ".bpm"),
+            ProcessResult<Map<String, Object>> result = engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            code, code.replace(".", "/") + ".bpm"),
                     ProcessTrigger.on("waitHighFrequencyEvent", "highFrequencyEventComplete"), context);
 
             if (result.isSuccess()) {
@@ -97,8 +98,9 @@ public class StatefulTriggerSequenceTest {
             Map<String, Object> triggerContext = new HashMap<>(context);
             triggerContext.put("step" + (i + 1) + "_data", "step" + (i + 1) + "_result");
 
-            finalResult = engine.trigger(ProcessDefinition.classpath(code, code.replace(".", "/") + ".bpm"),
-                    ProcessTrigger.on(triggerNodeIds[i], triggerEvents[i]), triggerContext);
+            finalResult = engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM, code,
+                            code.replace(".", "/") + ".bpm"), ProcessTrigger.on(triggerNodeIds[i], triggerEvents[i]),
+                    triggerContext);
 
             assertThat(finalResult.isSuccess()).as("Step %d trigger should succeed", i + 1).isTrue();
         }

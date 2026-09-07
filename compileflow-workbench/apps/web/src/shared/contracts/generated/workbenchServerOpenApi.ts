@@ -411,7 +411,7 @@ export type paths = {
             readonly path?: never;
             readonly cookie?: never;
         };
-        readonly get: operations["getDeployRuntimeDiagnostics"];
+        readonly get: operations["getDeploymentRuntimeDiagnostics"];
         readonly put?: never;
         readonly post?: never;
         readonly delete?: never;
@@ -726,12 +726,12 @@ export type components = {
         };
         readonly AsyncInvocationHealthResponse: {
             readonly checkedAt: string;
+            /** Format: int32 */
+            readonly concurrency: number;
             /** Format: int64 */
             readonly deadLetterCount: number;
             /** Format: int64 */
             readonly delayedQueuedCount: number;
-            /** Format: int32 */
-            readonly dispatchBatchSize: number;
             /** Format: int32 */
             readonly dispatchedCount: number;
             /** Format: int64 */
@@ -941,7 +941,7 @@ export type components = {
             readonly updatedAt: number;
             readonly updatedBy: string;
         };
-        readonly DeployRuntimeAliasResponse: {
+        readonly DeploymentRuntimeAliasResponse: {
             readonly alias: string;
             readonly code: string;
             readonly desiredDeleted: boolean;
@@ -954,7 +954,7 @@ export type components = {
             readonly namespace: string;
             readonly state: string;
         };
-        readonly DeployRuntimeBackedOffVersionResponse: {
+        readonly DeploymentRuntimeBackedOffVersionResponse: {
             readonly blockedUntil: string;
             readonly code: string;
             readonly id: string;
@@ -964,17 +964,17 @@ export type components = {
             readonly remainingMs: number;
             readonly version: string;
         };
-        readonly DeployRuntimeDeployedProcessResponse: {
+        readonly DeploymentRuntimeDeployedProcessResponse: {
             readonly code: string;
             readonly namespace: string;
             readonly versions: readonly string[];
         };
-        readonly DeployRuntimeDiagnosticsResponse: {
-            readonly aliases?: readonly components["schemas"]["DeployRuntimeAliasResponse"][];
+        readonly DeploymentRuntimeDiagnosticsResponse: {
+            readonly aliases?: readonly components["schemas"]["DeploymentRuntimeAliasResponse"][];
             readonly available: boolean;
-            readonly backedOffVersions?: readonly components["schemas"]["DeployRuntimeBackedOffVersionResponse"][];
-            readonly demandedVersions?: readonly components["schemas"]["DeployRuntimeVersionResponse"][];
-            readonly deployedVersions?: readonly components["schemas"]["DeployRuntimeDeployedProcessResponse"][];
+            readonly backedOffVersions?: readonly components["schemas"]["DeploymentRuntimeBackedOffVersionResponse"][];
+            readonly demandedVersions?: readonly components["schemas"]["DeploymentRuntimeVersionResponse"][];
+            readonly deployedVersions?: readonly components["schemas"]["DeploymentRuntimeDeployedProcessResponse"][];
             /** Format: int32 */
             readonly desiredAliasCount?: number;
             /** Format: int32 */
@@ -987,20 +987,20 @@ export type components = {
             readonly inflightCapacity?: number;
             /** Format: int32 */
             readonly inflightCount?: number;
-            readonly inflightVersions?: readonly components["schemas"]["DeployRuntimeVersionResponse"][];
+            readonly inflightVersions?: readonly components["schemas"]["DeploymentRuntimeVersionResponse"][];
             /** Format: int32 */
             readonly localReadyAliasCount?: number;
             readonly message?: string;
             /** Format: int32 */
             readonly pendingAliasCount?: number;
-            readonly pendingReleaseVersions?: readonly components["schemas"]["DeployRuntimeVersionResponse"][];
+            readonly pendingReleaseVersions?: readonly components["schemas"]["DeploymentRuntimeVersionResponse"][];
             /** Format: int32 */
             readonly retainedRuntimeCount?: number;
             readonly started: boolean;
             readonly timestamp: string;
             readonly topology?: string;
         };
-        readonly DeployRuntimeVersionResponse: {
+        readonly DeploymentRuntimeVersionResponse: {
             readonly code: string;
             readonly id: string;
             readonly namespace: string;
@@ -1097,7 +1097,7 @@ export type components = {
             readonly id: string;
             readonly invocationId: string;
             /** @enum {string} */
-            readonly modelType: "TBBPM" | "BPMN";
+            readonly modelType?: "TBBPM" | "BPMN";
             readonly namespace: string;
             readonly parentInvocationId?: string;
             readonly processCode: string;
@@ -1911,7 +1911,7 @@ export interface operations {
             };
         };
         readonly responses: {
-            /** @description OK */
+            /** @description Raw UTF-8 CSV attachment (not base64 encoded) */
             readonly 200: {
                 headers: {
                     readonly [name: string]: unknown;
@@ -1970,7 +1970,7 @@ export interface operations {
             };
         };
     };
-    readonly getDeployRuntimeDiagnostics: {
+    readonly getDeploymentRuntimeDiagnostics: {
         readonly parameters: {
             readonly query?: never;
             readonly header?: never;
@@ -1985,7 +1985,7 @@ export interface operations {
                     readonly [name: string]: unknown;
                 };
                 content: {
-                    readonly "application/json": components["schemas"]["DeployRuntimeDiagnosticsResponse"];
+                    readonly "application/json": components["schemas"]["DeploymentRuntimeDiagnosticsResponse"];
                 };
             };
         };
@@ -2315,7 +2315,7 @@ export interface operations {
         };
         readonly requestBody?: never;
         readonly responses: {
-            /** @description OK */
+            /** @description Raw UTF-8 XML attachment (not base64 encoded) */
             readonly 200: {
                 headers: {
                     readonly [name: string]: unknown;

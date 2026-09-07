@@ -17,6 +17,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * Persistence entity for one asynchronous invocation.
@@ -45,11 +47,14 @@ public class AsyncInvocationEntity {
     private long retryDelayMs;
     @Column(name = "available_at", nullable = false)
     private long availableAt;
-    @Column(name = "params_json", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "params_json", nullable = false)
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
     private String paramsJson;
-    @Column(name = "routing_json", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "routing_json", nullable = false)
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
     private String routingJson;
-    @Column(name = "result_json", columnDefinition = "TEXT")
+    @Column(name = "result_json")
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
     private String resultJson;
     @Column(name = "error_code", length = 128)
     private String errorCode;

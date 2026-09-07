@@ -27,7 +27,7 @@ import org.springframework.data.repository.query.Param;
  * @author yusu
  */
 public interface ProcessDraftRepository extends JpaRepository<ProcessDraftEntity, String> {
-    @Query(value = "SELECT CURRENT_TIMESTAMP", nativeQuery = true)
+    @Query("select instant")
     Instant currentTimestamp();
 
     @Query(value = """

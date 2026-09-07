@@ -16,7 +16,7 @@ package com.alibaba.compileflow.engine.tbbpm.model;
 /**
  * Defines a named wait semantic guarded by an event selector.
  *
- * <p>Execution targets decide how to realize the wait: an ProcessEngine runtime exposes a trigger
+ * <p>Execution targets decide how to realize the wait: a ProcessEngine runtime exposes a trigger
  * entry, while a Durable runtime can persist and correlate the suspension.
  *
  * @author wuxiang

@@ -1,7 +1,7 @@
 # BPMN Designer Developer Guide
 
-The BPMN designer is an internal CompileFlow Workbench surface, not a separately published React component library. Its
-current implementation follows the boundaries below.
+The BPMN designer is built into CompileFlow Workbench and is not published as a standalone React component library.
+This guide covers its implementation and extension points.
 
 ## Scope
 
@@ -13,8 +13,7 @@ The BPMN designer provides:
 - Local workspace persistence and snapshots.
 - Undo, redo, clipboard, search, validation, and canvas controls.
 
-The designer authors the CompileFlow-supported BPMN subset. It does not claim full BPMN 2.0 or Camunda runtime
-compatibility.
+The designer authors only the CompileFlow-supported BPMN subset.
 
 ## Code Entry Points
 
@@ -30,7 +29,7 @@ compatibility.
 | Shared topology validation | `apps/web/src/authoring/designer/validation/ProcessTopologyValidator.ts` |
 | Editor state               | `apps/web/src/authoring/designer/store/`                                 |
 
-## Supported Palette
+## Supported Elements
 
 The palette and `BpmnNodeType` define ten node types:
 
@@ -42,24 +41,24 @@ The palette and `BpmnNodeType` define ten node types:
 | Composition | Call activity, embedded subprocess      |
 
 Sequence flows support conditions and default-flow semantics. Activity loop settings are limited to the
-CompileFlow-supported standard-loop and sequential multi-instance behavior.
+CompileFlow-supported standard-loop and sequential or parallel multi-instance behavior, including optional ordered output.
+Parallel multi-instance requires Durable execution; Workbench's ProcessEngine preview rejects that runtime capability.
 
-The Workbench editing surface is narrower than general BPMN 2.0. `userTask` is rejected because the runtime has no
-durable human-task model. Embedded
-`subProcess` is supported: normalized nodes carry `parentId`, the XML codec recurses through nested containers, and
-validation gives each container its own start/end and connectivity boundary. Event subprocesses, cross-container
+Only the elements listed above are editable. `userTask` is rejected because the runtime has no durable human-task model.
+Embedded `subProcess` is supported: normalized nodes carry `parentId`, the XML codec recurses through nested containers,
+and validation gives each container its own start/end and connectivity boundary. Event subprocesses, cross-container
 sequence flows, and trigger entries inside a subprocess are rejected.
 
-The in-browser simulator fails closed when it reaches an embedded subprocess. Use real backend preview to verify
-generated-code execution; simulation does not flatten or approximate nested control flow.
+The in-browser simulator stops when it reaches an embedded subprocess. Use Workbench Server preview to verify compiled
+execution; simulation does not flatten or approximate nested control flow.
 
-Service tasks serialize CompileFlow `cf:action` extensions, never Camunda class, expression, delegate, or async
-attributes. Script tasks default to the built-in `qlexpress` executor while retaining explicit custom executor names. The XML
+Service tasks serialize CompileFlow `cf:action` extensions. Script tasks default to the built-in `qlexpress` executor
+while retaining explicit custom executor names. The XML
 codec also round-trips process variables, action and call-activity mappings, message definitions, plain-text
 documentation, BPMN DI geometry, and sequence-flow waypoints.
 
 The authoritative engine surface is documented in
-[`../../../docs/architecture/06-SUPPORTED_SURFACES.en.md`](../../../docs/architecture/06-SUPPORTED_SURFACES.en.md). The
+[`../../../docs/en/architecture/supported-surfaces.md`](../../../docs/en/architecture/supported-surfaces.md). The
 designer must reject or warn about XML outside that surface instead of presenting unsupported elements as executable.
 
 ## State And XML
@@ -98,9 +97,9 @@ Validation covers:
 
 User-visible messages use i18n keys. Tests should assert stable finding codes and severity rather than translated prose.
 
-## Adding Or Changing A Node
+## Adding Or Changing A Node Type
 
-Update the complete vertical path in one change:
+Keep these parts synchronized when adding or changing a node type:
 
 1. Type union and property types.
 2. Palette and X6 registration.
@@ -111,7 +110,7 @@ Update the complete vertical path in one change:
 7. Unit tests and relevant E2E coverage.
 8. Supported-surface documentation when engine behavior changes.
 
-Do not add a palette item before the Java parser, validator, generator, and runtime semantics are proven.
+Expose a node in the palette only after the Java parser, validator, generator, and runtime support it.
 
 ## Verification
 
@@ -124,4 +123,4 @@ pnpm --filter @compileflow/workbench-web test
 pnpm --filter @compileflow/workbench-web test:e2e:smoke
 ```
 
-Use `pnpm verify:delivery` for the release-like Workbench gate.
+Use `pnpm verify:delivery` for the Workbench delivery gate.

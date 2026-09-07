@@ -29,6 +29,11 @@ public interface DurableProcessRuntimeCache {
 
     Set<DurableProcessRuntime> snapshot();
 
+    /**
+     * Releases references to all disposable node-local runtimes after execution has drained.
+     */
+    void clear();
+
     default int size() {
         return snapshot().size();
     }

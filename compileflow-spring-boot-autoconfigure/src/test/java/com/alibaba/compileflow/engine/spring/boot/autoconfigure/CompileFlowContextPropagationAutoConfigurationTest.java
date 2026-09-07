@@ -23,6 +23,29 @@ class CompileFlowContextPropagationAutoConfigurationTest {
     private static final ThreadLocal<String> CONTEXT = new ThreadLocal<>();
 
     @Test
+    void missingCallerContextDoesNotExposeTheWorkersPreviousContext() {
+        ContextRegistry registry = ContextRegistry.getInstance();
+        registry.registerThreadLocalAccessor(ACCESSOR_KEY, CONTEXT);
+        try {
+            ProcessContextPropagator propagator =
+                    new CompileFlowContextPropagationAutoConfiguration().processContextPropagator();
+            CONTEXT.remove();
+            ProcessContextPropagator.Snapshot snapshot = propagator.capture();
+            CONTEXT.set("previous-worker-context");
+
+            try (ProcessContextPropagator.Scope scope = snapshot.open()) {
+                assertThat(scope).isNotNull();
+                assertThat(CONTEXT.get()).isNull();
+            }
+
+            assertThat(CONTEXT.get()).isEqualTo("previous-worker-context");
+        } finally {
+            CONTEXT.remove();
+            registry.removeThreadLocalAccessor(ACCESSOR_KEY);
+        }
+    }
+
+    @Test
     void micrometerAdapterCapturesBindsAndRestoresRegisteredThreadLocals() {
         ContextRegistry registry = ContextRegistry.getInstance();
         registry.registerThreadLocalAccessor(ACCESSOR_KEY, CONTEXT);

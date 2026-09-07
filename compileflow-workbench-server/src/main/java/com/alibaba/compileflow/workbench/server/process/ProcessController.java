@@ -41,6 +41,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -410,15 +412,16 @@ public class ProcessController {
             failure.getBody().setProperty("preflight", PreflightReportResponse.from(preflight));
             throw failure;
         }
-        ProcessDefinition.Inline definition = ProcessDefinition.inline(code, process.xml());
+        ProcessDefinition.Inline definition = ProcessDefinition.inline(process.type(), code, process.xml());
         Map<String, String> metadata = new LinkedHashMap<>();
         metadata.put(PUBLICATION_REQUEST_FINGERPRINT, requestFingerprint);
         metadata.put(PUBLICATION_SOURCE_REVISION, Long.toString(expectedRevision));
         if (StringUtils.isNotBlank(changelog)) {
             metadata.put(ReleaseMetadataKeys.CHANGELOG, changelog);
         }
-        PublishedProcessVersion published = deploymentService.publish(
-                new PublishProcessVersionCommand(ref, process.type(), definition, identity.principal(), metadata));
+        PublishedProcessVersion published =
+                deploymentService.publish(
+                        new PublishProcessVersionCommand(ref, definition, identity.principal(), metadata));
         requireMatchingPublicationRequest(published, requestFingerprint);
         return ResponseEntity.ok(toVersionResponse(published));
     }
@@ -458,6 +461,8 @@ public class ProcessController {
      * @return XML attachment, or {@code 404} when the process does not exist
      */
     @GetMapping(value = "/{code}/export", produces = MediaType.APPLICATION_XML_VALUE)
+    @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/xml", schema = @Schema(type = "str"
+            + "ing", format = "binary")), description = "Raw UTF-8 XML attachment (not base64 encoded)")
     public ResponseEntity<byte[]> exportProcess(@PathVariable String code) {
         ProcessDraftService.ProcessRecord process = processDraftService
             .getProcess(code)
@@ -534,9 +539,6 @@ public class ProcessController {
             return ResponseEntity.ok(result);
         } catch (PublishedProcessExecutionService.InvalidExecutionRequestException failure) {
             throw ApiProblemException.invalidRequest(failure.getMessage());
-        } catch (PublishedProcessExecutionService.PublishedProcessVersionNotFoundException failure) {
-            throw ApiProblemException.of(HttpStatus.NOT_FOUND, "PROCESS_VERSION_NOT_FOUND", "Process version not found",
-                    failure.getMessage());
         } catch (DeploymentException failure) {
             throw failure;
         } catch (Exception failure) {

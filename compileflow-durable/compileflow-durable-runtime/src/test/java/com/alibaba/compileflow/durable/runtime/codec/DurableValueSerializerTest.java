@@ -28,6 +28,7 @@ import com.alibaba.compileflow.durable.runtime.machine.DurableMachinePlan;
 import com.alibaba.compileflow.engine.core.xml.parser.FlowSource;
 import com.alibaba.compileflow.engine.core.semantic.plan.ProcessCallPlan;
 import com.alibaba.compileflow.engine.core.semantic.plan.ProcessCallTarget;
+import com.alibaba.compileflow.engine.core.type.DataTypeException;
 import com.alibaba.compileflow.engine.tbbpm.parser.TbbpmXmlParser;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -39,6 +40,44 @@ import org.junit.jupiter.api.Test;
 
 class DurableValueSerializerTest {
     private static final ResumePoint POSITION = ResumePoint.afterElement("approval");
+
+    @Test
+    void javaSourceArraysPreserveTheirConcreteElementTypes() {
+        for (var sample :
+                Map
+            .<String, Object>of("byte[]", new byte[] {1, 2, 3}, "int", 42, "java.lang.String[][]",
+                    new String[][] {{"a", "b"}}, "java.util.List<byte[]>", List.of(new byte[] {4, 5}),
+                    "java.util.List<java.lang.String>[]", new List<?>[] {List.of("a")})
+            .entrySet()) {
+            DurableValueSerializer serializer = new DurableValueSerializer(
+                    machine(
+                            "<var name=\"value\" dataType=\""
+                            + sample.getKey().replace("<", "&lt;").replace(">", "&gt;") + "\" inOutType=\"param\"/>"));
+            byte[] encoded = serializer.encode(ContinuationSnapshot.start(Map.of("value", sample.getValue())));
+            ContinuationSnapshot recovered = serializer.decode(encoded);
+            assertThat(recovered.variables().get("value"))
+                .isInstanceOf(sample.getValue() instanceof List<?> ? List.class : sample.getValue().getClass());
+            assertThat(serializer.encode(recovered)).isEqualTo(encoded);
+        }
+    }
+
+    @Test
+    void rejectsVoidAndNestedRawObjectVariableContracts() {
+        assertThatThrownBy(() -> new DurableValueSerializer(
+                machine("<var name=\"value\" dataType=\"void\" inOutType=\"param\"/>")))
+            .isInstanceOf(DataTypeException.UnsupportedTypeException.class)
+            .hasMessageContaining("void");
+        for (String declaration :
+                List.of("java.lang.Object", "java.lang.Object[]", "java.util.List<java.lang.Object>", "java.util.List",
+                        "java.util.List[]")) {
+            assertThatThrownBy(() -> new DurableValueSerializer(
+                    machine(
+                            "<var name=\"value\" dataType=\"" + declaration.replace("<", "&lt;").replace(">", "&gt;")
+                            + "\" inOutType=\"param\"/>")))
+                .as(declaration)
+                .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
 
     @Test
     void roundTripsDeclaredVariablesAndDefinitionTypedScopeState() {

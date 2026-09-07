@@ -42,29 +42,17 @@ public abstract class AbstractFlowElementParser<E extends Element> implements Fl
     protected void parseCommonAttributes(XmlSource xmlSource, E element, ParseContext parseContext) throws Exception {}
 
     protected void parseChildElements(XmlSource xmlSource, E element, ParseContext parseContext) throws Exception {
-        String parentElementName = xmlSource.getCurrentElementName();
+        String parentElementName = xmlSource.getLocalName();
         if (xmlSource.isEndElement(parentElementName)) {
             return;
         }
-        if (xmlSource instanceof XmlStreamReaderSource reader) {
-            for (
-                    String elementName = reader.nextDirectChildElementName(parentElementName);
-                    elementName != null;
-                    elementName = reader.nextDirectChildElementName(parentElementName)) {
-                Element childElement = getParserRegistry().getParser(elementName).parse(xmlSource, parseContext);
-                if (!attachPlatformChildElement(childElement, element, parseContext)) {
-                    attachChildElement(childElement, element, parseContext);
-                }
-            }
-            return;
-        }
-        while (xmlSource.hasNext()) {
-            String elementName = xmlSource.nextElementName();
-            if (elementName != null) {
-                Element childElement = getParserRegistry().getParser(elementName).parse(xmlSource, parseContext);
-                if (!attachPlatformChildElement(childElement, element, parseContext)) {
-                    attachChildElement(childElement, element, parseContext);
-                }
+        for (
+                String elementName = xmlSource.nextDirectChildElementName(parentElementName);
+                elementName != null;
+                elementName = xmlSource.nextDirectChildElementName(parentElementName)) {
+            Element childElement = getParserRegistry().getParser(elementName).parse(xmlSource, parseContext);
+            if (!attachPlatformChildElement(childElement, element, parseContext)) {
+                attachChildElement(childElement, element, parseContext);
             }
         }
     }

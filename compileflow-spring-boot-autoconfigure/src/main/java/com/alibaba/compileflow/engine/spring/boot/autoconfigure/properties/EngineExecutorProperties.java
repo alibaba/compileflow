@@ -142,7 +142,7 @@ public final class EngineExecutorProperties {
         @NotNull
         private final Duration cancellationGracePeriod;
 
-        public ActionTimeout(Integer maxConcurrency, @DefaultValue("32") int maxPending,
+        public ActionTimeout(Integer maxConcurrency, @DefaultValue("0") int maxPending,
                 @DefaultValue("2s") Duration cancellationGracePeriod) {
             this.maxConcurrency = maxConcurrency == null
                     ? ProcessExecutorConfig.defaultActionTimeoutMaxConcurrency()

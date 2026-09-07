@@ -36,7 +36,7 @@ final class ActionParsing {
             String attribute = source.getAttributeLocalName(index);
             if (!allowed.contains(attribute)) {
                 throw new IllegalArgumentException(
-                        "Action attribute '" + attribute + "' is not valid for " + source.getCurrentElementName());
+                        "Action attribute '" + attribute + "' is not valid for " + source.getLocalName());
             }
         }
     }

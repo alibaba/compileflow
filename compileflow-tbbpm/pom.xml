@@ -13,7 +13,7 @@
 
     <artifactId>compileflow-tbbpm</artifactId>
     <name>CompileFlow TBBPM</name>
-    <description>TBBPM format provider, parser, validator, writer, and code generator.</description>
+    <description>TBBPM parser, validator, writer, and semantic frontend.</description>
 
     <dependencies>
         <!-- Internal Module Dependencies -->

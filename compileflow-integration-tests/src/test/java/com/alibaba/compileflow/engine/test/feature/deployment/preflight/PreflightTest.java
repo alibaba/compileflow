@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.feature.deployment.preflight;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static com.alibaba.compileflow.engine.preflight.ProcessPreflightReport.ItemStatus.FAIL;
 import static com.alibaba.compileflow.engine.preflight.ProcessPreflightReport.ItemStatus.PASS;
 import static com.alibaba.compileflow.engine.preflight.ProcessPreflightReport.ItemStatus.TIMEOUT;
@@ -40,16 +41,14 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = ProcessEngineTestConfiguration.class)
 @DisplayName("Tooling.preflight integration: valid/invalid/timeout reports")
-// Millisecond timeout assertions should not compete with parallel
 @Execution(ExecutionMode.SAME_THREAD)
-class // tests.
-PreflightTest {
+class PreflightTest {
     protected ProcessEngine engine;
     private ProcessToolingService tooling;
 
     @BeforeEach
     void setUp() {
-        engine = ProcessEngineTestFactory.createBpmn();
+        engine = ProcessEngineTestFactory.create();
         tooling = engine.tooling();
     }
 
@@ -64,10 +63,11 @@ PreflightTest {
     @DisplayName("preflight: valid + invalid flows produce PASS/FAIL reports")
     void shouldPassPreflightWhenValidAndInvalid() {
         // Input: a parseable flow + a structurally incomplete XML (to trigger FAIL).
-        ProcessDefinition valid =
-                ProcessDefinition.classpath("bpmn20.gateway.parallel_gateway", "bpmn20/gateway/parallel_gateway.bpmn");
+        ProcessDefinition valid = ProcessDefinition.classpath(ProcessModelType.BPMN, "bpmn20.gateway.parallel_gateway",
+                "bpmn20/gateway/parallel_gateway.bpmn");
         String invalidXml = "<definitions xmlns=\"http://www.omg.org/spec/BPMN/20100524/MODEL\"></definitions>";
-        ProcessDefinition invalid = ProcessDefinition.inline("preflight.invalid.noprocess", invalidXml);
+        ProcessDefinition invalid =
+                ProcessDefinition.inline(ProcessModelType.BPMN, "preflight.invalid.noprocess", invalidXml);
         // Behavior: execute preflight with strict options.
         ProcessPreflightOptions opts = ProcessPreflightOptions.strict();
         ProcessPreflightReport ok = tooling.preflight(valid, opts);
@@ -94,17 +94,66 @@ PreflightTest {
     @Test
     @DisplayName("preflight: per-flow timeout yields TIMEOUT item and FAIL overall")
     void shouldHandlePreflightTimeout() {
-        // Input: minimal timeout to reliably trigger timeout path.
-        ProcessDefinition slow =
-                ProcessDefinition.classpath("bpmn20.gateway.parallel_gateway", "bpmn20/gateway/parallel_gateway.bpmn");
+        java.util.concurrent.CountDownLatch release = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicBoolean compilationEntered = new java.util.concurrent.atomic.AtomicBoolean();
+        var executor = new com.alibaba.compileflow.engine.spi.script.ScriptExecutor() {
+            @Override
+            public String name() {
+                return "blocking-test";
+            }
+
+            @Override
+            public void validate(com.alibaba.compileflow.engine.spi.script.ScriptProgramSpec spec) {}
+
+            @Override
+            public com.alibaba.compileflow.engine.spi.script.ScriptProgram compile(
+                    com.alibaba.compileflow.engine.spi.script.ScriptProgramSpec spec) {
+                compilationEntered.set(true);
+                try {
+                    if (!release.await(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                        throw new IllegalStateException("Test compilation was not released");
+                    }
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Test compilation interrupted", interrupted);
+                }
+                throw new IllegalStateException("Timed-out compilation must not install a program");
+            }
+
+            @Override
+            public Object evaluate(com.alibaba.compileflow.engine.spi.script.ScriptProgram program,
+                    java.util.Map<String, Object> variables) {
+                throw new AssertionError("Preflight must not evaluate scripts");
+            }
+        };
+        ProcessDefinition slow = ProcessDefinition.inline(ProcessModelType.TBBPM, "preflight.blocked",
+                """
+            <bpm code="preflight.blocked">
+              <start id="start"><transition to="task"/></start>
+              <scriptTask id="task"><action type="script" language="blocking-test"><code>blocked</code></action>
+                <transition to="end"/></scriptTask>
+              <end id="end"/>
+            </bpm>
+            """);
         ProcessPreflightOptions opts = ProcessPreflightOptions
             .builder()
             .lintEnabled(true)
             .compileEnabled(true)
-            .timeout(Duration.ofMillis(1))
+            .timeout(Duration.ofSeconds(2))
             .build();
         // Behavior: execute preflight.
-        ProcessPreflightReport r = tooling.preflight(slow, opts);
+        ProcessPreflightReport r;
+        try (ProcessEngine slowEngine = com.alibaba.compileflow.engine.ProcessEngineFactory.create(ProcessEngineTestFactory
+            .builder()
+            .scriptExecutor(executor)
+            .build())) {
+            try {
+                r = slowEngine.tooling().preflight(slow, opts);
+                assertThat(compilationEntered).isTrue();
+            } finally {
+                release.countDown();
+            }
+        }
         // Assertion: overall FAIL, and the active stage reflects TIMEOUT.
         assertThat(r.getOverallStatus())
             .as("Timeout should result in FAIL overall status")

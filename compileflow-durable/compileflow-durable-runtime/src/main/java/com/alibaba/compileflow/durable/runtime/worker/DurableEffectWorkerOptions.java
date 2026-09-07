@@ -14,6 +14,7 @@
 package com.alibaba.compileflow.durable.runtime.worker;
 
 import com.alibaba.compileflow.durable.api.validation.DurableIdentifiers;
+import com.alibaba.compileflow.durable.api.validation.DurableNumbers;
 import java.time.Duration;
 
 /**
@@ -24,11 +25,7 @@ import java.time.Duration;
 public record DurableEffectWorkerOptions(String workerId, Duration readinessBackoff) {
     public DurableEffectWorkerOptions {
         workerId = DurableIdentifiers.requireIdentity(workerId, "workerId", 128);
-        readinessBackoff = WorkerDurationConstraints.requirePositive(readinessBackoff, "readinessBackoff",
-                Duration.ofHours(1));
-    }
-
-    public static DurableEffectWorkerOptions defaults(String workerId) {
-        return new DurableEffectWorkerOptions(workerId, Duration.ofSeconds(1));
+        readinessBackoff = DurableNumbers.requirePositiveDurationMillis(readinessBackoff, Duration.ofHours(1),
+                "readinessBackoff");
     }
 }

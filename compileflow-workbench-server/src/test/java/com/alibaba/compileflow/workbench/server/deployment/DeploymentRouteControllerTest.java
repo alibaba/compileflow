@@ -63,7 +63,7 @@ class DeploymentRouteControllerTest {
     void preservesTypedDeploymentFailuresForTheSharedHandler() {
         DeploymentService service = mock(DeploymentService.class);
         DeploymentException failure =
-                DeploymentException.of(DeploymentErrorCode.REPOSITORY_ERROR, "repository unavailable");
+                DeploymentException.of(DeploymentErrorCode.STORAGE_ERROR, "repository unavailable");
         when(service.getRoute("payment.approve", "production")).thenThrow(failure);
         DeploymentRouteController controller = new DeploymentRouteController(service);
 

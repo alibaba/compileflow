@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.examples.springboot;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
@@ -33,7 +34,8 @@ class SampleApplicationTest {
 
     @Test
     void startsAndExecutesTheSampleFlow() {
-        ProcessDefinition source = ProcessDefinition.classpath("bpm.sample.hello", "flows/hello.bpm");
+        ProcessDefinition source =
+                ProcessDefinition.classpath(ProcessModelType.TBBPM, "bpm.sample.hello", "flows/hello.bpm");
 
         ProcessResult<Map<String, Object>> result = processEngine.execute(source, Map.of("value", 40));
 

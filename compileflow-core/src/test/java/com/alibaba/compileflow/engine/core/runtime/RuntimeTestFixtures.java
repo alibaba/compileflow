@@ -13,9 +13,9 @@
  */
 package com.alibaba.compileflow.engine.core.runtime;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.core.source.ProcessDefinitionSnapshot;
 import com.alibaba.compileflow.engine.ProcessDefinition;
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.core.runtime.cache.RuntimeCacheKeys;
 import com.alibaba.compileflow.engine.core.runtime.context.ProcessCallInvoker;
@@ -39,12 +39,12 @@ public final class RuntimeTestFixtures {
     }
 
     public static ProcessRuntimeRequest inline(String code, String content) {
-        return ProcessRuntimeRequest.from(ProcessDefinition.inline(code, content));
+        return ProcessRuntimeRequest.from(ProcessDefinition.inline(ProcessModelType.TBBPM, code, content));
     }
 
     public static ProcessRuntimeRequest versioned(String namespace, String code, String version, String content) {
         return ProcessRuntimeRequest.versioned(ProcessRef.version(namespace, code, version),
-                ProcessDefinition.inline(code, content));
+                ProcessDefinition.inline(ProcessModelType.TBBPM, code, content));
     }
 
     public static ProcessDefinitionSnapshot resolved(ProcessRuntimeRequest request) {
@@ -54,18 +54,17 @@ public final class RuntimeTestFixtures {
         if (!(definition instanceof ProcessDefinition.Inline inline)) {
             throw new IllegalArgumentException("test request must contain exact inline content");
         }
-        return ProcessDefinitionSnapshot.of(supplied.getNamespace(), supplied.getCode(), supplied.getVersion(),
-                inline.content().getBytes(StandardCharsets.UTF_8), "test inline content");
+        return ProcessDefinitionSnapshot.of(definition.modelType(), supplied.getNamespace(), supplied.getCode(),
+                supplied.getVersion(), inline.content().getBytes(StandardCharsets.UTF_8), "test inline content");
     }
 
     public static ProcessRuntimeIdentity runtimeIdentity(ProcessRuntimeRequest request, ClassLoader classLoader) {
-        return ProcessRuntimeIdentity.of(resolved(request), ProcessModelType.TBBPM, DEFAULT_PIPELINE_IDENTITY,
-                classLoader);
+        return ProcessRuntimeIdentity.of(resolved(request), DEFAULT_PIPELINE_IDENTITY, classLoader);
     }
 
     public static ProcessRuntimeIdentity runtimeIdentity(ProcessDefinitionSnapshot definition,
             ProcessRuntimeIdentity.PipelineIdentity pipelineIdentity, ClassLoader classLoader) {
-        return ProcessRuntimeIdentity.of(definition, ProcessModelType.TBBPM, pipelineIdentity, classLoader);
+        return ProcessRuntimeIdentity.of(definition, pipelineIdentity, classLoader);
     }
 
     public static String bindingKey(ProcessRuntimeRequest request) {

@@ -1,64 +1,24 @@
 import { Alert, Button, Space } from 'antd'
-import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import type { useXmlDraft } from '../hooks/useXmlDraft'
+
 import { MonacoEditor } from '@/shared/components/LazyMonacoEditor'
-import { toError } from '@/shared/errors'
 
 import './XmlCodeEditorPanel.css'
 
 export interface XmlCodeEditorPanelProps {
-  sourceXml: string
-  onApply: (xml: string) => Promise<void>
+  editor: ReturnType<typeof useXmlDraft>
   /** When true, remind the user that canvas edits may not be reflected in the XML buffer yet. */
   showCanvasStaleHint?: boolean
 }
 
 export function XmlCodeEditorPanel({
-  sourceXml,
-  onApply,
+  editor,
   showCanvasStaleHint = false,
 }: XmlCodeEditorPanelProps) {
   const { t } = useTranslation()
-  const [draft, setDraft] = useState(sourceXml)
-  const [isDirty, setIsDirty] = useState(false)
-  const [isApplying, setIsApplying] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!isDirty) {
-      setDraft(sourceXml)
-    }
-  }, [sourceXml, isDirty])
-
-  const handleChange = useCallback(
-    (value: string | undefined) => {
-      const next = value ?? ''
-      setDraft(next)
-      setIsDirty(next !== sourceXml)
-      setError(null)
-    },
-    [sourceXml]
-  )
-
-  const handleApply = useCallback(async () => {
-    setIsApplying(true)
-    try {
-      await onApply(draft)
-      setIsDirty(false)
-      setError(null)
-    } catch (err) {
-      setError(toError(err, t('designer.xmlEditor.applyFailed')).message)
-    } finally {
-      setIsApplying(false)
-    }
-  }, [draft, onApply, t])
-
-  const handleReset = useCallback(() => {
-    setDraft(sourceXml)
-    setIsDirty(false)
-    setError(null)
-  }, [sourceXml])
+  const { draft, isDirty, isApplying, error, handleChange, handleApply, handleReset } = editor
 
   return (
     <div className="xml-code-editor-panel">
@@ -86,7 +46,7 @@ export function XmlCodeEditorPanel({
           className="xml-code-editor-error"
           title={t('designer.xmlEditor.parseError')}
           description={error}
-          onClose={() => setError(null)}
+          onClose={editor.clearError}
         />
       )}
       <div

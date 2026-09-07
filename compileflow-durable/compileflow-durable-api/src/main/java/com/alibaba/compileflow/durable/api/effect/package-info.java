@@ -12,9 +12,6 @@
  * limitations under the License.
  */
 /**
- * Immutable governed Effect contracts and application bindings.
- */
-/**
  * Engine-owned evidence values used only by Process-declared Effect recovery
  * Actions. Effect invocation itself reuses the existing Process Action model.
  *

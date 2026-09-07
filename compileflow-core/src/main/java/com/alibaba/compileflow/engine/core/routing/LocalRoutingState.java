@@ -54,11 +54,6 @@ public final class LocalRoutingState {
         return aliasRouteState.remove(alias, revision);
     }
 
-    public void clear() {
-        aliasRouteState.clear();
-        installedVersionState.clear();
-    }
-
     @Override
     public String toString() {
         return "LocalRoutingState{aliases=" + aliasRouteState + ", installedVersions=" + installedVersionState + '}';

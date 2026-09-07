@@ -18,6 +18,7 @@ import com.alibaba.compileflow.durable.runtime.observability.DurableRuntimeMetri
 import com.alibaba.compileflow.durable.runtime.observability.DurableRuntimeMetrics.Outcome;
 import com.alibaba.compileflow.durable.spi.store.DurableLeaseStore;
 import com.alibaba.compileflow.durable.spi.store.DurableStore;
+import com.alibaba.compileflow.durable.api.validation.DurableNumbers;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashSet;
@@ -50,6 +51,7 @@ public final class DurableLeaseRenewer implements AutoCloseable {
     private final LeaseLane<DurableStore.EffectLease> effects;
     private final LeaseLane<DurableStore.OutboxLease> outbox;
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final ThreadLocal<Boolean> renewalThread = new ThreadLocal<>();
 
     public DurableLeaseRenewer(DurableLeaseStore store, Duration leaseDuration) {
         this(store, leaseDuration, new DurableRuntimeMetrics());
@@ -57,13 +59,23 @@ public final class DurableLeaseRenewer implements AutoCloseable {
 
     public DurableLeaseRenewer(DurableLeaseStore store, Duration leaseDuration, DurableRuntimeMetrics metrics) {
         DurableLeaseStore value = Objects.requireNonNull(store, "store");
-        this.leaseDuration = WorkerDurationConstraints.requirePositive(leaseDuration, "leaseDuration",
-                Duration.ofHours(1));
+        this.leaseDuration = DurableNumbers.requirePositiveDurationMillis(leaseDuration, Duration.ofHours(1),
+                "leaseDuration");
+        if (this.leaseDuration.toMillis() < 2L) {
+            throw new IllegalArgumentException("leaseDuration must be at least 2ms to allow renewal before expiry");
+        }
         this.metrics = Objects.requireNonNull(metrics, "metrics");
         AtomicInteger threadSequence = new AtomicInteger();
         this.scheduler = Executors.newScheduledThreadPool(LANE_COUNT, runnable -> {
             Thread thread =
-                    new Thread(runnable, "compileflow-durable-lease-renewer-" + threadSequence.incrementAndGet());
+                    new Thread(() -> {
+                renewalThread.set(Boolean.TRUE);
+                try {
+                    runnable.run();
+                } finally {
+                    renewalThread.remove();
+                }
+            }, "compileflow-durable-lease-renewer-" + threadSequence.incrementAndGet());
             thread.setDaemon(true);
             return thread;
         });
@@ -257,13 +269,36 @@ public final class DurableLeaseRenewer implements AutoCloseable {
 
     @Override
     public void close() {
-        if (!closed.compareAndSet(false, true)) {
-            return;
+        requireExternalLifecycleCaller();
+        if (closed.compareAndSet(false, true)) {
+            runs.stop();
+            effects.stop();
+            outbox.stop();
+            scheduler.shutdownNow();
         }
-        runs.stop();
-        effects.stop();
-        outbox.stop();
-        scheduler.shutdownNow();
+        boolean interrupted = false;
+        try {
+            while (!scheduler.isTerminated()) {
+                try {
+                    scheduler.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+                } catch (InterruptedException ignored) {
+                    interrupted = true;
+                }
+            }
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    /**
+     * Rejects lifecycle calls that would wait for their own renewal thread.
+     */
+    public void requireExternalLifecycleCaller() {
+        if (Boolean.TRUE.equals(renewalThread.get())) {
+            throw new IllegalStateException("Durable lifecycle must be controlled outside its renewal threads");
+        }
     }
 
     @FunctionalInterface

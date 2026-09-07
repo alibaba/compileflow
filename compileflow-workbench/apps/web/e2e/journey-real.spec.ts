@@ -1,8 +1,5 @@
 import { createHash } from 'node:crypto'
 import fs from 'node:fs'
-import os from 'node:os'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 
 import type { APIRequestContext, Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
@@ -14,9 +11,7 @@ import {
 } from './integration/support/markerProcess'
 import { assertNoPageErrors, confirmModalOk, shot, TIMEOUT, trackErrors } from './journey-helpers'
 
-const ROOT = path.dirname(fileURLToPath(import.meta.url))
-const SHOT_DIR = path.join(ROOT, '../test-results/journey-review')
-const SERVER = 'http://127.0.0.1:8080'
+const SERVER = process.env.COMPILEFLOW_E2E_SERVER_URL ?? 'http://127.0.0.1:8080'
 
 interface ProcessDraft {
   revision: number
@@ -353,25 +348,25 @@ test.describe('Real-mode Operate UI tour', () => {
       timeout: TIMEOUT,
     })
     await expect(page.getByText('real', { exact: true })).toBeVisible({ timeout: TIMEOUT })
-    await page.screenshot({ path: path.join(SHOT_DIR, '110-real-settings.png'), fullPage: true })
+    await page.screenshot({ path: test.info().outputPath('110-real-settings.png'), fullPage: true })
 
     await page.goto('/operate')
     await expect(page.getByRole('banner', { name: /主导航|Main/i })).toBeVisible({
       timeout: TIMEOUT,
     })
     await page.screenshot({
-      path: path.join(SHOT_DIR, '111-real-operate-home.png'),
+      path: test.info().outputPath('111-real-operate-home.png'),
       fullPage: true,
     })
 
     await page.goto('/operate/processes')
     await expect(page.locator('.ant-table, main').first()).toBeVisible({ timeout: TIMEOUT })
-    await page.screenshot({ path: path.join(SHOT_DIR, '112-real-flows.png'), fullPage: true })
+    await page.screenshot({ path: test.info().outputPath('112-real-flows.png'), fullPage: true })
 
     await page.goto('/operate/deployments')
     await expect(page.locator('.ant-table, main').first()).toBeVisible({ timeout: TIMEOUT })
     await page.screenshot({
-      path: path.join(SHOT_DIR, '113-real-deployments.png'),
+      path: test.info().outputPath('113-real-deployments.png'),
       fullPage: true,
     })
 
@@ -379,17 +374,20 @@ test.describe('Real-mode Operate UI tour', () => {
     await expect(page.getByText(/监控|运维|Operations|控制/i).first()).toBeVisible({
       timeout: TIMEOUT,
     })
-    await page.screenshot({ path: path.join(SHOT_DIR, '114-real-monitoring.png'), fullPage: true })
+    await page.screenshot({
+      path: test.info().outputPath('114-real-monitoring.png'),
+      fullPage: true,
+    })
 
     await page.goto('/operate/logs')
     await expect(page.locator('.ant-table, main').first()).toBeVisible({ timeout: TIMEOUT })
-    await page.screenshot({ path: path.join(SHOT_DIR, '115-real-logs.png'), fullPage: true })
+    await page.screenshot({ path: test.info().outputPath('115-real-logs.png'), fullPage: true })
 
     await page.goto('/learn/examples')
     await expect(page.getByRole('heading', { name: /示例库|Examples/i })).toBeVisible({
       timeout: TIMEOUT,
     })
-    await page.screenshot({ path: path.join(SHOT_DIR, '116-real-examples.png'), fullPage: true })
+    await page.screenshot({ path: test.info().outputPath('116-real-examples.png'), fullPage: true })
 
     expect(apiHits.some((hit) => hit.startsWith('2'))).toBeTruthy()
     await shot(page, '117-real-tour-done')
@@ -412,7 +410,7 @@ test.describe('Real-mode Operate UI tour', () => {
     )
     await page.goto(`/operate/deploy-wizard?processCode=${encodeURIComponent(code)}`)
     expect((await versionsLoaded).ok()).toBeTruthy()
-    await expect(page.getByRole('heading', { level: 1, name: /部署向导|Deploy/i })).toBeVisible({
+    await expect(page.getByRole('heading', { level: 1, name: /^部署$|Deploy/i })).toBeVisible({
       timeout: TIMEOUT,
     })
     await shot(page, '120-real-wizard')
@@ -467,7 +465,7 @@ test.describe('Real-mode Operate UI tour', () => {
         response.request().method() === 'POST' &&
         new URL(response.url()).pathname === `/api/deployments/${canary.id}/canary/evaluate`
     )
-    await page.getByRole('button', { name: /评估健康度|Evaluate Health/i }).click()
+    await page.getByRole('button', { name: /健康评估|Evaluate Health/i }).click()
     expect((await healthResponse).ok()).toBeTruthy()
     await expect(
       page
@@ -547,14 +545,14 @@ test.describe('Real-mode Operate UI tour', () => {
         response.request().method() === 'POST' &&
         new URL(response.url()).pathname === `/api/deployments/${canary.id}/canary/evaluate`
     )
-    await page.getByRole('button', { name: /评估健康度|Evaluate Health/i }).click()
+    await page.getByRole('button', { name: /健康评估|Evaluate Health/i }).click()
     expect((await healthResponse).ok()).toBeTruthy()
     await expect(page.getByText('灰度版本健康')).toBeVisible({ timeout: TIMEOUT })
     await shot(page, '127-real-promote-healthy')
 
-    await page.getByRole('button', { name: /全量放量|提升至全量|Promote to 100%|Promote/i }).click()
+    await page.getByRole('button', { name: /全量发布|Promote/i }).click()
     const promoteDialog = page.getByRole('dialog', {
-      name: /确认放量|提升候选版本|Promote candidate|Promote/i,
+      name: /确认全量发布|Confirm full rollout/i,
     })
     await expect(promoteDialog).toBeVisible({ timeout: TIMEOUT })
     const promoteResponse = page.waitForResponse(
@@ -562,14 +560,12 @@ test.describe('Real-mode Operate UI tour', () => {
         response.request().method() === 'POST' &&
         new URL(response.url()).pathname === `/api/deployments/${canary.id}/promote`
     )
-    await promoteDialog
-      .getByRole('button', { name: /全量放量|提升至全量|Promote to 100%|Promote/i })
-      .click()
+    await promoteDialog.getByRole('button', { name: /全量发布|Promote/i }).click()
     const promotedBody = await promoteResponse
     expect(promotedBody.ok(), await promotedBody.text()).toBeTruthy()
     const promoted = (await promotedBody.json()) as DeploymentResult
     expect(promoted.status).toBe('completed')
-    await expect(page.getByText(/灰度转全量|promoted|提升/i).first()).toBeVisible({
+    await expect(page.getByText(/已全量发布|Promoted/i).first()).toBeVisible({
       timeout: TIMEOUT,
     })
     await shot(page, '128-real-promoted')
@@ -610,13 +606,12 @@ test.describe('Real-mode Operate UI tour', () => {
     const errors = trackErrors(page)
     const code = `workbench.real.async.${crypto.randomUUID()}`
     const invocationId = `real-async-${crypto.randomUUID()}`
-    const failureMessage = `expected-failure-${crypto.randomUUID()}`
 
     const draft = await postJson<ProcessDraft>(request, '/api/processes', {
       code,
       name: 'Real Vite Async DLQ',
       type: 'TBBPM',
-      xml: failingProcessXml(code, failureMessage),
+      xml: failingProcessXml(code),
       tags: ['real-vite'],
     })
     const published = await postJson<PublishedVersion>(
@@ -715,7 +710,6 @@ test.describe('Real-mode Operate UI tour', () => {
     test.setTimeout(120_000)
     const errors = trackErrors(page)
     const code = `workbench.real.batch.${crypto.randomUUID()}`
-    const failureMessage = `batch-failure-${crypto.randomUUID()}`
     const invocationIds = [
       `real-batch-a-${crypto.randomUUID()}`,
       `real-batch-b-${crypto.randomUUID()}`,
@@ -725,7 +719,7 @@ test.describe('Real-mode Operate UI tour', () => {
       code,
       name: 'Real Vite Batch Async DLQ',
       type: 'TBBPM',
-      xml: failingProcessXml(code, failureMessage),
+      xml: failingProcessXml(code),
       tags: ['real-vite'],
     })
     const published = await postJson<PublishedVersion>(
@@ -830,9 +824,7 @@ test.describe('Real-mode Operate UI tour', () => {
         response.request().method() === 'PUT' &&
         new URL(response.url()).pathname === `/api/deployments/${canary.id}/canary`
     )
-    await page
-      .getByRole('button', { name: /更新权重|更新灰度比例|Update weight|Update Canary/i })
-      .click()
+    await page.getByRole('button', { name: /调整权重|Update weight/i }).click()
     const updatedBody = await updateResponse
     expect(updatedBody.ok(), await updatedBody.text()).toBeTruthy()
     const updated = (await updatedBody.json()) as DeploymentResult & { canaryWeightBps?: number }
@@ -949,13 +941,13 @@ test.describe('Real-mode Operate UI tour', () => {
     const errors = trackErrors(page)
 
     await page.goto('/operate/monitoring')
-    await expect(page.getByText(/运维控制面|Operations|控制/i).first()).toBeVisible({
+    await expect(page.getByText(/运维状态|Operations/i).first()).toBeVisible({
       timeout: TIMEOUT,
     })
     await shot(page, '150-real-deploy-dlq-monitoring')
 
     const requeueDeploy = page.getByRole('button', {
-      name: /重新入队部署死信|Requeue deployment dead/i,
+      name: /重新入队部署死信任务|Requeue deployment dead/i,
     })
     await expect(requeueDeploy.first()).toBeVisible({ timeout: TIMEOUT })
     const requeueResponse = page.waitForResponse(
@@ -969,7 +961,7 @@ test.describe('Real-mode Operate UI tour', () => {
     const json = (await body.json()) as { requeued?: number }
     expect(typeof json.requeued).toBe('number')
     await expect(
-      page.getByText(/部署死信已重新入队|Deployment dead letters requeued/i)
+      page.getByText(/部署死信任务已重新入队|Dead-lettered deployment tasks requeued/i)
     ).toBeVisible({ timeout: TIMEOUT })
     await shot(page, '151-real-deploy-dlq-requeued')
     await assertNoPageErrors(errors)
@@ -1245,19 +1237,15 @@ test.describe('Real-mode Operate UI tour', () => {
     }
 
     const firstCard = page.locator('main article').first()
-    await firstCard.click()
-    await page.waitForURL(/\/learn\/examples\/.+/, { timeout: TIMEOUT })
     const detailResponse = page.waitForResponse(
       (response) =>
         response.request().method() === 'GET' &&
         /\/api\/examples\/[^/]+$/.test(new URL(response.url()).pathname) &&
         response.ok()
     )
-    // Detail may already be loaded; tolerate already-fired request by also reading page content.
-    await Promise.race([
-      detailResponse.then(() => undefined),
-      expect(page.getByRole('tab', { name: /代码|Code/i })).toBeVisible({ timeout: TIMEOUT }),
-    ])
+    await firstCard.click()
+    await page.waitForURL(/\/learn\/examples\/.+/, { timeout: TIMEOUT })
+    expect((await detailResponse).ok()).toBeTruthy()
     await page.getByRole('tab', { name: /代码|Code/i }).click()
     await expect(page.locator('.ant-tabs-tabpane-active pre').first()).toBeAttached({
       timeout: TIMEOUT,
@@ -1276,6 +1264,7 @@ test.describe('Real-mode Operate UI tour', () => {
       .click()
     const preview = await previewResponse
     expect(preview.ok(), await preview.text()).toBeTruthy()
+    expect((await preview.json()).success).toBe(true)
     await expect(page.locator('[class*="execResult"]').first()).toBeVisible({ timeout: TIMEOUT })
     await shot(page, '173-real-learn-execute')
 
@@ -1337,7 +1326,7 @@ test.describe('Real-mode Operate UI tour', () => {
       timeout: TIMEOUT,
     })
 
-    const github = page.getByRole('link', { name: /CompileFlow on GitHub/i })
+    const github = page.locator('main').getByRole('link', { name: /GitHub 仓库|GitHub/i })
     await expect(github).toBeVisible()
     await expect(github).toHaveAttribute('href', /github\.com\/alibaba\/compileflow/)
     await shot(page, '177-real-settings-done')
@@ -1507,7 +1496,7 @@ test.describe('Real-mode Operate UI tour', () => {
       .click()
     expect((await saveResponse).ok()).toBeTruthy()
     await expect(
-      page.locator('.ant-message-notice').filter({ hasText: /已保存到运维流程库|saved/i })
+      page.locator('.ant-message-notice').filter({ hasText: /已保存到流程管理|saved/i })
     ).toBeVisible({ timeout: TIMEOUT })
     await shot(page, '203-real-designer-saved')
 
@@ -1519,13 +1508,11 @@ test.describe('Real-mode Operate UI tour', () => {
         await page.getByText(/导出 XML|Export XML/i).click()
       })(),
     ])
-    const exportPath = path.join(
-      os.tmpdir(),
-      download.suggestedFilename() || `real-export-${Date.now()}.xml`
-    )
+    const exportPath = test
+      .info()
+      .outputPath(download.suggestedFilename() || `real-export-${Date.now()}.xml`)
     await download.saveAs(exportPath)
     const xml = fs.readFileSync(exportPath, 'utf8')
-    fs.unlinkSync(exportPath)
     expect(xml).toMatch(/<bpm[\s>]/)
     expect(xml).toContain(code)
     await shot(page, '204-real-designer-exported')
@@ -1597,9 +1584,12 @@ test.describe('Real-mode Operate UI tour', () => {
 
     // Java action class + method on the new autoTask.
     await page.getByRole('tab', { name: /任务|Task/i }).click()
-    await expect(page.getByText(/自动任务节点|Auto task/i).first()).toBeVisible({
-      timeout: TIMEOUT,
-    })
+    await expect(
+      page
+        .locator('.tbbpm-designer-right-sider')
+        .getByText(/自动任务|Auto task/i)
+        .first()
+    ).toBeVisible({ timeout: TIMEOUT })
     const classInput = page
       .locator('.ant-form-item')
       .filter({ hasText: /类名|Class name/i })
@@ -1614,7 +1604,12 @@ test.describe('Real-mode Operate UI tour', () => {
     await shot(page, '212-real-action-java')
 
     // Auto Task remains application-owned when switching implementation type.
-    await newTask.click({ position: { x: 8, y: 8 } })
+    await page.locator('.tbbpm-canvas').click({ position: { x: 12, y: 12 } })
+    await page
+      .locator('.x6-node')
+      .filter({ hasText: taskName })
+      .first()
+      .click({ position: { x: 8, y: 8 } })
     const selectedNameInput = page
       .locator('.ant-form-item')
       .filter({ hasText: /节点名称|Node name/i })
@@ -1622,11 +1617,7 @@ test.describe('Real-mode Operate UI tour', () => {
       .first()
     await expect(selectedNameInput).toHaveValue(taskName, { timeout: TIMEOUT })
     await page.getByRole('tab', { name: /任务|Task/i }).click()
-    await page
-      .locator('.ant-form-item')
-      .filter({ hasText: /动作类型|Action type/i })
-      .locator('.ant-select')
-      .click()
+    await page.getByRole('combobox', { name: /^动作类型$|^Action type$/i }).click()
     await chooseOpenSelectOption(page, /Spring Bean/)
     const beanInput = page
       .locator('.ant-form-item')
@@ -1657,7 +1648,7 @@ test.describe('Real-mode Operate UI tour', () => {
       .click()
     expect((await saveResponse).ok()).toBeTruthy()
     await expect(
-      page.locator('.ant-message-notice').filter({ hasText: /已保存到运维流程库|saved/i })
+      page.locator('.ant-message-notice').filter({ hasText: /已保存到流程管理|saved/i })
     ).toBeVisible({ timeout: TIMEOUT })
     await shot(page, '214-real-palette-saved')
 
@@ -1668,13 +1659,11 @@ test.describe('Real-mode Operate UI tour', () => {
         await page.getByText(/导出 XML|Export XML/i).click()
       })(),
     ])
-    const exportPath = path.join(
-      os.tmpdir(),
-      download.suggestedFilename() || `real-palette-${Date.now()}.xml`
-    )
+    const exportPath = test
+      .info()
+      .outputPath(download.suggestedFilename() || `real-palette-${Date.now()}.xml`)
     await download.saveAs(exportPath)
     const xml = fs.readFileSync(exportPath, 'utf8')
-    fs.unlinkSync(exportPath)
     expect(xml).toMatch(/<bpm[\s>]/)
     expect(xml).toContain(taskName)
     expect(xml).toContain(`bean="${springBean}"`)
@@ -1752,7 +1741,7 @@ test.describe('Real-mode Operate UI tour', () => {
 
     const saved = await getJson<ProcessDraft>(request, `/api/processes/${code}`)
     expect(saved.xml).toMatch(/<autoTask\b/)
-    expect((saved.xml?.match(/<autoTask\b/g) || []).length).toBeGreaterThanOrEqual(2)
+    expect((saved.xml?.match(/<autoTask\b/g) || []).length).toBe(1)
     await shot(page, '221-real-pointer-drag-saved')
     await assertNoPageErrors(errors)
   })
@@ -1857,8 +1846,8 @@ test.describe('Real-mode Operate UI tour', () => {
       timeout: TIMEOUT,
     })
 
-    // Operate-bound drafts intentionally hide IndexedDB version history.
-    await expect(page.getByRole('button', { name: /版本历史|Version history/i })).toHaveCount(0)
+    // Operate-bound drafts intentionally hide browser-local snapshots.
+    await expect(page.getByRole('button', { name: /本地快照|Local snapshots/i })).toHaveCount(0)
     await shot(page, '240-real-tools-open')
 
     await page.getByRole('button', { name: /快捷键|Keyboard shortcuts/i }).click()
@@ -1889,7 +1878,7 @@ test.describe('Real-mode Operate UI tour', () => {
     await expect(editDialog).toBeVisible({ timeout: TIMEOUT })
     await editDialog.getByRole('textbox', { name: /变量名|Variable name/i }).fill(varName)
     await editDialog
-      .getByRole('textbox', { name: /数据类型 \(Java 类名\)|Data type \(Java class name\)/i })
+      .getByRole('textbox', { name: /数据类型（Java 类名）|Data type \(Java class\)/i })
       .fill('java.lang.Integer')
     // Ant Design often inserts spaces into CJK button labels ("保 存").
     await editDialog.getByRole('button', { name: /保\s*存|Save/i }).click()
@@ -1934,7 +1923,7 @@ test.describe('Real-mode Operate UI tour', () => {
       .click()
     expect((await saveResponse).ok()).toBeTruthy()
     await expect(
-      page.locator('.ant-message-notice').filter({ hasText: /已保存到运维流程库|saved/i })
+      page.locator('.ant-message-notice').filter({ hasText: /已保存到流程管理|saved/i })
     ).toBeVisible({ timeout: TIMEOUT })
 
     const saved = await getJson<ProcessDraft>(request, `/api/processes/${code}`)
@@ -1944,19 +1933,19 @@ test.describe('Real-mode Operate UI tour', () => {
     await assertNoPageErrors(errors)
   })
 
-  test('workspace designer shows version history when not Operate-bound', async ({ page }) => {
+  test('workspace designer shows local snapshots when not Operate-bound', async ({ page }) => {
     test.setTimeout(60_000)
     const errors = trackErrors(page)
     await page.goto('/build/designer?modelType=tbbpm')
     await page.waitForSelector('.x6-graph', { timeout: TIMEOUT })
-    const history = page.getByRole('button', { name: /版本历史|Version history/i })
+    const history = page.getByRole('button', { name: /本地快照|Local snapshots/i })
     await expect(history).toBeVisible({ timeout: TIMEOUT })
     await history.click()
     await expect(page.getByRole('dialog').or(page.locator('.ant-modal')).first()).toBeVisible({
       timeout: TIMEOUT,
     })
     await expect(
-      page.getByText(/版本历史|Version history|暂无|No saved|快照|snapshot/i).first()
+      page.getByText(/本地快照|Local snapshots|暂无|No snapshots|快照|snapshot/i).first()
     ).toBeVisible({ timeout: TIMEOUT })
     await shot(page, '247-real-workspace-history')
     await page.keyboard.press('Escape')
@@ -2012,7 +2001,7 @@ test.describe('Real-mode Operate UI tour', () => {
     // Engine preview executes draft XML via /api/executions/preview (no publish required).
     await page
       .locator('.flow-debugger-mode-switch')
-      .getByText(/引擎执行|Engine/i)
+      .getByText(/服务器执行|Server execution/i)
       .click()
     await expect(page.locator('.engine-debug-section')).toBeVisible({ timeout: TIMEOUT })
     await expect(page.locator('.engine-debug-section').getByText(code).first()).toBeVisible({
@@ -2042,7 +2031,7 @@ test.describe('Real-mode Operate UI tour', () => {
     await expect(
       page
         .locator('.ant-message-notice')
-        .filter({ hasText: /引擎执行完成|engine.*success|completed/i })
+        .filter({ hasText: /服务器执行完成|server.*success|completed/i })
     ).toBeVisible({ timeout: TIMEOUT })
     await expect(page.locator('.engine-debug-result')).toContainText(/debug-ok|version_marker/i)
     await shot(page, '262-real-debug-engine')
@@ -2190,7 +2179,13 @@ test.describe('Real-mode Operate UI tour', () => {
       code,
       name: 'Real Vite Conditional BP Draft',
       type: 'TBBPM',
-      xml: markerProcessXml(code, 'bpcond'),
+      // The local assignment preview deliberately rejects engine output mappings.
+      xml: markerProcessXml(code, 'bpcond')
+        .replace('<output target="version_marker" dataType="java.lang.String"/>', '')
+        .replace(
+          '<code><![CDATA["bpcond"]]></code>',
+          '<code><![CDATA[version_marker = "bpcond"]]></code>'
+        ),
       tags: ['real-vite'],
     })
 
@@ -2419,13 +2414,13 @@ test.describe('Real-mode Operate UI tour', () => {
       .filter({ hasText: /^Marker$/ })
       .first()
       .click()
-    await page.getByRole('button', { name: /复制 \(Ctrl\+C\)|Copy \(Ctrl\+C\)/i }).click()
+    await page.getByRole('button', { name: /复制（Ctrl\+C）|Copy \(Ctrl\+C\)/i }).click()
     await expect(
       page.locator('.ant-message-notice').filter({ hasText: /已复制|copied/i })
     ).toBeVisible({ timeout: TIMEOUT })
     await shot(page, '290-real-copy')
 
-    await page.getByRole('button', { name: /粘贴 \(Ctrl\+V\)|Paste \(Ctrl\+V\)/i }).click()
+    await page.getByRole('button', { name: /粘贴（Ctrl\+V）|Paste \(Ctrl\+V\)/i }).click()
     await expect(graphNodes).toHaveCount(beforeCount + 1, { timeout: TIMEOUT })
     await expect(page.locator('.x6-node').filter({ hasText: /Marker/i })).toHaveCount(2, {
       timeout: TIMEOUT,
@@ -2453,7 +2448,8 @@ test.describe('Real-mode Operate UI tour', () => {
     expect((await saveResponse).ok()).toBeTruthy()
 
     const saved = await getJson<ProcessDraft>(request, `/api/processes/${code}`)
-    expect((saved.xml?.match(/<autoTask\b/g) || []).length).toBeGreaterThanOrEqual(2)
+    expect((saved.xml?.match(/<scriptTask\b/g) || []).length).toBe(2)
+    expect(saved.xml).toContain('Marker_副本')
     await shot(page, '293-real-copy-saved')
     await assertNoPageErrors(errors)
   })
@@ -2656,11 +2652,11 @@ test.describe('Real-mode Operate UI tour', () => {
 
     await page
       .locator('.x6-canvas-toolbar')
-      .getByRole('button', { name: /放大 \(Ctrl|Zoom in/i })
+      .getByRole('button', { name: /放大（Ctrl|Zoom in/i })
       .click()
     await page
       .locator('.x6-canvas-toolbar')
-      .getByRole('button', { name: /缩小 \(Ctrl|Zoom out/i })
+      .getByRole('button', { name: /缩小（Ctrl|Zoom out/i })
       .click()
     await page
       .locator('.x6-canvas-toolbar')
@@ -2775,9 +2771,7 @@ test.describe('Real-mode Operate UI tour', () => {
     await expect(page.locator('.x6-node')).toHaveCount(beforeCount, { timeout: TIMEOUT })
 
     // Dirty the Operate draft via the header name editor (avoids edge hit-testing on nodes).
-    await page
-      .getByRole('button', { name: /点击修改名称|点击编辑名称|edit name|Edit name/i })
-      .click()
+    await page.getByRole('button', { name: /重命名流程|Rename process/i }).click()
     const titleInput = page.locator('.designer-header input, header input').first()
     await expect(titleInput).toBeVisible({ timeout: TIMEOUT })
     await titleInput.fill('Real Vite BPMN Draft Saved')
@@ -2799,7 +2793,8 @@ test.describe('Real-mode Operate UI tour', () => {
 
     const saved = await getJson<ProcessDraft & { name?: string }>(request, `/api/processes/${code}`)
     expect(saved.xml).toMatch(/bpmn:definitions|definitions/)
-    expect(saved.xml).toMatch(/serviceTask/i)
+    expect(saved.xml).not.toMatch(/serviceTask/i)
+    expect(saved.xml).toMatch(/scriptTask/i)
     expect(saved.name || '').toMatch(/Saved|BPMN/)
     await shot(page, '323-real-bpmn-saved')
 

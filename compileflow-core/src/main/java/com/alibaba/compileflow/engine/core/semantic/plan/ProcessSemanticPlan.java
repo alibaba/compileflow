@@ -356,10 +356,10 @@ public final class ProcessSemanticPlan {
             throw new IllegalArgumentException(
                     "Foreach node '" + nodeId + "' output source and target variables must be different");
         }
-        if (!List.class.isAssignableFrom(DataTypes.getJavaClass(target.dataType()))) {
+        if (DataTypes.getJavaClass(target.dataType()) != List.class) {
             throw new IllegalArgumentException(
                     "Foreach node '" + nodeId + "' output target variable '" + target.name()
-                    + "' must declare a java.util.List-compatible type");
+                    + "' must declare java.util.List; aggregation does not promise a concrete List implementation");
         }
         if (source.role() != VariableRole.INNER) {
             throw new IllegalArgumentException(

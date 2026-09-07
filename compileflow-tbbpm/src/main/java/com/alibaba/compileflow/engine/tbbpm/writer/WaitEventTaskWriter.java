@@ -24,14 +24,6 @@ import javax.xml.stream.XMLStreamWriter;
  */
 public class WaitEventTaskWriter extends AbstractTbbpmNodeWriter<WaitEventTaskNode> {
     @Override
-    protected void doWrite(WaitEventTaskNode element, XMLStreamWriter xsw) throws Exception {
-        xsw.writeStartElement(getName());
-        writeNodeAttr(element, xsw);
-        writeTransition(element, xsw);
-        xsw.writeEndElement();
-    }
-
-    @Override
     protected String getName() {
         return TbbpmModelConstants.WAIT_EVENT_TASK;
     }
@@ -41,9 +33,6 @@ public class WaitEventTaskWriter extends AbstractTbbpmNodeWriter<WaitEventTaskNo
         writeAttribute(xsw, TbbpmModelConstants.ATTRIBUTE_EVENT, node.getEvent());
         writeAttribute(xsw, TbbpmModelConstants.ATTRIBUTE_TIMEOUT, node.getTimeout());
     }
-
-    @Override
-    protected void enrichNodeElement(WaitEventTaskNode element, XMLStreamWriter xsw) throws Exception {}
 
     @Override
     public Class<WaitEventTaskNode> getElementClass() {

@@ -15,6 +15,7 @@ package com.alibaba.compileflow.workbench.server.deployment;
 
 import static com.alibaba.compileflow.workbench.server.api.problem.ApiProblemAssertions.assertProblem;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -209,6 +210,17 @@ class DeploymentControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().decision()).isEqualTo("healthy");
+    }
+
+    @Test
+    void rollbackPreservesUnexpectedServiceFailuresInsteadOfExposingThemAsBadRequests() {
+        DeploymentService service = mock(DeploymentService.class);
+        IllegalArgumentException failure = new IllegalArgumentException("database-password=secret");
+        when(service.rollbackDeployment("deploy-1", "rollback-1", 2L)).thenThrow(failure);
+
+        assertThatThrownBy(() -> controller(service)
+            .rollbackDeployment("deploy-1", "rollback-1", new RollbackDeploymentRequest(2L)))
+            .isSameAs(failure);
     }
 
     @Test

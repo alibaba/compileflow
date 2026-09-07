@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.tbbpm;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
@@ -24,7 +25,7 @@ import org.junit.jupiter.api.Test;
 
 class GeneratedMethodNameIsolationTest {
     private static final String CODE = "test.generated.method-names";
-    private static final ProcessDefinition DEFINITION = ProcessDefinition.inline(CODE,
+    private static final ProcessDefinition DEFINITION = ProcessDefinition.inline(ProcessModelType.TBBPM, CODE,
             """
         <?xml version="1.0" encoding="UTF-8"?>
         <bpm code="test.generated.method-names" name="Method Name Isolation">
@@ -61,7 +62,7 @@ class GeneratedMethodNameIsolationTest {
 
     @Test
     void keepsDistinctBranchesWhoseReadableJavaNamesWouldCollide() {
-        ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineConfig.builder().discoverPlugins(false).build();
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
             ProcessResult<Map<String, Object>> left = engine.execute(DEFINITION, Map.of("left", true));

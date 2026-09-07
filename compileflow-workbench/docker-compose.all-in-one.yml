@@ -8,7 +8,8 @@ services:
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
-      - compileflow_pg_data:/var/lib/postgresql/data
+      # PostgreSQL 18+ uses versioned PGDATA; see DEPLOYMENT.md before reusing existing data.
+      - compileflow_pg_data:/var/lib/postgresql
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
       interval: 5s

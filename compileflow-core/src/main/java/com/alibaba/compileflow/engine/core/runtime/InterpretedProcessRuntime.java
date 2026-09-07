@@ -411,6 +411,14 @@ final class InterpretedProcessRuntime implements ProcessRuntime {
 
     private void executeAction(String nodeId, ActionPlan action, Map<String, Object> state,
             Map<String, Object> lexicalBindings) throws Exception {
+        EffectiveInvocationPolicy policy = action.invocationPolicy();
+        ActionExecutor.callAndCommit(nodeId,
+                () -> actions.invoke(action, actionInputs(nodeId, action, state, lexicalBindings), null), policy,
+                state::putAll);
+    }
+
+    private Map<String, Object> actionInputs(String nodeId, ActionPlan action, Map<String, Object> state,
+            Map<String, Object> lexicalBindings) {
         LinkedHashMap<String, Object> input = new LinkedHashMap<>();
         for (ActionPlan.Input mapping : action.inputs()) {
             Object value;
@@ -428,8 +436,7 @@ final class InterpretedProcessRuntime implements ProcessRuntime {
             }
             input.put(mapping.target(), convert(value, mapping.declaredType()));
         }
-        EffectiveInvocationPolicy policy = action.invocationPolicy();
-        ActionExecutor.callAndCommit(nodeId, () -> actions.invoke(action, input, null), policy, state::putAll);
+        return input;
     }
 
     @SuppressWarnings("unchecked")

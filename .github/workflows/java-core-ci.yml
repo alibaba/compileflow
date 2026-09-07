@@ -6,6 +6,7 @@ on:
     paths:
       - 'compileflow-api/**'
       - 'compileflow-deploy/compileflow-deploy-api/**'
+      - 'compileflow-deploy/compileflow-deploy-protocol/**'
       - 'compileflow-core/**'
       - 'compileflow-tbbpm/**'
       - 'compileflow-bpmn/**'
@@ -23,6 +24,7 @@ on:
     paths:
       - 'compileflow-api/**'
       - 'compileflow-deploy/compileflow-deploy-api/**'
+      - 'compileflow-deploy/compileflow-deploy-protocol/**'
       - 'compileflow-core/**'
       - 'compileflow-tbbpm/**'
       - 'compileflow-bpmn/**'
@@ -66,7 +68,7 @@ jobs:
       - name: Build core module artifacts
         run: |
           ./mvnw install \
-            -pl compileflow-core,compileflow-tbbpm,compileflow-bpmn \
+            -pl compileflow-core,compileflow-tbbpm,compileflow-bpmn,compileflow-deploy/compileflow-deploy-protocol \
             -am -DskipTests \
             -B -V --no-transfer-progress
 
@@ -80,7 +82,7 @@ jobs:
         if: matrix.java == '17'
         run: |
           ./mvnw checkstyle:check \
-            -pl compileflow-core,compileflow-tbbpm,compileflow-bpmn \
+            -pl compileflow-core,compileflow-tbbpm,compileflow-bpmn,compileflow-deploy/compileflow-deploy-protocol \
             -am \
             -B -V --no-transfer-progress
 
@@ -88,7 +90,7 @@ jobs:
         if: matrix.java == '17'
         run: |
           ./mvnw checkstyle:check \
-            -pl compileflow-api,compileflow-deploy/compileflow-deploy-api \
+            -pl compileflow-api,compileflow-deploy/compileflow-deploy-api,compileflow-deploy/compileflow-deploy-protocol \
             -Dcheckstyle.config.location=checkstyle-javadoc.xml \
             -B -V --no-transfer-progress
 
@@ -96,27 +98,29 @@ jobs:
         if: matrix.java == '17'
         run: |
           ./mvnw spotbugs:check \
-            -pl compileflow-core,compileflow-tbbpm,compileflow-bpmn \
+            -pl compileflow-core,compileflow-tbbpm,compileflow-bpmn,compileflow-deploy/compileflow-deploy-protocol \
             -am \
             -B -V --no-transfer-progress
           python3 scripts/verify_spotbugs_reports.py \
             compileflow-api \
             compileflow-core \
             compileflow-tbbpm \
-            compileflow-bpmn
+            compileflow-bpmn \
+            compileflow-deploy/compileflow-deploy-api \
+            compileflow-deploy/compileflow-deploy-protocol
 
       - name: Generate public API Javadocs
         if: matrix.java == '17'
         run: |
           ./mvnw javadoc:javadoc \
-            -pl compileflow-api,compileflow-deploy/compileflow-deploy-api \
+            -pl compileflow-api,compileflow-deploy/compileflow-deploy-api,compileflow-deploy/compileflow-deploy-protocol \
             -B -V --no-transfer-progress
 
       - name: Run core tests
         if: matrix.java == '17'
         run: |
           ./mvnw test \
-            -pl compileflow-core,compileflow-tbbpm,compileflow-bpmn \
+            -pl compileflow-core,compileflow-tbbpm,compileflow-bpmn,compileflow-deploy/compileflow-deploy-protocol \
             -am \
             -B -V --no-transfer-progress
 
@@ -134,7 +138,7 @@ jobs:
         run: |
           ./mvnw test \
             -pl compileflow-core -am \
-            -Dtest=JavaSourceScriptExecutorTest,CompiledProcessRuntimeFactoryClassLoaderTest \
+            -Dtest=JavaSourceScriptExecutorTest,GeneratedCodeCompilerTest,InMemoryCompilationTest \
             -Dsurefire.failIfNoSpecifiedTests=false \
             -B -V --no-transfer-progress
 

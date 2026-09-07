@@ -3,12 +3,14 @@ import type { MessageInstance } from 'antd/es/message/interface'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  abortCanary,
   evaluateCanaryHealth,
   getDeployment,
   getDeploymentEvents,
   getDeploymentRoute,
   promoteCanary,
   rollbackDeployment,
+  updateCanaryWeightBps,
 } from '@/operate/api/deployments'
 import { useDeploymentDetailData } from '@/operate/hooks/useDeploymentDetailData'
 import type {
@@ -97,9 +99,19 @@ function renderDetail() {
   return renderHook(() => useDeploymentDetailData(canary.id, translate))
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (error: Error) => void
+  const promise = new Promise<T>((accept, fail) => {
+    resolve = accept
+    reject = fail
+  })
+  return { promise, resolve, reject }
+}
+
 describe('useDeploymentDetailData', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
     vi.mocked(getDeployment).mockResolvedValue(canary)
     vi.mocked(getDeploymentEvents).mockResolvedValue([started])
     vi.mocked(getDeploymentRoute).mockResolvedValue(route)
@@ -209,6 +221,106 @@ describe('useDeploymentDetailData', () => {
 
     expect(message.success).not.toHaveBeenCalled()
   })
+
+  it.each(['promote', 'restoreBaseline', 'updateCanary', 'evaluateHealth'] as const)(
+    'does not dispatch a stale %s callback after selection changes or unmounts',
+    async (action) => {
+      const { result, rerender, unmount } = renderHook(
+        ({ id }) => useDeploymentDetailData(id, translate),
+        { initialProps: { id: canary.id } }
+      )
+      await waitFor(() => expect(result.current.loading).toBe(false))
+      const stale = result.current[action]
+      rerender({ id: 'other' })
+      await act(async () => {
+        await stale()
+      })
+      unmount()
+      await act(async () => {
+        await stale()
+      })
+      expect(promoteCanary).not.toHaveBeenCalled()
+      expect(abortCanary).not.toHaveBeenCalled()
+      expect(rollbackDeployment).not.toHaveBeenCalled()
+      expect(updateCanaryWeightBps).not.toHaveBeenCalled()
+      expect(evaluateCanaryHealth).not.toHaveBeenCalled()
+    }
+  )
+
+  it('ignores old health and old modal callbacks after returning to the same ID', async () => {
+    const old = deferred<CanaryHealthEvaluationResponse>()
+    const fresh = deferred<CanaryHealthEvaluationResponse>()
+    vi.mocked(evaluateCanaryHealth)
+      .mockReturnValueOnce(old.promise)
+      .mockReturnValueOnce(fresh.promise)
+    const { result, rerender } = renderHook(({ id }) => useDeploymentDetailData(id, translate), {
+      initialProps: { id: canary.id },
+    })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    const stalePromote = result.current.promote
+    let previous!: Promise<void>, current!: Promise<void>
+    act(() => {
+      previous = result.current.evaluateHealth()
+    })
+    rerender({ id: 'other' })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    rerender({ id: canary.id })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    await act(async () => {
+      await stalePromote()
+    })
+    const staleDispatches = vi.mocked(promoteCanary).mock.calls.length
+    act(() => {
+      current = result.current.evaluateHealth()
+    })
+    await act(async () => {
+      old.resolve({ reason: 'old' } as CanaryHealthEvaluationResponse)
+      await previous
+    })
+    const observed = { health: result.current.health, action: result.current.action }
+    await act(async () => {
+      fresh.resolve({ reason: 'new' } as CanaryHealthEvaluationResponse)
+      await current
+    })
+    expect(staleDispatches).toBe(0)
+    expect(observed).toEqual({ health: undefined, action: 'evaluate-health' })
+    expect(result.current.health?.reason).toBe('new')
+  })
+
+  it.each([false, true])(
+    'keeps a newer same-selection action active when the older action settles (error=%s)',
+    async (fail) => {
+      const old = deferred<CanaryHealthEvaluationResponse>()
+      const fresh = deferred<CanaryHealthEvaluationResponse>()
+      vi.mocked(evaluateCanaryHealth)
+        .mockReturnValueOnce(old.promise)
+        .mockReturnValueOnce(fresh.promise)
+      const { result } = renderDetail()
+      await waitFor(() => expect(result.current.loading).toBe(false))
+      let previous!: Promise<void>, current!: Promise<void>
+      act(() => {
+        previous = result.current.evaluateHealth()
+      })
+      act(() => {
+        current = result.current.evaluateHealth()
+      })
+      await act(async () => {
+        if (fail) old.reject(new Error('old request'))
+        else old.resolve({ reason: 'old' } as CanaryHealthEvaluationResponse)
+        await previous
+      })
+      const observed = {
+        health: result.current.health,
+        action: result.current.action,
+        errors: vi.mocked(message.error).mock.calls.length,
+      }
+      await act(async () => {
+        fresh.resolve({ reason: 'current' } as CanaryHealthEvaluationResponse)
+        await current
+      })
+      expect(observed).toEqual({ health: undefined, action: 'evaluate-health', errors: 0 })
+    }
+  )
 
   it('refreshes the deployment, route, and audit events after promotion', async () => {
     const promoted: Deployment = {

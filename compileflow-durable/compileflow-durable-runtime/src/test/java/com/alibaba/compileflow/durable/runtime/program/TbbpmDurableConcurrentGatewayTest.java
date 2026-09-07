@@ -17,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.alibaba.compileflow.durable.runtime.machine.DurableModelEligibility;
 import com.alibaba.compileflow.durable.runtime.kernel.BoundaryCompletion;
+import com.alibaba.compileflow.durable.runtime.kernel.BranchActivation;
+import com.alibaba.compileflow.durable.runtime.kernel.ConcurrentFrontierOperations;
 import com.alibaba.compileflow.durable.runtime.kernel.ContinuationSnapshot;
 import com.alibaba.compileflow.durable.runtime.codec.DurableValueSerializer;
 import com.alibaba.compileflow.durable.runtime.kernel.FrontierId;
@@ -37,10 +39,12 @@ import com.alibaba.compileflow.engine.tbbpm.model.TbbpmModel;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.json.JsonMapper;
 
-class TbbpmDurableConcurrentGatewayTest {
+public class TbbpmDurableConcurrentGatewayTest {
     @Test
     void parallelWaitsResolveIndependentlyAndMergeDisjointStateInArrivalOrder() throws Exception {
         CompiledMachineProgram compiled = compile(parallelWaitFlow("parallel.waits"));
@@ -194,6 +198,104 @@ class TbbpmDurableConcurrentGatewayTest {
                     .containsEntry("innerRight", "R");
             });
     }
+
+    @Test
+    void nestedConcurrentJoinRecoversByteArrayBaselinesEveryTurn() throws Exception {
+        String xml = nestedParallelFlow()
+            .replace("<bpm code=\"parallel.nested\">",
+                    """
+                <bpm code="parallel.nested">
+                  <var name="payload" dataType="%s" inOutType="param"/>
+                """
+                        .formatted(BinaryPayload.class.getName()));
+        CompiledMachineProgram compiled = compile(xml);
+        DurableValueSerializer serializer = new DurableValueSerializer(compiled.machinePlan());
+        DurableProgram interpreted = new DurableInterpretedProgramCompiler(com.alibaba.compileflow.engine.config.JavaDiagnosticsConfig.defaults())
+            .compile(compiled.machinePlan(), getClass().getClassLoader());
+        for (DurableProgram program : List.of(compiled.program(), interpreted)) {
+            ContinuationSnapshot continuation =
+                    ContinuationSnapshot.start(Map.of("payload", new BinaryPayload(new byte[] {1, 2, 3})));
+            boolean completed = false;
+            for (int turnIndex = 0; turnIndex < 24; turnIndex++) {
+                continuation = serializer.decode(serializer.encode(continuation));
+                List<OccurrenceResult> results = continuation
+                    .frontiers()
+                    .stream()
+                    .filter(frontier -> frontier.resumePoint().isAfterElement())
+                    .map(frontier -> waitResult(frontier, 1, frontier.resumePoint().elementId(),
+                            switch (frontier.resumePoint().elementId()) {
+                                case "outerRightWait" -> "outer";
+                                case "innerLeftWait" -> "inner-left";
+                                case "innerRightWait" -> "inner-right";
+                                default -> throw new AssertionError("Unexpected wait");
+                            }, Map.of()))
+                    .toList();
+                MachineTurnResult turn =
+                        advance(program, continuation, results, TurnBudget.defaults(), context(compiled));
+                if (turn.outcome() instanceof FrontierStepResult.Completed) {
+                    completed = true;
+                    break;
+                }
+                continuation = turn.continuation();
+                assertThat(((BinaryPayload) continuation.frontiers().get(0).variables().get("payload")).bytes())
+                    .containsExactly(1, 2, 3);
+            }
+            assertThat(completed).isTrue();
+        }
+    }
+
+    @Test
+    void recoveredNestedAncestryStillRejectsDifferentBaselinesAndWrites() {
+        String xml = nestedParallelFlow()
+            .replace("<bpm code=\"parallel.nested\">",
+                    """
+                <bpm code="parallel.nested">
+                  <var name="payload" dataType="%s" inOutType="param"/>
+                """
+                        .formatted(BinaryPayload.class.getName()));
+        CompiledMachineProgram compiled = compile(xml);
+        DurableValueSerializer serializer = new DurableValueSerializer(compiled.machinePlan());
+        FrontierSnapshot root = FrontierSnapshot.root(ResumePoint.beforeElement("outerFork"),
+                Map.of("outer", "", "innerLeft", "", "innerRight", "", "payload",
+                        new BinaryPayload(new byte[] {1, 2, 3})), List.of());
+        FrontierSnapshot parent = ConcurrentFrontierOperations
+            .fork(root, "outerFork", "outerJoin",
+                    List.of(new BranchActivation(0, "innerFork"), new BranchActivation(1, "outerRightWait")))
+            .get(0);
+        List<FrontierSnapshot> siblings = ConcurrentFrontierOperations
+            .fork(parent, "innerFork", "innerJoin",
+                    List.of(new BranchActivation(0, "innerLeftWait"), new BranchActivation(1, "innerRightWait")))
+            .stream()
+            .map(frontier -> ConcurrentFrontierOperations.parkAtJoin(frontier, "innerJoin", frontier.variables(),
+                    frontier.scopeFrames(), Set.of()))
+            .toList();
+        byte[] encoded = serializer.encode(new ContinuationSnapshot(siblings));
+        ContinuationSnapshot recovered = serializer.decode(encoded);
+        assertThat(ConcurrentFrontierOperations.join(recovered.frontiers(), "innerJoin", "outerJoin").frontierId())
+            .isEqualTo(parent.frontierId());
+        assertThat(serializer.decode(encoded).frontiers().get(0).branchFrames().get(0))
+            .isNotSameAs(recovered.frontiers().get(0).branchFrames().get(0));
+        JsonMapper mapper = JsonMapper.builder().build();
+        for (String difference : List.of("baseline", "binaryBaseline", "writes")) {
+            var tree = mapper.readTree(encoded);
+            var ancestor = tree.get("frontiers").get(1).get("branches").get(0).asObject();
+            switch (difference) {
+                case "baseline" -> ancestor.get("baseline").asObject().put("innerLeft", "different");
+                case "binaryBaseline" -> ancestor.get("baseline").get("payload").asObject().put("bytes", "BAUG");
+                case "writes" -> ancestor.get("writes").asArray().add("innerLeft");
+                default -> throw new AssertionError(difference);
+            }
+            ContinuationSnapshot changed = serializer.decode(mapper.writeValueAsBytes(tree));
+            assertThat(changed.frontiers().get(0).branchFrames().get(0))
+                .isNotSameAs(changed.frontiers().get(1).branchFrames().get(0));
+            assertThatThrownBy(() -> ConcurrentFrontierOperations.join(changed.frontiers(), "innerJoin", "outerJoin"))
+                .as(difference)
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("identical parent ancestry");
+        }
+    }
+
+    public record BinaryPayload(byte[] bytes) {}
 
     @Test
     void concurrentBranchesMayConvergeDirectlyAtTheProcessEnd() throws Exception {

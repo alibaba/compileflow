@@ -13,14 +13,14 @@
 
     <artifactId>compileflow-spring-boot-autoconfigure</artifactId>
     <name>CompileFlow Spring Boot Auto-configuration</name>
-    <description>Spring Boot auto-configuration for the engine and optional deployment components.</description>
+    <description>Provider-neutral Spring Boot auto-configuration for the CompileFlow engine.</description>
 
     <properties>
         <test.jvm.args>-javaagent:${org.mockito:mockito-core:jar}</test.jvm.args>
     </properties>
 
     <dependencies>
-        <!-- Internal module dependencies -->
+        <!-- CompileFlow module dependencies -->
         <dependency>
             <groupId>com.alibaba.compileflow</groupId>
             <artifactId>compileflow-api</artifactId>
@@ -28,29 +28,6 @@
         <dependency>
             <groupId>com.alibaba.compileflow</groupId>
             <artifactId>compileflow-core</artifactId>
-        </dependency>
-        <!-- Deploy features: optional dependencies (users include explicitly if needed) -->
-        <dependency>
-            <groupId>com.alibaba.compileflow</groupId>
-            <artifactId>compileflow-deploy-api</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>com.alibaba.compileflow</groupId>
-            <artifactId>compileflow-deploy-api</artifactId>
-            <type>test-jar</type>
-            <classifier>tests</classifier>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.alibaba.compileflow</groupId>
-            <artifactId>compileflow-deploy-control-plane</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>com.alibaba.compileflow</groupId>
-            <artifactId>compileflow-deploy-runtime</artifactId>
-            <optional>true</optional>
         </dependency>
         <!-- Spring Boot AutoConfiguration -->
         <dependency>
@@ -60,11 +37,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-health</artifactId>
-            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
@@ -119,11 +91,6 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>commons-codec</groupId>
-            <artifactId>commons-codec</artifactId>
             <scope>test</scope>
         </dependency>
         <!-- Spring Framework -->

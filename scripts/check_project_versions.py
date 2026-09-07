@@ -58,6 +58,20 @@ def validate_project_versions(expected: str, release: bool) -> None:
             continue
         project = ET.parse(path).getroot()
         parent = project.find("m:parent", MAVEN_NAMESPACE)
+        group = project.findtext("m:groupId", namespaces=MAVEN_NAMESPACE)
+        if group is None and parent is not None:
+            group = parent.findtext("m:groupId", namespaces=MAVEN_NAMESPACE)
+        if group == "com.alibaba.compileflow":
+            version = project.findtext("m:version", namespaces=MAVEN_NAMESPACE)
+            if version is not None and version != expected:
+                errors.append(f"{path}: version {version!r}, expected {expected!r}")
+            alignment = project.findtext(
+                "m:properties/m:compileflow.version", namespaces=MAVEN_NAMESPACE
+            )
+            if alignment is not None and alignment != expected:
+                errors.append(
+                    f"{path}: compileflow.version {alignment!r}, expected {expected!r}"
+                )
         if parent is None:
             continue
         group = parent.findtext("m:groupId", namespaces=MAVEN_NAMESPACE)

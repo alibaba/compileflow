@@ -10,6 +10,7 @@ SERVER_TESTS=()
 TEST_SOURCE_ROOTS=(
   "$ROOT/compileflow-workbench-server/src/test/java"
   "$ROOT/compileflow-spring-boot-autoconfigure/src/test/java"
+  "$ROOT/compileflow-deploy/compileflow-deploy-spring-boot-autoconfigure/src/test/java"
 )
 for test_file in "${REQUIRED_CROSS_MODULE_TESTS[@]}"; do
   test -f "$test_file"

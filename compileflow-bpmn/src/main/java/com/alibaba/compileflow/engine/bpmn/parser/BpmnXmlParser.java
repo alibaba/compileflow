@@ -73,17 +73,11 @@ public class BpmnXmlParser extends AbstractFlowStreamParser<BpmnModel> {
         if (StringUtils.isEmpty(id)) {
             throw new CompileFlowException(ErrorCode.CF_VALIDATION_002, "Process has no id");
         }
-        BpmnModel bpmnModel = new BpmnModel();
-        bpmnModel.setId(id);
-        bpmnModel.setName(process.getName());
-        bpmnModel.setCode(id);
+        BpmnModel bpmnModel = new BpmnModel(process);
         bpmnModel.setDefinitionsId(definitions.getId());
         bpmnModel.setTargetNamespace(definitions.getTargetNamespace());
         bpmnModel.setTypeLanguage(definitions.getTypeLanguage());
         bpmnModel.setExpressionLanguage(definitions.getExpressionLanguage());
-        bpmnModel.addProcess(process);
-
-        bpmnModel.setVars(process.getVariables());
         buildFlowTransition(process);
 
         if (!messages.isEmpty()) {

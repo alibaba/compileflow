@@ -20,7 +20,6 @@ import static org.assertj.core.groups.Tuple.tuple;
 import com.alibaba.compileflow.engine.CompileFlowException;
 import com.alibaba.compileflow.engine.ErrorCode;
 import com.alibaba.compileflow.engine.ProcessModelType;
-import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
 import com.alibaba.compileflow.engine.config.ProcessExecutorConfig;
 import com.alibaba.compileflow.engine.core.concurrent.ProcessEngineExecutors;
 import com.alibaba.compileflow.engine.core.runtime.context.EngineExecutionContext;
@@ -432,7 +431,7 @@ class ParallelExecutorTest {
             .processCallInvoker(rejectingProcessCallInvoker())
             .executors(executors)
             .componentResolver(ProcessComponentResolver.disabled())
-            .scriptExecutors(ScriptExecutorRegistry.builtIns(ProcessEngineConfig.tbbpm()))
+            .scriptExecutors(ScriptExecutorRegistry.from(List.of()))
             .build());
     }
 }

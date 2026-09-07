@@ -14,6 +14,8 @@
 package com.alibaba.compileflow.engine.core.java.codegen;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.alibaba.compileflow.engine.core.java.naming.JavaNames;
+import com.alibaba.compileflow.engine.core.semantic.naming.ProcessNames;
 import org.junit.jupiter.api.Test;
 
 class JavaIdentifiersTest {
@@ -35,7 +37,7 @@ class JavaIdentifiersTest {
         assertThat(Character.isJavaIdentifierPart(0x200C)).isTrue();
         assertThat(Character.isIdentifierIgnorable(0x200C)).isTrue();
         assertThat(JavaIdentifiers.isJavaIdentifier(visuallyAmbiguous)).isFalse();
-        assertThat(JavaIdentifiers.isJavaClassName("example." + visuallyAmbiguous)).isFalse();
+        assertThat(JavaNames.isClassName("example." + visuallyAmbiguous)).isFalse();
         assertThat(JavaIdentifiers.toJavaIdentifier(visuallyAmbiguous)).isEqualTo("customer_id");
     }
 
@@ -57,8 +59,8 @@ class JavaIdentifiersTest {
 
     @Test
     void recognizesGeneratedAndMetadataNamespacesAsEngineOwned() {
-        assertThat(JavaIdentifiers.isCompileFlowReserved("_cf$nodeId")).isTrue();
-        assertThat(JavaIdentifiers.isCompileFlowReserved("__cf_effect_id")).isTrue();
-        assertThat(JavaIdentifiers.isCompileFlowReserved("customerId")).isFalse();
+        assertThat(ProcessNames.isReserved("_cf$nodeId")).isTrue();
+        assertThat(ProcessNames.isReserved("__cf_effect_id")).isTrue();
+        assertThat(ProcessNames.isReserved("customerId")).isFalse();
     }
 }

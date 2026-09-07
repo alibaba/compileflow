@@ -1,6 +1,3 @@
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import { expect, type Page, test } from '@playwright/test'
 
 /**
@@ -9,11 +6,9 @@ import { expect, type Page, test } from '@playwright/test'
  */
 
 const TIMEOUT = 25_000
-const ROOT = path.dirname(fileURLToPath(import.meta.url))
-const SHOT_DIR = path.join(ROOT, '../test-results/journey-review')
 
 async function shot(page: Page, name: string) {
-  await page.screenshot({ path: path.join(SHOT_DIR, `${name}.png`), fullPage: true })
+  await page.screenshot({ path: test.info().outputPath(`${name}.png`), fullPage: true })
 }
 
 function trackErrors(page: Page): Error[] {
@@ -74,7 +69,7 @@ test.describe('Workbench browser journey review', () => {
     await page.getByRole('tab', { name: '执行' }).click()
     await page.locator('.ant-tabs-tabpane-active').getByRole('button', { name: /执行/ }).click()
     await expect(
-      page.locator('.ant-message-notice').or(page.locator('[class*="execResult"]')).first()
+      page.locator('[class*="execResultBlock"]').getByText('执行成功', { exact: true })
     ).toBeVisible({
       timeout: TIMEOUT,
     })
@@ -135,6 +130,7 @@ test.describe('Workbench browser journey review', () => {
     await page.goto('/operate')
     await expect(page.getByRole('banner', { name: '主导航' })).toBeVisible({ timeout: TIMEOUT })
     await expect(page.getByText(/^operate\.[a-z]/)).toHaveCount(0)
+    await expect(page.getByText(/production · -/)).toHaveCount(0)
     await shot(page, '13-operate-home')
 
     await page
@@ -159,7 +155,7 @@ test.describe('Workbench browser journey review', () => {
       await page.getByRole('button', { name: '部署' }).first().click()
     }
     await page.waitForURL(/\/operate\/deploy-wizard/, { timeout: TIMEOUT })
-    await expect(page.getByRole('heading', { name: /部署向导/ })).toBeVisible({ timeout: TIMEOUT })
+    await expect(page.getByRole('heading', { name: /^部署$/ })).toBeVisible({ timeout: TIMEOUT })
     await shot(page, '16-deploy-wizard')
 
     // Version select (required).

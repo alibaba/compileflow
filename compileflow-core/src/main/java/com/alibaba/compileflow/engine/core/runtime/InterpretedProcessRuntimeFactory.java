@@ -15,8 +15,7 @@ package com.alibaba.compileflow.engine.core.runtime;
 
 import com.alibaba.compileflow.engine.config.JavaDiagnosticsConfig;
 import com.alibaba.compileflow.engine.core.java.compiler.JavaCompiler;
-import com.alibaba.compileflow.engine.core.semantic.ProcessSemanticCompiler;
-import com.alibaba.compileflow.engine.core.source.ProcessDefinitionSnapshot;
+import com.alibaba.compileflow.engine.core.semantic.ProcessSemanticCompiler.ProcessSemanticCompilation;
 import com.alibaba.compileflow.engine.core.runtime.action.ProcessActionInvoker;
 import com.alibaba.compileflow.engine.core.runtime.expression.CompiledExpressionEvaluator;
 import com.alibaba.compileflow.engine.core.runtime.expression.RuntimeExpressionCompiler;
@@ -29,46 +28,35 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Creates direct interpreted runtimes from the same semantic pipeline as compiled runtimes.
+ * Realizes shared process semantics as interpreted execution.
  *
  * @author yusu
  */
 public final class InterpretedProcessRuntimeFactory implements ProcessRuntimeFactory {
-    private final ProcessSemanticCompiler<?> semanticCompiler;
     private final RuntimeExpressionCompiler expressionCompiler;
     private final ProcessComponentResolver components;
     private final ScriptExecutorRegistry scripts;
 
-    public InterpretedProcessRuntimeFactory(ProcessSemanticCompiler<?> semanticCompiler, JavaCompiler javaCompiler,
-            JavaDiagnosticsConfig compilationConfig, ProcessComponentResolver components,
-            ScriptExecutorRegistry scripts) {
-        this.semanticCompiler = Objects.requireNonNull(semanticCompiler, "semanticCompiler");
+    public InterpretedProcessRuntimeFactory(JavaCompiler javaCompiler, JavaDiagnosticsConfig compilationConfig,
+            ProcessComponentResolver components, ScriptExecutorRegistry scripts) {
         this.expressionCompiler = new RuntimeExpressionCompiler(javaCompiler, compilationConfig);
         this.components = Objects.requireNonNull(components, "components");
         this.scripts = Objects.requireNonNull(scripts, "scripts");
     }
 
     @Override
-    public ProcessRuntime createRuntime(ProcessDefinitionSnapshot definition, ClassLoader classLoader) {
+    public ProcessRuntime createRuntime(ProcessSemanticCompilation compilation, ClassLoader classLoader) {
+        Objects.requireNonNull(compilation, "compilation");
         ClassLoader loader = Objects.requireNonNull(classLoader, "classLoader");
-        Thread thread = Thread.currentThread();
-        ClassLoader previous = thread.getContextClassLoader();
-        try {
-            thread.setContextClassLoader(loader);
-            ProcessSemanticCompiler.ProcessSemanticCompilation compilation = semanticCompiler.compile(definition);
-            ProcessRuntimeEligibilityChecker.validate(compilation.semanticPlan(), compilation.structuredPlan());
-            Map<ScriptProgramSpec, ScriptProgram> scriptPrograms =
-                    ScriptProgramCatalog.compile(compilation.semanticPlan(), scripts);
-            ProcessActionInvoker actions = new ProcessActionInvoker(components, scripts, loader, scriptPrograms);
-            InterpretedProcessRuntimeEligibilityChecker.validate(compilation.semanticPlan(), actions);
-            InterpretedExpressionCatalog catalog = new InterpretedExpressionCatalog(compilation.semanticPlan());
-            CompiledExpressionEvaluator evaluator =
-                    expressionCompiler.compile(compilation.semanticPlan().getProcessCode(), catalog.expressions(),
-                            loader);
-            return new InterpretedProcessRuntime(compilation.semanticPlan(), compilation.structuredPlan(), catalog,
-                    evaluator, actions, loader);
-        } finally {
-            thread.setContextClassLoader(previous);
-        }
+        ProcessRuntimeEligibilityChecker.validate(compilation.semanticPlan(), compilation.structuredPlan());
+        Map<ScriptProgramSpec, ScriptProgram> scriptPrograms =
+                ScriptProgramCatalog.compile(compilation.semanticPlan(), scripts);
+        ProcessActionInvoker actions = new ProcessActionInvoker(components, scripts, loader, scriptPrograms);
+        InterpretedProcessRuntimeEligibilityChecker.validate(compilation.semanticPlan(), actions);
+        InterpretedExpressionCatalog catalog = new InterpretedExpressionCatalog(compilation.semanticPlan());
+        CompiledExpressionEvaluator evaluator =
+                expressionCompiler.compile(compilation.semanticPlan().getProcessCode(), catalog.expressions(), loader);
+        return new InterpretedProcessRuntime(compilation.semanticPlan(), compilation.structuredPlan(), catalog,
+                evaluator, actions, loader);
     }
 }

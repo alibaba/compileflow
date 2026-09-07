@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:compileflow:durable:production-drill-evidence:v1",
-  "title": "CompileFlow Durable production drill evidence v1",
-  "description": "One scenario in a same-commit, same-environment production drill campaign. Cross-file and artifact integrity rules are enforced by scripts/verify_durable_production_evidence.py.",
+  "title": "CompileFlow Durable PostgreSQL production drill evidence v1",
+  "description": "One scenario in a same-commit, same-environment PostgreSQL production drill campaign. PostgreSQL system and timeline identity are required; this protocol does not certify MySQL production drills. Cross-file and artifact integrity rules are enforced by scripts/verify_durable_production_evidence.py.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -52,7 +52,7 @@
         "RESTORE_DURABLE_INVENTORY_RECONCILIATION",
         "START_RESPONSE_LOSS",
         "STATEMENT_TIMEOUT",
-        "TRIGGER_RESPONSE_LOSS",
+        "WAIT_COMPLETION_RESPONSE_LOSS",
         "WORKER_KILL_AFTER_BOUNDARY_COMMIT",
         "WORKER_KILL_AFTER_CLAIM",
         "WORKER_KILL_AFTER_EFFECT_REQUEST"

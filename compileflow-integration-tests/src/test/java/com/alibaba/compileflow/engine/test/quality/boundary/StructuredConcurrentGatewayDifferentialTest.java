@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.quality.boundary;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
@@ -35,11 +36,12 @@ class StructuredConcurrentGatewayDifferentialTest {
     @Test
     void generatedMixedGatewayGraphsMatchIndependentTokenOracle() {
         Random random = new Random(SEED);
-        try (ProcessEngine engine = ProcessEngineTestFactory.createTbbpm()) {
+        try (ProcessEngine engine = ProcessEngineTestFactory.create()) {
             for (int graphIndex = 0; graphIndex < GRAPH_COUNT; graphIndex++) {
                 ModelBuilder model = new ModelBuilder("test.gateway.concurrent-differential." + graphIndex);
                 Region root = model.region(random, 0, 4);
-                ProcessDefinition definition = ProcessDefinition.inline(model.code, model.render(root));
+                ProcessDefinition definition =
+                        ProcessDefinition.inline(ProcessModelType.TBBPM, model.code, model.render(root));
 
                 String javaSource = engine.tooling().generateJavaCode(definition);
                 for (String field : root.fields()) {

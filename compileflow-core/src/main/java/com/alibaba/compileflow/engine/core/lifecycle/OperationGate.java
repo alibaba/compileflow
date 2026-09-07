@@ -133,6 +133,39 @@ public final class OperationGate {
     }
 
     /**
+     * Stops admission and drains without allowing interruption to authorize early cleanup.
+     * Concurrent close callers wait for completed cleanup; interrupt status is preserved.
+     */
+    public DrainResult beginCloseAndAwaitDrained() {
+        if (isEnteredByCurrentThread()) {
+            throw new IllegalStateException(componentName + " cannot be closed from an active operation");
+        }
+        boolean interrupted = Thread.interrupted();
+        try {
+            if (!shutdown.compareAndSet(false, true)) {
+                while (closeCompleted.getCount() != 0L) {
+                    try {
+                        closeCompleted.await();
+                    } catch (InterruptedException ignored) {
+                        interrupted = true;
+                    }
+                }
+                return DrainResult.NOT_OWNER;
+            }
+            while (!isDrained()) {
+                LockSupport.parkNanos(DRAIN_POLL_NANOS);
+                interrupted |= Thread.interrupted();
+            }
+            cleanupStarted = true;
+            return DrainResult.DRAINED;
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    /**
      * Publishes completion of cleanup and releases concurrent close callers.
      */
     public void finishClose() {

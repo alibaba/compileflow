@@ -13,7 +13,7 @@
  */
 package com.alibaba.compileflow.workbench.server.deployment;
 
-import com.alibaba.compileflow.deploy.control.routing.RoutingOutboxAdminService;
+import com.alibaba.compileflow.deploy.control.outbox.RoutingOutboxAdminService;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Objects;

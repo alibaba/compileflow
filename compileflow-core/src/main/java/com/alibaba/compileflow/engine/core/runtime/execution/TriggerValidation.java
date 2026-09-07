@@ -48,13 +48,4 @@ public final class TriggerValidation {
         }
         return failure;
     }
-
-    public static CompileFlowException unknownNode(String nodeId) {
-        CompileFlowException failure =
-                new CompileFlowException(ErrorCode.CF_EXEC_008, "Unknown internal trigger-entry node '" + nodeId + "'");
-        if (nodeId != null) {
-            failure.withContext("nodeId", nodeId);
-        }
-        return failure;
-    }
 }

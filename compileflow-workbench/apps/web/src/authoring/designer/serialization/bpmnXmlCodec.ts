@@ -167,7 +167,7 @@ export function parseBpmnXml(xml: string): ParseResult<BpmnProcessDefinition> {
       connections,
       variables: parseProcessVariables(process),
       messages,
-      properties: {},
+      properties: { definitionAttributes: readDefinitionAttributes(definitions) },
     }
     return {
       success: true,
@@ -176,6 +176,48 @@ export function parseBpmnXml(xml: string): ParseResult<BpmnProcessDefinition> {
     }
   } catch (error) {
     return failure('UNSUPPORTED_BPMN', toError(error).message, error)
+  }
+}
+
+const DEFINITION_METADATA = [
+  'id',
+  'exporter',
+  'exporterVersion',
+  'typeLanguage',
+  'expressionLanguage',
+  'xsi:schemaLocation',
+] as const
+
+function readDefinitionAttributes(definitions: Element): Record<string, string> {
+  const attributes: Record<string, string> = {}
+  for (const name of DEFINITION_METADATA) {
+    const value =
+      name === 'xsi:schemaLocation'
+        ? definitions.getAttributeNS(XSI_NS, 'schemaLocation')
+        : definitions.getAttribute(name)
+    if (value !== null) attributes[name] = value
+  }
+  return attributes
+}
+
+function definitionAttributes(definition: BpmnProcessDefinition): Record<string, string> {
+  const raw = definition.properties?.definitionAttributes
+  if (!raw || typeof raw !== 'object') return {}
+  const attributes: Record<string, string> = {}
+  for (const name of DEFINITION_METADATA) {
+    const value: unknown = Reflect.get(raw, name)
+    if (typeof value === 'string') attributes[name] = value
+  }
+  return attributes
+}
+
+function appendDefinitionMetadata(
+  lines: string[],
+  metadata: Record<string, string>,
+  indent: string
+): void {
+  for (const [name, value] of Object.entries(metadata)) {
+    if (name !== 'id') lines.push(`${indent}${name}="${escapeXml(value)}"`)
   }
 }
 
@@ -723,7 +765,10 @@ export function generateBpmnXml(
 ): string {
   const { indent = '  ', includeDeclaration = true, encoding = 'UTF-8' } = options
   const processId = requiredText(definition.code || definition.id, 'BPMN process id')
-  const definitionsId = `Definitions_${processId}`
+  const metadata = definitionAttributes(definition)
+  const definitionsId = metadata.id
+    ? requiredText(metadata.id, 'definitions id')
+    : `Definitions_${processId}`
   const { connections, nodes } = definition
   const messages = resolveMessages(definition.messages || [])
   validateGeneratedGraph(processId, definitionsId, nodes, connections, messages)
@@ -742,6 +787,7 @@ export function generateBpmnXml(
   lines.push(`${indent}xmlns:cf="${CF_NS}"`)
   lines.push(`${indent}xmlns:xsi="${XSI_NS}"`)
   lines.push(`${indent}targetNamespace="${escapeXml(definition.namespace || CF_NS)}"`)
+  appendDefinitionMetadata(lines, metadata, indent)
   lines.push(`${indent}id="${escapeXml(definitionsId)}">`)
 
   messages.forEach((message) => {
@@ -1086,7 +1132,8 @@ function validateGeneratedGraph(
   connections: BpmnConnection[],
   messages: BpmnMessageDefinition[]
 ): void {
-  const ids = new Set([processId, definitionsId])
+  const ids = new Set([definitionsId])
+  addUniqueId(ids, processId)
   const messageIds = new Set(messages.map((message) => message.id))
   messages.forEach((message) => addUniqueId(ids, message.id))
   const nodesById = new Map<string, BpmnNode>()
@@ -1283,7 +1330,7 @@ function directChildrenNamed(element: Element, namespace: string, localName: str
 }
 
 function directChildText(element: Element, namespace: string, localName: string): string {
-  return directChildrenNamed(element, namespace, localName)[0]?.textContent?.trim() || ''
+  return directChildrenNamed(element, namespace, localName)[0]?.textContent || ''
 }
 
 interface QualifiedAttribute {

@@ -52,7 +52,7 @@ public class ExecutionLogEntity {
     @Column(nullable = false, length = 128)
     private String namespace;
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 32)
+    @Column(length = 32)
     private ProcessModelType modelType;
     @Column(length = 64)
     private String sourceDigest;

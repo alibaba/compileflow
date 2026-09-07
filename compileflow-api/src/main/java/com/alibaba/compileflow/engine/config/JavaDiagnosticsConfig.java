@@ -56,18 +56,6 @@ public final class JavaDiagnosticsConfig {
     }
 
     /**
-     * Creates a builder initialized from this immutable snapshot.
-     *
-     * @return mutable builder carrying all current values
-     */
-    public Builder toBuilder() {
-        return new Builder()
-            .debugSymbols(debugSymbols)
-            .debugOutputDirectory(debugOutputDirectory)
-            .debugBytecode(debugBytecodeEnabled);
-    }
-
-    /**
      * Returns debug metadata emitted into generated class files.
      *
      * @return debug metadata emitted into generated class files
@@ -103,11 +91,8 @@ public final class JavaDiagnosticsConfig {
         return debugOutputDirectory != null;
     }
 
-    ValidationResult validate() {
+    private ValidationResult validate() {
         ValidationResult result = ValidationResult.success();
-        if (debugSymbols == null) {
-            result = result.addError("javaDiagnostics.debugSymbols cannot be null");
-        }
         if (debugOutputDirectory != null && Files.exists(debugOutputDirectory)
                 && !Files.isDirectory(debugOutputDirectory)) {
             result = result.addError("javaDiagnostics.debugOutputDirectory must reference a directory");

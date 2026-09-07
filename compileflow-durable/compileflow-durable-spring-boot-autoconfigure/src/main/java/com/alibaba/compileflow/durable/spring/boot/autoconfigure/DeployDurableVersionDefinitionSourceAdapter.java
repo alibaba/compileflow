@@ -55,12 +55,11 @@ final class DeployDurableVersionDefinitionSourceAdapter implements DurableVersio
             .values()
             .stream()
             .collect(Collectors.toMap(ProcessCallBinding::callSiteId, ProcessCallBinding::target));
-        String computedDigest =
-                ProcessArtifactDigest.compute(artifact.getModelType(), artifact.getDefinition(), targets);
+        String computedDigest = ProcessArtifactDigest.compute(artifact.getDefinition(), targets);
         if (!artifact.getArtifactDigest().equals(computedDigest)) {
             throw DurableProcessException.of(DurableErrorCode.ARTIFACT_DIGEST_MISMATCH,
                     "Deploy Process Artifact content does not match its declared digest");
         }
-        return new VersionDefinition(artifact.getModelType(), artifact.getDefinition(), targets);
+        return new VersionDefinition(artifact.getDefinition(), targets);
     }
 }

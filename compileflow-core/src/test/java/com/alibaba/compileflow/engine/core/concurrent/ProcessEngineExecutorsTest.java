@@ -349,6 +349,41 @@ class ProcessEngineExecutorsTest {
     }
 
     @Test
+    void interruptedShutdownWaitsForForcedTerminationAndPreservesInterruptStatus() throws Exception {
+        ProcessEngineExecutors executors = ProcessEngineExecutors.create("interrupted-shutdown-test",
+                singleThreadConfig(), ProcessObservabilityConfig.defaults(), Duration.ofSeconds(1));
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch terminated = new CountDownLatch(1);
+        executors.event().execute(() -> {
+            started.countDown();
+            try {
+                new CountDownLatch(1).await();
+            } catch (InterruptedException expected) {
+                try {
+                    Thread.sleep(50L);
+                } catch (InterruptedException repeatedInterruption) {
+                    Thread.currentThread().interrupt();
+                }
+            } finally {
+                terminated.countDown();
+            }
+        });
+        assertThat(started.await(5, TimeUnit.SECONDS)).isTrue();
+
+        Thread.currentThread().interrupt();
+        try {
+            assertThatThrownBy(executors::close)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Interrupted while shutting down engine executors");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+            assertThat(terminated.getCount()).isZero();
+            assertThat(executors.event().isTerminated()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
     void saturatedEventPoolRejectsSoThePublisherCanRecover() throws Exception {
         ProcessExecutorConfig config =
                 ProcessExecutorConfig.builder().runtimeLoadMaxConcurrency(1).actionTimeoutMaxConcurrency(1).build();

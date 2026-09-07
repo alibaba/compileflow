@@ -11,31 +11,31 @@ The application or dependency-injection container owns supplied extension instan
 
 ## Package layout
 
-| Package                    | Contents                                                                                                 |
-|----------------------------|----------------------------------------------------------------------------------------------------------|
-| `engine`                   | Engine entry points and shared value types                                                               |
-| `engine.config`            | Immutable configuration and extension registration                                                       |
-| `engine.spi`               | `ProcessEngineProvider`, `ProcessEnginePlugin`, `ProcessEnginePluginContext`, `ProcessComponentResolver` |
-| `engine.spi.event`         | `ProcessEvent`, `ProcessEventListener`                                                                   |
-| `engine.spi.execution`     | `RetryPolicy`, `FailureHandler`, `ProcessContextPropagator`, and execution context values                |
-| `engine.spi.script`        | `ScriptExecutor`                                                                                         |
-| `engine.spi.observability` | `TraceIdProvider`                                                                                        |
-| `engine.spi.routing`       | Alias route authority, route-bound targeting configuration, and named targeting policies                       |
+| Package                    | Contents                                                                                  |
+| -------------------------- | ----------------------------------------------------------------------------------------- |
+| `engine`                   | Engine entry points and shared value types                                                |
+| `engine.config`            | Immutable configuration and extension registration                                        |
+| `engine.spi`               | `ProcessEnginePlugin`, `ProcessEnginePluginContext`, `ProcessComponentResolver`           |
+| `engine.spi.event`         | `ProcessEvent`, `ProcessEventListener`                                                    |
+| `engine.spi.execution`     | `RetryPolicy`, `FailureHandler`, `ProcessContextPropagator`, and execution context values |
+| `engine.spi.script`        | `ScriptExecutor`                                                                          |
+| `engine.spi.observability` | `TraceIdProvider`                                                                         |
+| `engine.spi.routing`       | Alias route authority, route-bound targeting configuration, and named targeting policies  |
 
 ## Extension Points
 
-| Capability                 | Config surface                         | Semantics                                                                            |
-|----------------------------|----------------------------------------|--------------------------------------------------------------------------------------|
-| `ProcessEventListener`     | `builder.eventListener(...)`           | Ordered, predicate-filtered fan-out; one listener failure is logged and isolated     |
-| `TraceIdProvider`          | `builder.traceIdProvider(...)`         | Supplies execution trace IDs; falls back to MDC `traceId`, then a random ID          |
-| `ProcessComponentResolver` | `builder.componentResolver(...)`       | Resolves application components referenced by generated process code                 |
-| `ProcessContextPropagator` | `builder.contextPropagator(...)`       | Carries application ambient context across engine-owned thread boundaries            |
-| `ProcessAliasRouteSource`  | `builder.aliasRouteSource(...)`        | Supplies the engine's single serving-ready Alias authority; never plugin-contributed |
-| `ProcessAliasTargetingPolicy` | `builder.aliasTargetingPolicy(...)` | Named route-bound override; empty delegates to fixed percentage selection            |
-| `ScriptExecutor`           | `builder.scriptExecutor(...)`          | Explicit-script-action language capability; each name must be unique                 |
-| `RetryPolicy`              | `builder.retryPolicy(name, ...)`       | Name-keyed exception predicate referenced by invocation policy `retryOn`             |
-| `FailureHandler`           | `builder.failureHandler(name, ...)`    | Name-keyed terminal decision referenced by invocation policy `onFailure`             |
-| `ProcessEnginePlugin`      | `builder.plugin(...)` or ServiceLoader | Groups listeners and named script, targeting, retry, and failure capabilities         |
+| Capability                    | Config surface                         | Semantics                                                                            |
+| ----------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------ |
+| `ProcessEventListener`        | `builder.eventListener(...)`           | Ordered, predicate-filtered fan-out; one listener failure is logged and isolated     |
+| `TraceIdProvider`             | `builder.traceIdProvider(...)`         | Supplies execution trace IDs; falls back to MDC `traceId`, then a random ID          |
+| `ProcessComponentResolver`    | `builder.componentResolver(...)`       | Resolves application components referenced by generated process code                 |
+| `ProcessContextPropagator`    | `builder.contextPropagator(...)`       | Carries application ambient context across engine-owned thread boundaries            |
+| `ProcessAliasRouteSource`     | `builder.aliasRouteSource(...)`        | Supplies the engine's single serving-ready Alias authority; never plugin-contributed |
+| `ProcessAliasTargetingPolicy` | `builder.aliasTargetingPolicy(...)`    | Named route-bound override; empty delegates to fixed percentage selection            |
+| `ScriptExecutor`              | `builder.scriptExecutor(...)`          | Explicit-script-action language capability; each name must be unique                 |
+| `RetryPolicy`                 | `builder.retryPolicy(name, ...)`       | Name-keyed exception predicate referenced by invocation policy `retryOn`             |
+| `FailureHandler`              | `builder.failureHandler(name, ...)`    | Name-keyed terminal decision referenced by invocation policy `onFailure`             |
+| `ProcessEnginePlugin`         | `builder.plugin(...)` or ServiceLoader | Groups listeners and named script, targeting, retry, and failure capabilities        |
 
 Retry policies and failure handlers are trusted, synchronous execution collaborators. They must be thread-safe,
 deterministic, non-blocking, and return a valid result. CompileFlow resolves every collaborator that can participate in
@@ -55,25 +55,24 @@ Script Tasks reference that key. TBBPM `scriptTask` uses
 `<scriptTask scriptFormat="language-name">`. Unknown languages fail during code generation or preflight,
 before execution. TBBPM declares Durable execution on its nested Action; BPMN declares
 `cf:execution="replayable|effect"` directly on `scriptTask`. The Kernel does not own
-historical Provider compatibility. Exclusive-gateway, While, Timer, and transition expressions remain generated Java source and do not use
+Provider persistence or security semantics. Exclusive-gateway, While, Timer, and transition expressions remain generated Java source and do not use
 `ScriptExecutor`. Script-action source and variable names are escaped as Java literals in generated runtime code.
 
 Compiler, parser, graph-analysis, and format dispatch types are internal. The
-[Supported Surfaces](../architecture/06-SUPPORTED_SURFACES.en.md) page lists the public contract.
+[Supported Surfaces](architecture/supported-surfaces.md) page lists the public contract.
 
-`ProcessEngineProvider` is the bootstrap SPI used by `ProcessEngineFactory`. Missing or ambiguous providers fail engine
-creation. Because `ProcessModelType` is closed, a provider can replace an implementation of a known format but cannot
-add a format. In Spring, declare a `ProcessEngine` bean to replace the complete engine; auto-configuration then backs
-off.
+`ProcessEngineProvider` is version-coupled API/Core bootstrap plumbing, not a Supported extension SPI.
+Core supplies the sole bootstrap; missing or ambiguous providers fail construction. Semantic frontends are discovered
+separately. In Spring, declare a `ProcessEngine` bean to replace the complete engine; auto-configuration backs off.
 
 An engine has exactly one explicitly configured `ProcessAliasRouteSource`. It returns complete, serving-ready immutable
-routes and must not fall back to another authority. It is deliberately excluded from plugin aggregation so construction
+routes and must not fall back to another authority. It is excluded from plugin aggregation so construction
 cannot silently select between multiple route authorities.
 
 A `ProcessAliasTargetingPolicy` is registered by stable lowercase kebab-case name and remains inert unless an
 authoritative route explicitly references that name through `AliasTargeting`. It receives the authorized stable and
 candidate versions, immutable route parameters, and only the routing key and immutable string attributes explicitly
-supplied through `ProcessExecutionOptions`; candidate weight is intentionally absent. It may force `STABLE` or
+supplied through `ProcessExecutionOptions`; candidate weight is not exposed. It may force `STABLE` or
 `CANDIDATE`, or return empty to use CompileFlow's fixed deterministic percentage selector. There is no public
 percentage-selection SPI.
 
@@ -95,13 +94,13 @@ ProcessComponentResolver components = new ProcessComponentResolver() {
     }
 };
 
-ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder()
+ProcessEngineConfig config = ProcessEngineConfig.builder()
         .eventListener(new MetricsListener(meterRegistry))
         .traceIdProvider(TraceIdProvider.random())
         .componentResolver(components)
-        .scriptExecutor(new AviatorScriptExecutor())
-        .retryPolicy("optimisticConflict", error -> error instanceof OptimisticLockException)
-        .failureHandler("continueOptional", context -> FailureResolution.CONTINUE_PROCESS)
+        .scriptExecutor(new CustomScriptExecutor())
+        .retryPolicy("optimistic-conflict", error -> error instanceof OptimisticLockException)
+        .failureHandler("continue-optional", context -> FailureResolution.CONTINUE_PROCESS)
         .build();
 
 ProcessEngine engine = ProcessEngineFactory.create(config);
@@ -110,9 +109,9 @@ ProcessEngine engine = ProcessEngineFactory.create(config);
 Extension instances must be thread-safe: one immutable configuration can create multiple engines, and an engine may call
 an extension concurrently. `engine.close()` does not close supplied collaborators.
 
-Custom retry-policy and failure-handler names are trimmed, case-sensitive identifiers. They must contain 1 to 256
-characters and no ISO control characters. The built-in names `never`, `transient`, `always`, `propagate`, and
-`continue` are reserved case-insensitively. A missing custom name, a thrown policy/handler exception, or a `null`
+Custom retry-policy and failure-handler registration keys are exact lowercase kebab-case identifiers of 1 to 256
+characters; whitespace is rejected, not trimmed. Built-in retry keys `never`, `transient`, and `always` and failure
+keys `propagate` and `continue` are reserved in their respective registries. A missing custom name, a thrown policy/handler exception, or a `null`
 failure resolution fails execution; CompileFlow does not silently substitute a built-in behavior.
 
 ### Application components and actions
@@ -151,19 +150,17 @@ that default.
 Implement `ProcessEnginePlugin` and register any combination of capabilities:
 
 ```java
-public final class AviatorPlugin implements ProcessEnginePlugin {
+public final class CustomPlugin implements ProcessEnginePlugin {
     @Override
     public void apply(ProcessEnginePluginContext context) {
-        if (context.getModelType() == ProcessModelType.TBBPM) {
-            context.scriptExecutor(new AviatorScriptExecutor());
-            context.eventListener(new AviatorCompilationListener());
-            context.retryPolicy("aviatorTransient", new AviatorRetryPolicy());
-        }
+        context.scriptExecutor(new CustomScriptExecutor());
+        context.eventListener(new CustomCompilationListener());
+        context.retryPolicy("custom-transient", new CustomRetryPolicy());
     }
 
     @Override
     public String id() {
-        return "com.example.aviator";
+        return "com.example.custom";
     }
 
     @Override
@@ -177,7 +174,7 @@ Declare it in the standard service file
 `META-INF/services/com.alibaba.compileflow.engine.spi.ProcessEnginePlugin`:
 
 ```text
-com.example.AviatorPlugin
+com.example.CustomPlugin
 ```
 
 Classpath is configuration: adding a dependency that contains a ServiceLoader `ProcessEnginePlugin` can change the
@@ -194,7 +191,7 @@ Plugin ID and priority are read once during configuration building.
 Discovery is disabled by default and can be enabled only when the dependency graph is an approved extension boundary:
 
 ```java
-ProcessEngineConfig.tbbpmBuilder().discoverPlugins(true).build();
+ProcessEngineConfig.builder().discoverPlugins(true).build();
 ```
 
 A plugin that throws during `apply` fails engine configuration fast; configuration-time errors are never silently
@@ -203,7 +200,7 @@ skipped. Runtime listener failures, by contrast, are isolated and logged.
 ## Invocation Ownership
 
 Extension hosts own discovery, ordering, matching, diagnostics, failure isolation, and instance lifetime. The public SPI
-deliberately exposes typed capability contracts rather than a generic invocation utility, so each host keeps its
+exposes typed capability contracts rather than a generic invocation utility, so each host keeps its
 domain-specific selection and failure semantics local. Plugin implementations contribute capabilities through
 `ProcessEnginePluginContext`.
 
@@ -221,18 +218,18 @@ class EngineExtensions {
     }
 
     @Bean
-    ScriptExecutor aviatorExecutor() {
-        return new AviatorScriptExecutor();
+    ScriptExecutor customScriptExecutor() {
+        return new CustomScriptExecutor();
     }
 
     @Bean
-    RetryPolicy optimisticConflict() {
-        return error -> error instanceof OptimisticLockException;
-    }
-
-    @Bean
-    FailureHandler continueOptional() {
-        return context -> FailureResolution.CONTINUE_PROCESS;
+    ProcessEnginePlugin invocationPolicies() {
+        return ProcessEnginePlugin.of("com.example.invocation-policies", context -> {
+            context.retryPolicy("optimistic-conflict",
+                    error -> error instanceof OptimisticLockException);
+            context.failureHandler("continue-optional",
+                    failure -> FailureResolution.CONTINUE_PROCESS);
+        });
     }
 
     @Bean
@@ -246,8 +243,9 @@ class EngineExtensions {
   case-insensitive language name; ambiguous beans fail configuration instead of selecting a winner from incidental bean
   order. Plugin precedence is portable across Spring and standalone use:
   `ProcessEnginePlugin.priority()`, then stable `id()`.
-- `RetryPolicy` and `FailureHandler` beans are registered under their exact Spring bean names. A direct builder or
-  Spring bean contribution replaces a plugin contribution with the same name.
+- Register `RetryPolicy` and `FailureHandler` through `ProcessEngineConfig.Builder` or a `ProcessEnginePlugin`,
+  including a Spring-managed Plugin bean as above. The explicit registration map key owns the name, not the Spring
+  bean name. Bare retry/failure beans are not collected. A direct builder registration may replace a same-key plugin contribution.
 - At most one `TraceIdProvider`, one custom `ProcessComponentResolver`, and one `ProcessContextPropagator` bean may exist.
 - With Micrometer Context Propagation on the classpath, the starter supplies the context propagator unless the
   application declares one.
@@ -261,12 +259,12 @@ class EngineExtensions {
 `ProcessEventListener.supports(ProcessEvent)` may reject unrelated immutable lifecycle events before
 `onEvent(ProcessEvent)` is called. Both predicate and delivery failures are isolated and logged:
 
-| Event type                                   | Payload highlights                                                           |
-|----------------------------------------------|------------------------------------------------------------------------------|
-| `ExecutionStarted`                           | process code and invocation ID                                               |
-| `ExecutionCompleted` / `ExecutionFailed`     | controlled `ProcessExecution`, operational `ExecutionAttribution`, duration, and typed `ProcessError` on failure |
-| `TriggerStarted`                             | process code, invocation ID, and typed `ProcessTrigger`                      |
-| `TriggerCompleted` / `TriggerFailed`         | controlled `ProcessExecution`, operational `ExecutionAttribution`, trigger, duration, and typed error on failure |
+| Event type                               | Payload highlights                                                                                               |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `ExecutionStarted`                       | process code and invocation ID                                                                                   |
+| `ExecutionCompleted` / `ExecutionFailed` | controlled `ProcessExecution`, operational `ExecutionAttribution`, duration, and typed `ProcessError` on failure |
+| `TriggerStarted`                         | process code, invocation ID, and typed `ProcessTrigger`                                                          |
+| `TriggerCompleted` / `TriggerFailed`     | controlled `ProcessExecution`, operational `ExecutionAttribution`, trigger, duration, and typed error on failure |
 
 When `ProcessObservabilityConfig.eventsAsync` is `true` (the default), events dispatch on the engine-owned event
 executor, which the engine closes on shutdown. The trace ID is captured on the publishing thread before any async
@@ -279,7 +277,7 @@ application listeners on the process caller thread. Listener order within one ev
 
 Installing, upgrading, or unloading plugin JARs at runtime is not supported. Add a plugin JAR and restart the
 application. Flow-definition hot deployment is provided by `compileflow-deploy`. The supported extension boundary is
-listed in [Supported Surfaces](../architecture/06-SUPPORTED_SURFACES.en.md).
+listed in [Supported Surfaces](architecture/supported-surfaces.md).
 
 Service-loaded plugins should be reusable configuration providers and should not create independently closeable
 resources. Resource-owning collaborators belong in explicit application configuration or Spring beans, where their owner

@@ -72,6 +72,19 @@ class VerifyWorkbenchPostgresEvidenceTest(unittest.TestCase):
 
             self.assertTrue(any("found 0" in error for error in errors))
 
+    def test_requires_embedded_execution_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for test_class, methods in REQUIRED_METHODS.items():
+                if test_class != "EmbeddedDeploymentExecutionIntegrationTest":
+                    write_report(root, test_class, methods, module=test_class)
+
+            errors = verify_reports(root)
+
+            self.assertTrue(
+                any("EmbeddedDeploymentExecutionIntegrationTest, found 0" in error for error in errors)
+            )
+
     def test_rejects_duplicate_report(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

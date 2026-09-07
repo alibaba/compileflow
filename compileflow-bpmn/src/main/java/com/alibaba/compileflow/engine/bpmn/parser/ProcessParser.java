@@ -17,8 +17,6 @@ import com.alibaba.compileflow.engine.bpmn.model.BpmnModelConstants;
 import com.alibaba.compileflow.engine.bpmn.model.Process;
 import com.alibaba.compileflow.engine.core.xml.parser.ParseContext;
 import com.alibaba.compileflow.engine.core.xml.parser.XmlSource;
-import com.alibaba.compileflow.engine.core.model.AbstractFlowElement;
-import com.alibaba.compileflow.engine.core.model.Element;
 
 /**
  * XML parser for BPMN process elements.
@@ -37,15 +35,6 @@ public class ProcessParser extends AbstractBpmnElementParser<Process> {
                     executable));
         }
         return process;
-    }
-
-    @Override
-    protected void attachChildElement(Element childElement, Process element, ParseContext parseContext) {
-        if (childElement instanceof AbstractFlowElement) {
-            element.addElement((AbstractFlowElement) childElement);
-        } else {
-            super.attachChildElement(childElement, element, parseContext);
-        }
     }
 
     @Override

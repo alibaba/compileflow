@@ -28,7 +28,8 @@ class AbstractFlowModelReaderTest {
     @Test
     void rejectsNullParserResultWithTypedSystemFailure() {
         byte[] source = "<process/>".getBytes(StandardCharsets.UTF_8);
-        ProcessDefinitionSnapshot definition = ProcessDefinitionSnapshot.of("default", "order", "v1", source, "test");
+        ProcessDefinitionSnapshot definition =
+                ProcessDefinitionSnapshot.of(ProcessModelType.TBBPM, "default", "order", "v1", source, "test");
         NullFlowModelReader reader = new NullFlowModelReader();
 
         assertThatExceptionOfType(CompileFlowException.class)

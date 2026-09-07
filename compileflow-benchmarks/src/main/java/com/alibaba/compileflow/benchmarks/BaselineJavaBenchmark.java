@@ -28,8 +28,8 @@ import org.openjdk.jmh.annotations.Warmup;
  * Hand-written Java baseline for the {@code value + 2} flow used by
  * {@link CompileFlowExecuteBenchmark}.
  *
- * <p>The CompileFlow hot-path number should approach this baseline after the
- * engine is warm. Quoting a single ratio (e.g. {@code 1.3x baseline}) is not
+ * <p>This arithmetic baseline omits process admission, attribution, and output mapping.
+ * Quoting a single ratio (e.g. {@code 1.3x baseline}) is not
  * meaningful without the JDK, OS, CPU, and fork configuration documented in the
  * benchmarks README. Always publish the raw JSON output alongside any
  * summary.

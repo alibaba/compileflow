@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.quality.boundary;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
@@ -20,7 +21,6 @@ import com.alibaba.compileflow.engine.CompileFlowException;
 import com.alibaba.compileflow.engine.ErrorCode;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessResult;
 import com.alibaba.compileflow.engine.config.ProcessExecutorConfig;
 import com.alibaba.compileflow.engine.core.java.compiler.GeneratedClassCompiler;
@@ -38,8 +38,18 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 class ParallelBranchIsolationIntegrationTest {
+    @Test
+    @Timeout(7)
+    void missingOutputConfirmationFailsWithinTheTestDeadline() {
+        AtomicParallelService.reset();
+        assertThatThrownBy(new AtomicParallelService()::failAfterOutputWritten)
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessage("Timed out waiting for branch output confirmation");
+    }
+
     private static final String CODE = "test.gateway.atomicParallelCommit";
     private static final Pattern PACKAGE = Pattern.compile("(?m)^package\\s+([^;]+);");
     private static final Pattern PUBLIC_CLASS =
@@ -266,8 +276,10 @@ class ParallelBranchIsolationIntegrationTest {
     @Test
     void failedSiblingCannotPublishACompletedBranchOutput() throws Exception {
         String source;
-        try (ProcessEngine engine = ProcessEngineTestFactory.createTbbpm()) {
-            source = engine.tooling().generateJavaCode(ProcessDefinition.inline(CODE, definition()));
+        try (ProcessEngine engine = ProcessEngineTestFactory.create()) {
+            source = engine
+                .tooling()
+                .generateJavaCode(ProcessDefinition.inline(ProcessModelType.TBBPM, CODE, definition()));
         }
         assertThat(source)
             .contains("for (var _cf$branchResult : _cf$branches.run()) {")
@@ -283,14 +295,15 @@ class ParallelBranchIsolationIntegrationTest {
         AtomicParallelService.reset();
         ProcessEngineExecutors executors =
                 ProcessEngineExecutors.create("parallel-isolation-test", ProcessExecutorConfig.defaults());
-        ScriptExecutorRegistry scripts = ScriptExecutorRegistry.builtIns(ProcessEngineTestFactory.tbbpmConfig());
+        ScriptExecutorRegistry scripts =
+                ScriptExecutorRegistry.builtIns(ProcessEngineTestFactory.config().getClassLoader());
         try {
             EngineExecutionContext context = EngineExecutionContext
                 .builder()
                 .invocationId("parallel-isolation-invocation")
+                .modelType(ProcessModelType.TBBPM)
                 .namespace("default")
                 .processCode(CODE)
-                .modelType(ProcessModelType.TBBPM)
                 .sourceDigest("0".repeat(64))
                 .processCallInvoker((callGraph, target, variables) -> {
                     throw new AssertionError("Process calls are not expected in this test");
@@ -322,9 +335,10 @@ class ParallelBranchIsolationIntegrationTest {
     @Test
     void serialLoopInsideParallelBranchExecutesOnItsBranchFrame() throws Exception {
         ProcessDefinition definition =
-                ProcessDefinition.inline("test.gateway.parallelLoop", parallelLoopDefinition(false));
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "test.gateway.parallelLoop",
+                        parallelLoopDefinition(false));
 
-        try (ProcessEngine engine = ProcessEngineTestFactory.createTbbpm()) {
+        try (ProcessEngine engine = ProcessEngineTestFactory.create()) {
             String source = engine.tooling().generateJavaCode(definition);
 
             assertThat(source).contains("LoopSemantics.<Integer>snapshot(this.numbers, \"loop\", Integer.class)");
@@ -344,10 +358,10 @@ class ParallelBranchIsolationIntegrationTest {
 
     @Test
     void loopEffectsConflictWithSiblingBeforeJavaGeneration() {
-        ProcessDefinition definition =
-                ProcessDefinition.inline("test.gateway.parallelLoopConflict", parallelLoopDefinition(true));
+        ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.TBBPM,
+                "test.gateway.parallelLoopConflict", parallelLoopDefinition(true));
 
-        try (ProcessEngine engine = ProcessEngineTestFactory.createTbbpm()) {
+        try (ProcessEngine engine = ProcessEngineTestFactory.create()) {
             assertThatThrownBy(() -> engine.tooling().generateJavaCode(definition))
                 .hasMessageContaining("conflicting process-variable access: sum");
         }
@@ -355,10 +369,10 @@ class ParallelBranchIsolationIntegrationTest {
 
     @Test
     void embeddedBpmnSubProcessInsideParallelBranchExecutesOnce() throws Exception {
-        ProcessDefinition definition =
-                ProcessDefinition.inline("test.gateway.bpmnParallelSubProcess", bpmnParallelSubProcessDefinition());
+        ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.BPMN,
+                "test.gateway.bpmnParallelSubProcess", bpmnParallelSubProcessDefinition());
 
-        try (ProcessEngine engine = ProcessEngineTestFactory.createBpmn()) {
+        try (ProcessEngine engine = ProcessEngineTestFactory.create()) {
             String source = engine.tooling().generateJavaCode(definition);
 
             assertThat(occurrences(source, "new MockJavaService().add(this.a, this.b)"))

@@ -1,13 +1,11 @@
-# Durable 外层密钥生命周期
+# Durable 密钥与令牌生命周期
 
-CompileFlow Durable 内核不持有请求身份 HMAC 根密钥、分页 token keyring、payload 加密密钥身份或应用 codec 密钥。
-请求去重和 opaque page token 由定义相应协议的 HTTP、RPC 或 MQ adapter 负责；按 adapter 的生命周期轮换密钥，
-不会改变 Durable Store 的身份。
+CompileFlow Durable 内核不管理请求身份 HMAC 根密钥、分页令牌密钥、载荷加密密钥或应用编解码密钥。请求去重和不透明分页令牌由定义相应协议的 HTTP、RPC 或 MQ 适配器负责，其密钥可按适配器自身的生命周期轮换，不影响 Durable 存储中的身份数据。
 
-## Wait Token
+## Wait 令牌
 
-Wait Token 是随机 Bearer Capability，Store 只持久化 SHA-256 Digest，不存在 Durable Wait-Token Keyring。Plaintext
-Token 只能通过认证 Outbox Channel 传递，Integration 长期映射必须按凭据保护。禁止写入日志、metric label、普通 URL、第三方
-metadata 或 Workbench view。发生泄露时尽可能阻断投递，检查其提交状态，并且不得为同一 Wait Boundary 签发另一个结果。
+Wait 令牌是随机生成的持有者凭证。Wait 权威记录只保存令牌的 SHA-256 摘要，因此没有需要轮换的 Durable Wait 令牌密钥。为保证投递可从崩溃中恢复，处于活动状态的 Outbox 记录会暂存明文令牌，直到投递成功，或对应的 Wait 已完成、取消或过期。
+
+Outbox 及长期保存的集成映射都必须按凭据存储进行保护。不得将令牌写入日志、指标标签、浏览器可见的 URL、第三方元数据或 Workbench 页面。令牌泄露后，应尽可能阻断投递并核实提交状态，不得为同一个 Wait 边界生成另一个结果。
 
 参见 [运维手册](durable-operations-runbook.md)。

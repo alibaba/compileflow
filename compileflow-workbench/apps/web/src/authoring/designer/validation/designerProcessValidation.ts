@@ -19,13 +19,14 @@ function severityToLevel(severity: 'error' | 'warning' | 'info'): ValidationLeve
 function mapNodeValidationErrors(
   errors: Array<{
     elementId: string
+    elementType?: 'connection'
     code: string
     params?: Record<string, string | number>
     severity: 'error' | 'warning' | 'info'
   }>
 ): ValidationIssue[] {
   return errors.map((error) => {
-    const isConnection = error.elementId.startsWith('conn_')
+    const isConnection = error.elementType === 'connection'
     const isProcess = error.elementId === 'process'
     return {
       level: severityToLevel(error.severity),

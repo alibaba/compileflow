@@ -126,6 +126,77 @@ describe('processStorage import/export helpers', () => {
     })
   })
 
+  it.each(['merge', 'replace'] as const)(
+    'preserves exact source content during %s import',
+    async (mode) => {
+      const { importData } = await import('../processStorage')
+      const definition = ' \n<definitions><!-- exact source --></definitions>\r\n '
+      const data = createExport({
+        processes: [{ ...createProcess('process-a'), definition }],
+        snapshots: [{ ...createSnapshot('snapshot-a', 'process-a'), definition }],
+        templates: [{ ...createTemplate('template-a'), content: definition }],
+      })
+
+      await expect(importData(data, { mode })).resolves.toEqual({
+        success: 3,
+        skipped: 0,
+        failed: 0,
+      })
+
+      if (mode === 'replace') {
+        expect(mocks.processStorage.replaceAll).toHaveBeenCalledWith({
+          processes: data.processes,
+          snapshots: data.snapshots,
+          templates: data.templates,
+        })
+      } else {
+        expect(mocks.processStorage.saveProcess).toHaveBeenCalledWith(data.processes[0])
+        expect(mocks.processStorage.saveSnapshot).toHaveBeenCalledWith(data.snapshots[0])
+        expect(mocks.processStorage.saveTemplate).toHaveBeenCalledWith(data.templates[0])
+      }
+    }
+  )
+
+  it.each(['merge', 'replace'] as const)(
+    'round-trips empty and whitespace metadata during %s import',
+    async (mode) => {
+      const { exportAllData, importData } = await import('../processStorage')
+      const workspace = {
+        processes: [
+          {
+            ...createProcess(' process-a '),
+            name: ' Process A ',
+            description: '',
+            category: '  ',
+            tags: [' tag '],
+          },
+        ],
+        snapshots: [
+          {
+            ...createSnapshot(' snapshot-a ', ' process-a '),
+            changeLog: '',
+            tag: ' release ',
+          },
+        ],
+        templates: [{ ...createTemplate(' template-a '), description: '', category: ' category ' }],
+      }
+      mocks.processStorage.readAll.mockResolvedValue(workspace)
+
+      await expect(importData(await exportAllData(), { mode })).resolves.toEqual({
+        success: 3,
+        skipped: 0,
+        failed: 0,
+      })
+      if (mode === 'replace') {
+        expect(mocks.processStorage.replaceAll).toHaveBeenCalledWith(workspace)
+      } else {
+        expect(mocks.processStorage.saveProcess).toHaveBeenCalledWith(workspace.processes[0])
+        expect(mocks.processStorage.saveSnapshot).toHaveBeenCalledWith(workspace.snapshots[0])
+        expect(mocks.processStorage.saveTemplate).toHaveBeenCalledWith(workspace.templates[0])
+      }
+    }
+  )
+
   it('merges new records and skips duplicate processes, snapshots, and templates', async () => {
     const { importData } = await import('../processStorage')
     mocks.processStorage.loadProcess.mockResolvedValueOnce(createProcess('process-a'))
@@ -139,6 +210,23 @@ describe('processStorage import/export helpers', () => {
     expect(mocks.processStorage.saveSnapshot).toHaveBeenCalledOnce()
     expect(mocks.processStorage.saveTemplate).not.toHaveBeenCalled()
   })
+
+  it.each(['process', 'snapshot', 'template'])(
+    'rejects blank %s source before writing',
+    async (kind) => {
+      const { importData } = await import('../processStorage')
+      const data = createExport()
+      if (kind === 'process') data.processes[0]!.definition = ' \r\n '
+      if (kind === 'snapshot') data.snapshots[0]!.definition = ' \r\n '
+      if (kind === 'template') data.templates[0]!.content = ' \r\n '
+
+      await expect(importData(data, { mode: 'replace' })).rejects.toThrow(
+        'Source content must not be blank'
+      )
+      expect(mocks.processStorage.replaceAll).not.toHaveBeenCalled()
+      expect(mocks.processStorage.saveProcess).not.toHaveBeenCalled()
+    }
+  )
 
   it('counts every newly merged record', async () => {
     const { importData } = await import('../processStorage')

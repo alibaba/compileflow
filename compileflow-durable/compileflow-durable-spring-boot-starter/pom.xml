@@ -13,12 +13,12 @@
 
     <artifactId>compileflow-durable-spring-boot-starter</artifactId>
     <name>CompileFlow Durable Spring Boot Starter</name>
-    <description>Provider-neutral opt-in Durable Runtime starter.</description>
+    <description>Format- and Provider-neutral opt-in Durable Runtime starter.</description>
 
     <dependencies>
         <dependency>
-            <groupId>com.alibaba.compileflow</groupId>
-            <artifactId>compileflow-spring-boot-starter</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
         <dependency>
             <groupId>com.alibaba.compileflow</groupId>

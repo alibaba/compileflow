@@ -26,7 +26,7 @@ public record ParallelForEachFrame(String loopId, int position, Object currentVa
         if (position < 0) {
             throw new IllegalArgumentException("parallel foreach position must be non-negative");
         }
-        currentValue = DurableValueSnapshots.detachedValue(currentValue);
+        currentValue = DurableValueSnapshots.immutableValue(currentValue);
     }
 
     @Override

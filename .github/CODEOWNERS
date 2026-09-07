@@ -1,24 +1,26 @@
 # Default ownership for CompileFlow.
-* @kangzhiqiang
+* @yusu1210
 
 # Repository operations and community health.
-/.github/ @kangzhiqiang
-/CONTRIBUTING.md @kangzhiqiang
-/MAINTAINERS.md @kangzhiqiang
-/SECURITY.md @kangzhiqiang
-/SUPPORT.md @kangzhiqiang
+/.github/ @yusu1210
+/CONTRIBUTING.md @yusu1210
+/MAINTAINERS.md @yusu1210
+/SECURITY.md @yusu1210
+/SUPPORT.md @yusu1210
 
 # Java modules.
-/compileflow-api/ @kangzhiqiang
-/compileflow-core/ @kangzhiqiang
-/compileflow-tbbpm/ @kangzhiqiang
-/compileflow-bpmn/ @kangzhiqiang
-/compileflow-deploy/ @kangzhiqiang
-/compileflow-spring-boot-autoconfigure/ @kangzhiqiang
-/compileflow-spring-boot-starter/ @kangzhiqiang
-/compileflow-integration-tests/ @kangzhiqiang
-/compileflow-workbench-server/ @kangzhiqiang
+/compileflow-api/ @yusu1210
+/compileflow-core/ @yusu1210
+/compileflow-tbbpm/ @yusu1210
+/compileflow-bpmn/ @yusu1210
+/compileflow-deploy/ @yusu1210
+/compileflow-spring-boot-autoconfigure/ @yusu1210
+/compileflow-spring-boot-starter/ @yusu1210
+/compileflow-spring-boot-starter-tbbpm/ @yusu1210
+/compileflow-spring-boot-starter-bpmn/ @yusu1210
+/compileflow-integration-tests/ @yusu1210
+/compileflow-workbench-server/ @yusu1210
 
 # Workbench and documentation.
-/compileflow-workbench/ @kangzhiqiang
-/docs/ @kangzhiqiang
+/compileflow-workbench/ @yusu1210
+/docs/ @yusu1210

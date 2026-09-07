@@ -20,16 +20,21 @@ import static com.alibaba.compileflow.engine.core.runtime.RuntimeTestFixtures.ve
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.alibaba.compileflow.engine.CompileFlowException;
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.config.ProcessExecutorConfig;
 import com.alibaba.compileflow.engine.core.concurrent.ProcessEngineExecutors;
 import com.alibaba.compileflow.engine.core.runtime.NoOpProcessRuntime;
 import com.alibaba.compileflow.engine.core.runtime.ProcessRuntime;
 import com.alibaba.compileflow.engine.core.runtime.ProcessRuntimeEntry;
+import com.alibaba.compileflow.engine.core.runtime.ProcessRuntimeIdentity;
 import com.alibaba.compileflow.engine.core.runtime.ProcessRuntimeFactory;
 import com.alibaba.compileflow.engine.core.runtime.ProcessRuntimeRequest;
 import com.alibaba.compileflow.engine.core.runtime.cache.DefaultProcessRuntimeCache;
 import com.alibaba.compileflow.engine.core.runtime.cache.ProcessRuntimeCache.ReleaseResult;
+import com.alibaba.compileflow.engine.core.controlflow.StructuredControlFlowAnalyzer;
+import com.alibaba.compileflow.engine.core.semantic.ProcessSemanticCompiler.ProcessSemanticCompilation;
+import com.alibaba.compileflow.engine.core.semantic.plan.ProcessSemanticPlan;
+import com.alibaba.compileflow.engine.core.source.ProcessDefinitionSnapshot;
+import java.util.function.Function;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
@@ -42,6 +47,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 class DefaultProcessRuntimeLoaderTest {
     private static final ProcessRuntime TEST_RUNTIME = NoOpProcessRuntime.INSTANCE;
@@ -49,6 +56,72 @@ class DefaultProcessRuntimeLoaderTest {
 
     private static ProcessRuntimeRequest source(String namespace) {
         return versioned(namespace, "order.checkout", "1", "<process/>");
+    }
+
+    private static ProcessSemanticCompilation compilation(ProcessDefinitionSnapshot source) {
+        ProcessSemanticPlan plan = new ProcessSemanticPlan(source.getCode(),
+                TEST_RUNTIME.getSemanticPlan().getVariables(), TEST_RUNTIME.getSemanticPlan().getNodes());
+        return new ProcessSemanticCompilation(plan, new StructuredControlFlowAnalyzer().analyze(plan));
+    }
+
+    @ParameterizedTest
+    @EnumSource(FailureStage.class)
+    void scopesBothStagesAndRestoresWorkerClassLoader(FailureStage stage) throws Exception {
+        ClassLoader compilationLoader = new ClassLoader(getClass().getClassLoader()) {
+        };
+        AtomicInteger frontendCalls = new AtomicInteger();
+        AtomicInteger backendCalls = new AtomicInteger();
+        AtomicReference<ProcessSemanticCompilation> compiled = new AtomicReference<>();
+        RuntimeException expected = new IllegalArgumentException("failed " + stage);
+        Function<ProcessDefinitionSnapshot, ProcessSemanticCompilation> frontend =
+                source -> {
+            assertThat(Thread.currentThread().getContextClassLoader()).isSameAs(compilationLoader);
+            frontendCalls.incrementAndGet();
+            if (stage == FailureStage.FRONTEND) {
+                throw expected;
+            }
+            compiled.set(compilation(source));
+            return compiled.get();
+        };
+        ProcessRuntimeFactory backend =
+                (compilation, loader) -> {
+            assertThat(Thread.currentThread().getContextClassLoader()).isSameAs(compilationLoader);
+            assertThat(loader).isSameAs(compilationLoader);
+            assertThat(compilation).isSameAs(compiled.get());
+            backendCalls.incrementAndGet();
+            if (stage == FailureStage.BACKEND) {
+                throw expected;
+            }
+            return TEST_RUNTIME;
+        };
+        try (TestHarness harness = TestHarness.create(frontend, backend, TEST_TIMEOUT, 1)) {
+            ClassLoader original = harness.executors
+                .runtimeLoad()
+                .submit(() -> Thread.currentThread().getContextClassLoader())
+                .get(1, TimeUnit.SECONDS);
+            if (stage == FailureStage.NONE) {
+                ProcessRuntimeEntry first = harness.service.loadSync(source("default"), compilationLoader);
+                assertThat(harness.service.loadSync(source("default"), compilationLoader)).isSameAs(first);
+            } else {
+                assertThatThrownBy(() -> harness.service.loadSync(source("default"), compilationLoader))
+                    .isInstanceOf(CompileFlowException.class)
+                    .hasCause(expected);
+                assertThat(harness.cache.size()).isZero();
+            }
+            assertThat(frontendCalls).hasValue(1);
+            assertThat(backendCalls).hasValue(stage == FailureStage.FRONTEND ? 0 : 1);
+            assertThat(harness.executors
+                .runtimeLoad()
+                .submit(() -> Thread.currentThread().getContextClassLoader())
+                .get(1, TimeUnit.SECONDS))
+                .isSameAs(original);
+        }
+    }
+
+    private enum FailureStage {
+        NONE,
+        FRONTEND,
+        BACKEND
     }
 
     private static void await(CountDownLatch latch) {
@@ -71,6 +144,90 @@ class DefaultProcessRuntimeLoaderTest {
         }
         if (interrupted) {
             Thread.currentThread().interrupt();
+        }
+    }
+
+    @Test
+    @SuppressWarnings("try")
+    void cachedExactRuntimeDoesNotReinstallAfterLoaderClose() throws Exception {
+        AtomicBoolean pauseCacheHit = new AtomicBoolean();
+        CountDownLatch cacheHit = new CountDownLatch(1);
+        CountDownLatch releaseCacheHit = new CountDownLatch(1);
+        DefaultProcessRuntimeCache cache = new DefaultProcessRuntimeCache(16) {
+            @Override
+            public ProcessRuntimeEntry getIfPresent(ProcessRuntimeIdentity identity) {
+                ProcessRuntimeEntry entry = super.getIfPresent(identity);
+                if (entry != null && pauseCacheHit.compareAndSet(true, false)) {
+                    cacheHit.countDown();
+                    awaitUninterruptibly(releaseCacheHit);
+                }
+                return entry;
+            }
+        };
+        try (ProcessEngineExecutors executors = ProcessEngineExecutors.create(ProcessExecutorConfig.defaults());
+                DefaultProcessRuntimeLoader loader = new DefaultProcessRuntimeLoader(cache,
+                        (request, classLoader) -> resolved(request), DefaultProcessRuntimeLoaderTest::compilation,
+                        (compiled, classLoader) -> TEST_RUNTIME, executors.runtimeLoad(), TEST_TIMEOUT)) {
+            ClassLoader classLoader = getClass().getClassLoader();
+            loader.loadExactSync(inline("order.checkout", "<process/>"), classLoader);
+            ProcessRuntimeRequest request = source("default");
+            AtomicReference<Throwable> failure = new AtomicReference<>();
+            pauseCacheHit.set(true);
+            Thread caller = new Thread(() -> {
+                try {
+                    loader.loadSync(request, classLoader);
+                } catch (Throwable thrown) {
+                    failure.set(thrown);
+                }
+            });
+            caller.start();
+            try {
+                assertThat(cacheHit.await(2, TimeUnit.SECONDS)).isTrue();
+                loader.close();
+                cache.invalidateAll();
+                releaseCacheHit.countDown();
+                caller.join(2_000L);
+                assertThat(caller.isAlive()).isFalse();
+                assertThat(failure.get()).isNull();
+                assertThat(cache.getIfPresent(bindingKey(request))).isNull();
+                assertThat(cache.size()).isZero();
+            } finally {
+                releaseCacheHit.countDown();
+                caller.join(2_000L);
+            }
+        }
+    }
+
+    @Test
+    void queuedLoadReusesRuntimePublishedBeforeExecution() throws Exception {
+        AtomicInteger compilations = new AtomicInteger();
+        ProcessRuntimeFactory factory =
+                (source, classLoader) -> {
+            compilations.incrementAndGet();
+            return TEST_RUNTIME;
+        };
+        CountDownLatch workerBlocked = new CountDownLatch(1);
+        CountDownLatch releaseWorker = new CountDownLatch(1);
+        try (TestHarness harness = TestHarness.create(factory, TEST_TIMEOUT, 1)) {
+            ProcessRuntimeRequest request = source("tenant");
+            ClassLoader classLoader = getClass().getClassLoader();
+            ProcessRuntimeEntry prepared = harness.service.runtimeCheckSync(resolved(request), classLoader);
+            harness.executors.runtimeLoad().submit(() -> {
+                workerBlocked.countDown();
+                await(releaseWorker);
+            });
+            try {
+                assertThat(workerBlocked.await(2, TimeUnit.SECONDS)).isTrue();
+                CompletableFuture<ProcessRuntimeEntry> queued = harness.service.loadAsync(request, classLoader, null);
+                harness.cache.cacheExact(prepared);
+                releaseWorker.countDown();
+
+                assertThat(queued.get(2, TimeUnit.SECONDS)).isSameAs(prepared);
+                assertThat(harness.cache.getIfPresent(bindingKey(request))).isSameAs(prepared);
+                assertThat(compilations).hasValue(1);
+            } finally {
+                releaseWorker.countDown();
+            }
         }
     }
 
@@ -296,12 +453,31 @@ class DefaultProcessRuntimeLoaderTest {
     }
 
     @Test
+    void diagnosticLoggingDoesNotTraverseApplicationFailureCauses() {
+        RuntimeException failure = new RuntimeException("compiler environment unavailable") {
+            @Override
+            public synchronized Throwable getCause() {
+                throw new AssertionError("diagnostic logging must not inspect application cause chains");
+            }
+        };
+        ProcessRuntimeFactory factory = (source, classLoader) -> {
+            throw failure;
+        };
+
+        try (TestHarness harness = TestHarness.create(factory, TEST_TIMEOUT, 1)) {
+            assertThatThrownBy(() -> harness.service.loadSync(source("default"), getClass().getClassLoader()))
+                .isInstanceOf(CompileFlowException.class)
+                .hasCause(failure);
+        }
+    }
+
+    @Test
     void rejectedOwnerIsEvictedBeforeFailedWaitersRetry() throws Exception {
         BlockingRejectOnceExecutor executor = new BlockingRejectOnceExecutor();
         DefaultProcessRuntimeCache cache = new DefaultProcessRuntimeCache(2048);
         DefaultProcessRuntimeLoader loader = new DefaultProcessRuntimeLoader(cache,
-                (source, modelType, classLoader) -> resolved(source), (source, classLoader) -> TEST_RUNTIME, executor,
-                TEST_TIMEOUT, ProcessModelType.TBBPM);
+                (source, classLoader) -> resolved(source), DefaultProcessRuntimeLoaderTest::compilation,
+                (source, classLoader) -> TEST_RUNTIME, executor, TEST_TIMEOUT);
         ProcessRuntimeRequest request = source("default");
         ClassLoader classLoader = getClass().getClassLoader();
         AtomicReference<CompletableFuture<ProcessRuntimeEntry>> owner = new AtomicReference<>();
@@ -421,7 +597,7 @@ class DefaultProcessRuntimeLoaderTest {
     void failedBatchDoesNotExposeSuccessfullyCompiledItems() {
         ProcessRuntimeFactory factory =
                 (source, classLoader) -> {
-            if ("invoice.create".equals(source.getCode())) {
+            if ("invoice.create".equals(source.semanticPlan().getProcessCode())) {
                 throw new IllegalStateException("invalid invoice process");
             }
             return TEST_RUNTIME;
@@ -487,6 +663,12 @@ class DefaultProcessRuntimeLoaderTest {
 
         private static TestHarness create(ProcessRuntimeFactory runtimeFactory, Duration timeout,
                 int runtimeLoadMaxConcurrency) {
+            return create(DefaultProcessRuntimeLoaderTest::compilation, runtimeFactory, timeout,
+                    runtimeLoadMaxConcurrency);
+        }
+
+        private static TestHarness create(Function<ProcessDefinitionSnapshot, ProcessSemanticCompilation> frontend,
+                ProcessRuntimeFactory runtimeFactory, Duration timeout, int runtimeLoadMaxConcurrency) {
             DefaultProcessRuntimeCache cache = new DefaultProcessRuntimeCache(2048);
             ProcessEngineExecutors executors = ProcessEngineExecutors.create("compilation-service-test",
                     ProcessExecutorConfig
@@ -496,8 +678,8 @@ class DefaultProcessRuntimeLoaderTest {
                         .actionTimeoutMaxConcurrency(1)
                         .build());
             DefaultProcessRuntimeLoader service = new DefaultProcessRuntimeLoader(cache,
-                    (source, modelType, classLoader) -> resolved(source), runtimeFactory, executors.runtimeLoad(),
-                    timeout, ProcessModelType.TBBPM);
+                    (source, classLoader) -> resolved(source), frontend, runtimeFactory, executors.runtimeLoad(),
+                    timeout);
             return new TestHarness(cache, executors, service);
         }
 

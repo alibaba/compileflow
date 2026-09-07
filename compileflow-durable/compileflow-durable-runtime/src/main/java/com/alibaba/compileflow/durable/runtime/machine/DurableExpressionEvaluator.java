@@ -28,6 +28,9 @@ public interface DurableExpressionEvaluator {
 
     default boolean evaluateBoolean(BoundExpression expression, Map<String, Object> state, Map<String, Object> frames) {
         Object value = evaluate(expression, state, frames);
+        if (value == null) {
+            return false;
+        }
         if (!(value instanceof Boolean result)) {
             throw new IllegalStateException("Durable expression did not return boolean: " + expression.source());
         }

@@ -13,10 +13,11 @@
  */
 package com.alibaba.compileflow.engine;
 
+import com.alibaba.compileflow.engine.preflight.ProcessPreflightOptions;
 import java.util.Map;
 
 /**
- * Thread-safe, format-bound CompileFlow execution engine.
+ * Thread-safe CompileFlow execution engine for all installed semantic frontends.
  *
  * <p>The canonical execution model is a string-keyed variable map. Typed object methods are thin
  * adapters over the same map pipeline through the engine's configured {@link ProcessDataMapper}.

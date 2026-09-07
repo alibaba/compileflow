@@ -72,10 +72,6 @@ final class PersistedInvocationRouting {
         return effectiveVersion() != null ? effectiveVersion() : version();
     }
 
-    boolean hasRequestedRoute() {
-        return version() != null || alias() != null;
-    }
-
     PersistedInvocationRouting pin(PublishedProcessExecutionService.AliasPin pin) {
         Map<String, Object> pinned = asMap();
         pinned.put(EFFECTIVE_VERSION, pin.version());

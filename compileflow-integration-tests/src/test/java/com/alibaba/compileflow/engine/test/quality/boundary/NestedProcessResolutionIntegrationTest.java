@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.quality.boundary;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.AliasRoutingOptions;
 import com.alibaba.compileflow.engine.ErrorCode;
@@ -24,7 +25,7 @@ import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.ProcessResult;
 import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
 import com.alibaba.compileflow.engine.config.ProcessObservabilityConfig;
-import com.alibaba.compileflow.engine.core.assembly.AssembledProcessEngineFactory;
+import com.alibaba.compileflow.engine.config.ProcessRuntimeMode;
 import com.alibaba.compileflow.engine.core.assembly.EngineAssembly;
 import com.alibaba.compileflow.engine.core.routing.DeterministicAliasSelector;
 import com.alibaba.compileflow.engine.core.routing.LocalRoutingState;
@@ -44,12 +45,71 @@ class NestedProcessResolutionIntegrationTest {
     private static final String PARENT = "test.nested.parent";
     private static final String CHILD = "test.nested.child";
 
+    @Test
+    void mixedFrontendExactCallsReloadInBothDirectionsAndRuntimeModes() {
+        String bpmnParent =
+                """
+            <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                         xmlns:cf="http://www.compileflow.org" targetNamespace="urn:test">
+              <process id="test.nested.parent" isExecutable="true">
+                <extensionElements><cf:var name="marker" dataType="java.lang.String" inOutType="return"/></extensionElements>
+                <startEvent id="start"/>
+                <callActivity id="call" calledElement="test.nested.child" cf:version="child-v1">
+                  <extensionElements><cf:output source="marker" target="marker"/></extensionElements>
+                </callActivity>
+                <endEvent id="end"/>
+                <sequenceFlow id="first" sourceRef="start" targetRef="call"/>
+                <sequenceFlow id="last" sourceRef="call" targetRef="end"/>
+              </process>
+            </definitions>
+            """;
+        String bpmnChild =
+                """
+            <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                         xmlns:cf="http://www.compileflow.org" targetNamespace="urn:test">
+              <process id="test.nested.child" isExecutable="true">
+                <extensionElements><cf:var name="marker" dataType="java.lang.String"
+                    defaultValue="first" inOutType="return"/></extensionElements>
+                <startEvent id="start"/><endEvent id="end"/>
+                <sequenceFlow id="flow" sourceRef="start" targetRef="end"/>
+              </process>
+            </definitions>
+            """;
+        for (ProcessRuntimeMode mode : ProcessRuntimeMode.values()) {
+            for (ProcessModelType parentType : List.of(ProcessModelType.TBBPM, ProcessModelType.BPMN)) {
+                ProcessModelType childType =
+                        parentType == ProcessModelType.TBBPM ? ProcessModelType.BPMN : ProcessModelType.TBBPM;
+                ProcessEngineConfig config = ProcessEngineTestFactory.builder().runtimeMode(mode).build();
+                try (ProcessEngine engine = engine(config, new LocalRoutingState())) {
+                    ProcessRef.Version child = ProcessRef.version(NAMESPACE, CHILD, "child-v1");
+                    ProcessRef.Version parent = ProcessRef.version(NAMESPACE, PARENT, "parent-v1");
+                    String childSource = childType == ProcessModelType.BPMN ? bpmnChild : childFlow("first");
+                    engine.runtime().load(child, ProcessDefinition.inline(childType, CHILD, childSource));
+                    engine
+                        .runtime()
+                        .load(parent,
+                                ProcessDefinition.inline(parentType, PARENT,
+                                        parentType == ProcessModelType.BPMN ? bpmnParent : parentFlow("child-v1")));
+                    assertThat(engine.execute(parent, Map.of()).orElseThrow()).containsEntry("marker", "first");
+                    engine.runtime().unload(child);
+                    assertThat(engine.execute(parent, Map.of()).getError().getCode()).isEqualTo(ErrorCode.CF_EXEC_012.getCode());
+                    engine.runtime().load(child,
+                            ProcessDefinition.inline(childType, CHILD, childSource.replace("first", "reloaded")));
+                    assertThat(engine.execute(parent, Map.of()).orElseThrow()).containsEntry("marker", "reloaded");
+                }
+            }
+        }
+    }
+
     private static ProcessEngine engine(ProcessEngineConfig config, LocalRoutingState localRoutingState) {
-        return AssembledProcessEngineFactory.create(config, EngineAssembly.assemble(config, localRoutingState));
+        return EngineAssembly.create(config, EngineAssembly.assemble(config, localRoutingState));
     }
 
     private static void load(ProcessEngine engine, String code, String version, String definition) {
-        engine.runtime().load(ProcessRef.version(NAMESPACE, code, version), ProcessDefinition.inline(code, definition));
+        engine
+            .runtime()
+            .load(ProcessRef.version(NAMESPACE, code, version),
+                    ProcessDefinition.inline(ProcessModelType.TBBPM, code, definition));
     }
 
     private static void loadParent(ProcessEngine engine, String version, String childVersion) {
@@ -171,7 +231,7 @@ class NestedProcessResolutionIntegrationTest {
         AtomicInteger routeReads = new AtomicInteger();
         List<ProcessEvent> events = new CopyOnWriteArrayList<>();
         ProcessEngineConfig config = ProcessEngineTestFactory
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .observability(ProcessObservabilityConfig.builder().eventsAsync(false).build())
             .eventListener(events::add)
@@ -208,7 +268,7 @@ class NestedProcessResolutionIntegrationTest {
         AtomicInteger aliasReads = new AtomicInteger();
         ProcessEngineConfig config =
                 ProcessEngineTestFactory
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .aliasRouteSource(alias -> {
                 aliasReads.incrementAndGet();
@@ -236,7 +296,7 @@ class NestedProcessResolutionIntegrationTest {
     @Test
     void exactParentVersionExecutesItsDeclaredExactChild() {
         LocalRoutingState localRoutingState = new LocalRoutingState();
-        ProcessEngineConfig config = ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory.builder().discoverPlugins(false).build();
 
         try (ProcessEngine engine = engine(config, localRoutingState)) {
             load(engine, CHILD, "child-v1", childFlow("child-v1"));
@@ -253,14 +313,17 @@ class NestedProcessResolutionIntegrationTest {
 
     @Test
     void directParentMayUseAnExactChildVersion() {
-        ProcessEngineConfig config = ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory.builder().discoverPlugins(false).build();
 
         try (ProcessEngine engine = engine(config, new LocalRoutingState())) {
-            engine.runtime().load(ProcessRef.version(CHILD, "child-v1"),
-                    ProcessDefinition.inline(CHILD, childFlow("child-v1")));
+            engine
+                .runtime()
+                .load(ProcessRef.version(CHILD, "child-v1"),
+                        ProcessDefinition.inline(ProcessModelType.TBBPM, CHILD, childFlow("child-v1")));
 
             ProcessResult<Map<String, Object>> result =
-                    engine.execute(ProcessDefinition.inline(PARENT, parentFlow("child-v1")), Map.of());
+                    engine.execute(ProcessDefinition.inline(ProcessModelType.TBBPM, PARENT, parentFlow("child-v1")),
+                            Map.of());
 
             assertThat(result.isSuccess()).as(String.valueOf(result.getError())).isTrue();
             assertThat(result.getOutput()).containsEntry("marker", "child-v1");
@@ -269,7 +332,7 @@ class NestedProcessResolutionIntegrationTest {
 
     @Test
     void exactParentVersionCannotUseAClasspathTarget() {
-        ProcessEngineConfig config = ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory.builder().discoverPlugins(false).build();
         String parent = parentFlow("child-v1")
             .replace("version=\"child-v1\"", "classpath=\"resource/calls/child.bpm\"");
 
@@ -286,7 +349,7 @@ class NestedProcessResolutionIntegrationTest {
 
     @Test
     void missingVersionTargetFailsBeforeTheProcessCanExecute() {
-        ProcessEngineConfig config = ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory.builder().discoverPlugins(false).build();
         LocalRoutingState localRoutingState = new LocalRoutingState();
 
         try (ProcessEngine engine = engine(config, localRoutingState)) {
@@ -302,8 +365,11 @@ class NestedProcessResolutionIntegrationTest {
 
     @Test
     void processCallDepthIsRootInclusiveAndRejectedBeforeExecution() {
-        ProcessEngineConfig config =
-                ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).maxCallDepth(1).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory
+            .builder()
+            .discoverPlugins(false)
+            .maxCallDepth(1)
+            .build();
 
         try (ProcessEngine engine = engine(config, new LocalRoutingState())) {
             load(engine, CHILD, "child-v1", childFlow("child-v1"));
@@ -319,9 +385,29 @@ class NestedProcessResolutionIntegrationTest {
     }
 
     @Test
+    void processCallDepthStopsExpansionBeforeResolvingDeeperTargets() {
+        ProcessEngineConfig config = ProcessEngineTestFactory.builder().maxCallDepth(1).build();
+
+        try (ProcessEngine engine = engine(config, new LocalRoutingState())) {
+            load(engine, CHILD, "child-v1", callFlow(CHILD, "unavailable", "v1"));
+            load(engine, PARENT, "parent-v1", callFlow(PARENT, CHILD, "child-v1"));
+
+            ProcessResult<Map<String, Object>> result =
+                    engine.execute(ProcessRef.version(NAMESPACE, PARENT, "parent-v1"), Map.of());
+
+            assertThat(result.isFailure()).isTrue();
+            assertThat(result.getError().getCode()).isEqualTo(ErrorCode.CF_EXEC_013.getCode());
+            assertThat(result.getError().getMessage()).contains(PARENT, CHILD);
+        }
+    }
+
+    @Test
     void processCallDepthUsesTheLongestPathForSharedDescendants() {
-        ProcessEngineConfig config =
-                ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).maxCallDepth(4).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory
+            .builder()
+            .discoverPlugins(false)
+            .maxCallDepth(4)
+            .build();
         String root = "test.nested.depth-root";
         String first = "test.nested.depth-first";
         String second = "test.nested.depth-second";
@@ -348,7 +434,7 @@ class NestedProcessResolutionIntegrationTest {
 
     @Test
     void unloadingAChildInvalidatesResolvedExactCallGraphs() {
-        ProcessEngineConfig config = ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory.builder().discoverPlugins(false).build();
         ProcessRef.Version child = ProcessRef.version(NAMESPACE, CHILD, "child-v1");
         ProcessRef.Version parent = ProcessRef.version(NAMESPACE, PARENT, "parent-v1");
 

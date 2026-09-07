@@ -19,7 +19,7 @@ import java.util.Objects;
 /**
  * Browser-facing availability of the Workbench execution backend.
  *
- * @param engineAvailable whether the embedded process engine is available
+ * @param engineAvailable whether server policy enables trusted draft execution
  * @param message         human-readable availability summary
  * @author yusu
  */

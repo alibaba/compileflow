@@ -78,6 +78,7 @@ function createTestStore(
           currentProcess,
           isModified: false,
           changeToken: null,
+          savedChangeToken: null,
           isLoading: false,
           isSaving: false,
           error: null,
@@ -85,7 +86,9 @@ function createTestStore(
           validationResult: null,
           lastSavedTime: null,
           operateBinding: null,
-          activeLoadRequestId: null,
+          activeContentRequestId: null,
+          documentRequestId: null,
+          activeSaveRequestId: null,
         },
         future: [],
       },
@@ -493,6 +496,72 @@ describe('designerSlice - 连接操作', () => {
 
     store.dispatch(deleteConnection('edge-1'))
     expect(store.getState().editor.present.currentProcess?.connections).toHaveLength(0)
+  })
+
+  it('deleting a BPMN default flow clears the gateway reference', () => {
+    store = createTestStore({ ...bootstrapProcess, type: 'BPMN' })
+    store.dispatch(
+      addNode({
+        id: 'gateway',
+        type: 'bpmn:ExclusiveGateway',
+        name: 'Gateway',
+        position: { x: 100, y: 100 },
+        properties: { default: 'fallback' },
+      })
+    )
+    store.dispatch(
+      addNode({
+        id: 'target',
+        type: 'bpmn:ServiceTask',
+        name: 'Target',
+        position: { x: 300, y: 100 },
+        properties: {},
+      })
+    )
+    store.dispatch(addConnection({ id: 'fallback', sourceId: 'gateway', targetId: 'target' }))
+
+    store.dispatch(deleteConnection('fallback'))
+
+    const flow = store.getState().editor.present.currentProcess
+    expect(flow?.connections).toHaveLength(0)
+    expect(
+      flow?.type === 'BPMN'
+        ? flow.nodes.find((node) => node.id === 'gateway')?.properties.default
+        : undefined
+    ).toBeUndefined()
+  })
+
+  it('deleting a BPMN target clears defaults that referenced its removed flow', () => {
+    store = createTestStore({ ...bootstrapProcess, type: 'BPMN' })
+    store.dispatch(
+      addNode({
+        id: 'gateway',
+        type: 'bpmn:InclusiveGateway',
+        name: 'Gateway',
+        position: { x: 100, y: 100 },
+        properties: { default: 'fallback' },
+      })
+    )
+    store.dispatch(
+      addNode({
+        id: 'target',
+        type: 'bpmn:ServiceTask',
+        name: 'Target',
+        position: { x: 300, y: 100 },
+        properties: {},
+      })
+    )
+    store.dispatch(addConnection({ id: 'fallback', sourceId: 'gateway', targetId: 'target' }))
+
+    store.dispatch(deleteNode('target'))
+
+    const flow = store.getState().editor.present.currentProcess
+    expect(flow?.connections).toHaveLength(0)
+    expect(
+      flow?.type === 'BPMN'
+        ? flow.nodes.find((node) => node.id === 'gateway')?.properties.default
+        : undefined
+    ).toBeUndefined()
   })
 })
 

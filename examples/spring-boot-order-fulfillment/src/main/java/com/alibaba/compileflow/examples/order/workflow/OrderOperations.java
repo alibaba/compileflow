@@ -32,6 +32,7 @@ public class OrderOperations {
     private static final Set<String> CUSTOMER_TIERS = Set.of("BASIC", "GOLD", "PLATINUM");
     private final ConcurrentMap<String, AtomicInteger> paymentAttempts = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Integer> completedPaymentAttempts = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, PaymentAuthorization> paymentAuthorizations = new ConcurrentHashMap<>();
 
     public void validate(OrderRequest order) {
         if (order == null || order.orderId() == null || order.orderId().isBlank()) {
@@ -73,14 +74,22 @@ public class OrderOperations {
 
     public String authorizePayment(String orderId, Integer payableCents, Integer failUntilAttempt)
             throws ConnectException {
+        PaymentAuthorization existing = paymentAuthorizations.get(orderId);
+        if (existing != null) {
+            return existing.requireSameAmount(payableCents);
+        }
         AtomicInteger counter = paymentAttempts.computeIfAbsent(orderId, ignored -> new AtomicInteger());
         int attempt = counter.incrementAndGet();
         if (attempt < failUntilAttempt) {
             throw new ConnectException("payment provider is temporarily unavailable");
         }
-        completedPaymentAttempts.put(orderId, attempt);
-        paymentAttempts.remove(orderId);
-        return "PAY-" + orderId + "-" + payableCents;
+        PaymentAuthorization candidate = new PaymentAuthorization(payableCents, "PAY-" + orderId + "-" + payableCents);
+        PaymentAuthorization committed = paymentAuthorizations.putIfAbsent(orderId, candidate);
+        PaymentAuthorization result = committed == null ? candidate : committed;
+        String reference = result.requireSameAmount(payableCents);
+        completedPaymentAttempts.putIfAbsent(orderId, attempt);
+        paymentAttempts.remove(orderId, counter);
+        return reference;
     }
 
     public String appendShipmentLine(String current, OrderItem item) {
@@ -125,5 +134,18 @@ public class OrderOperations {
 
     private boolean invalidItem(OrderItem item) {
         return item == null || item.sku() == null || item.sku().isBlank() || item.quantity() <= 0;
+    }
+
+    /**
+     * Simulates the payment provider's idempotency ledger. Reusing one business key with a
+     * different amount is a conflict, never a second authorization.
+     */
+    private record PaymentAuthorization(int payableCents, String reference) {
+        private String requireSameAmount(int requestedPayableCents) {
+            if (payableCents != requestedPayableCents) {
+                throw new IllegalStateException("payment idempotency key was reused with a different amount");
+            }
+            return reference;
+        }
     }
 }

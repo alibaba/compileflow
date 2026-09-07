@@ -162,10 +162,6 @@ const DesignerStatusBar = memo(function DesignerStatusBar({
           </>
         )}
       </span>
-
-      <div className="status-bar-divider-sm" />
-
-      <span className="status-bar-type-badge">{graph ? 'X6 v2' : '—'}</span>
     </div>
   )
 })

@@ -13,14 +13,14 @@
  */
 package com.alibaba.compileflow.engine.test.feature.spring;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessEngine;
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessResult;
 import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
 import com.alibaba.compileflow.engine.spring.boot.autoconfigure.CompileFlowEnginePropertiesAutoConfiguration;
-import com.alibaba.compileflow.engine.spring.boot.autoconfigure.CompileFlowCoreAutoConfiguration;
+import com.alibaba.compileflow.engine.spring.boot.autoconfigure.CompileFlowEngineAutoConfiguration;
 import com.alibaba.compileflow.engine.spring.boot.autoconfigure.properties.ProcessEngineProperties;
 import com.alibaba.compileflow.engine.test.support.config.ProcessEngineTestConfiguration;
 import com.google.common.collect.Lists;
@@ -38,8 +38,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = {ConfigurationPropertiesAutoConfiguration.class,
         CompileFlowEnginePropertiesAutoConfiguration.class,
-        CompileFlowCoreAutoConfiguration.class, ProcessEngineTestConfiguration.class}, properties = {"compileflow."
-        + "engine.model-type=TBBPM", "compileflow.engine.executor.runtime-load.max-concurrency=4",
+        CompileFlowEngineAutoConfiguration.class, ProcessEngineTestConfiguration.class}, properties = {"compileflow."
+        + "engine.executor.runtime-load.max-concurrency=4",
         "compileflow.engine.executor.action-timeout.max-concurrency=8",
         "compileflow.engine.components.allowed-beans[0]=ktvService"})
 @ActiveProfiles("test")
@@ -58,7 +58,8 @@ public class BootAutoConfigTest {
         assertThat(applicationContext).as("Application context should be initialized").isNotNull();
         assertThat(properties).as("Properties should be bound").isNotNull();
 
-        assertThat(properties.getModelType()).as("Model type should be TBBPM").isEqualTo(ProcessModelType.TBBPM);
+        assertThat(properties.getRuntimeMode()).isEqualTo(
+                com.alibaba.compileflow.engine.config.ProcessRuntimeMode.COMPILED);
         assertThat(properties.getExecutor().getRuntimeLoad().getMaxConcurrency())
             .as("Runtime-load concurrency should be 4")
             .isEqualTo(4);
@@ -69,8 +70,7 @@ public class BootAutoConfigTest {
         assertThat(processEngine).as("ProcessEngine should be auto-configured").isNotNull();
 
         assertThat(processEngineConfig).as("Config should be created from properties").isNotNull();
-        assertThat(processEngineConfig.getModelType()).as("Config model type should match").isEqualTo(
-                ProcessModelType.TBBPM);
+        assertThat(processEngineConfig.getRuntimeMode()).isEqualTo(properties.getRuntimeMode());
         assertThat(processEngineConfig.getExecutorConfig().getRuntimeLoadMaxConcurrency())
             .as("Config runtime-load concurrency should match")
             .isEqualTo(4);
@@ -85,8 +85,8 @@ public class BootAutoConfigTest {
         Map<String, Object> context = new HashMap<>();
         context.put("pList", Lists.newArrayList("yusu"));
 
-        ProcessResult<Map<String, Object>> result =
-                processEngine.execute(ProcessDefinition.classpath(code, code.replace(".", "/") + ".bpm"), context);
+        ProcessResult<Map<String, Object>> result = processEngine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                        code, code.replace(".", "/") + ".bpm"), context);
 
         assertThat(result.getOutput()).as("Price should be calculated as 30").containsEntry("price", 30);
     }

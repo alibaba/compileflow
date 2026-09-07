@@ -23,11 +23,11 @@ public interface XmlSource {
 
     String nextElementName() throws Exception;
 
-    boolean endWith(String name);
-
     String getLocalName();
 
     String getNamespaceURI();
+
+    String getNamespaceURI(String prefix);
 
     String getPrefix();
 
@@ -45,25 +45,19 @@ public interface XmlSource {
 
     String getString(String name);
 
-    String getStringOrDefault(String name, String defaultValue);
-
     String getCfString(String name);
 
-    int getInt(String name);
-
-    int getCfInt(String name);
-
-    long getLong(String name);
-
-    long getCfLong(String name);
-
-    boolean getBoolean(String name);
-
-    boolean getCfBoolean(String name);
-
-    String getCurrentElementName();
-
     boolean isEndElement(String name);
+
+    /**
+     * Advances to the next direct child, or the matching parent end element.
+     * The caller must consume each returned child's complete subtree before advancing again.
+     *
+     * @param parentElementName enclosing element name
+     * @return child element name, or {@code null} at the parent end
+     * @throws Exception when XML cannot be read
+     */
+    String nextDirectChildElementName(String parentElementName) throws Exception;
 
     /**
      * Advances past the current start element and its complete subtree.

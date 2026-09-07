@@ -12,11 +12,6 @@ spring:
       ddl-auto: validate
     open-in-view: false
     show-sql: false
-  flyway:
-    locations:
-      - classpath:db/compileflow-deploy/migration
-      - classpath:db/compileflow-workbench-server/migration
-    clean-disabled: true
   sql:
     init:
       mode: never
@@ -28,11 +23,14 @@ compileflow:
         async: false
   deploy:
     enabled: true
+    database:
+      provider: ${compileflow.workbench.server.database.provider:POSTGRESQL}
+      migrate: ${compileflow.workbench.server.database.migrate:false}
     topology: EMBEDDED
     control-plane-enabled: true
     runtime-worker-enabled: false
     artifact:
-      mode: DATABASE
+      mode: SOURCE
 
 management:
   endpoint:

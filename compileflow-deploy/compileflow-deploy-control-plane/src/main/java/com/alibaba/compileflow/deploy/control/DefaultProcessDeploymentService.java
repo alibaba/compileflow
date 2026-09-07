@@ -23,8 +23,8 @@ import com.alibaba.compileflow.deploy.api.command.RollbackRolloutCommand;
 import com.alibaba.compileflow.deploy.api.command.UpdateCanaryWeightCommand;
 import com.alibaba.compileflow.deploy.api.error.DeploymentErrorCode;
 import com.alibaba.compileflow.deploy.api.error.DeploymentException;
-import com.alibaba.compileflow.deploy.api.observability.ProcessDeploymentOperationMetrics;
-import com.alibaba.compileflow.deploy.api.observability.ProcessDeploymentOperationMetrics.Operation;
+import com.alibaba.compileflow.deploy.control.observability.DeploymentOperationMetrics;
+import com.alibaba.compileflow.deploy.control.observability.DeploymentOperationMetrics.Operation;
 import com.alibaba.compileflow.deploy.api.rollout.ProcessRollout;
 import com.alibaba.compileflow.deploy.api.rollout.RolloutEvent;
 import com.alibaba.compileflow.deploy.api.rollout.RolloutPage;
@@ -35,11 +35,11 @@ import com.alibaba.compileflow.deploy.api.version.PublishedVersionCursor;
 import com.alibaba.compileflow.deploy.api.version.PublishedVersionPage;
 import com.alibaba.compileflow.deploy.api.version.PublishedVersionQuery;
 import com.alibaba.compileflow.deploy.control.projection.ArtifactProjectionCoordinator;
-import com.alibaba.compileflow.deploy.control.repository.DeployCursorCodec;
-import com.alibaba.compileflow.deploy.control.repository.ProcessAliasRecord;
-import com.alibaba.compileflow.deploy.control.repository.ProcessAliasRepository;
-import com.alibaba.compileflow.deploy.control.repository.ProcessVersionRecord;
-import com.alibaba.compileflow.deploy.control.repository.ProcessVersionRepository;
+import com.alibaba.compileflow.deploy.control.repository.DeploymentCursorCodec;
+import com.alibaba.compileflow.deploy.spi.store.ProcessAliasRecord;
+import com.alibaba.compileflow.deploy.spi.store.ProcessAliasStore;
+import com.alibaba.compileflow.deploy.spi.store.ProcessVersionRecord;
+import com.alibaba.compileflow.deploy.spi.store.ProcessVersionStore;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -54,25 +54,24 @@ import java.util.stream.Collectors;
 public final class DefaultProcessDeploymentService implements ProcessDeploymentService {
     private final VersionPublicationService publicationService;
     private final ArtifactProjectionCoordinator artifactProjectionCoordinator;
-    private final ProcessDeploymentOperationMetrics operationMetrics;
-    private final RolloutControlService rolloutControlService;
-    private final ProcessVersionRepository versionRepository;
-    private final ProcessAliasRepository aliasRepository;
-    private final RoutingActivation routingActivation;
+    private final DeploymentOperationMetrics operationMetrics;
+    private final RolloutService rolloutService;
+    private final ProcessVersionStore versionRepository;
+    private final ProcessAliasStore aliasRepository;
+    private final RoutingStatePropagator routingStatePropagator;
 
     public DefaultProcessDeploymentService(VersionPublicationService publicationService,
-            ArtifactProjectionCoordinator artifactProjectionCoordinator,
-            ProcessDeploymentOperationMetrics operationMetrics, RolloutControlService rolloutControlService,
-            ProcessVersionRepository versionRepository, ProcessAliasRepository aliasRepository,
-            RoutingActivation routingActivation) {
+            ArtifactProjectionCoordinator artifactProjectionCoordinator, DeploymentOperationMetrics operationMetrics,
+            RolloutService rolloutService, ProcessVersionStore versionRepository, ProcessAliasStore aliasRepository,
+            RoutingStatePropagator routingStatePropagator) {
         this.publicationService = Objects.requireNonNull(publicationService, "publicationService");
         this.artifactProjectionCoordinator = Objects.requireNonNull(artifactProjectionCoordinator,
                 "artifactProjectionCoordinator");
         this.operationMetrics = Objects.requireNonNull(operationMetrics, "operationMetrics");
-        this.rolloutControlService = Objects.requireNonNull(rolloutControlService, "rolloutControlService");
+        this.rolloutService = Objects.requireNonNull(rolloutService, "rolloutService");
         this.versionRepository = Objects.requireNonNull(versionRepository, "versionRepository");
         this.aliasRepository = Objects.requireNonNull(aliasRepository, "aliasRepository");
-        this.routingActivation = Objects.requireNonNull(routingActivation, "routingActivation");
+        this.routingStatePropagator = Objects.requireNonNull(routingStatePropagator, "routingStatePropagator");
     }
 
     private static PublishedProcessVersion toPublishedVersion(ProcessVersionRecord record) {
@@ -104,7 +103,7 @@ public final class DefaultProcessDeploymentService implements ProcessDeploymentS
         int limit = versionQuery.getLimit();
         List<PublishedProcessVersion> candidates = versionRepository
             .list(versionQuery.getNamespace(), versionQuery.getCode(), versionQuery.getVersionPrefix(),
-                    DeployCursorCodec.publishedVersion(versionQuery.getCursor()), limit + 1)
+                    DeploymentCursorCodec.publishedVersion(versionQuery.getCursor()), limit + 1)
             .stream()
             .map(DefaultProcessDeploymentService::toPublishedVersion)
             .collect(Collectors.toUnmodifiableList());
@@ -113,9 +112,8 @@ public final class DefaultProcessDeploymentService implements ProcessDeploymentS
         PublishedVersionCursor nextCursor = null;
         if (hasMore) {
             PublishedProcessVersion last = versions.get(versions.size() - 1);
-            nextCursor = DeployCursorCodec.publishedVersion(last.getCreatedAt().toEpochMilli(), last
-                .getRef()
-                .version());
+            nextCursor = DeploymentCursorCodec.publishedVersion(last.getCreatedAt().toEpochMilli(),
+                    last.getRef().version());
         }
         return new PublishedVersionPage(versions, nextCursor);
     }
@@ -135,49 +133,49 @@ public final class DefaultProcessDeploymentService implements ProcessDeploymentS
 
     @Override
     public ProcessRollout createRollout(CreateRolloutCommand command) {
-        return activateCommittedAlias(rolloutControlService.create(command));
+        return propagateCommittedAlias(rolloutService.create(command));
     }
 
     @Override
     public Optional<ProcessRollout> getRollout(String rolloutId) {
-        return rolloutControlService.find(rolloutId);
+        return rolloutService.find(rolloutId);
     }
 
     @Override
     public RolloutPage listRollouts(RolloutQuery query) {
-        return rolloutControlService.list(query);
+        return rolloutService.list(query);
     }
 
     @Override
     public List<RolloutEvent> listRolloutEvents(String rolloutId) {
-        return rolloutControlService.listEvents(rolloutId);
+        return rolloutService.listEvents(rolloutId);
     }
 
     @Override
     public ProcessRollout updateCanaryWeight(UpdateCanaryWeightCommand command) {
-        return activateCommittedAlias(rolloutControlService.updateCanary(command));
+        return propagateCommittedAlias(rolloutService.updateCanary(command));
     }
 
     @Override
     public ProcessRollout promoteRollout(PromoteRolloutCommand command) {
-        return activateCommittedAlias(rolloutControlService.promote(command));
+        return propagateCommittedAlias(rolloutService.promote(command));
     }
 
     @Override
     public ProcessRollout abortRollout(AbortRolloutCommand command) {
-        return activateCommittedAlias(rolloutControlService.abort(command));
+        return propagateCommittedAlias(rolloutService.abort(command));
     }
 
     @Override
     public ProcessRollout rollbackRollout(RollbackRolloutCommand command) {
-        return activateCommittedAlias(rolloutControlService.rollback(command));
+        return propagateCommittedAlias(rolloutService.rollback(command));
     }
 
     @Override
     public PublishedProcessVersion publish(PublishProcessVersionCommand command) {
         PublishProcessVersionCommand publication = Objects.requireNonNull(command, "command");
         try {
-            ProcessVersionRecord published = publicationService.publish(publication.getRef(), publication.getModelType(),
+            ProcessVersionRecord published = publicationService.publish(publication.getRef(),
                     publication.getDefinition(), publication.getExpectedArtifactDigest(), publication.getMetadata(),
                     publication.getActor());
             artifactProjectionCoordinator.ensureProjected(published);
@@ -193,12 +191,12 @@ public final class DefaultProcessDeploymentService implements ProcessDeploymentS
         }
     }
 
-    private ProcessRollout activateCommittedAlias(ProcessRollout rollout) {
+    private ProcessRollout propagateCommittedAlias(ProcessRollout rollout) {
         ProcessAliasRecord current = aliasRepository
             .resolve(rollout.getAlias().namespace(), rollout.getAlias().code(), rollout.getAlias().alias())
             .orElseThrow(() -> new IllegalStateException(
                     "Committed rollout has no authoritative alias: rollout=" + rollout.getId()));
-        routingActivation.activate(toAliasState(current));
+        routingStatePropagator.propagate(toAliasState(current));
         return rollout;
     }
 }

@@ -26,10 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * @author yusu
  */
-public interface AsyncInvocationRepository extends JpaRepository<AsyncInvocationEntity, String> {
-    @Query(value = "SELECT CAST(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) * 1000 AS BIGINT)", nativeQuery = true)
-    long currentTimeMillis();
-
+interface AsyncInvocationRepository extends JpaRepository<AsyncInvocationEntity, String> {
     Page<AsyncInvocationEntity> findByStatusAndAvailableAtLessThanEqual(String status, long availableAt,
             Pageable pageable);
 
@@ -54,14 +51,6 @@ public interface AsyncInvocationRepository extends JpaRepository<AsyncInvocation
     int claimQueued(@Param("invocationId") String invocationId, @Param("queued") String queued,
             @Param("running") String running, @Param("now") long now, @Param("leaseToken") String leaseToken,
             @Param("leaseUntil") long leaseUntil);
-
-    @Transactional
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("update AsyncInvocationEntity e set e.leaseUntil = :leaseUntil, e.updatedAt = :now where e."
-            + "invocationId = :invocationId and e.status = :running and e.leaseToken = :leaseToken and e."
-            + "leaseUntil >= :now")
-    int extendLease(@Param("invocationId") String invocationId, @Param("running") String running,
-            @Param("leaseToken") String leaseToken, @Param("leaseUntil") long leaseUntil, @Param("now") long now);
 
     @Transactional
     @Modifying(clearAutomatically = true, flushAutomatically = true)

@@ -28,10 +28,10 @@
 .variable-item {
   display: flex;
   align-items: flex-start;
-  padding: var(--spacing-sm) var(--spacing-md); /* 8px 12px */
-  margin-bottom: var(--spacing-xs); /* 4px */
+  padding: var(--spacing-2) var(--spacing-3); /* 8px 12px */
+  margin-bottom: var(--spacing-1); /* 4px */
   background: var(--color-bg-layout);
-  border-radius: var(--radius-base); /* 4px */
+  border-radius: var(--radius-sm); /* 4px */
   border: 1px solid var(--color-border-light);
 }
 
@@ -92,7 +92,7 @@
 }
 
 .debugger-vars-textarea {
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-code);
   font-size: var(--font-size-xs);
 }
 

@@ -185,10 +185,10 @@ class DurableCompatibilityCorpusTest {
     private CompiledMachineProgram compile(String definition) throws IOException {
         byte[] source = resource(definition);
         ProcessModelType modelType = definition.endsWith(".bpmn") ? ProcessModelType.BPMN : ProcessModelType.TBBPM;
-        ProcessSemanticCompiler.ProcessSemanticCompilation compilation = ProcessSemanticCompiler
-            .discover(modelType, getClass().getClassLoader())
-            .compile(ProcessDefinitionSnapshot.of("compatibility", declaredCode(definition), "v1", source,
-                    "Frozen Durable compatibility corpus"));
+        var registry = new com.alibaba.compileflow.engine.core.semantic.ProcessSemanticCompilerRegistry(getClass()
+            .getClassLoader());
+        ProcessSemanticCompiler.ProcessSemanticCompilation compilation = registry.compile(ProcessDefinitionSnapshot.of(modelType,
+                "compatibility", declaredCode(definition), "v1", source, "Frozen Durable compatibility corpus"));
         try (ScriptExecutorRegistry scripts = ScriptExecutorRegistry.from(List.of(new CompatibilityScriptExecutor()))) {
             DurableProcessCompiler compiler = new DurableProcessCompiler(scripts);
             DurableMachinePlan machinePlan = compiler.lower(compilation.semanticPlan(), compilation.structuredPlan());

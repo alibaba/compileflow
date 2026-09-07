@@ -14,6 +14,7 @@
 package com.alibaba.compileflow.examples.order;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -154,6 +155,36 @@ class OrderFulfillmentApplicationTest {
             .andExpect(jsonPath("$.errorCode").isNotEmpty())
             .andExpect(jsonPath("$.message").isNotEmpty());
         assertThat(operations.paymentAttemptsFor("order-payment-down")).isEqualTo(3);
+    }
+
+    @Test
+    void rejectsMalformedInvocationHeadersBeforeRunningBusinessActions() throws Exception {
+        String request =
+                """
+            {"orderId":"invalid-header-order","customerTier":"BASIC","destinationCountry":"CN",
+             "items":[{"sku":"SKU","quantity":1,"digital":false}],"subtotalCents":12000,
+             "paymentFailUntilAttempt":1,"fraudSignal":false,"giftOrder":false}
+            """;
+        for (String invocationId : List.of("invalid/id", "x".repeat(129), " padded ")) {
+            mockMvc
+                .perform(post("/api/orders/fulfill")
+                    .header("X-Invocation-Id", invocationId)
+                    .contentType("application/json")
+                    .content(request))
+                .andExpect(status().isBadRequest());
+        }
+        assertThat(operations.paymentAttemptsFor("invalid-header-order")).isZero();
+    }
+
+    @Test
+    void paymentCapabilityUsesTheOrderAsAnIdempotencyKey() throws Exception {
+        assertThat(operations.authorizePayment("order-idempotent", 9_600, 1)).isEqualTo("PAY-order-idempotent-9600");
+        assertThat(operations.authorizePayment("order-idempotent", 9_600, 1)).isEqualTo("PAY-order-idempotent-9600");
+        assertThat(operations.paymentAttemptsFor("order-idempotent")).isEqualTo(1);
+
+        assertThatThrownBy(() -> operations.authorizePayment("order-idempotent", 9_700, 1))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("idempotency key");
     }
 
     private static OrderRequest request(String orderId, String customerTier, String country, int subtotalCents,

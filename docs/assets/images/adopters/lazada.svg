@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+  <title id="title">Lazada</title>
+  <defs>
+    <linearGradient id="heart" x1="0" x2="67.4" y1="27.4" y2="27.4" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFB900"/>
+      <stop offset=".34" stop-color="#F38000"/>
+      <stop offset=".57" stop-color="#F83C72"/>
+      <stop offset=".78" stop-color="#FC1CBE"/>
+      <stop offset="1" stop-color="#FF00FF"/>
+    </linearGradient>
+    <linearGradient id="right" x1="33.6" x2="67.4" y1="27.4" y2="27.4" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#EE0A3F"/>
+      <stop offset="1" stop-color="#EE0A3F" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="left" x1="33.6" x2="67.4" y1="27.4" y2="27.4" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ED6600"/>
+      <stop offset="1" stop-color="#F98200"/>
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="976" height="976" rx="212" fill="#fff" stroke="#E5E7EB" stroke-width="24"/>
+  <g transform="translate(160 226) scale(10.45)">
+    <path fill="url(#heart)" d="M33.737 54.716c-.479.003-.95-.12-1.366-.355C28.806 52.3 2.404 35.744 1.407 35.239A2.39 2.39 0 0 1 .041 33.327v-23.22A2.51 2.51 0 0 1 1.175 7.95l.191-.109C3.92 6.256 12.47 1.038 13.822.287A2.05 2.05 0 0 1 14.847 0c.338.004.67.088.97.246 0 0 11.965 7.799 13.795 8.495a9.4 9.4 0 0 0 4.097.861 9.2 9.2 0 0 0 4.59-1.12C40.088 7.54 51.52.287 51.643.287a1.8 1.8 0 0 1 .956-.26c.361.002.715.101 1.024.287 1.558.86 12.157 7.348 12.607 7.635a2.46 2.46 0 0 1 1.188 2.131V33.3a2.36 2.36 0 0 1-1.365 1.912c-.997.546-27.317 17.1-30.95 19.122a2.73 2.73 0 0 1-1.366.382"/>
+    <path fill="url(#right)" d="M33.6 54.716h.137c.478.003.95-.12 1.365-.355 3.565-2.062 29.954-18.617 30.95-19.122a2.36 2.36 0 0 0 1.366-1.912v-23.22a2.5 2.5 0 0 0-.259-1.133L33.6 27.399z"/>
+    <path fill="url(#left)" transform="matrix(-.989 0 0 .989 66.7 .255)" d="M33.6 54.716h.137c.478.003.95-.12 1.365-.355 3.565-2.062 29.954-18.617 30.95-19.122a2.36 2.36 0 0 0 1.366-1.912v-23.22a2.5 2.5 0 0 0-.259-1.133L33.6 27.399z"/>
+  </g>
+</svg>

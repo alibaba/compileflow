@@ -7,6 +7,9 @@ import {
 } from '../clipboardStorage'
 
 const clipboardData = {
+  modelType: 'TBBPM' as const,
+  connections: [],
+  messages: [],
   nodes: [
     {
       id: 'task-1',
@@ -17,7 +20,6 @@ const clipboardData = {
     },
   ],
   timestamp: 1_000,
-  source: 'order-flow',
 }
 
 describe('designer clipboard storage', () => {
@@ -44,13 +46,13 @@ describe('designer clipboard storage', () => {
   })
 
   it('keeps clipboard operations usable when browser storage is unavailable', () => {
-    vi.spyOn(sessionStorage, 'setItem').mockImplementation(() => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new DOMException('Storage denied', 'SecurityError')
     })
-    vi.spyOn(sessionStorage, 'getItem').mockImplementation(() => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new DOMException('Storage denied', 'SecurityError')
     })
-    vi.spyOn(sessionStorage, 'removeItem').mockImplementation(() => {
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
       throw new DOMException('Storage denied', 'SecurityError')
     })
 
@@ -58,6 +60,29 @@ describe('designer clipboard storage', () => {
     expect(readDesignerClipboard()).toEqual(clipboardData)
 
     clearDesignerClipboard()
+    expect(readDesignerClipboard()).toBeNull()
+  })
+
+  it('reads the latest copy when a quota failure leaves an older persisted value', () => {
+    writeDesignerClipboard(clipboardData)
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('Storage full', 'QuotaExceededError')
+    })
+    const newer = { ...clipboardData, timestamp: 2_000 }
+
+    writeDesignerClipboard(newer)
+
+    expect(readDesignerClipboard()).toEqual(newer)
+  })
+
+  it('does not resurrect a cleared clipboard when persisted removal fails', () => {
+    writeDesignerClipboard(clipboardData)
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new DOMException('Storage denied', 'SecurityError')
+    })
+
+    clearDesignerClipboard()
+
     expect(readDesignerClipboard()).toBeNull()
   })
 })

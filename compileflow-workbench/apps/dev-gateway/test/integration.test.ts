@@ -68,12 +68,16 @@ describe('CompileFlow Workbench Development Gateway integration', () => {
     const data = await responseJsonObject(response)
 
     expect(response.status).toBe(200)
-    expect(data).toMatchObject({
+    expect(data).toEqual({
       success: true,
-      modelType: 'BPMN',
+      message: expect.any(String),
+      traceId: expect.any(String),
+      invocationId: expect.any(String),
+      processCode: VALID_PREVIEW.code,
+      durationMs: expect.any(Number),
       routing: { namespace: 'default' },
+      result: { output: 'Mock preview result', inputParams: VALID_PREVIEW.params },
     })
-    expect(data.sourceDigest).toMatch(/^[0-9a-f]{64}$/)
   })
 
   it('rejects invalid preview bodies', async () => {

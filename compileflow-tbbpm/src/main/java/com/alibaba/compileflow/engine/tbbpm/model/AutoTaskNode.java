@@ -14,7 +14,7 @@
 package com.alibaba.compileflow.engine.tbbpm.model;
 
 /**
- * Executes automated tasks synchronously without user intervention.
+ * Invokes application-owned actions without user intervention.
  *
  * <p>Invokes application-owned Java methods or Spring beans. Workflow-owned code belongs on
  * {@link ScriptTaskNode}.

@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.spring.boot.autoconfigure;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -52,7 +53,7 @@ import org.springframework.context.annotation.Configuration;
 class ProcessEventListenerAutoConfigurationTest {
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(CompileFlowEnginePropertiesAutoConfiguration.class,
-                CompileFlowContextPropagationAutoConfiguration.class, CompileFlowCoreAutoConfiguration.class))
+                CompileFlowContextPropagationAutoConfiguration.class, CompileFlowEngineAutoConfiguration.class))
         // Engine creation is exercised elsewhere; this test focuses on config assembly.
         .withPropertyValues("compileflow.engine.enabled=true");
 
@@ -171,6 +172,22 @@ class ProcessEventListenerAutoConfigurationTest {
     }
 
     @Test
+    void rejectsDuplicateScriptLanguageRegistrationsEvenForTheSameInstance() {
+        ScriptExecutor executor = PluginBeans.namedExecutor("groovy");
+        runner
+            .withBean("firstGroovy", ScriptExecutor.class, () -> executor)
+            .withBean("secondGroovy", ScriptExecutor.class, () -> executor)
+            .run(context -> {
+                assertThat(context).hasFailed();
+                assertThat(context.getStartupFailure())
+                    .hasRootCauseInstanceOf(CompileFlowException.ConfigurationException.class)
+                    .hasRootCauseMessage(
+                            "Duplicate script executors for language 'groovy': " + executor.getClass().getName()
+                            + " and " + executor.getClass().getName());
+            });
+    }
+
+    @Test
     void rejectsAmbiguousScriptExecutorBeansForTheSameLanguage() {
         runner
             .withBean("firstGroovy", ScriptExecutor.class, () -> PluginBeans.namedExecutor("groovy"))
@@ -178,9 +195,9 @@ class ProcessEventListenerAutoConfigurationTest {
             .run(context -> {
                 assertThat(context).hasFailed();
                 assertThat(context.getStartupFailure())
-                    .hasRootCauseInstanceOf(IllegalStateException.class)
+                    .hasRootCauseInstanceOf(CompileFlowException.ConfigurationException.class)
                     .hasRootCauseMessage(
-                            "Multiple ScriptExecutor beans claim language 'groovy': "
+                            "Duplicate script executors for language 'groovy': "
                             + PluginBeans.namedExecutor("groovy").getClass().getName() + " and "
                             + PluginBeans.namedExecutor("groovy").getClass().getName());
             });
@@ -198,7 +215,7 @@ class ProcessEventListenerAutoConfigurationTest {
                 engine
                     .runtime()
                     .load(ref,
-                            ProcessDefinition.inline(ref.code(),
+                            ProcessDefinition.inline(ProcessModelType.TBBPM, ref.code(),
                                     """
                 <bpm code="autoconfigure.shared-state">
                     <start id="start" name="Start" g="50,50,32,32">
@@ -217,7 +234,7 @@ class ProcessEventListenerAutoConfigurationTest {
     @Test
     void autoConfiguredEngineIncludesBuiltInJavaScriptExecutor() {
         runner.run(context -> {
-            ProcessDefinition definition = ProcessDefinition.inline("autoconfigure.java-script",
+            ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.TBBPM, "autoconfigure.java-script",
                     """
                 <bpm code="autoconfigure.java-script">
                     <var name="left" dataType="java.lang.Integer" inOutType="param"/>
@@ -278,14 +295,21 @@ class ProcessEventListenerAutoConfigurationTest {
             return TestScriptExecutors.of("aviator", (source, context) -> source);
         }
 
-        @Bean("business-retry")
-        RetryPolicy businessRetry() {
+        @Bean
+        RetryPolicy businessRetryPolicy() {
             return failure -> true;
         }
 
-        @Bean("business-failure")
-        FailureHandler businessFailure() {
+        @Bean
+        FailureHandler businessFailureHandler() {
             return context -> FailureResolution.CONTINUE_PROCESS;
+        }
+
+        @Bean
+        ProcessEnginePlugin businessPolicies(RetryPolicy retryPolicy, FailureHandler failureHandler) {
+            return ProcessEnginePlugin.of("business-policies", plugin -> plugin
+                .retryPolicy("business-retry", retryPolicy)
+                .failureHandler("business-failure", failureHandler));
         }
     }
 

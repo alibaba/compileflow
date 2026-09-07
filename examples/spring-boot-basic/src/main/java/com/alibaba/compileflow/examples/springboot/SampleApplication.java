@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.examples.springboot;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
 import com.alibaba.compileflow.engine.ProcessResult;
@@ -43,7 +44,8 @@ public class SampleApplication {
     @Bean
     CommandLineRunner runSample(ProcessEngine processEngine) {
         return args -> {
-            ProcessDefinition source = ProcessDefinition.classpath("bpm.sample.hello", "flows/hello.bpm");
+            ProcessDefinition source =
+                    ProcessDefinition.classpath(ProcessModelType.TBBPM, "bpm.sample.hello", "flows/hello.bpm");
 
             ProcessPreflightReport report = processEngine
                 .tooling()

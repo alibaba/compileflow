@@ -48,7 +48,6 @@ export function registerSelectionEvents<Connection extends ProcessConnection>(
   graph.on('edge:click', ({ edge }: { edge: Edge }) => {
     const connection = connectionsRef.current.find((candidate) => candidate.id === edge.id)
     dispatch(selectEdge(connection ?? null))
-    dispatch(selectNode(null))
   })
 
   graph.on('blank:click', () => {
@@ -95,7 +94,6 @@ export function registerSelectionSync<Connection extends ProcessConnection>(
     if (cell.isEdge()) {
       const connection = connectionsRef.current.find((candidate) => candidate.id === cell.id)
       dispatch(selectEdge(connection ?? null))
-      dispatch(selectNode(null))
     }
   })
 }

@@ -20,15 +20,20 @@ import com.alibaba.compileflow.engine.spi.script.ScriptException;
 import com.alibaba.compileflow.engine.spi.script.ScriptProgramSpec;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 class QlExpressScriptExecutorTest {
+    private final QlExpressScriptExecutor executor =
+            new QlExpressScriptExecutor(QlExpressScriptExecutorTest.class.getClassLoader());
+
     private static ScriptProgramSpec spec(String source) {
         return new ScriptProgramSpec("qlexpress", source, List.of(), null);
     }
 
-    private static QlExpressScriptExecutor executor() {
-        return new QlExpressScriptExecutor(QlExpressScriptExecutorTest.class.getClassLoader());
+    @AfterEach
+    void closeExecutor() {
+        executor.close();
     }
 
     private static Object evaluate(QlExpressScriptExecutor executor, String source, Map<String, Object> context) {
@@ -37,16 +42,12 @@ class QlExpressScriptExecutorTest {
 
     @Test
     void evaluatesExpressionsAndSafeCollectionFunctionsInIsolation() {
-        QlExpressScriptExecutor executor = executor();
-
         assertThat(evaluate(executor, "base + delta", Map.of("base", 2, "delta", 3))).isEqualTo(5);
         assertThat(evaluate(executor, "size(values)", Map.of("values", List.of(1, 2, 3)))).isEqualTo(3);
     }
 
     @Test
     void isolatedModeRejectsHostObjectMethodAccess() {
-        QlExpressScriptExecutor executor = executor();
-
         assertThatThrownBy(() -> evaluate(executor, "value.intValue()", Map.of("value", 7)))
             .isInstanceOf(ScriptException.class)
             .hasMessageContaining("QL script evaluation failed");
@@ -54,8 +55,6 @@ class QlExpressScriptExecutorTest {
 
     @Test
     void validatesAndCompilesWithoutPersistingProviderArtifacts() {
-        QlExpressScriptExecutor executor = executor();
-
         executor.validate(spec("value + 1"));
         ScriptProgram program = executor.compile(spec("value + 1"));
 
@@ -65,7 +64,6 @@ class QlExpressScriptExecutorTest {
 
     @Test
     void closeRejectsFurtherUse() {
-        QlExpressScriptExecutor executor = executor();
         ScriptProgram program = executor.compile(spec("value + 1"));
         executor.evaluate(program, Map.of("value", 1));
 

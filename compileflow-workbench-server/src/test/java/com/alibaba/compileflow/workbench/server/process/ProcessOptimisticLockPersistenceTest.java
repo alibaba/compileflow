@@ -15,6 +15,7 @@ package com.alibaba.compileflow.workbench.server.process;
 
 import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -22,7 +23,11 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -32,6 +37,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @SpringBootTest
 @ActiveProfiles("test")
+@Timeout(30)
 class ProcessOptimisticLockPersistenceTest {
     @Autowired
     private ProcessDraftRepository repository;
@@ -40,7 +46,10 @@ class ProcessOptimisticLockPersistenceTest {
 
     private static void await(CyclicBarrier barrier) {
         try {
-            barrier.await();
+            barrier.await(5, TimeUnit.SECONDS);
+        } catch (InterruptedException failure) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while awaiting concurrent writers", failure);
         } catch (Exception failure) {
             throw new IllegalStateException("Concurrent writers did not reach the update barrier", failure);
         }
@@ -62,8 +71,24 @@ class ProcessOptimisticLockPersistenceTest {
     }
 
     @Test
+    void missingConcurrentWriterFailsInsteadOfWaitingForever() throws Exception {
+        ExecutorService writer = Executors.newSingleThreadExecutor();
+        Future<?> waiting = writer.submit(() -> await(new CyclicBarrier(2)));
+        try {
+            assertThatThrownBy(() -> waiting.get(10, TimeUnit.SECONDS))
+                .isInstanceOf(ExecutionException.class)
+                .hasRootCauseInstanceOf(TimeoutException.class);
+        } finally {
+            waiting.cancel(true);
+            writer.shutdownNow();
+            assertThat(writer.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
+        }
+    }
+
+    @Test
     void exactlyOneConcurrentWriterCanCommitTheSameRevision() throws Exception {
         TransactionTemplate transactions = new TransactionTemplate(transactionManager);
+        transactions.setTimeout(10);
         String processCode = "concurrent.order." + UUID.randomUUID();
         try {
             transactions.executeWithoutResult(ignored -> repository.saveAndFlush(flow(processCode)));
@@ -76,9 +101,11 @@ class ProcessOptimisticLockPersistenceTest {
                 Future<Boolean> second =
                         writers.submit(() -> updateAfterBarrier(transactions, loaded, processCode, "Second"));
 
-                assertThat(List.of(first.get(), second.get())).containsExactlyInAnyOrder(true, false);
+                assertThat(List.of(first.get(10, TimeUnit.SECONDS), second.get(10, TimeUnit.SECONDS)))
+                    .containsExactlyInAnyOrder(true, false);
             } finally {
                 writers.shutdownNow();
+                assertThat(writers.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
             }
 
             ProcessDraftEntity committed =

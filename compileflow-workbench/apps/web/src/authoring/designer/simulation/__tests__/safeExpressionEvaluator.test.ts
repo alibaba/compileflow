@@ -7,6 +7,99 @@ import {
 } from '../safeExpressionEvaluator'
 
 describe('safeExpressionEvaluator', () => {
+  it.each([
+    'value != null && value.startsWith(1)',
+    'value != null && value.endsWith(false)',
+    'true || values.length > "wrong"',
+    'true || values.length == "wrong"',
+  ])('rejects known invalid types behind null guards and array lengths: %s', (expression) => {
+    expect(() => evaluateSafeJavaCondition(expression, { value: null, values: [] })).toThrow(
+      SafeExpressionError
+    )
+  })
+
+  it.each([
+    'true || count',
+    'false && !count',
+    'true || count.startsWith("x")',
+    'true || count.length == 1',
+    'true || count == "1"',
+    'true || count.isEmpty()',
+    'true || -true > 0',
+    'false && -"1" > 0',
+    'true || -1 > "x"',
+  ])('rejects known invalid skipped operand types: %s', (expression) => {
+    expect(() => evaluateSafeJavaCondition(expression, { count: 1 })).toThrow(SafeExpressionError)
+  })
+
+  it('keeps valid short-circuit null guards without invoking skipped getters', () => {
+    let reads = 0
+    const variables = {
+      value: null,
+      get skipped() {
+        reads++
+        throw new Error('getter executed')
+      },
+    }
+    expect(evaluateSafeJavaCondition('value != null && value.startsWith("x")', variables)).toBe(
+      false
+    )
+    expect(() => evaluateSafeJavaCondition('true || skipped', variables)).toThrow(
+      SafeExpressionError
+    )
+    expect(reads).toBe(0)
+  })
+
+  it('rejects nonfinite computed preview results', () => {
+    expect(() => evaluateSafeExpression('huge * 2', { huge: Number.MAX_VALUE })).toThrow(
+      SafeExpressionError
+    )
+    expect(() => evaluateSafeExpression('huge * 2 > 0', { huge: Number.MAX_VALUE })).toThrow(
+      SafeExpressionError
+    )
+  })
+
+  it('rejects ambiguous skipped boolean values rather than guessing their type', () => {
+    expect(() =>
+      evaluateSafeJavaCondition('true || map.get("enabled")', { map: { enabled: 1 } })
+    ).toThrow(SafeExpressionError)
+  })
+
+  it.each(['1 && true', '"false" || true', '!1', 'true && null'])(
+    'rejects nonboolean logical operands: %s',
+    (expression) => {
+      expect(() => evaluateSafeJavaCondition(expression)).toThrow(SafeExpressionError)
+      expect(() => evaluateSafeExpression(expression)).toThrow(SafeExpressionError)
+    }
+  )
+
+  it.each([
+    'true || (1 === 1)',
+    'false && (1 + 2 > 0)',
+    'true || object.field == null',
+    'false && undefined == null',
+  ])('validates unsupported Java syntax even in skipped branches: %s', (expression) => {
+    expect(() => evaluateSafeJavaCondition(expression, { object: {} })).toThrow(SafeExpressionError)
+  })
+
+  it.each(['true || 1', 'false && "bad"', 'true || !1'])(
+    'validates skipped nonboolean literals: %s',
+    (expression) => {
+      expect(() => evaluateSafeJavaCondition(expression)).toThrow(SafeExpressionError)
+    }
+  )
+
+  it.each([
+    '"\\q" == "q"',
+    '"\\u0041".equals("u0041")',
+    '\'word\'.equals("word")',
+    '01 == 1',
+    '--1 == 1',
+    '"line\nbreak".equals("line\nbreak")',
+  ])('does not silently reinterpret unsupported Java literals: %s', (expression) => {
+    expect(() => evaluateSafeJavaCondition(expression)).toThrow(SafeExpressionError)
+  })
+
   it('evaluates comparison, logic, and wrapped flow expressions', () => {
     const variables = new Map<string, unknown>([
       ['amount', 1200],
@@ -57,6 +150,20 @@ describe('safeExpressionEvaluator', () => {
     expect(() => evaluateSafeExpression('user.constructor.name == "Object"', { user: {} })).toThrow(
       SafeExpressionError
     )
+  })
+
+  it('keeps map access on own properties and preserves mode-specific missing values', () => {
+    const variables = { map: { present: 'value', prototype: 'owned' } }
+
+    expect(evaluateSafeExpression('map.get("present")', variables)).toBe('value')
+    expect(evaluateSafeExpression('map.get("prototype")', variables)).toBe('owned')
+    expect(evaluateSafeExpression('map.get("missing")', variables)).toBeUndefined()
+    expect(evaluateSafeExpression('map.get("__proto__")', variables)).toBeUndefined()
+    expect(evaluateSafeExpression('map.get("constructor")', variables)).toBeUndefined()
+    expect(evaluateSafeJavaCondition('map.get("missing") == null', variables)).toBe(true)
+    expect(evaluateSafeJavaCondition('map.get("__proto__") == null', variables)).toBe(true)
+    expect(evaluateSafeJavaCondition('map.get("constructor") == null', variables)).toBe(true)
+    expect(evaluateSafeJavaCondition('map.get("prototype").equals("owned")', variables)).toBe(true)
   })
 
   it('uses the parser allow-list instead of rejecting harmless string content', () => {

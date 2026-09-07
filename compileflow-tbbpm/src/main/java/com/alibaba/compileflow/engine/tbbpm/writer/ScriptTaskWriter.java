@@ -15,7 +15,6 @@ package com.alibaba.compileflow.engine.tbbpm.writer;
 
 import com.alibaba.compileflow.engine.tbbpm.model.ScriptTaskNode;
 import com.alibaba.compileflow.engine.tbbpm.model.TbbpmModelConstants;
-import javax.xml.stream.XMLStreamWriter;
 
 /**
  * XML writer for TBBPM script task nodes.
@@ -27,12 +26,6 @@ public class ScriptTaskWriter extends AbstractTbbpmActionNodeWriter<ScriptTaskNo
     protected String getName() {
         return TbbpmModelConstants.SCRIPT_TASK;
     }
-
-    @Override
-    protected void enrichNodeAttr(ScriptTaskNode node, XMLStreamWriter xsw) throws Exception {}
-
-    @Override
-    protected void enrichNodeElement(ScriptTaskNode element, XMLStreamWriter xsw) throws Exception {}
 
     @Override
     public Class<ScriptTaskNode> getElementClass() {

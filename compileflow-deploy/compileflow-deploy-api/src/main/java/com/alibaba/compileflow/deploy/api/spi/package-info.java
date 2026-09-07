@@ -14,7 +14,7 @@
 /**
  * Deployment service-provider contracts.
  *
- * <p>Artifact sources return immutable published artifacts to data-plane resolvers.
+ * <p>Artifact sources return immutable published artifacts to runtime resolvers.
  *
  * @author yusu
  */

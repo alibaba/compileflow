@@ -1,4 +1,4 @@
-import { getMockLogs } from './mockLogData'
+import { getMockLogs, mockLogs } from './mockLogData'
 
 import apiClient from '@/shared/api/client'
 import { isOperateMockMode } from '@/shared/config/buildConfig'
@@ -18,7 +18,7 @@ export async function getLogs(params: LogFilterParams = {}): Promise<LogListResp
 
 export async function getLogById(id: string): Promise<ExecutionLog> {
   if (isOperateMockMode()) {
-    const found = getMockLogs({}).data.find((l) => l.id === id)
+    const found = mockLogs.find((log) => log.id === id)
     if (found) return Promise.resolve(found)
     return Promise.reject(new Error(`Mock: log ${id} not found`))
   }
@@ -27,7 +27,7 @@ export async function getLogById(id: string): Promise<ExecutionLog> {
 
 export async function exportLogs(params: LogExportParams): Promise<Blob> {
   if (isOperateMockMode()) {
-    const { data } = getMockLogs(params)
+    const { data } = getMockLogs({ ...params, page: 1, pageSize: mockLogs.length })
     const header =
       'id,processCode,invocationId,parentInvocationId,callDepth,traceId,' +
       'modelType,sourceDigest,status,startTime,endTime,duration,' +

@@ -15,7 +15,7 @@ package com.alibaba.compileflow.engine.tbbpm.parser;
 
 import com.alibaba.compileflow.engine.core.xml.parser.ParseContext;
 import com.alibaba.compileflow.engine.core.xml.parser.XmlSource;
-import com.alibaba.compileflow.engine.tbbpm.model.TbbpmDocument;
+import com.alibaba.compileflow.engine.tbbpm.model.TbbpmModel;
 import com.alibaba.compileflow.engine.tbbpm.model.TbbpmModelConstants;
 
 /**
@@ -24,10 +24,10 @@ import com.alibaba.compileflow.engine.tbbpm.model.TbbpmModelConstants;
  * @author wuxiang
  * @author yusu
  */
-public class TbbpmDocumentParser extends AbstractTbbpmElementParser<TbbpmDocument> {
+public class TbbpmDocumentParser extends AbstractTbbpmElementParser<TbbpmModel> {
     @Override
-    protected TbbpmDocument doParse(XmlSource xmlSource, ParseContext parseContext) throws Exception {
-        TbbpmDocument document = new TbbpmDocument();
+    protected TbbpmModel doParse(XmlSource xmlSource, ParseContext parseContext) throws Exception {
+        TbbpmModel document = new TbbpmModel();
         document.setCode(xmlSource.getString(TbbpmModelConstants.ATTRIBUTE_CODE));
         document.setName(xmlSource.getString(TbbpmModelConstants.ATTRIBUTE_NAME));
         document.setDescription(xmlSource.getString(TbbpmModelConstants.ATTRIBUTE_DESCRIPTION));

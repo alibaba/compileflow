@@ -1,31 +1,25 @@
 # Java API 参考
 
-受支持的 Java API 位于 `compileflow-api`。除非其他文档明确声明，Engine 实现类、解析器模型、Spring 内部类和 Server DTO
+受支持的 Java API 位于 `compileflow-api`。除非其他文档明确声明，引擎实现类、解析器模型、Spring 内部类和 Server DTO
 均不属于公共 Java API。
 
-## 1. Engine 生命周期
+## 1. 引擎生命周期
 
-每种模型类型和配置创建一个长生命周期 Engine。Engine 线程安全，并拥有执行器、runtime cache 与生成类的 class loader。
+每组独立的资源与配置使用一个长生命周期引擎，与流程定义格式无关。引擎会发现已安装的 TBBPM/BPMN 前端解析模块，
+并管理执行器、运行时缓存和生成类所用的 `ClassLoader`。
 
 ```java
-ProcessEngine tbbpm = ProcessEngineFactory.createTbbpm();
-ProcessEngine bpmn = ProcessEngineFactory.createBpmn();
-
-try {
-    // 执行流程。
-} finally {
-    tbbpm.close();
-    bpmn.close();
+try (ProcessEngine engine = ProcessEngineFactory.create()) {
+    engine.execute(ProcessDefinition.inline(ProcessModelType.TBBPM, "order", orderXml), input);
+    engine.execute(ProcessDefinition.inline(ProcessModelType.BPMN, "payment", paymentXml), input);
 }
 ```
 
-Spring Boot 应用通常注入自动配置的单个 `ProcessEngine`。明确需要同时承载两种格式的平台，应在应用组合根中创建
-`ProcessEngineRegistry`、将其注册为受容器管理的 Bean，并按 `ProcessModelType` 选择 Engine。自动配置模块提供这个 registry
-类型，但 Starter 不会隐式创建多格式 registry。
+Spring Boot 与 Workbench 使用相同的单引擎装配方式。添加 BPMN 前端解析模块后，同一引擎即可同时执行 TBBPM 和 BPMN 流程。
 
 ## 2. 流程身份与内容
 
-`ProcessDefinition` 表达显式 definition source，`ProcessRef` 标识已发布流程：
+`ProcessDefinition` 提供明确的流程定义来源，`ProcessRef` 标识已发布流程：
 
 ```java
 ProcessRef.Version version =
@@ -35,26 +29,25 @@ ProcessRef.Alias alias =
 ```
 
 - `Version` 选择一个精确且不可变的已发布版本。
-- `Alias` 选择一个权威的 stable/candidate 路由。
+- `Alias` 通过稳定版本或候选版本路由选择目标。
 
-`ProcessRef.DEFAULT_NAMESPACE` 是固定的 `"default"` 作用域，只有不接收 namespace 的 overload 会选择它。显式接收 namespace
-的 factory 与 record constructor 都拒绝 null、blank、首尾空白和非法标识符。Namespace 是逻辑资源作用域，本身不是授权边界。引用从不携带源码内容。
+`ProcessRef.DEFAULT_NAMESPACE` 是固定的 `"default"` 作用域，只有不接收命名空间的重载会使用它。显式接收命名空间的工厂方法和
+记录类构造器都会拒绝 `null`、空字符串、首尾空白和非法标识符。命名空间用于划分逻辑资源，本身不是授权边界。引用不携带源码内容。
 
-`ProcessDefinition` 描述内容如何提供或定位，但不携带 namespace、version、alias 或 model type：
+`ProcessDefinition` 描述流程内容的提供或定位方式，并明确指定模型类型，但不携带命名空间、版本或别名：
 
 ```java
-ProcessDefinition inline = ProcessDefinition.inline("order.validate", xml);
+ProcessDefinition inline = ProcessDefinition.inline(ProcessModelType.TBBPM, "order.validate", xml);
 ProcessDefinition classpath =
-        ProcessDefinition.classpath("order.validate", "flows/order.bpm");
+        ProcessDefinition.classpath(ProcessModelType.TBBPM, "order.validate", "flows/order.bpm");
 ```
 
-模型类型由接收它的格式绑定 Engine 决定。`toString()` 会隐藏内联内容。Classpath 访问、UTF-8 解码与源码大小限制由
-Engine definition loader 执行。
+模型类型由流程定义明确指定，引擎不会根据内容或文件名猜测格式。`toString()` 会隐藏内联内容。类路径访问、UTF-8 解码和源码大小限制由
+引擎的流程定义加载器执行。
 
-根 API 还公开四个受支持的协议基础类型：`ProcessDefinitionDigest` 计算稳定的精确定义摘要；`ProcessIdentifiers`
-不经归一化地校验身份；`ProcessText` 提供显式 Unicode/文本操作。有界嵌套调用拒绝通过带 `CF_EXEC_013` 的
-`CompileFlowException` 表达，其实现异常类型不属于 Supported API。
-它们的公开形态与文档语义属于 2.x Java API 契约。
+根 API 还公开受支持的协议基础类型：`ProcessDefinitionDigest` 计算稳定的精确定义摘要；`ProcessIdentifiers`
+不经归一化地校验身份；`ProcessText` 提供显式 Unicode/文本操作。根错误使用 `CompileFlowException` 和 `ErrorCode`；
+有界嵌套调用被拒绝时使用 `CF_EXEC_013`，对应的实现异常类型不属于受支持 API。这些公开类型及其文档语义属于 2.x Java API 契约。
 
 ## 3. 执行
 
@@ -72,12 +65,11 @@ ProcessResult<Map<String, Object>> execute(
         ProcessExecutionOptions options);
 ```
 
-ProcessEngine 执行输入是精确 Process Definition 所声明 `param` 变量的封闭、部分 Map。传入 `return`、`inner` 或未声明字段会返回
-`CF_VALIDATION_001`；缺失参数保留模型默认值，存在但值为 null 的键表示显式 null。`trigger(...)` 不是 Run Start：它从
-指定 trigger entry 启动新的下游 invocation，因此其 Map 是任意已声明根变量组成的部分状态 seed，但同样拒绝未声明字段。
-Durable Wait/Event completion 不复用这条状态 seed API。
+`ProcessEngine` 的输入是一个封闭的部分映射，只能包含目标流程定义声明的 `param` 变量。传入 `return`、`inner` 或未声明字段会返回
+`CF_VALIDATION_001`；缺失的参数保留模型默认值，键存在但值为 `null` 表示显式传入空值。`trigger(...)` 不是 Durable Run 的启动操作：
+它从指定触发入口开始一次新的下游调用，其映射可包含任意已声明的根变量，但同样拒绝未声明字段。Durable 的 Wait 或事件完成操作不复用该接口。
 
-两个 Map 入口都提供使用默认 options 的重载。类型化入口只是同一管线上的适配器，并使用配置的
+两个 Map 入口都提供使用默认选项的重载。类型化入口复用同一执行管线，并使用配置的
 `ProcessDataMapper`：
 
 ```java
@@ -98,12 +90,12 @@ Durable Wait/Event completion 不复用这条状态 seed API。
 
 ```java
 ProcessDefinition definition =
-        ProcessDefinition.classpath("order.validate", "flows/order.bpm");
+        ProcessDefinition.classpath(ProcessModelType.TBBPM, "order.validate", "flows/order.bpm");
 ProcessResult<Map<String, Object>> result =
         engine.execute(definition, Map.of("orderId", "A-42"));
 ```
 
-已发布执行使用精确 Version 或 Alias 引用。inline 或 classpath definition 都是显式 source，不是隐藏的“最新版本”查询。
+执行已发布流程时，应使用精确的 Version 或 Alias 引用。内联定义和类路径定义都有明确来源，不会隐式查询“最新版本”。
 
 ## 4. 请求元数据
 
@@ -117,10 +109,10 @@ ProcessExecutionOptions options = ProcessExecutionOptions.builder()
         .build();
 ```
 
-routing key 只参与目标选择，不会进入变量、结果、事件、日志、指标或 HTTP 响应。routing attributes 不可变，并且不能覆盖固定路由字段或
-Engine-owned `__cf_` 前缀。路由输入限制为：key 最长 512 字符、最多 32 个 attribute、name 最长 128 字符、value 最长
-2,048 字符，并且 UTF-8 总量不超过 32 KiB。invocation
-ID 可省略；提供时会先去除首尾空白，长度不超过 128 个字符，必须以 ASCII 字母或数字开头，且只能包含 ASCII 字母、数字、`.`、`_`、
+路由键只参与目标选择，不会进入变量、结果、事件、日志、指标或 HTTP 响应。路由属性不可变，也不能覆盖固定路由字段或
+引擎保留的 `__cf_` 前缀。路由键最长 512 个字符；路由属性最多 32 个，名称最长 128 个字符，值最长 2,048 个字符，
+全部路由输入的 UTF-8 编码总量不超过 32 KiB。调用 ID 可以省略；提供后按原值校验，不会归一化，并拒绝首尾空白。其长度不超过 128 个字符，
+必须以 ASCII 字母或数字开头，且只能包含 ASCII 字母、数字、`.`、`_`、
 `:`、`@` 或 `-`。
 
 ## 5. 结果与错误
@@ -140,12 +132,12 @@ T orElseThrow();
 <X extends Throwable> T orElseThrow(Supplier<? extends X> exceptionSupplier) throws X;
 ```
 
-成功结果有 output 且无 error；失败结果有 `ProcessError` 且无 output。成功 output 本身可以为 `null`，因此应通过
-`isSuccess()` 判断结果，不能根据 `getOutput()` 推断。`ProcessError` code 最长 128 字符，脱敏 message 最长 4,096 字符。
+成功结果包含输出且不含错误；失败结果包含 `ProcessError` 且不含输出。成功输出本身可以为 `null`，因此应通过
+`isSuccess()` 判断结果，不能根据 `getOutput()` 推断。`ProcessError` 的错误码最长 128 个字符，脱敏消息最长 4,096 个字符。
 
-`map()` 只转换成功输出；失败时保留同一份 error 与 execution attribution。`orElse()` 和 `orElseGet()`
-会有意丢弃失败信息，只应在 fallback 本身就是业务契约时使用。`orElseThrow()` 抛出
-`ProcessExecutionException`；supplier 重载用于在应用边界转换异常：
+`map()` 只转换成功输出；失败时保留原有错误和执行归因。`orElse()` 与 `orElseGet()`
+会丢弃失败信息，只应在回退值本身就是业务契约时使用。`orElseThrow()` 抛出
+`ProcessExecutionException`；接收异常供应器的重载用于在应用边界转换异常：
 
 ```java
 Map<String, Object> output = result.orElseThrow(() ->
@@ -153,12 +145,12 @@ Map<String, Object> output = result.orElseThrow(() ->
                 result.getError().getCode() + ": " + result.getError().getMessage()));
 ```
 
-`ProcessExecution` 只暴露 trace ID、invocation ID、逻辑 namespace、process code、可选的精确发布 version 与起止时间。
-根 selector、Alias route 细节、routing input、model/source 诊断、变量与异常对象都留在各自 owner 边界。
+`ProcessExecution` 只公开跟踪 ID、调用 ID、逻辑命名空间、流程编码、可选的精确发布版本和起止时间。
+根选择器、Alias 路由细节、路由输入、模型或来源诊断、变量和异常对象都保留在各自的职责边界内。
 
 ## 6. Trigger 入口
 
-`ProcessTrigger` 通过全局唯一 ID 选择触发入口节点，并携带可选 event：
+`ProcessTrigger` 通过全局唯一 ID 选择触发入口节点，并可指定事件：
 
 ```java
 ProcessTrigger trigger = ProcessTrigger.on("paymentReceived", "approved");
@@ -169,12 +161,12 @@ ProcessResult<Map<String, Object>> result = engine.trigger(
         ProcessExecutionOptions.defaults());
 ```
 
-Trigger 通过与 execute 相同的来源、路由、runtime 与结果管线启动一次新的内存执行。它不会恢复持久化流程实例，也不承诺消息持久化、关联或状态恢复。
-node ID 与可选 event selector 均最长 512 字符。
+Trigger 通过与 `execute` 相同的来源、路由、运行时和结果管线启动一次新的内存执行。它不会恢复持久化流程实例，也不提供消息持久化、关联或状态恢复。
+节点 ID 和可选的事件选择器均最长 512 个字符。
 
 ## 7. 本地管理与工具
 
-`engine.runtime()` 返回稳定的 Engine 本地 runtime 管理视图：
+`engine.runtime()` 返回稳定的引擎本地运行时管理视图：
 
 ```java
 void warmUp(ProcessDefinition... definitions);
@@ -183,9 +175,9 @@ void unload(ProcessRef.Version... refs);
 ```
 
 `warmUp` 把精确定义编译到节点本地缓存，但不会创建或重绑定公开流程身份。带版本的 `load` 安装不可变版本
-binding；两者都不会发布持久状态或修改 Alias。`unload` 只释放显式版本 ownership，Alias 生命周期属于控制面。
+绑定；两者都不会发布持久状态或修改 Alias。`unload` 只释放显式版本的本地资源，Alias 生命周期由控制面管理。
 
-`engine.tooling()` 暴露不执行流程的 preflight 与源码生成：
+`engine.tooling()` 提供不会执行流程的预检与源码生成功能：
 
 ```java
 ProcessPreflightReport preflight(
@@ -200,8 +192,8 @@ ProcessPreflightReport.OverallStatus getOverallStatus();
 List<ProcessPreflightReport.Item> getItems();
 ```
 
-`fast()` 执行结构校验，`strict()` 还会 dry-run 编译生成的 Java。两者默认 deadline 都是一分钟；builder 可替换为正数且能用毫秒表示的
-`Duration`。Preflight 对一个 definition 返回一个 report，不会安装 runtime 或执行流程逻辑。
+`fast()` 执行结构校验，`strict()` 还会试编译生成的 Java。两者的默认截止时间都是一分钟；构建器可将其替换为正数且能以整毫秒表示的
+`Duration`。预检为每个流程定义返回一份报告，不会安装运行时或执行流程逻辑。
 
 生成源码可能包含业务逻辑，应按敏感诊断输出处理。
 
@@ -210,16 +202,15 @@ List<ProcessPreflightReport.Item> getItems();
 配置是不可变快照：
 
 ```java
-ProcessEngineConfig.Builder tbbpmBuilder();
+ProcessEngineConfig.Builder builder();
 
-ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder()
+ProcessEngineConfig config = ProcessEngineConfig.builder()
         .dataMapper(customMapper)
         .build();
 ProcessEngine engine = ProcessEngineFactory.create(config);
 ```
 
-使用 `ProcessEngineConfig.tbbpmBuilder()` 或 `bpmnBuilder()`。Builder 统一管理 executor、cache、script、
-compilation、definition loading、observability、class loader、mapper、component resolver、routing 和扩展贡献。外部配置由
+使用 `ProcessEngineConfig.builder()`。构建器统一管理执行器、缓存、脚本、编译、流程定义加载、可观测性、类加载器、映射器、组件解析器、路由和扩展配置。外部配置由
 Spring 边界解析一次，并构造成同一个不可变模型。
 
 `ProcessDataMapper` 定义类型适配行为：
@@ -229,23 +220,25 @@ Map<String, Object> toVariables(Object input);
 <T> T fromVariables(Map<String, Object> variables, Class<T> outputType);
 ```
 
-Mapper 失败是 typed engine failure。输出转换发生在流程执行后，不会回滚 action 已经产生的副作用。
+映射失败属于具有明确类型的引擎失败。输出转换发生在流程执行后，不会回滚流程动作已经产生的副作用。
 
 ## 9. 扩展 SPI
 
 受支持的扩展契约位于 `com.alibaba.compileflow.engine.spi`。可以直接通过
 `ProcessEngineConfig.Builder`、Spring bean 或 `ProcessEnginePlugin` 注册。构建配置时，引擎会校验并冻结最终能力集合。
-`ProcessAliasRouteSource` 是例外：它是通过 `aliasRouteSource(...)` 或单个 Spring bean 显式配置的唯一 serving 权威，
-不允许由 plugin 贡献。
+`ProcessAliasRouteSource` 是例外：它必须通过 `aliasRouteSource(...)` 或单个 Spring Bean 显式配置，并作为唯一的在线路由依据，
+不允许由插件提供。
 
 扩展点、优先级、ServiceLoader 配置、生命周期和线程安全要求见[扩展指南](extension-guide.md)。
 
 ## 10. 部署 API
 
-流程发布与路由属于 `compileflow-deploy-api` 的独立产品边界。`ProcessDeploymentService` 发布不可变版本并执行带 revision
-前置条件的 rollout 命令。发布不会安装 runtime，也不会切流；回滚创建新 rollout，不改写历史。
+流程发布与路由属于 `compileflow-deploy-api` 的独立产品边界。`ProcessDeploymentService` 发布不可变版本，并执行带修订版本
+前置条件的流量调整命令。发布不会安装运行时，也不会改变流量；回滚会创建新的流量调整记录，不改写历史。
 
-应用应依赖 `compileflow-deploy-api` 中的命令与视图，不应依赖控制面 repository 或 runtime 实现包。
+应用应依赖 `compileflow-deploy-api` 中的命令与视图，不应依赖控制面存储库或运行时实现包。
+
+线协议载荷、解析器、规范 JSON 编解码器和投影键由 `compileflow-deploy-protocol` 单独发布；领域 API 不依赖该表示模块。
 
 ## 11. Durable Process API
 
@@ -267,58 +260,56 @@ public interface DurableProcessEngine {
 }
 ```
 
-每次 Start 都要求调用方分配 `ProcessRunId`。它是永久绑定该 Run occurrence 的地址与恢复 handle，不是通用幂等键。
-重复 Start 返回 `RUN_ALREADY_EXISTS`；响应不确定时使用 `getRun(runId)` 核实。HTTP、MQ 或应用请求的等价性仍由
-拥有该协议的 adapter 负责。
+每次 Start 都要求调用方分配 `ProcessRunId`。它是永久绑定该 Run 的地址和恢复句柄，不是通用幂等键。
+重复 Start 返回 `RUN_ALREADY_EXISTS`；响应不确定时使用 `getRun(runId)` 核实。HTTP、MQ 或应用请求是否等价，仍由
+对应协议的适配器判断。
 
 准入遵循以下规则：
 
-- 显式 definition 经安全加载后冻结为不可变快照。
+- 显式流程定义经安全加载后冻结为不可变快照。
 - Exact Version 不会回退到其他来源。
 - Alias 只解析一次，Run 永久绑定所选的精确已存储 Process。
-- `AliasRoutingOptions` 只适用于 Alias admission。
-- 恢复按 `processId` 读取已存储 Process，不会重新解析 Alias 或读取当前 Classpath 内容。
+- `AliasRoutingOptions` 只适用于通过 Alias 启动 Run 时的准入过程。
+- 恢复时按 `processId` 读取已存储 Process，不会重新解析 Alias，也不会读取当前类路径中的内容。
 
-`completeWait` 接收 opaque one-shot `WaitToken` 和 typed partial result。重放相同的已提交 token 与 canonical
-result 属于 current-equivalent，不同结果会冲突。Raw token 应按凭据保护，不能写入日志、metric label、浏览器可见 URL、
-第三方 metadata 或 Workbench view。
+`completeWait` 接收不透明、一次性的 `WaitToken` 和类型化的部分结果。使用相同令牌和规范化结果重复提交已经完成的请求不会改变状态，
+提交不同结果则会产生冲突。原始令牌应按凭据保护，不能写入日志、指标标签、浏览器可见 URL、第三方元数据或 Workbench 视图。
 
-`getRun` 与 `listRuns` 不读取 payload；`getRunResult` 返回 `ProcessRunResult.NotFound`、`NotCompleted`、
+`getRun` 与 `listRuns` 不读取载荷；`getRunResult` 返回 `ProcessRunResult.NotFound`、`NotCompleted`、
 `Succeeded`、`Failed` 或 `Cancelled`。
 
 公开 Run 生命周期为：
 
-| 状态 | 含义 |
-|---|---|
-| `RUNNABLE` | 已提交，等待兼容 Worker。 |
-| `RUNNING` | 当前 Turn 持有租约。 |
-| `WAITING` | 等待外部完成、Timer 或 Effect。 |
-| `SUCCEEDED`、`FAILED`、`CANCELLED` | 终态。 |
+| 状态                               | 含义                            |
+| ---------------------------------- | ------------------------------- |
+| `RUNNABLE`                         | 已提交，等待兼容的工作节点。    |
+| `RUNNING`                          | 当前执行轮次持有租约。          |
+| `WAITING`                          | 等待外部完成、Timer 或 Effect。 |
+| `SUCCEEDED`、`FAILED`、`CANCELLED` | 终态。                          |
 
 取消意图和 `ProcessRunControl` 与生命周期正交。`ACTIVE` 允许执行，`PAUSE_REQUESTED` 记录协作式收敛，
-`PAUSED` 阻止新的业务 Turn/Effect admission，但 Timer、Wait completion、Outbox、对账、取消和维护工作继续。
+`PAUSED` 阻止新的业务执行轮次和 Effect 准入，但 Timer、Wait 完成、Outbox、对账、取消和维护工作仍会继续。
 
-`DurableOperatorService` 是用于 Run Timeline、Pause/Resume、Outbox 裁决和 UNKNOWN Effect review 的独立
-最小权限门面。不要直接暴露为 HTTP 或 RPC；transport adapter 必须补充认证、授权、必要审批、限流和审计。
+`DurableOperatorService` 是用于查看 Run 时间线、执行 Pause/Resume、裁决 Outbox 和处理 `UNKNOWN` Effect 的独立最小权限门面。
+不要直接通过 HTTP 或 RPC 暴露；传输适配器必须补充认证、授权、必要审批、限流和审计。
 
-`bpmCall` 或 `callActivity` 使用同 Run `ProcessInvocation` frame，不创建可独立查询的 Child Run。Outbox 为
-at-least-once 且不保证顺序，Sink 按稳定 `eventId` 去重。Java API 使用 typed keyset cursor，opaque page-token
-协议由 transport adapter 负责。
+`bpmCall` 或 `callActivity` 使用同一 Run 中的 `ProcessInvocation` 调用帧，不创建可独立查询的第二个 Run。Outbox 至少投递一次且不保证顺序，
+接收端按稳定的 `eventId` 去重。Java API 使用类型化的键集游标，不透明分页令牌协议由传输适配器负责。
 
 捕获 `DurableProcessException` 后按 `DurableErrorCode` 分支，不要解析消息文本。Action 的
-`execution="replayable|effect"` 选择 Durable 执行语义；只有调用后结果为 `UNKNOWN` 的 Effect 需要经过认证的
-Operator 裁决。准入、Wait token、Process Call、运维与 Effect 恢复见
+`execution="replayable|effect"` 选择 Durable 执行语义。调用后结果为 `UNKNOWN` 的 Effect 先遵循配置的自动恢复策略；
+只有 `reviewRequired()` 为 `true` 时，才需要经过认证的运维人员裁决。准入、Wait 令牌、流程调用、运维与 Effect 恢复见
 [Durable Process 使用指南](durable-process.md)。
 
 ## 12. 失败边界
 
-预期执行失败由 `ProcessResult` 表示。非法配置、错误 API 输入、provider 不可用、生命周期误用，以及其他无法形成执行结果的失败，使用
-typed `CompileFlowException` 层次。
+预期执行失败由 `ProcessResult` 表示。非法配置、错误的 API 输入、存储实现不可用、生命周期误用，以及其他无法形成执行结果的失败，使用
+类型明确的 `CompileFlowException` 异常层次。
 
-它的可选诊断 context 明确不属于权威事实，并限制为 32 个 entry、128 字符 key、2,048 字符文本值和 32 个集合元素。
-可变集合会被快照；不支持或超限的值只保存固定 omission marker。诊断增强绝不能携带流程变量、payload、源码或凭据，也不能改变执行结果。
+它的可选诊断上下文不属于权威事实，并限制为 32 个条目、键最长 128 个字符、文本值最长 2,048 个字符，集合最多 32 个元素。
+可变集合会生成快照；不支持或超限的值只保存固定的省略标记。诊断信息绝不能携带流程变量、载荷、源码或凭据，也不能改变执行结果。
 
-翻译任何失败形式时，都不要记录原始变量、源码、routing key、凭据、完整本地路径或任意应用对象。
+转换任何失败形式时，都不要记录原始变量、源码、路由键、凭据、完整本地路径或任意应用对象。
 
 ## 相关文档
 
@@ -327,4 +318,4 @@ typed `CompileFlowException` 层次。
 - [扩展指南](extension-guide.md)
 - [热部署](hot-deploy.md)
 - [Durable Process](durable-process.md)
-- [支持面清单](../architecture/06-SUPPORTED_SURFACES.zh.md)
+- [支持面清单](architecture/supported-surfaces.md)

@@ -13,12 +13,14 @@
  */
 package com.alibaba.compileflow.engine.bpmn.model;
 
+import com.alibaba.compileflow.engine.core.model.AbstractElement;
+
 /**
  * BPMN message definition referenced by receive tasks and events.
  *
  * @author yusu
  */
-public class Message extends RootElement {
+public class Message extends AbstractElement {
     private String name;
 
     public String getName() {

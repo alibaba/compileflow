@@ -407,9 +407,10 @@ function validateSerializableMapping(mapping: VariableMapping, mappings: Set<str
   }
   requireGeneratedJavaIdentifier(mapping.target, 'Action mapping target')
   const mappingKey = `${mapping.direction}\u0000${mapping.target}`
-  if (!mappings.add(mappingKey)) {
+  if (mappings.has(mappingKey)) {
     throw new Error(`Action has duplicate ${mapping.direction} mapping target: ${mapping.target}`)
   }
+  mappings.add(mappingKey)
 }
 
 export function generateMappedVariableXml(

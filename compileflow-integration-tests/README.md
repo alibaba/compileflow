@@ -1,4 +1,4 @@
-# CompileFlow integration tests
+# CompileFlow Integration Tests
 
 This module verifies behavior that crosses engine, parser, deployment, and Spring composition boundaries. It is test
 infrastructure only and is not published to Maven Central. Application code should not depend on its fixtures or test
@@ -14,11 +14,10 @@ Tests are organized by responsibility:
 - `system`: multi-component and restart scenarios
 - `support`: fixtures and test-only extensions
 
-PostgreSQL repository semantics live with their owner in
-`compileflow-deploy-control-plane`; this module's multi-node topology test uses H2 in PostgreSQL compatibility mode and
-does not replace the real PostgreSQL contract tests.
+Database-specific repository contracts are tested in their provider modules. System-level deployment tests in this
+module use the in-memory testkit stores and do not replace the PostgreSQL or MySQL contract tests.
 
-## Run Tests
+## Run the Tests
 
 Run commands from the repository root and keep the Maven scope explicit.
 

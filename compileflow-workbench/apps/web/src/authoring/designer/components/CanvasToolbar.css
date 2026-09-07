@@ -31,7 +31,7 @@
 
 .x6-canvas-toolbar .ant-divider-vertical {
   height: 20px;
-  margin: 0 var(--spacing-sm);
+  margin: 0 var(--spacing-2);
   background: var(--color-border-light);
 }
 
@@ -74,7 +74,7 @@
 
 @media (max-width: 768px) {
   .x6-canvas-toolbar {
-    padding: var(--spacing-xs) var(--spacing-sm);
+    padding: var(--spacing-1) var(--spacing-2);
     overflow-x: auto;
     overflow-y: hidden;
   }
@@ -91,7 +91,7 @@
 
 @media (max-width: 1024px) and (min-width: 769px) {
   .x6-canvas-toolbar {
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: var(--spacing-2) var(--spacing-3);
   }
 }
 
@@ -101,7 +101,7 @@
 
 .x6-widget-selection-box {
   border: 2px dashed var(--color-primary) !important;
-  background: var(--color-primary-bg) !important;
+  background: transparent !important;
 }
 
 .x6-widget-selection-inner {

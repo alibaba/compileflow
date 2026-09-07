@@ -10,6 +10,7 @@ type EvaluationMode = 'script-preview' | 'java-condition'
 
 const MAX_EXPRESSION_LENGTH = 10_000
 const MAX_TOKENS = 512
+const UNEVALUATED = Symbol('unevaluated preview value')
 const THREE_CHAR_OPERATORS = new Set(['===', '!=='])
 const TWO_CHAR_OPERATORS = new Set(['&&', '||', '>=', '<=', '==', '!='])
 const ONE_CHAR_OPERATORS = new Set(['>', '<', '+', '-', '*', '/', '%', '!'])
@@ -89,10 +90,12 @@ function evaluate(expression: string, variables: Variables, mode: EvaluationMode
   if (!normalized) {
     throw new SafeExpressionError('Expression is empty')
   }
-  return new Parser(tokenize(normalized), variables, mode).parse()
+  const value = new Parser(tokenize(normalized, mode), variables, mode).parse()
+  if (typeof value === 'number') toFiniteNumber(value, mode)
+  return value
 }
 
-function tokenize(input: string): Token[] {
+function tokenize(input: string, mode: EvaluationMode): Token[] {
   const tokens: Token[] = []
   let index = 0
 
@@ -104,6 +107,9 @@ function tokenize(input: string): Token[] {
     }
 
     if (char === '"' || char === "'") {
+      if (mode === 'java-condition' && char === "'") {
+        throw new SafeExpressionError('Java character literals are outside the preview subset')
+      }
       const parsed = readString(input, index)
       tokens.push({ type: 'string', value: parsed.value })
       index = parsed.nextIndex
@@ -112,6 +118,7 @@ function tokenize(input: string): Token[] {
 
     if (/\d/.test(char) || (char === '.' && /\d/.test(input[index + 1] ?? ''))) {
       const parsed = readNumber(input, index)
+      validateNumericLiteral(parsed.value, mode)
       tokens.push({ type: 'number', value: parsed.value })
       index = parsed.nextIndex
       continue
@@ -124,7 +131,7 @@ function tokenize(input: string): Token[] {
       continue
     }
 
-    const symbol = readSymbol(input, index)
+    const symbol = readSymbol(input, index, mode)
     if (symbol) {
       tokens.push(symbol.token)
       index = symbol.nextIndex
@@ -141,13 +148,29 @@ function tokenize(input: string): Token[] {
   return tokens
 }
 
-function readSymbol(input: string, index: number): { token: Token; nextIndex: number } | null {
+function validateNumericLiteral(value: string, mode: EvaluationMode): void {
+  if (mode === 'java-condition' && /^0\d/.test(value)) {
+    throw new SafeExpressionError(
+      'Java leading-zero numeric literals are outside the preview subset'
+    )
+  }
+  toFiniteNumber(Number(value), mode)
+}
+
+function readSymbol(
+  input: string,
+  index: number,
+  mode: EvaluationMode
+): { token: Token; nextIndex: number } | null {
   const threeChar = input.slice(index, index + 3)
   if (THREE_CHAR_OPERATORS.has(threeChar)) {
     return { token: { type: 'operator', value: threeChar }, nextIndex: index + 3 }
   }
 
   const twoChar = input.slice(index, index + 2)
+  if (mode === 'java-condition' && twoChar === '--') {
+    throw new SafeExpressionError('Java decrement is outside the preview subset')
+  }
   if (TWO_CHAR_OPERATORS.has(twoChar)) {
     return { token: { type: 'operator', value: twoChar }, nextIndex: index + 2 }
   }
@@ -168,6 +191,9 @@ function readString(input: string, start: number): { value: string; nextIndex: n
   let index = start + 1
   while (index < input.length) {
     const char = input[index]
+    if (char === '\n' || char === '\r') {
+      throw new SafeExpressionError('Line breaks must be escaped inside string literals')
+    }
     if (char === quote) {
       return { value, nextIndex: index + 1 }
     }
@@ -190,7 +216,10 @@ function readEscape(char: string): string {
   if (char === 'n') return '\n'
   if (char === 'r') return '\r'
   if (char === 't') return '\t'
-  return char
+  if (char === 'b') return '\b'
+  if (char === 'f') return '\f'
+  if (char === '\\' || char === '"' || char === "'") return char
+  throw new SafeExpressionError(`Unsupported string escape: \\${char}`)
 }
 
 function readNumber(input: string, start: number): { value: string; nextIndex: number } {
@@ -231,25 +260,29 @@ class Parser {
   private parseOr(evaluate: boolean): unknown {
     let left = this.parseAnd(evaluate)
     while (this.matchOperator('||')) {
+      this.validateBoolean(left)
       const shortCircuited = evaluate && toBoolean(left)
       const right = this.parseAnd(evaluate && !shortCircuited)
+      this.validateBoolean(right)
       if (evaluate) {
         left = shortCircuited || toBoolean(right)
-      }
+      } else left = false
     }
-    return evaluate ? left : undefined
+    return left
   }
 
   private parseAnd(evaluate: boolean): unknown {
     let left = this.parseEquality(evaluate)
     while (this.matchOperator('&&')) {
+      this.validateBoolean(left)
       const shortCircuited = evaluate && !toBoolean(left)
       const right = this.parseEquality(evaluate && !shortCircuited)
+      this.validateBoolean(right)
       if (evaluate) {
         left = !shortCircuited && toBoolean(right)
-      }
+      } else left = false
     }
-    return evaluate ? left : undefined
+    return left
   }
 
   private parseEquality(evaluate: boolean): unknown {
@@ -260,20 +293,23 @@ class Parser {
     ) {
       const operator = this.advance().value
       const right = this.parseRelational(evaluate)
-      if (evaluate) {
-        if (this.mode === 'java-condition' && (operator === '===' || operator === '!==')) {
-          throw new SafeExpressionError(`Operator ${operator} is not valid Java`)
-        }
-        const equal =
-          this.mode === 'java-condition'
-            ? javaConditionEqual(left, right)
-            : operator === '===' || operator === '!=='
-              ? Object.is(left, right)
-              : looseEqual(left, right)
-        left = operator === '!=' || operator === '!==' ? !equal : equal
+      if (this.mode === 'java-condition' && (operator === '===' || operator === '!==')) {
+        throw new SafeExpressionError(`Operator ${operator} is not valid Java`)
       }
+      if (
+        !evaluate &&
+        this.mode === 'java-condition' &&
+        left !== UNEVALUATED &&
+        right !== UNEVALUATED
+      ) {
+        javaConditionEqual(left, right)
+      }
+      if (evaluate) {
+        const equal = equalValues(left, right, operator, this.mode)
+        left = operator === '!=' || operator === '!==' ? !equal : equal
+      } else left = false
     }
-    return evaluate ? left : undefined
+    return left
   }
 
   private parseRelational(evaluate: boolean): unknown {
@@ -284,14 +320,22 @@ class Parser {
     ) {
       const operator = this.advance().value
       const right = this.parseAdditive(evaluate)
+      if (
+        !evaluate &&
+        this.mode === 'java-condition' &&
+        left !== UNEVALUATED &&
+        right !== UNEVALUATED
+      ) {
+        compareJavaNumbers(left, right, operator)
+      }
       if (evaluate) {
         left =
           this.mode === 'java-condition'
             ? compareJavaNumbers(left, right, operator)
             : compareValues(left, right, operator)
-      }
+      } else left = false
     }
-    return evaluate ? left : undefined
+    return left
   }
 
   private parseAdditive(evaluate: boolean): unknown {
@@ -299,12 +343,12 @@ class Parser {
     while (this.current().type === 'operator' && ['+', '-'].includes(this.current().value)) {
       const operator = this.advance().value
       const right = this.parseMultiplicative(evaluate)
+      if (this.mode === 'java-condition') {
+        throw new SafeExpressionError(
+          `Java arithmetic operator ${operator} is type-dependent and cannot be simulated safely`
+        )
+      }
       if (evaluate) {
-        if (this.mode === 'java-condition') {
-          throw new SafeExpressionError(
-            `Java arithmetic operator ${operator} is type-dependent and cannot be simulated safely`
-          )
-        }
         if (operator === '+') {
           left =
             typeof left === 'string' || typeof right === 'string'
@@ -313,9 +357,10 @@ class Parser {
         } else {
           left = toFiniteNumber(left, this.mode) - toFiniteNumber(right, this.mode)
         }
-      }
+        if (typeof left === 'number') toFiniteNumber(left, this.mode)
+      } else left = UNEVALUATED
     }
-    return evaluate ? left : undefined
+    return left
   }
 
   private parseMultiplicative(evaluate: boolean): unknown {
@@ -323,12 +368,12 @@ class Parser {
     while (this.current().type === 'operator' && ['*', '/', '%'].includes(this.current().value)) {
       const operator = this.advance().value
       const rightValue = this.parseUnary(evaluate)
+      if (this.mode === 'java-condition') {
+        throw new SafeExpressionError(
+          `Java arithmetic operator ${operator} is type-dependent and cannot be simulated safely`
+        )
+      }
       if (evaluate) {
-        if (this.mode === 'java-condition') {
-          throw new SafeExpressionError(
-            `Java arithmetic operator ${operator} is type-dependent and cannot be simulated safely`
-          )
-        }
         const right = toFiniteNumber(rightValue, this.mode)
         if ((operator === '/' || operator === '%') && right === 0) {
           throw new SafeExpressionError('Division by zero is not allowed')
@@ -336,19 +381,25 @@ class Parser {
         if (operator === '*') left = toFiniteNumber(left, this.mode) * right
         if (operator === '/') left = toFiniteNumber(left, this.mode) / right
         if (operator === '%') left = toFiniteNumber(left, this.mode) % right
-      }
+        toFiniteNumber(left, this.mode)
+      } else left = UNEVALUATED
     }
-    return evaluate ? left : undefined
+    return left
   }
 
   private parseUnary(evaluate: boolean): unknown {
     if (this.matchOperator('!')) {
       const value = this.parseUnary(evaluate)
-      return evaluate ? !toBoolean(value) : undefined
+      this.validateBoolean(value)
+      return evaluate ? !toBoolean(value) : false
     }
     if (this.matchOperator('-')) {
       const value = this.parseUnary(evaluate)
-      return evaluate ? -toFiniteNumber(value, this.mode) : undefined
+      if (!evaluate && this.mode === 'java-condition' && value !== UNEVALUATED) {
+        toFiniteNumber(value, this.mode)
+        return 0
+      }
+      return evaluate ? -toFiniteNumber(value, this.mode) : UNEVALUATED
     }
     return this.parsePostfix(evaluate)
   }
@@ -363,23 +414,44 @@ class Parser {
         validateCallSignature(name, args, ALLOWED_METHODS, METHOD_ARITIES, 'method')
         if (evaluate) {
           value = callMethod(name, value, args, this.mode)
+        } else {
+          if (this.mode === 'java-condition') validateSkippedJavaMethod(name, value, args)
+          value = skippedCallValue(name)
         }
-      } else if (evaluate) {
-        value = readMember(value, name, this.mode)
+      } else {
+        if (this.mode === 'java-condition' && name !== 'length') {
+          throw new SafeExpressionError(
+            `Java object field access cannot be simulated safely in the browser: ${name}`
+          )
+        }
+        if (
+          !evaluate &&
+          this.mode === 'java-condition' &&
+          value !== UNEVALUATED &&
+          value != null &&
+          !Array.isArray(value)
+        ) {
+          throw new SafeExpressionError('Java .length field is supported only for arrays')
+        }
+        value = evaluate
+          ? readMember(value, name, this.mode)
+          : this.mode === 'java-condition'
+            ? 0
+            : UNEVALUATED
       }
     }
-    return evaluate ? value : undefined
+    return value
   }
 
   private parsePrimary(evaluate: boolean): unknown {
     const token = this.current()
     if (token.type === 'number') {
       this.advance()
-      return evaluate ? Number(token.value) : undefined
+      return Number(token.value)
     }
     if (token.type === 'string') {
       this.advance()
-      return evaluate ? token.value : undefined
+      return token.value
     }
     if (token.type === 'identifier') {
       this.advance()
@@ -391,18 +463,16 @@ class Parser {
           )
         }
         validateCallSignature(token.value, args, ALLOWED_FUNCTIONS, FUNCTION_ARITIES, 'function')
-        return evaluate ? callFunction(token.value, args) : undefined
+        return evaluate ? callFunction(token.value, args) : skippedCallValue(token.value)
       }
       validateMemberName(token.value)
-      if (!evaluate && this.mode === 'java-condition') {
-        this.assertIdentifierKnown(token.value)
-      }
-      return evaluate ? this.resolveIdentifier(token.value) : undefined
+      if (evaluate) return this.resolveIdentifier(token.value)
+      return this.skippedIdentifier(token.value)
     }
     if (this.matchPunctuation('(')) {
       const value = this.parseOr(evaluate)
       this.expect('punctuation', ')')
-      return evaluate ? value : undefined
+      return value
     }
     throw new SafeExpressionError(`Unexpected token: ${token.value || token.type}`)
   }
@@ -434,7 +504,30 @@ class Parser {
     if (this.variables instanceof Map) {
       return this.variables.get(name)
     }
-    return (this.variables as Record<string, unknown>)[name]
+    return Object.prototype.hasOwnProperty.call(this.variables, name)
+      ? (this.variables as Record<string, unknown>)[name]
+      : undefined
+  }
+
+  private validateBoolean(value: unknown): void {
+    if (value === UNEVALUATED)
+      throw new SafeExpressionError('Cannot establish the boolean type of a skipped expression')
+    toBoolean(value)
+  }
+
+  private skippedIdentifier(name: string): unknown {
+    if (name === 'true') return true
+    if (name === 'false') return false
+    if (name === 'null') return null
+    if (name === 'undefined' && this.mode === 'java-condition') {
+      throw new SafeExpressionError('undefined is not a Java literal')
+    }
+    this.assertIdentifierKnown(name)
+    const value =
+      this.variables instanceof Map
+        ? this.variables.get(name)
+        : Object.getOwnPropertyDescriptor(this.variables, name)?.value
+    return value == null ? UNEVALUATED : value
   }
 
   private assertIdentifierKnown(name: string): void {
@@ -528,7 +621,7 @@ const PREVIEW_METHOD_HANDLERS: Readonly<Record<string, MethodHandler>> = {
   toUpperCase: (target) => String(target ?? '').toUpperCase(),
   toLowerCase: (target) => String(target ?? '').toLowerCase(),
   equals: (target, args) => looseEqual(target, args[0]),
-  get: (target, args) => readObjectMember(target, args[0]),
+  get: (target, args) => readMapValue(target, args[0], undefined),
   isEmpty: (target) => isEmpty(target),
   length: (target) => readLength(target),
   size: (target) => readLength(target),
@@ -547,7 +640,7 @@ const JAVA_METHOD_HANDLERS: Readonly<Record<string, MethodHandler>> = {
   containsKey: (target, args) => hasOwnMember(target, args[0]),
   containsValue: (target, args) =>
     objectValues(target).some((value) => javaObjectEquals(value, args[0])),
-  get: (target, args) => readObjectMember(target, args[0]),
+  get: (target, args) => readMapValue(target, args[0], null),
 }
 
 function callMethod(name: string, target: unknown, args: unknown[], mode: EvaluationMode): unknown {
@@ -697,7 +790,63 @@ function parseInteger(value: unknown): number {
 }
 
 function toBoolean(value: unknown): boolean {
-  return value === true
+  if (typeof value !== 'boolean') throw new SafeExpressionError('Logical operands must be boolean')
+  return value
+}
+
+// Validate known result types in skipped branches without evaluating calls or dereferencing values.
+function skippedCallValue(name: string): unknown {
+  if (
+    [
+      'contains',
+      'containsKey',
+      'containsValue',
+      'endsWith',
+      'equals',
+      'isEmpty',
+      'isNotEmpty',
+      'startsWith',
+    ].includes(name)
+  )
+    return false
+  if (['length', 'size', 'parseDouble', 'parseFloat', 'parseInt'].includes(name)) return 0
+  if (['toLowerCase', 'toUpperCase'].includes(name)) return ''
+  return UNEVALUATED
+}
+
+function validateSkippedJavaMethod(name: string, target: unknown, args: unknown[]): void {
+  validateSkippedStringArgument(name, target, args[0])
+  if (target === UNEVALUATED || target == null) return
+  if (['startsWith', 'endsWith', 'toUpperCase', 'toLowerCase', 'length'].includes(name)) {
+    requireStringTarget(name, target)
+  }
+  if (['containsKey', 'containsValue', 'get'].includes(name) && !isPlainObject(target)) {
+    throw unsupportedTarget(name, target)
+  }
+  if (name === 'size' && !Array.isArray(target) && !isPlainObject(target)) {
+    throw unsupportedTarget(name, target)
+  }
+  if (name === 'contains' && typeof target !== 'string' && !Array.isArray(target)) {
+    throw unsupportedTarget(name, target)
+  }
+  if (name === 'isEmpty') javaIsEmpty(target)
+}
+
+function validateSkippedStringArgument(name: string, target: unknown, argument: unknown): void {
+  const stringMethod =
+    ['startsWith', 'endsWith'].includes(name) || (name === 'contains' && typeof target === 'string')
+  if (stringMethod && argument !== UNEVALUATED && argument !== null)
+    requireStringArgument(name, argument)
+}
+
+function equalValues(
+  left: unknown,
+  right: unknown,
+  operator: string,
+  mode: EvaluationMode
+): boolean {
+  if (mode === 'java-condition') return javaConditionEqual(left, right)
+  return operator === '===' || operator === '!==' ? Object.is(left, right) : looseEqual(left, right)
 }
 
 function toFiniteNumber(value: unknown, mode: EvaluationMode = 'script-preview'): number {
@@ -831,9 +980,9 @@ function objectValues(target: unknown): unknown[] {
   return Object.values(target)
 }
 
-function readObjectMember(target: unknown, key: unknown): unknown {
+function readMapValue(target: unknown, key: unknown, missing: null | undefined): unknown {
   if (!isPlainObject(target) || typeof key !== 'string') {
     throw new SafeExpressionError('Map get requires an object target and string key')
   }
-  return target[key]
+  return Object.prototype.hasOwnProperty.call(target, key) ? target[key] : missing
 }

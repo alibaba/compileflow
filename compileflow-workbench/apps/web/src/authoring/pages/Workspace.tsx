@@ -6,7 +6,7 @@ import {
   RocketOutlined,
   UploadOutlined,
 } from '@ant-design/icons'
-import { Alert, App, Button, Empty, Space } from 'antd'
+import { Alert, App, Button, Empty, Space, Spin } from 'antd'
 import type { ChangeEvent } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -109,6 +109,7 @@ function useWorkspaceData() {
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([])
   const [templates, setTemplates] = useState<ProcessTemplate[]>([])
   const [error, setError] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<WorkspaceStats>({
     myProcesses: 0,
     templates: BUILT_IN_TEMPLATES.length,
@@ -119,6 +120,7 @@ function useWorkspaceData() {
   const loadRecentProcesses = useCallback(async () => {
     const generation = ++requestGeneration.current
     try {
+      setLoading(true)
       setError(false)
       const [recentProcesses, allProcesses, loadedTemplates] = await Promise.all([
         processStorage.getRecentProcesses(10),
@@ -139,6 +141,8 @@ function useWorkspaceData() {
       if (generation !== requestGeneration.current) return
       setError(true)
       logger.error('Failed to load workspace data', toError(error))
+    } finally {
+      if (generation === requestGeneration.current) setLoading(false)
     }
   }, [])
 
@@ -152,6 +156,7 @@ function useWorkspaceData() {
   return {
     error,
     errorMessage: t('error.loadFailed'),
+    loading,
     recentProjects,
     reload: loadRecentProcesses,
     stats,
@@ -528,7 +533,8 @@ function Workspace() {
   usePageTitle('pageTitle.build.workspace')
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { error, errorMessage, recentProjects, reload, stats, templates } = useWorkspaceData()
+  const { error, errorMessage, loading, recentProjects, reload, stats, templates } =
+    useWorkspaceData()
   const actions = useWorkspaceActions(navigate, reload)
   const { metrics, quickStartItems } = useWorkspaceViewModel(stats, actions)
 
@@ -552,22 +558,33 @@ function Workspace() {
           action={<Button onClick={() => void reload()}>{t('common.retry')}</Button>}
         />
       )}
-      <HubMetrics>
-        <MetricGrid metrics={metrics} columns={3} />
-      </HubMetrics>
+      {loading ? (
+        <div role="status" aria-live="polite" aria-busy="true">
+          <Space>
+            <Spin size="small" aria-hidden="true" />
+            <span>{t('common.loading')}</span>
+          </Space>
+        </div>
+      ) : !error ? (
+        <HubMetrics>
+          <MetricGrid metrics={metrics} columns={3} />
+        </HubMetrics>
+      ) : null}
       <QuickStartSection items={quickStartItems} />
-      <HubPanel>
-        <WorkspaceSectionHeader
-          onExportAll={actions.handleExportAll}
-          onImportData={actions.handleImportData}
-        />
-        <WorkspaceLists
-          recentProjects={recentProjects}
-          templates={templates}
-          onOpenRecent={actions.handleOpenRecent}
-          onUseTemplate={actions.handleUseTemplate}
-        />
-      </HubPanel>
+      {!loading && !error && (
+        <HubPanel>
+          <WorkspaceSectionHeader
+            onExportAll={actions.handleExportAll}
+            onImportData={actions.handleImportData}
+          />
+          <WorkspaceLists
+            recentProjects={recentProjects}
+            templates={templates}
+            onOpenRecent={actions.handleOpenRecent}
+            onUseTemplate={actions.handleUseTemplate}
+          />
+        </HubPanel>
+      )}
     </HubSurface>
   )
 }

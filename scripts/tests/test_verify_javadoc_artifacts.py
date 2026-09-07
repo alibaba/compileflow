@@ -61,6 +61,21 @@ class VerifyJavadocArtifactsTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "not normalized"):
             verify_module(self.module)
 
+    def test_rejects_directories_in_place_of_required_pages(self) -> None:
+        self.write_archive(
+            ("index.html/", "element-list/", "example/api/ExampleService.html/")
+        )
+        with self.assertRaisesRegex(ValueError, "required"):
+            verify_module(self.module)
+
+    def test_rejects_empty_required_pages(self) -> None:
+        archive = self.module / "target/example-javadoc.jar"
+        with zipfile.ZipFile(archive, mode="w") as contents:
+            for entry in ("index.html", "element-list", "example/api/ExampleService.html"):
+                contents.writestr(entry, "")
+        with self.assertRaisesRegex(ValueError, "empty"):
+            verify_module(self.module)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -68,6 +68,7 @@ describe('TbbpmDesigner', () => {
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }
+    store.dispatch(createProcess.pending('test-request', { type: 'TBBPM' }))
     store.dispatch(createProcess.fulfilled(process, 'test-request', { type: 'TBBPM' }))
   })
 

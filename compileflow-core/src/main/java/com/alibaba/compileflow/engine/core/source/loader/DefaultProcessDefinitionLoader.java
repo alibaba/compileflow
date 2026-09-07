@@ -16,7 +16,6 @@ package com.alibaba.compileflow.engine.core.source.loader;
 import com.alibaba.compileflow.engine.CompileFlowException;
 import com.alibaba.compileflow.engine.ErrorCode;
 import com.alibaba.compileflow.engine.ProcessDefinition;
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.config.ProcessDefinitionConfig;
 import com.alibaba.compileflow.engine.core.runtime.ProcessRuntimeRequest;
 import com.alibaba.compileflow.engine.core.source.ProcessDefinitionSnapshot;
@@ -68,16 +67,15 @@ public final class DefaultProcessDefinitionLoader implements ProcessDefinitionLo
     }
 
     @Override
-    public ProcessDefinitionSnapshot load(ProcessRuntimeRequest request, ProcessModelType modelType,
-            ClassLoader classLoader) {
+    public ProcessDefinitionSnapshot load(ProcessRuntimeRequest request, ClassLoader classLoader) {
         ProcessRuntimeRequest runtimeRequest = Objects.requireNonNull(request, "request");
-        Objects.requireNonNull(modelType, "modelType");
         ClassLoader lookupClassLoader = Objects.requireNonNull(classLoader, "classLoader");
         String code = runtimeRequest.getCode();
-        DefinitionContent content = loadContent(runtimeRequest, modelType, lookupClassLoader);
+        DefinitionContent content = loadContent(runtimeRequest, lookupClassLoader);
         try {
-            return ProcessDefinitionSnapshot.of(runtimeRequest.getNamespace(), code, runtimeRequest.getVersion(),
-                    content.bytes(), content.description());
+            return ProcessDefinitionSnapshot.of(runtimeRequest.getDefinition().modelType(),
+                    runtimeRequest.getNamespace(), code, runtimeRequest.getVersion(), content.bytes(),
+                    content.description());
         } catch (IllegalArgumentException invalidUtf8) {
             throw new CompileFlowException.ResourceException(ErrorCode.CF_RESOURCE_002,
                     "Process definition is not valid UTF-8: code=" + code + ", source=" + content.description(),
@@ -85,8 +83,7 @@ public final class DefaultProcessDefinitionLoader implements ProcessDefinitionLo
         }
     }
 
-    private DefinitionContent loadContent(ProcessRuntimeRequest request, ProcessModelType modelType,
-            ClassLoader classLoader) {
+    private DefinitionContent loadContent(ProcessRuntimeRequest request, ClassLoader classLoader) {
         String code = request.getCode();
         ProcessDefinition definition = request.getDefinition();
         if (definition instanceof ProcessDefinition.Inline inline) {

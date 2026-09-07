@@ -15,7 +15,6 @@ package com.alibaba.compileflow.durable.runtime.service;
 
 import com.alibaba.compileflow.durable.api.DurableOperatorService;
 import com.alibaba.compileflow.durable.api.command.EffectResolutionDecision;
-import com.alibaba.compileflow.durable.api.command.OutboxResolutionDecision;
 import com.alibaba.compileflow.durable.api.command.PauseRunCommand;
 import com.alibaba.compileflow.durable.api.command.ResolveEffectCommand;
 import com.alibaba.compileflow.durable.api.command.ResolveOutboxEventCommand;
@@ -44,7 +43,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Application-code-free operator facade over committed Kernel authority.
+ * Operator facade over committed Kernel authority that never invokes Process actions.
  *
  * @author yusu
  */
@@ -156,11 +155,8 @@ public final class DefaultDurableOperatorService implements DurableOperatorServi
         Objects.requireNonNull(command, "command");
         UUID occurrence = UUID.fromString(command.eventId());
         return DurableStoreResultMapper.requireOutbox(store.resolveOutbox(
-                        new DurableStore.OutboxResolution(occurrence, command.expectedRevision(),
-                                command.decision() == OutboxResolutionDecision.RETRY
-                                ? DurableStore.OutboxResolutionDecision.RETRY
-                                : DurableStore.OutboxResolutionDecision.ABANDON, command.actor(), command.reason(),
-                                command.auditContextId())), occurrence);
+                        new DurableStore.OutboxResolution(occurrence, command.expectedRevision(), command.decision(),
+                                command.actor(), command.reason(), command.auditContextId())), occurrence);
     }
 
     private ProcessRun control(ProcessRunId runId, long expectedControlRevision, DurableStore.ControlOperation operation,

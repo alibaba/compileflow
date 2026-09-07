@@ -426,7 +426,7 @@ function mockAsyncInvocationHealth(): AsyncInvocationHealth {
     dispatchedCount: 0,
     workerId: 'mock-worker',
     leaseDurationMs: 30000,
-    dispatchBatchSize: 50,
+    concurrency: 4,
     checkedAt: new Date().toISOString(),
   }
 }

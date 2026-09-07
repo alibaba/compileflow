@@ -62,6 +62,15 @@ describe('operateProcessBridge', () => {
     )
   })
 
+  it('preserves remote tags through a designer load and save', () => {
+    const remote = { ...sampleTbbpmProcess, tags: ['payments', 'production'] }
+    const { flow } = mapOperateDefinitionToUnified(remote)
+    const update = mapDesignerToOperateUpdate(flow, remote.xml!, remote.revision)
+
+    expect(update.tags).toEqual(remote.tags)
+    expect(flow.tags).not.toBe(remote.tags)
+  })
+
   it('rejects invalid contract timestamps instead of inventing local values', () => {
     expect(() =>
       mapOperateDefinitionToUnified({ ...sampleTbbpmProcess, updatedAt: 'not-a-timestamp' })

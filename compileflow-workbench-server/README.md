@@ -1,37 +1,47 @@
 # CompileFlow Workbench Server
 
-`compileflow-workbench-server` is the Java backend of CompileFlow Workbench. It hosts draft preview, flow storage,
+`compileflow-workbench-server` is the Java backend for CompileFlow Workbench. It provides draft preview and storage,
 publication, published execution, deployment control, persisted asynchronous invocation, monitoring, and the Learn
 catalog.
 
-It is a Workbench product component, not a general remote facade for embedding CompileFlow. Business applications should
-use `compileflow-spring-boot-starter` and call the in-process Java API. The server is optional and is not required by
-the embedded engine.
+The Server API is designed for Workbench, not as a general remote interface to the CompileFlow engine. Business
+applications embed CompileFlow with `compileflow-spring-boot-starter` and call its in-process Java API. Workbench Server
+is optional and is not required by the embedded engine.
 
 ## Runtime Boundary
 
-Workbench Server remains an independent Maven module and Spring Boot process. Production does not require a Node.js BFF:
+Workbench Server is a separate Maven module and Spring Boot process. Production does not require a Node.js BFF:
 
 ```text
-Browser -> authentication-capable gateway -> Workbench Server -> PostgreSQL
+Browser -> authentication-capable gateway -> Workbench Server -> PostgreSQL or MySQL
 ```
 
 The edge owns end-user authentication and authorization, TLS, request and rate limits, same-origin routing, and removal
-of client-supplied internal headers. After authorization it injects the private Workbench Server API key. Plain
-Kubernetes Ingress is not an authentication mechanism.
+of client-supplied internal headers. After authorization it injects the private Workbench Server API key. Network
+routing alone is not an authentication mechanism.
 
 The API key authenticates the trusted gateway service. Its configured service principal is the audit actor; it does not
 prove an individual browser user's identity. Do not turn an unsigned user header into an audit principal.
 
 ## Quick Start
 
-Build with Java 17 or newer:
+From the repository root, build with Java 17 or newer:
 
 ```bash
 ./mvnw install -pl compileflow-workbench-server -am -DskipTests
 ```
 
-Start a local PostgreSQL 16, 17, or 18 instance. PostgreSQL 18.6 is recommended for new deployments:
+Start PostgreSQL 16, 17, or 18 for the default `dev` profile. The repository Compose configuration provides a suitable
+local instance:
+
+```bash
+cd compileflow-workbench
+export COMPILEFLOW_WORKBENCH_DATABASE_PASSWORD='your-local-postgres-password'
+docker compose up -d postgres
+cd ..
+```
+
+Then start the Server:
 
 ```bash
 export SPRING_DATASOURCE_PASSWORD='your-local-postgres-password'
@@ -42,13 +52,15 @@ java -jar compileflow-workbench-server/target/compileflow-workbench-server-2.0.0
 The `dev` profile binds to PostgreSQL and explicitly disables API-key authentication. It is not a production profile and
 requires a non-empty database password.
 
-For a production process:
+For production, configure the database and authentication explicitly. This example uses PostgreSQL; select `MYSQL` and
+provide the corresponding JDBC URL when using MySQL:
 
 ```bash
 export SPRING_PROFILES_ACTIVE=prod
 export SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/compileflow
 export SPRING_DATASOURCE_USERNAME=compileflow
 export SPRING_DATASOURCE_PASSWORD='replace-with-a-secret'
+export COMPILEFLOW_WORKBENCH_SERVER_CONFIG_DATABASE_PROVIDER=POSTGRESQL
 export COMPILEFLOW_WORKBENCH_SERVER_CONFIG_AUTHENTICATION_MODE=API_KEY
 export COMPILEFLOW_WORKBENCH_SERVER_CONFIG_AUTHENTICATION_API_KEY="$(openssl rand -hex 32)"
 export COMPILEFLOW_WORKBENCH_SERVER_CONFIG_AUTHENTICATION_SERVICE_PRINCIPAL=workbench-gateway
@@ -70,23 +82,24 @@ Learn and Designer use preview. Operate uses published execution. Neither path s
 
 ## Persistence
 
-Flyway is the only schema authority. It runs before JPA, while Hibernate uses
-`ddl-auto=validate`. By default the Server applies the packaged Deploy and Workbench migrations by explicitly selecting
-`db/compileflow-deploy/migration` and
-`db/compileflow-workbench-server/migration`; neither library location is under Flyway's default discovery root. A
+Flyway is the schema authority. It runs before JPA, while Hibernate uses `ddl-auto=validate`. Select PostgreSQL or MySQL
+with `COMPILEFLOW_WORKBENCH_SERVER_CONFIG_DATABASE_PROVIDER=POSTGRESQL|MYSQL`. The Server applies separate Deploy and
+Workbench migration sets from the matching locations:
+`db/compileflow-deploy/{postgres|mysql}/migration` and
+`db/compileflow-workbench-server/{postgres|mysql}/migration`. Neither location is under Flyway's default discovery root. A
 production deployment may apply them with a separate DDL identity and set
 `COMPILEFLOW_WORKBENCH_SERVER_CONFIG_DATABASE_MIGRATE=false`; startup still validates Flyway checksums and rejects
 pending migrations. Do not disable
-`spring.flyway.enabled`, because that would bypass schema admission. The executable artifact packages PostgreSQL
-support; H2 is test-scoped and is not a production fallback.
+`spring.flyway.enabled`, because that would bypass schema admission. The executable artifact supports PostgreSQL and
+MySQL 8.4; H2 is test-scoped and is not a production fallback.
 
-Workbench draft tables and deployment control-plane tables remain separate bounded contexts even when one Workbench
-Server process hosts both. Publication freezes an immutable source version; alias changes and rollout history use the
-deployment facade and transactional outbox.
+Workbench draft tables and deployment control-plane tables are separate data domains, even when one Server process hosts
+both. Publication creates an immutable source version; alias changes and rollout events use the deployment service and
+transactional outbox.
 
-Workbench Server persists terminal execution observations synchronously before the request returns. This avoids silently
-biasing dashboards and canary samples when a best-effort event queue is saturated. Listener failures remain isolated
-from process outcomes, so this operational log is not an exactly-once audit ledger.
+Workbench Server records completed executions synchronously before returning the response. This keeps dashboards and
+canary samples complete even when a best-effort event queue is saturated. Listener failures do not change the process
+result, so the execution log is not an exactly-once audit ledger.
 
 ## HTTP Contract
 
@@ -96,7 +109,7 @@ The canonical machine-readable contract is
 It is generated from a real Spring application context. Springdoc is test-scoped, so production does not expose Swagger
 UI or `/v3/api-docs`.
 
-Regenerate after an intentional controller or transport change:
+Regenerate after changing a controller or transport contract:
 
 ```bash
 ./mvnw test -pl compileflow-workbench-server -am \
@@ -110,7 +123,7 @@ pnpm check:workbench-server-contract
 ```
 
 Workbench uses generated wire types, refined domain contracts, runtime response validation, and compile-time parity
-assertions. Review route, method, status, request, response, and schema changes together.
+assertions. Contract changes must keep routes, methods, statuses, request and response types, and schemas synchronized.
 
 ## Health
 
@@ -132,8 +145,8 @@ Workbench provides:
 - a bundled image containing the compiled SPA in this executable Java process;
 - split Web and Workbench Server images behind one public origin.
 
-PostgreSQL and the production authentication gateway remain external in both forms. The bundled image does not supervise
-Node.js or multiple application processes. See
+The database and production authentication gateway remain external in both forms. The bundled image does not run
+Node.js or supervise multiple application processes. See
 [`compileflow-workbench/DEPLOYMENT.md`](../compileflow-workbench/DEPLOYMENT.md).
 
 ## Verification
@@ -147,4 +160,4 @@ Use targeted checks:
 ./mvnw checkstyle:check -pl compileflow-workbench-server -am
 ```
 
-PostgreSQL-specific persistence and migration behavior is validated in the Workbench Server CI workflow.
+Workbench Server tests cover persistence and migration behavior for PostgreSQL and MySQL.

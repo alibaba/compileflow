@@ -47,12 +47,11 @@ import java.util.Objects;
 public record ExecutionLogResponse(@JsonProperty(required = true) String id,
         @JsonProperty(required = true) String processCode, @JsonProperty(required = true) String invocationId,
         String parentInvocationId, @JsonProperty(required = true) int callDepth,
-        @JsonProperty(required = true) String traceId, @JsonProperty(required = true) ProcessModelType modelType,
-        String sourceDigest, @JsonProperty(required = true) String status,
-        @JsonProperty(required = true) String startTime, @JsonProperty(required = true) String endTime,
-        @JsonProperty(required = true) long duration, @JsonProperty(required = true) String namespace,
-        String requestedVersion, String effectiveVersion, String routingSource, String routeAlias, Long routeRevision,
-        String errorCode, String errorMessage) {
+        @JsonProperty(required = true) String traceId, ProcessModelType modelType, String sourceDigest,
+        @JsonProperty(required = true) String status, @JsonProperty(required = true) String startTime,
+        @JsonProperty(required = true) String endTime, @JsonProperty(required = true) long duration,
+        @JsonProperty(required = true) String namespace, String requestedVersion, String effectiveVersion,
+        String routingSource, String routeAlias, Long routeRevision, String errorCode, String errorMessage) {
     public ExecutionLogResponse {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(processCode, "processCode");
@@ -64,7 +63,6 @@ public record ExecutionLogResponse(@JsonProperty(required = true) String id,
             throw new IllegalArgumentException("parentInvocationId must be null exactly when callDepth is 0");
         }
         Objects.requireNonNull(traceId, "traceId");
-        Objects.requireNonNull(modelType, "modelType");
         Objects.requireNonNull(status, "status");
         Objects.requireNonNull(startTime, "startTime");
         Objects.requireNonNull(endTime, "endTime");

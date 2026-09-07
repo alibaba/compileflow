@@ -53,7 +53,7 @@ test('bundled Workbench loads and operates through the trusted edge', async ({ p
       response.request().method() === 'POST' &&
       new URL(response.url()).pathname === '/api/deployment-control/dead-letters/requeue'
   )
-  await page.getByRole('button', { name: '重新入队部署死信' }).click()
+  await page.getByRole('button', { name: '重新入队部署死信任务' }).click()
   expect((await deploymentRequeue).ok()).toBeTruthy()
   await expect(page.getByText('部署死信已重新入队')).toBeVisible()
   await expect.poll(() => deploymentHealthResponses).toBeGreaterThan(initialHealthResponses)

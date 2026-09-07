@@ -17,11 +17,9 @@ import com.alibaba.compileflow.engine.core.xml.writer.AbstractFlowElementWriter;
 import com.alibaba.compileflow.engine.core.model.Element;
 import com.alibaba.compileflow.engine.core.model.mapping.InputMapping;
 import com.alibaba.compileflow.engine.core.model.mapping.OutputMapping;
-import com.alibaba.compileflow.engine.core.model.variable.Variable;
 import com.alibaba.compileflow.engine.tbbpm.model.TbbpmModelConstants;
 import java.util.List;
 import javax.xml.stream.XMLStreamWriter;
-import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * Abstract base class for TBBPM flow element XML writers.
@@ -29,21 +27,6 @@ import org.apache.commons.collections4.CollectionUtils;
  * @author yusu
  */
 public abstract class AbstractTbbpmFlowElementWriter<S extends Element> extends AbstractFlowElementWriter<S> {
-    protected void writeVar(List<Variable> vars, XMLStreamWriter xsw) throws Exception {
-        if (CollectionUtils.isEmpty(vars)) {
-            return;
-        }
-        for (Variable var : vars) {
-            xsw.writeStartElement(TbbpmModelConstants.VAR);
-            writeAttribute(xsw, TbbpmModelConstants.ATTRIBUTE_NAME, var.getName());
-            writeAttribute(xsw, TbbpmModelConstants.ATTRIBUTE_DESCRIPTION, var.getDescription());
-            writeAttribute(xsw, TbbpmModelConstants.ATTRIBUTE_DATA_TYPE, var.getDataType());
-            writeAttribute(xsw, TbbpmModelConstants.ATTRIBUTE_DEFAULT_VALUE, var.getDefaultValue());
-            writeAttribute(xsw, TbbpmModelConstants.ATTRIBUTE_IN_OUT_TYPE, var.getInOutType());
-            xsw.writeEndElement();
-        }
-    }
-
     protected void writeMappings(List<InputMapping> inputs, List<OutputMapping> outputs, XMLStreamWriter xsw,
             boolean actionBoundary) throws Exception {
         for (InputMapping input : inputs) {

@@ -16,28 +16,26 @@ package com.alibaba.compileflow.engine.core.xml.parser;
 import com.alibaba.compileflow.engine.CompileFlowException;
 import com.alibaba.compileflow.engine.ErrorCode;
 import java.util.Objects;
+import javax.xml.XMLConstants;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * {@link XmlSource} backed by an {@link XMLStreamReader}.
  *
  * @author yusu
  */
-public class XmlStreamReaderSource implements XmlSource {
+public final class XmlStreamReaderSource implements XmlSource {
     private static final String COMPILE_FLOW_NAMESPACE = "http://www.compileflow.org";
-    private XMLStreamReader xmlStreamReader;
+    private final XMLStreamReader xmlStreamReader;
 
     public static XmlStreamReaderSource of(XMLStreamReader xmlStreamReader) {
-        XmlStreamReaderSource xmlStreamReaderSource = new XmlStreamReaderSource();
-        xmlStreamReaderSource.setXmlStreamReader(xmlStreamReader);
-        return xmlStreamReaderSource;
+        return new XmlStreamReaderSource(xmlStreamReader);
     }
 
-    private void setXmlStreamReader(XMLStreamReader xmlStreamReader) {
-        this.xmlStreamReader = xmlStreamReader;
+    private XmlStreamReaderSource(XMLStreamReader xmlStreamReader) {
+        this.xmlStreamReader = Objects.requireNonNull(xmlStreamReader, "xmlStreamReader");
     }
 
     @Override
@@ -51,11 +49,6 @@ public class XmlStreamReaderSource implements XmlSource {
     }
 
     @Override
-    public boolean endWith(String name) {
-        return xmlStreamReader.isEndElement() && name.equals(xmlStreamReader.getLocalName());
-    }
-
-    @Override
     public String getLocalName() {
         return xmlStreamReader.getLocalName();
     }
@@ -63,6 +56,11 @@ public class XmlStreamReaderSource implements XmlSource {
     @Override
     public String getNamespaceURI() {
         return xmlStreamReader.getNamespaceURI();
+    }
+
+    @Override
+    public String getNamespaceURI(String prefix) {
+        return xmlStreamReader.getNamespaceURI(prefix);
     }
 
     @Override
@@ -107,20 +105,8 @@ public class XmlStreamReaderSource implements XmlSource {
     }
 
     public String getString(String namespaceURI, String name) {
-        String value = xmlStreamReader.getAttributeValue(namespaceURI, name);
-        if (value != null) {
-            return value;
-        }
-        for (int i = 0; i < xmlStreamReader.getAttributeCount(); i++) {
-            if (!name.equals(xmlStreamReader.getAttributeLocalName(i))) {
-                continue;
-            }
-            String attributeNamespace = xmlStreamReader.getAttributeNamespace(i);
-            if (Objects.equals(namespaceURI, attributeNamespace)) {
-                return xmlStreamReader.getAttributeValue(i);
-            }
-        }
-        return null;
+        // StAX treats null as a namespace wildcard, not an unqualified attribute.
+        return xmlStreamReader.getAttributeValue(namespaceURI == null ? XMLConstants.NULL_NS_URI : namespaceURI, name);
     }
 
     @Override
@@ -129,67 +115,8 @@ public class XmlStreamReaderSource implements XmlSource {
     }
 
     @Override
-    public String getStringOrDefault(String name, String defaultValue) {
-        String value = getString(name);
-        if (StringUtils.isBlank(value)) {
-            return defaultValue;
-        }
-        return value;
-    }
-
-    @Override
     public String getCfString(String name) {
         return getString(COMPILE_FLOW_NAMESPACE, name);
-    }
-
-    private int getInt(String namespaceURI, String name) {
-        String value = getString(namespaceURI, name);
-        return StringUtils.isNotEmpty(value) ? Integer.parseInt(value) : 0;
-    }
-
-    @Override
-    public int getInt(String name) {
-        return getInt(null, name);
-    }
-
-    @Override
-    public int getCfInt(String name) {
-        return getInt(COMPILE_FLOW_NAMESPACE, name);
-    }
-
-    private long getLong(String namespaceURI, String name) {
-        String value = getString(namespaceURI, name);
-        return StringUtils.isNotEmpty(value) ? Long.parseLong(value) : 0L;
-    }
-
-    @Override
-    public long getCfLong(String name) {
-        return getLong(COMPILE_FLOW_NAMESPACE, name);
-    }
-
-    @Override
-    public long getLong(String name) {
-        return getLong(null, name);
-    }
-
-    private boolean getBoolean(String namespaceURI, String name) {
-        String value = getString(namespaceURI, name);
-        return value != null && Boolean.parseBoolean(value);
-    }
-
-    @Override
-    public boolean getCfBoolean(String name) {
-        return getBoolean(COMPILE_FLOW_NAMESPACE, name);
-    }
-
-    @Override
-    public boolean getBoolean(String name) {
-        return getBoolean(null, name);
-    }
-
-    @Override
-    public String getCurrentElementName() {
-        return xmlStreamReader.getLocalName();
     }
 
     @Override
@@ -216,6 +143,7 @@ public class XmlStreamReaderSource implements XmlSource {
         }
     }
 
+    @Override
     public String nextDirectChildElementName(String parentElementName) throws XMLStreamException {
         while (xmlStreamReader.hasNext()) {
             int event = xmlStreamReader.next();

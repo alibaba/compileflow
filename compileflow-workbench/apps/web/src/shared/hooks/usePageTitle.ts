@@ -13,7 +13,7 @@ export function usePageTitle(titleKey: string, subject?: string | null) {
       ? `${subject} — ${pageTitle} | CompileFlow Workbench`
       : `${pageTitle} | CompileFlow Workbench`
     return () => {
-      document.title = 'CompileFlow Workbench — Reliable Java Processes for the AI Era'
+      document.title = 'CompileFlow Workbench'
     }
   }, [subject, t, titleKey])
 }

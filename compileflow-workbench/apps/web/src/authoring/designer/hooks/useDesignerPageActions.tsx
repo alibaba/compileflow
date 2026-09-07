@@ -2,7 +2,15 @@ import type { Graph } from '@antv/x6'
 import { App } from 'antd'
 import type { MessageInstance } from 'antd/es/message/interface'
 import type { TFunction } from 'i18next'
-import { type MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  type MutableRefObject,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import type { NavigateFunction } from 'react-router-dom'
 
@@ -80,13 +88,21 @@ async function saveCurrentProcess(
 ) {
   if (!currentProcessRef.current) return false
   try {
-    await dispatch(saveProcess({ createSnapshot: true })).unwrap()
+    const saved = await dispatch(saveProcess({ createSnapshot: true })).unwrap()
     message.success(
       operateBindingRef.current
         ? t('designer.save.operateSuccess')
         : t('designer.save.workspaceSuccess')
     )
-    return true
+    return dispatch((_dispatch, getState) => {
+      const editor = getState().editor.present
+      return (
+        editor.documentRequestId === saved.documentRequestId &&
+        !editor.isModified &&
+        !editor.isLoading &&
+        !editor.isSaving
+      )
+    })
   } catch (error) {
     logger.error('Failed to save designer flow', toError(error))
     const validationIssue = currentProcessRef.current
@@ -182,6 +198,13 @@ function useFileActions({
   t: TFunction
 }) {
   const { message } = App.useApp()
+  const mounted = useRef(false)
+  useLayoutEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
   const handleExportXml = useCallback(() => {
     if (!currentProcess) {
       message.warning(t('designer.actions.noProcessToExport'))
@@ -202,6 +225,15 @@ function useFileActions({
 
   const handleImportXml = useCallback(() => {
     if (!currentProcess) return
+    const documentId = dispatch(
+      (_dispatch, getState) => getState().editor.present.documentRequestId
+    )
+    const ownsDocument = () =>
+      mounted.current &&
+      dispatch((_dispatch, getState) => {
+        const editor = getState().editor.present
+        return editor.documentRequestId === documentId && !editor.isLoading
+      })
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = '.xml,.bpmn'
@@ -210,11 +242,14 @@ function useFileActions({
       if (!file) return
       try {
         const xmlText = await file.text()
+        if (!ownsDocument()) return
         await dispatch(
           importXml({ xml: xmlText, type: currentProcess.type, preferXmlName: true })
         ).unwrap()
+        if (!ownsDocument()) return
         message.success(t('designer.actions.importXmlSuccess'))
       } catch (error) {
+        if (!ownsDocument()) return
         logger.error('Failed to import XML', toError(error))
         message.error(
           t('designer.actions.importXmlFailed', {
@@ -402,35 +437,74 @@ function useXmlEditorState({
   const [open, setOpen] = useState(false)
   const [value, setValue] = useState('')
   const [baselineValue, setBaselineValue] = useState('')
+  const documentId = dispatch((_dispatch, getState) => getState().editor.present.documentRequestId)
+  const generation = useRef(0)
+  const pending = useRef<{ abort: () => void } | null>(null)
+  const cancelApply = useCallback(() => {
+    generation.current += 1
+    pending.current?.abort()
+    pending.current = null
+  }, [])
+
+  useLayoutEffect(() => {
+    cancelApply()
+    setOpen(false)
+    setValue('')
+    setBaselineValue('')
+    return cancelApply
+  }, [documentId, cancelApply])
 
   const handleClose = useCallback(() => {
+    cancelApply()
     setOpen(false)
     setBaselineValue('')
-  }, [])
+  }, [cancelApply])
+
+  const handleChange = useCallback(
+    (next: string) => {
+      cancelApply()
+      setValue(next)
+    },
+    [cancelApply]
+  )
 
   const handleShow = useCallback(() => {
     if (!currentProcess) return
+    cancelApply()
     const xml = generateProcessXml(currentProcess)
     setBaselineValue(xml)
     setValue(xml)
     setOpen(true)
-  }, [currentProcess])
+  }, [currentProcess, cancelApply])
 
   const handleApply = useCallback(async () => {
-    if (!currentProcess) return
+    if (!currentProcess || !open || pending.current) return
+    const ownsDocument = () =>
+      dispatch((_dispatch, getState) => {
+        const editor = getState().editor.present
+        return editor.documentRequestId === documentId
+      })
+    if (!ownsDocument()) return
+    const request = ++generation.current
     try {
-      await dispatch(importXml({ xml: value, type: currentProcess.type })).unwrap()
+      const applying = dispatch(importXml({ xml: value, type: currentProcess.type }))
+      pending.current = applying
+      await applying.unwrap()
+      if (request !== generation.current || !ownsDocument()) return
       setOpen(false)
       message.success(t('designer.xmlEditor.applySuccess'))
     } catch (error) {
+      if (request !== generation.current || !ownsDocument()) return
       logger.error('Failed to apply XML editor content', toError(error))
       message.error(
         t('designer.actions.xmlFormatError', {
           message: toError(error, t('designer.actions.xmlParseFailed')).message,
         })
       )
+    } finally {
+      if (request === generation.current) pending.current = null
     }
-  }, [currentProcess, dispatch, message, t, value])
+  }, [currentProcess, dispatch, documentId, message, open, t, value])
 
   const state = useMemo(
     () => ({
@@ -440,11 +514,11 @@ function useXmlEditorState({
         : t('designer.actions.xmlEditorTitleDefault'),
       value,
       baselineValue,
-      onChange: setValue,
+      onChange: handleChange,
       onApply: handleApply,
       onClose: handleClose,
     }),
-    [baselineValue, currentProcess, handleApply, handleClose, open, t, value]
+    [baselineValue, currentProcess, handleApply, handleChange, handleClose, open, t, value]
   )
 
   return { handleShowXmlEditor: handleShow, xmlEditorState: state }

@@ -16,7 +16,7 @@ export function markerProcessXml(code: string, marker: string): string {
 </bpm>`
 }
 
-export function failingProcessXml(code: string, _failureMessage: string): string {
+export function failingProcessXml(code: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <bpm code="${code}" name="${code}">
   <var name="fail" dataType="java.lang.Boolean" inOutType="param"/>

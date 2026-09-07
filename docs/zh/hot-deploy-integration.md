@@ -1,121 +1,89 @@
-# 热部署集成指南
+# 热部署集成
 
-本实现指南定义发布平台接入 CompileFlow 版本化控制面、独立执行 worker 时必须满足的进程、存储、传输和恢复契约。应用负责人执行
-常规发布与 rollout 时应阅读[热部署](hot-deploy.md)；其中的 `EMBEDDED` 示例适用于单进程 Server 部署。
+本文面向需要嵌入 Deploy，并将控制面与执行进程分开部署的应用。发布、灰度、全量切换、中止和回滚操作见[热部署](hot-deploy.md)。
 
-## 进程契约
+## 进程角色
 
-每个分布式进程都要显式声明职责，不能依赖“恰好缺少某个 bean”来推断角色。
+每个分布式进程都必须明确声明角色。缺少必需组件时启动失败，不会自动切换到其他模式。
 
-| 进程     | `control-plane-enabled` | `runtime-worker-enabled` | 必需基础设施                                                                       |
-|----------|-------------------------|--------------------------|------------------------------------------------------------------------------------|
-| 控制面   | true                    | false                    | JDBC 仓储、`DeploymentSyncChannel`                                                 |
-| 数据面   | false                   | true                     | `ProcessRuntimeManager`、`DeploymentSyncChannel`、subscriptions、artifact resolver |
-| 组合进程 | true                    | true                     | 两者并集；只在有意设计时使用                                                       |
+| 角色     | `control-plane-enabled` | `runtime-worker-enabled` | 必需基础设施                                  |
+| -------- | ----------------------- | ------------------------ | --------------------------------------------- |
+| 控制面   | `true`                  | `false`                  | `DeployStore`、`DeploymentProjectionStore`    |
+| 执行节点 | `false`                 | `true`                   | `DeploymentProjectionStore`、订阅和制品解析器 |
+| 组合节点 | `true`                  | `true`                   | 上述两组组件；仅在确有需要时配置              |
 
-所有配置都要求 `compileflow.deploy.enabled=true` 和 `compileflow.deploy.topology=DISTRIBUTED`。
+所有角色都要求 `compileflow.deploy.enabled=true` 和 `topology=DISTRIBUTED`。
 
 ## 控制面
 
-受支持的命令 API 是 `ProcessDeploymentService`：
+使用 `ProcessDeploymentService` 执行发布和 Rollout 命令。控制面通过一个 `DeployStore` 保存不可变版本、Alias 路由、Rollout 记录和 Outbox 状态。路由变更及对应的 Outbox 记录在同一个存储事务中提交。
 
-- `publish(PublishProcessVersionCommand)`
-- `createRollout(CreateRolloutCommand)`
-- `updateCanaryWeight(UpdateCanaryWeightCommand)`
-- `promoteRollout(PromoteRolloutCommand)`
-- `abortRollout(AbortRolloutCommand)`
-- `rollbackRollout(RollbackRolloutCommand)`
+`RoutingOutboxDispatcher` 只向投影存储投递已经提交的状态。投递失败会重试，并通过 pending、processing、expired 或 dead-letter 状态进行观测。控制面必须配置完整的数据库存储实现和经过审计的 `DeploymentProjectionStore`；CompileFlow 不内置远程投影存储实现。
 
-控制面把 version、alias route、rollout history 与 outbox 状态存入 JDBC 仓储。Route 状态和对应 outbox 事件在同一连接上提交；
-`RoutingOutboxDispatcher` 只向通道发布已提交记录。交付失败会重试，并保持为可观测的 backlog 或 dead-letter 状态。
+Deploy 支持 PostgreSQL 和 MySQL 8.4。应用应引入一个匹配的存储 Starter。H2 仅用于测试。通用 Starter 供自行实现完整 `DeployStore` 的应用使用，不包含数据库驱动、存储实现或迁移脚本。
 
-CompileFlow 的生产数据库只支持 PostgreSQL。在 `compileflow-workbench-server` 之外嵌入 deploy 模块的应用，需要通过 Flyway
-引入打包位置 `classpath:db/compileflow-deploy/migration`。其中完整的 PostgreSQL V1 同时拥有 Deploy schema 与物理不可变约束，
-是 deploy 表结构的唯一 DDL owner；Server 只组合该 location，不复制 SQL。H2 仅用于测试，不是受支持的部署数据库。
+启用命令入口或后台投递前，必须执行随模块提供的数据库迁移。存储 Starter 默认设置 `compileflow.deploy.database.migrate=false`，启动时校验外部迁移结果；存在待执行迁移或数据库结构不一致时会拒绝启动。显式设为 `true` 后，应用才会使用所配置的 DataSource 账号执行迁移。
 
-Deploy 控制面制品是可嵌入库，因此不会替宿主决定迁移策略，也不会自行启动 Flyway。产品宿主必须在注册命令入口或
-启动后台投递之前，应用打包的原始迁移，或者校验其 checksum 并拒绝 pending migration。关闭应用自主 DDL 不等于可以关闭这项
-fail-closed schema admission。Workbench Server 是官方组合实现；其他宿主必须提供等价的启动门禁。
+MySQL 开启 binlog 后，创建 V1 Trigger 可能需要数据库服务器要求的额外 DDL 权限。应使用独立的迁移账号执行，再以仅具备 DML 权限的应用账号运行服务；不要通过全局启用 `log_bin_trust_function_creators` 规避权限边界。
 
 ```yaml
 compileflow:
-  deploy:
-    enabled: true
-    topology: DISTRIBUTED
-    control-plane-enabled: true
-    runtime-worker-enabled: false
-    artifact:
-      mode: DATABASE
+    deploy:
+        enabled: true
+        topology: DISTRIBUTED
+        control-plane-enabled: true
+        runtime-worker-enabled: false
 ```
 
-平台必须声明一个经过审计的 `DeploymentSyncChannel` bean。CompileFlow 有意不内置远程实现，其余控制面和数据面保持与传输无关。
+## 执行节点
 
-## 数据面
-
-每个 worker 承载一个由 Spring 管理的 `DeployRuntime`。在组合进程中，Spring 会先启动通道订阅，再启动
-控制面后台交付；停机时先停发布端，最后关闭数据面。应用代码不应自行构造或启动流水线。
+每个执行节点由 Spring 管理一个 `DeploymentRuntime`。订阅、对账、安装和关闭均由 Spring 负责，应用代码不应自行创建或启动这套处理流程。
 
 ```yaml
 compileflow:
-  deploy:
-    enabled: true
-    topology: DISTRIBUTED
-    control-plane-enabled: false
-    runtime-worker-enabled: true
-    artifact:
-      mode: DATABASE
-    routing:
-      namespaces: [default]
-      codes: [order.rule]
-      aliases: [production]
+    deploy:
+        enabled: true
+        topology: DISTRIBUTED
+        control-plane-enabled: false
+        runtime-worker-enabled: true
+        artifact:
+            mode: SOURCE
+        routing:
+            namespaces: [default]
+            codes: [order.rule]
+            aliases: [production]
 ```
 
-Routing subscriptions 是显式的容量与所有权声明。CompileFlow 根据规范 namespaces、codes 与 aliases 的笛卡尔积派生内部
-transport key；wire-key 编码不属于公共配置。
+订阅明确限定节点负责的路由范围和容量。执行节点只安装其订阅的 Alias 路由所需版本，并在校验摘要后发布本地就绪状态。路由收敛期间继续使用最后一个有效版本；没有有效版本时拒绝执行。
 
-## Artifact 传输
+## 制品模式
 
-| 模式       | 发布与解析                                                                  | 必需信任边界                                                  |
-|------------|-----------------------------------------------------------------------------|---------------------------------------------------------------|
-| `DATABASE` | 控制面把 content 存入版本仓储；worker 通过 `ProcessArtifactSource` 解析。   | worker 需要版本内容的只读数据库权限。                         |
-| `CHANNEL`  | 控制面发布不可变 artifact payload；worker 从 `DeploymentSyncChannel` 解析。 | 通道容量、保留期、访问控制和 payload 持久性必须满足制品要求。 |
+| 模式               | 解析方式                                                            | 所需访问                                                  |
+| ------------------ | ------------------------------------------------------------------- | --------------------------------------------------------- |
+| `SOURCE`           | 执行节点通过 `ProcessArtifactSource` 从版本仓库读取不可变内容。     | 版本存储的读取权限。                                      |
+| `PROJECTION_STORE` | 控制面投影不可变制品，执行节点从 `DeploymentProjectionStore` 读取。 | 投影存储的持久性、容量、访问控制和原子 create-if-absent。 |
 
-两种模式都把必填 digest 作为 artifact 一等字段，并在 runtime 安装前校验。调用方可选的 digest assertion
-与发布内容不一致时，会在任何路由变化前拒绝发布。使用 `CHANNEL` 时，UTF-8 definition、metadata 与 JSON envelope
-必须满足所选后端公开的单项容量；adapter 必须在开始远程 I/O 前拒绝超限内容。
+两种模式都会携带并校验内容摘要。投影模式必须在远程 I/O 前拒绝超过容量限制的制品。发现已有制品冲突或损坏时应停止处理，不能覆盖。
 
-如果不可变数据库记录落库后 channel 投影失败，publish 会返回 typed failure，精确重试可安全续做投影。Create 与 rollback 也会在
-route 事务之前重新确认持久化目标的投影，因此不会仅因数据库行存在就提交一个新引用但不可解析的版本。
+## 投影存储契约
 
-## 路由协议
+控制面只发布已经提交的状态。投影存储必须提供服务端原子 compare-and-set，包括 create-if-absent；客户端先读后写不能满足并发要求。
 
-Routing state 表达较小的路由意图，不承载流程制品：
+路由键由完整身份元组生成：
 
-- `compileflow.deployment.alias.{identityDigest}`
+```text
+compileflow.deployment.alias.{identityDigest}
+compileflow.process.version.{identityDigest}
+```
 
-`CHANNEL` artifact key：
-
-- `compileflow.process.version.{identityDigest}`
-
-`identityDigest` 是有序 identity 元组的 UTF-8 分段在加入长度前缀后的小写 SHA-256。每个 payload 都保留完整
-identity，消费者会重新计算摘要再接收。每个 alias payload 还包含完整 stable/candidate 状态和唯一单调 `revision`
-。控制面用精确内容的原子 CAS 推进每个 channel key，因此迟到的低 revision 不能覆盖当前投影。通知仍可能乱序，所以消费者还会拒绝重复和较低
-revision。
-
-自定义 `DeploymentSyncChannel` 必须提供服务端原子 CAS，包括原子 create-if-absent，不能用客户端 read 后 write 模拟。例如
-Redis 可在一个 Lua script 内完成 compare、store 和 publish，etcd 可使用带 value/version compare 的 transaction。
+`identityDigest` 是对按顺序编码、带长度前缀的 UTF-8 身份元组计算得到的小写 SHA-256。载荷包含完整身份，消费方会根据键进行校验。Alias 载荷包含单调递增的 revision；重复或更旧的 revision 会被忽略。
 
 ## 启动与恢复
 
-- 分布式控制面缺少 channel 时启动失败。
-- 数据面缺少 subscriptions、channel 或所选 artifact source 时启动失败。
-- runtime 安装失败时不会回退到无版本源码或进程本地状态。
-- channel 恢复后重放 routing state。控制面 reconciliation 修复 repository-to-channel 路由漂移；在
-  `CHANNEL` artifact 模式下，还会检测权威 Alias 当前 stable/candidate 的缺失 artifact 投影，并在
-  `reconciliation.mode=REPAIR` 时重建。
-- 路由修复会合并同一精确 outbox 交付；artifact 修复使用不可变 create-if-absent CAS。已存在但冲突或损坏的 artifact 会
-  fail-closed 并报告，不会被覆盖。
-- 运维需要分别监控 outbox pending、processing、过期 claim 与 dead-letter、runtime 安装失败和收敛时间。claim lease 必须长于交付
-  transport 的最坏请求超时。
+- 控制面未配置投影存储时启动失败；
+- 执行节点缺少订阅、投影存储或所选制品来源时启动失败；
+- 安装失败时不会回退到无版本定义或进程内临时状态；
+- 对账任务使用同一套幂等投递契约修复版本仓库与投影存储之间的偏差；
+- 运维应监控 Outbox 积压、运行时安装失败和路由收敛时间。
 
-继续阅读[运维手册](operations-playbook.md)。
+运维响应请看[运维手册](operations-playbook.md)。

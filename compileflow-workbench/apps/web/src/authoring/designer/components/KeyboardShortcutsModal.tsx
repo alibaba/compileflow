@@ -29,7 +29,7 @@ function KeyboardShortcutsModal({ open, onClose }: KeyboardShortcutsModalProps) 
   const [searchText, setSearchText] = useState('')
   useEscapeToClose(open, onClose)
 
-  const shortcuts = useMemo(() => buildShortcutItems(), [])
+  const shortcuts = useMemo(() => buildShortcutItems(t), [t])
 
   const filteredShortcuts = useMemo(() => {
     if (!searchText) return shortcuts

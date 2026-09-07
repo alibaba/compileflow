@@ -6,10 +6,11 @@ protocols; rotate their keys according to that adapter's lifecycle without chang
 
 ## Wait tokens
 
-Wait tokens are random bearer capabilities. The Store persists only their SHA-256 digest; there is no Durable Wait-token
-keyring to rotate. Protect the plaintext token in the authenticated Outbox channel and in any long-lived integration
-mapping. Never log it or place it in a metric label, browser-visible URL, third-party metadata, or Workbench view. If exposed,
-block delivery where possible, inspect its committed status, and do not mint an alternate result for the same Wait
-boundary.
+Wait tokens are random bearer capabilities. The Wait authority row stores only the SHA-256 digest, so there is no Durable
+Wait-token keyring to rotate. Crash-safe delivery temporarily retains the plaintext token in an active Outbox record until
+delivery succeeds or the authority is completed, cancelled, or expired. Protect that Outbox and any long-lived integration
+mapping as credential storage. Never log the token or place it in a metric label, browser-visible URL, third-party metadata,
+or Workbench view. If exposed, block delivery where possible, inspect its committed status, and do not mint an alternate
+result for the same Wait boundary.
 
 See the [operations runbook](durable-operations-runbook.md).

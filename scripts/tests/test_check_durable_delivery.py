@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 
 from scripts.check_durable_delivery import (
     DeliveryError,
     INTEGRATION_EVENTS,
     KERNEL_TABLES,
+    check_documented_boundary,
     extract_outbox_event_types,
     extract_sql_tables,
     require,
@@ -16,6 +18,31 @@ from scripts.check_durable_delivery import (
 
 
 class DurableDeliveryGateTest(unittest.TestCase):
+    ARCHITECTURE = """
+Admission materializes one exact immutable stored Process and binds the Run to its `processId`.
+Alias is Deploy control-plane state; admission records attribution before resolving Alias once.
+The Kernel does not persist generated Java source, classes, bytecode, live object instances,
+executor state, or an in-memory route. Declared application values are serialized as typed state.
+A missing binding is an application/runtime capability problem.
+The Wait token is an opaque, one-shot bearer capability and does not require an application token table.
+Recovery does not provide fuzzy matching and uses a content-addressed `processId`.
+Namespace and optional Version belong to Run admission attribution, not stored semantic identity.
+Every Run stores one exact root `processId`.
+"""
+
+    def test_accepts_nonpersistent_runtime_and_serialized_application_values(self) -> None:
+        with patch("scripts.check_durable_delivery.AUTHORITATIVE_DOCUMENTS", ()), patch(
+            "scripts.check_durable_delivery.read", return_value=self.ARCHITECTURE
+        ):
+            check_documented_boundary()
+
+    def test_rejects_persisting_live_runtime_objects(self) -> None:
+        invalid = self.ARCHITECTURE.replace("does not persist", "persists")
+        with patch("scripts.check_durable_delivery.AUTHORITATIVE_DOCUMENTS", ()), patch(
+            "scripts.check_durable_delivery.read", return_value=invalid
+        ), self.assertRaisesRegex(DeliveryError, "boundary statement"):
+            check_documented_boundary()
+
     def test_extracts_exact_kernel_tables(self) -> None:
         source = "\n".join(
             f"CREATE TABLE public.{table} (id uuid);" for table in sorted(KERNEL_TABLES)

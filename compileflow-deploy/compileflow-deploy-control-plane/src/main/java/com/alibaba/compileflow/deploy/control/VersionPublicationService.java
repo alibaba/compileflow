@@ -17,14 +17,13 @@ import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessIdentifiers;
 import com.alibaba.compileflow.engine.ProcessText;
 import com.alibaba.compileflow.deploy.api.artifact.ProcessArtifactDigest;
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.deploy.api.error.DeploymentErrorCode;
 import com.alibaba.compileflow.deploy.api.error.DeploymentException;
 import com.alibaba.compileflow.deploy.api.release.DeploymentAudit;
 import com.alibaba.compileflow.deploy.api.release.ReleaseMetadata;
-import com.alibaba.compileflow.deploy.control.repository.ProcessVersionRecord;
-import com.alibaba.compileflow.deploy.control.repository.ProcessVersionRepository;
+import com.alibaba.compileflow.deploy.spi.store.ProcessVersionRecord;
+import com.alibaba.compileflow.deploy.spi.store.ProcessVersionStore;
 import com.alibaba.compileflow.deploy.control.validation.ProcessPublicationValidator;
 import com.alibaba.compileflow.deploy.control.validation.ProcessPublicationValidation;
 import com.alibaba.compileflow.deploy.api.artifact.ProcessCallBinding;
@@ -34,7 +33,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.List;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * Creates immutable published-version facts without installing a node-local runtime.
@@ -43,12 +41,12 @@ import org.apache.commons.lang3.StringUtils;
  */
 public final class VersionPublicationService {
     private static final int MAX_VALIDATION_DETAIL_CHARS = 512;
-    private final ProcessVersionRepository repository;
+    private final ProcessVersionStore repository;
     private final ProcessPublicationValidator publicationValidator;
     private final int maxDefinitionBytes;
 
-    public VersionPublicationService(ProcessVersionRepository repository,
-            ProcessPublicationValidator publicationValidator, int maxDefinitionBytes) {
+    public VersionPublicationService(ProcessVersionStore repository, ProcessPublicationValidator publicationValidator,
+            int maxDefinitionBytes) {
         this.repository = Objects.requireNonNull(repository, "repository");
         this.publicationValidator = Objects.requireNonNull(publicationValidator, "publicationValidator");
         if (maxDefinitionBytes <= 0) {
@@ -57,20 +55,13 @@ public final class VersionPublicationService {
         this.maxDefinitionBytes = maxDefinitionBytes;
     }
 
-    private static ProcessModelType requireModelType(ProcessModelType modelType, ProcessRef.Version ref) {
-        if (modelType == null) {
-            throw DeploymentException.fromRef(DeploymentErrorCode.INVALID_ARGUMENT, "modelType must not be null", ref);
-        }
-        return modelType;
-    }
-
     private static String validationFailureMessage(ProcessPreflightReport report) {
         String detail = report
             .getItems()
             .stream()
             .filter(item -> item.getStatus() != ProcessPreflightReport.ItemStatus.PASS)
             .map(ProcessPreflightReport.Item::getMessage)
-            .filter(StringUtils::isNotBlank)
+            .filter(message -> message != null && !message.isBlank())
             .findFirst()
             .map(String::trim)
             .orElse(null);
@@ -83,17 +74,15 @@ public final class VersionPublicationService {
         return "Process definition failed publication validation: " + detail;
     }
 
-    public ProcessVersionRecord publish(ProcessRef.Version ref, ProcessModelType modelType,
-            ProcessDefinition.Inline definition, Map<String, String> metadata, String actor) {
-        return publish(ref, modelType, definition, null, metadata, actor);
+    public ProcessVersionRecord publish(ProcessRef.Version ref, ProcessDefinition.Inline definition,
+            Map<String, String> metadata, String actor) {
+        return publish(ref, definition, null, metadata, actor);
     }
 
-    public ProcessVersionRecord publish(ProcessRef.Version ref, ProcessModelType modelType,
-            ProcessDefinition.Inline definition, String expectedArtifactDigest, Map<String, String> metadata,
-            String actor) {
+    public ProcessVersionRecord publish(ProcessRef.Version ref, ProcessDefinition.Inline definition,
+            String expectedArtifactDigest, Map<String, String> metadata, String actor) {
         ProcessRef.Version versionRef = Objects.requireNonNull(ref, "ref");
         ProcessDefinition.Inline source = Objects.requireNonNull(definition, "definition");
-        ProcessModelType effectiveModelType = requireModelType(modelType, versionRef);
         if (!versionRef.code().equals(source.code())) {
             throw DeploymentException.fromRef(DeploymentErrorCode.INVALID_ARGUMENT,
                     "Version reference and definition code must match", versionRef);
@@ -120,7 +109,7 @@ public final class VersionPublicationService {
         ProcessVersionRecord existing =
                 repository.find(versionRef.namespace(), versionRef.code(), versionRef.version()).orElse(null);
         if (existing != null) {
-            if (existing.getModelType() != effectiveModelType || !existing.getProcessDefinition().equals(source)) {
+            if (!existing.getProcessDefinition().equals(source)) {
                 throw DeploymentException.fromRef(DeploymentErrorCode.VERSION_CONFLICT,
                         "Process Version is already published with a different definition", versionRef);
             }
@@ -128,11 +117,11 @@ public final class VersionPublicationService {
             return existing;
         }
 
-        List<ProcessCallBinding> callBindings = validateDefinition(versionRef, effectiveModelType, source);
+        List<ProcessCallBinding> callBindings = validateDefinition(versionRef, source);
         Map<String, ProcessRef.Version> targets = callBindings
             .stream()
             .collect(java.util.stream.Collectors.toMap(ProcessCallBinding::callSiteId, ProcessCallBinding::target));
-        String digest = ProcessArtifactDigest.compute(effectiveModelType, source, targets);
+        String digest = ProcessArtifactDigest.compute(source, targets);
         requireExpectedDigest(versionRef, normalizedExpectedDigest, digest);
 
         long createdAt = repository.currentTimeMillis();
@@ -141,7 +130,6 @@ public final class VersionPublicationService {
             .namespace(versionRef.namespace())
             .code(versionRef.code())
             .version(versionRef.version())
-            .modelType(effectiveModelType)
             .processDefinition(source)
             .artifactDigest(digest)
             .callBindings(callBindings)
@@ -159,11 +147,10 @@ public final class VersionPublicationService {
         }
     }
 
-    private List<ProcessCallBinding> validateDefinition(ProcessRef.Version ref, ProcessModelType modelType,
-            ProcessDefinition.Inline definition) {
+    private List<ProcessCallBinding> validateDefinition(ProcessRef.Version ref, ProcessDefinition.Inline definition) {
         ProcessPublicationValidation validation;
         try {
-            validation = Objects.requireNonNull(publicationValidator.validate(ref, modelType, definition),
+            validation = Objects.requireNonNull(publicationValidator.validate(ref, definition),
                     "ProcessPublicationValidator must return a validation result");
         } catch (IllegalArgumentException failure) {
             throw DeploymentException.fromRef(DeploymentErrorCode.INVALID_ARGUMENT, failure.getMessage(), ref, failure);
@@ -186,14 +173,10 @@ public final class VersionPublicationService {
                 throw DeploymentException.fromRef(DeploymentErrorCode.INVALID_ARGUMENT,
                         "Published Process call must inherit the caller namespace", ref);
             }
-            ProcessVersionRecord called = repository
+            repository
                 .find(target.namespace(), target.code(), target.version())
                 .orElseThrow(() -> DeploymentException.fromRef(DeploymentErrorCode.DEPENDENCY_NOT_FOUND,
                         "Published called-Process version does not exist: " + target, ref));
-            if (called.getModelType() != modelType) {
-                throw DeploymentException.fromRef(DeploymentErrorCode.INVALID_ARGUMENT,
-                        "Published Process call target must use the caller model type", ref);
-            }
         }
         return validation.callBindings();
     }

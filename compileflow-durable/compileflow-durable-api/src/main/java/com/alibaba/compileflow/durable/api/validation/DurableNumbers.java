@@ -70,6 +70,20 @@ public final class DurableNumbers {
     }
 
     /**
+     * Validates a positive whole-millisecond duration.
+     *
+     * @param value duration value
+     * @param maximum inclusive maximum
+     * @param name field name used in failures
+     * @return validated value
+     */
+    public static Duration requirePositiveDurationMillis(Duration value, Duration maximum, String name) {
+        Duration duration = requireDurationMillis(value, maximum, name);
+        requirePositive(duration.toMillis(), name);
+        return duration;
+    }
+
+    /**
      * Validates a non-negative whole-millisecond duration.
      *
      * @param value duration value

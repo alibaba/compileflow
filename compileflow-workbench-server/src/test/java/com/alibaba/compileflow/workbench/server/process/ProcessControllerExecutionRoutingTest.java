@@ -13,6 +13,8 @@
  */
 package com.alibaba.compileflow.workbench.server.process;
 
+import com.alibaba.compileflow.deploy.api.error.DeploymentException;
+import com.alibaba.compileflow.deploy.api.error.DeploymentErrorCode;
 import static com.alibaba.compileflow.workbench.server.api.problem.ApiProblemAssertions.assertProblem;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -131,18 +133,16 @@ class ProcessControllerExecutionRoutingTest {
     }
 
     @Test
-    void executeMapsMissingPublishedVersionToNotFound() {
+    void missingPublishedVersionPreservesDeploymentFailureForTheSharedHandler() {
         PublishedProcessExecutionService executionService = mock(PublishedProcessExecutionService.class);
         ProcessController controller = controller(executionService);
-        when(executionService.execute(any(ProcessRef.class), anyMap(), any(ProcessExecutionOptions.class)))
-            .thenThrow(
-                    new PublishedProcessExecutionService.PublishedProcessVersionNotFoundException(ProcessRef.version("d"
-                            + "efault", "payment.approve", "v404")));
-
-        assertProblem(() -> controller.executePublishedProcess("payment.approve",
-                        new ProcessExecutionRequest(null, null,
-                                new ExecutionRoutingRequest("v404", null, null, Map.of()))), HttpStatus.NOT_FOUND,
-                "PROCESS_VERSION_NOT_FOUND", "Published process version not found: default/payment.approve@v404");
+        var failure = DeploymentException.of(DeploymentErrorCode.VERSION_NOT_FOUND, "missing version");
+        when(executionService.execute(any(ProcessRef.class), anyMap(), any(ProcessExecutionOptions.class))).thenThrow(
+                failure);
+        org.assertj.core.api.Assertions
+            .assertThatThrownBy(() -> controller.executePublishedProcess("payment.approve",
+                    new ProcessExecutionRequest(null, null, new ExecutionRoutingRequest("v404", null, null, Map.of()))))
+            .isSameAs(failure);
     }
 
     @Test

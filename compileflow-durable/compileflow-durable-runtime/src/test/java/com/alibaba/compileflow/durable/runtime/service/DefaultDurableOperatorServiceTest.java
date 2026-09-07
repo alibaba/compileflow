@@ -44,7 +44,7 @@ import com.alibaba.compileflow.durable.spi.admission.DurableVersionDefinitionSou
 import com.alibaba.compileflow.durable.spi.store.DurableStore;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.config.JavaDiagnosticsConfig;
-import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
+import com.alibaba.compileflow.engine.config.ProcessDefinitionConfig;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Instant;
@@ -208,9 +208,8 @@ class DefaultDurableOperatorServiceTest {
     private DefaultDurableOperatorService service(DurableStore store) {
         DurableProcessRuntimeManager manager = new DurableProcessRuntimeManager(store,
                 new InMemoryDurableProcessRuntimeCache(),
-                new DurableJavaProgramCompiler(JavaDiagnosticsConfig.defaults()),
-                ProcessEngineConfig.tbbpmBuilder().classLoader(getClass().getClassLoader()).discoverPlugins(false).build(),
-                DurableVersionDefinitionSource.empty());
+                new DurableJavaProgramCompiler(JavaDiagnosticsConfig.defaults()), ProcessDefinitionConfig.defaults(),
+                getClass().getClassLoader(), 32, DurableVersionDefinitionSource.empty());
         return new DefaultDurableOperatorService(store, manager);
     }
 

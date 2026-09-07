@@ -19,16 +19,29 @@ import org.junit.jupiter.api.Test;
 
 class ProcessDefinitionDigestTest {
     @Test
-    void identifiesTheModelCodeAndExactDefinitionBytes() {
-        ProcessDefinition.Inline definition = ProcessDefinition.inline("order", "<bpm code=\"order\"/>");
+    void freezesTheDomainFieldOrderLengthEncodingAndExactUtf8Bytes() {
+        String source = "<bpm code=\"order\">\u6d41\u7a0b</bpm>\n";
+        ProcessDefinition.Inline definition = ProcessDefinition.inline(ProcessModelType.TBBPM, "order", source);
 
-        String digest = ProcessDefinitionDigest.compute(ProcessModelType.TBBPM, definition);
+        assertThat(ProcessDefinitionDigest.compute(definition))
+            .isEqualTo("5e7f91c70320a4d9e6df20e5d112c8eb7af9e90a24f3f4251543ed9c352af966")
+            .isNotEqualTo(ProcessDefinitionDigest.compute(ProcessDefinition.inline(ProcessModelType.TBBPM, "order",
+                    source.stripTrailing())));
+    }
+
+    @Test
+    void identifiesTheModelCodeAndExactDefinitionBytes() {
+        ProcessDefinition.Inline definition =
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "order", "<bpm code=\"order\"/>");
+
+        String digest = ProcessDefinitionDigest.compute(definition);
 
         assertThat(digest)
             .isEqualTo(ProcessDefinitionDigest.compute(ProcessModelType.TBBPM, "order",
                     definition.content().getBytes(StandardCharsets.UTF_8)))
-            .isNotEqualTo(ProcessDefinitionDigest.compute(ProcessModelType.BPMN, definition))
-            .isNotEqualTo(ProcessDefinitionDigest.compute(ProcessModelType.TBBPM,
-                    ProcessDefinition.inline("payment", definition.content())));
+            .isNotEqualTo(ProcessDefinitionDigest.compute(ProcessDefinition.inline(ProcessModelType.BPMN,
+                    definition.code(), definition.content())))
+            .isNotEqualTo(ProcessDefinitionDigest.compute(ProcessDefinition.inline(ProcessModelType.TBBPM, "payment",
+                    definition.content())));
     }
 }

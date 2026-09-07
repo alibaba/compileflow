@@ -29,7 +29,7 @@ export default function SubProcessPropertiesTab({ node, onUpdate }: BpmnNodeProp
       nodes.filter(
         (candidate) =>
           candidate.id !== node.id &&
-          (candidate.parentId === undefined || candidate.parentId === node.id) &&
+          (candidate.parentId === node.parentId || candidate.parentId === node.id) &&
           !isNodeAncestor(candidate.id, node, nodesById)
       ),
     [node, nodes, nodesById]

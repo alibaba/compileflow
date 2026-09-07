@@ -89,7 +89,7 @@ function Settings() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            <LinkOutlined /> CompileFlow on GitHub
+            <LinkOutlined /> {t('navigation.github')}
           </Link>
         </SurfacePanel>
       </div>

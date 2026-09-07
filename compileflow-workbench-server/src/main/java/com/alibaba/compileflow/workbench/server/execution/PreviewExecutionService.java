@@ -18,7 +18,7 @@ import com.alibaba.compileflow.engine.ProcessExecutionOptions;
 import com.alibaba.compileflow.engine.ProcessIdentifiers;
 import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessResult;
-import com.alibaba.compileflow.engine.spring.boot.autoconfigure.ProcessEngineRegistry;
+import com.alibaba.compileflow.engine.ProcessEngine;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -34,10 +34,10 @@ import org.springframework.stereotype.Service;
 @Service
 @ConditionalOnProperty(prefix = "compileflow.workbench.server.preview-execution", name = "enabled", havingValue = "true")
 public final class PreviewExecutionService {
-    private final ProcessEngineRegistry engineRegistry;
+    private final ProcessEngine engine;
 
-    public PreviewExecutionService(ProcessEngineRegistry engineRegistry) {
-        this.engineRegistry = engineRegistry;
+    public PreviewExecutionService(ProcessEngine engine) {
+        this.engine = java.util.Objects.requireNonNull(engine, "engine");
     }
 
     private static String resolveInvocationId(String invocationId) {
@@ -64,10 +64,8 @@ public final class PreviewExecutionService {
         long startedAtNanos = System.nanoTime();
         ProcessExecutionOptions options =
                 ProcessExecutionOptions.builder().invocationId(resolveInvocationId(invocationId)).build();
-        ProcessResult<Map<String, Object>> result = engineRegistry
-            .get(modelType)
-            .execute(ProcessDefinition.inline(code, xml), params == null ? new HashMap<>() : new HashMap<>(params),
-                    options);
+        ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.inline(modelType, code, xml),
+                params == null ? new HashMap<>() : new HashMap<>(params), options);
         long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAtNanos);
         return ProcessExecutionResponse.from(result, durationMs);
     }

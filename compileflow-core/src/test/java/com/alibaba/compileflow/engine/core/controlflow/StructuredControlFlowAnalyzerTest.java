@@ -20,6 +20,7 @@ import com.alibaba.compileflow.engine.core.model.action.EffectiveInvocationPolic
 import com.alibaba.compileflow.engine.core.semantic.plan.ActionInvocation;
 import com.alibaba.compileflow.engine.core.semantic.plan.ActionPlan;
 import com.alibaba.compileflow.engine.core.semantic.plan.AwaitPlan;
+import com.alibaba.compileflow.engine.core.semantic.plan.IterationPlan;
 import com.alibaba.compileflow.engine.core.semantic.plan.OperationPlan;
 import com.alibaba.compileflow.engine.core.semantic.plan.ProcessSemanticPlan;
 import java.util.ArrayList;
@@ -31,6 +32,27 @@ import org.junit.jupiter.api.Timeout;
 
 class StructuredControlFlowAnalyzerTest {
     private final StructuredControlFlowAnalyzer analyzer = new StructuredControlFlowAnalyzer();
+
+    @Test
+    void recordsLoopOutputResetAndCollectionAsBranchWrites() {
+        Graph graph = parallelGraph(null, action("rightResult"));
+        graph.variables.put("items",
+                new ProcessSemanticPlan.VariablePlan("items", "java.util.List<java.lang.Object>",
+                        ProcessSemanticPlan.VariableRole.PARAM, null));
+        graph.variables.put("results",
+                new ProcessSemanticPlan.VariablePlan("results", "java.util.List<java.lang.Object>",
+                        ProcessSemanticPlan.VariableRole.RETURN, null));
+        graph.nodes.get("left").iteration = new IterationPlan.ForEach("items", "item", "java.lang.Object", null,
+                IterationPlan.Execution.SEQUENTIAL, "leftResult", "results");
+
+        GatewayBranchPlan branch = analyzer
+            .analyze(graph.plan())
+            .requireGatewayPlan("split")
+            .requireBranch(GatewayBranchKey.of("split", "left"));
+
+        assertThat(branch.getReads()).containsExactly("items");
+        assertThat(branch.getWrites()).containsExactly("leftResult", "results");
+    }
 
     @Test
     void derivesBranchesConvergenceAndSingleOwnedContinuation() {
@@ -363,7 +385,7 @@ class StructuredControlFlowAnalyzerTest {
             Map<String, ProcessSemanticPlan.NodePlan> result = new LinkedHashMap<>();
             nodes.forEach((id, node) -> result.put(id,
                     new ProcessSemanticPlan.NodePlan(id, node.kind, node.scopeId, node.boundary, node.transitions, null,
-                            node.operation, null)));
+                            node.operation, node.iteration)));
             return new ProcessSemanticPlan(code, variables, result);
         }
     }
@@ -374,6 +396,7 @@ class StructuredControlFlowAnalyzerTest {
         private String scopeId = ProcessSemanticPlan.ROOT_SCOPE_ID;
         private ProcessSemanticPlan.ScopeBoundary boundary;
         private OperationPlan operation;
+        private IterationPlan iteration;
 
         private NodeSpec(ProcessSemanticPlan.NodeKind kind) {
             this.kind = kind;

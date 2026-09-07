@@ -13,27 +13,26 @@
  */
 package com.alibaba.compileflow.engine.test.quality.boundary;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
-import com.alibaba.compileflow.engine.core.assembly.AssembledProcessEngineFactory;
 import com.alibaba.compileflow.engine.core.assembly.EngineAssembly;
 import com.alibaba.compileflow.engine.core.routing.LocalRoutingState;
 import com.alibaba.compileflow.deploy.api.artifact.ProcessArtifact;
-import com.alibaba.compileflow.deploy.runtime.LocalRoutingReconciler;
-import com.alibaba.compileflow.deploy.runtime.install.ProcessArtifactRuntimeLoader;
+import com.alibaba.compileflow.deploy.api.artifact.ProcessArtifactDigest;
+import com.alibaba.compileflow.deploy.runtime.routing.LocalRoutingReconciler;
+import com.alibaba.compileflow.deploy.runtime.version.ProcessArtifactRuntimeLoader;
 import com.alibaba.compileflow.deploy.runtime.artifact.ProcessArtifactResolver;
-import com.alibaba.compileflow.deploy.runtime.demand.VersionDemandPlanner;
-import com.alibaba.compileflow.deploy.runtime.install.RuntimeInstaller;
-import com.alibaba.compileflow.deploy.runtime.state.DesiredRoutingState;
+import com.alibaba.compileflow.deploy.runtime.version.VersionRuntimeManager;
+import com.alibaba.compileflow.deploy.runtime.routing.DesiredRoutingState;
 import com.alibaba.compileflow.engine.test.support.helpers.ProcessEngineTestFactory;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.Test;
 
 class RuntimeOwnershipIntegrationTest {
@@ -65,21 +64,18 @@ class RuntimeOwnershipIntegrationTest {
 
     @Test
     void aliasTombstoneReleasesOnlyTheManagedOwner() {
-        ProcessEngineConfig config = ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory.builder().discoverPlugins(false).build();
         LocalRoutingState localRoutingState = new LocalRoutingState();
         ProcessRef.Version ref = ProcessRef.version("default", CODE, "v1");
-        ProcessDefinition.Inline definition = ProcessDefinition.inline(CODE, FLOW);
+        ProcessDefinition.Inline definition = ProcessDefinition.inline(ProcessModelType.TBBPM, CODE, FLOW);
 
-        try (ProcessEngine engine =
-                AssembledProcessEngineFactory.create(config, EngineAssembly.assemble(config, localRoutingState))) {
+        try (ProcessEngine engine = EngineAssembly.create(config, EngineAssembly.assemble(config, localRoutingState))) {
             engine.runtime().load(ref, definition);
             ProcessArtifactResolver resolver =
-                    key -> new ProcessArtifact(key, ProcessModelType.TBBPM, definition, DigestUtils.sha256Hex(FLOW));
-            try (RuntimeInstaller installer = RuntimeInstaller.withOwnedRetryScheduler(resolver,
-                    new ProcessArtifactRuntimeLoader(engine, ProcessModelType.TBBPM), Runnable::run, localRoutingState,
-                    Duration.ofMillis(10), 2)) {
-                LocalRoutingReconciler applier =
-                        new LocalRoutingReconciler(new VersionDemandPlanner(), installer, localRoutingState, Set.of());
+                    key -> new ProcessArtifact(key, definition, ProcessArtifactDigest.compute(definition, Map.of()));
+            try (VersionRuntimeManager manager = VersionRuntimeManager.withOwnedRetryScheduler(resolver,
+                    new ProcessArtifactRuntimeLoader(engine), Runnable::run, localRoutingState, Duration.ofMillis(10), 2)) {
+                LocalRoutingReconciler applier = new LocalRoutingReconciler(manager, localRoutingState, Set.of());
 
                 applier.apply(aliasState("v1", false, 1L)).join();
                 assertThat(localRoutingState.getAliasRouteState().resolve("default", CODE, "production"))
@@ -88,7 +84,7 @@ class RuntimeOwnershipIntegrationTest {
                 applier.apply(aliasState(null, true, 2L)).join();
 
                 assertThat(localRoutingState.getAliasRouteState().resolve("default", CODE, "production")).isEmpty();
-                assertThat(installer.snapshot().getDemandedVersions()).isEmpty();
+                assertThat(manager.snapshot().getDemandedVersions()).isEmpty();
                 assertThat(localRoutingState.getInstalledVersionState().contains("default", CODE, "v1")).isTrue();
                 assertThat(engine.execute(ref, Collections.emptyMap()).isSuccess()).isTrue();
             }

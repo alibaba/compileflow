@@ -32,6 +32,8 @@ SKIP_DIRECTORIES = {
     "test-results",
 }
 TEXT_SUFFIXES = {
+    ".bpm",
+    ".bpmn",
     ".java",
     ".js",
     ".json",
@@ -48,11 +50,35 @@ TEXT_SUFFIXES = {
 }
 
 DEPLOY_API = ROOT / "compileflow-deploy" / "compileflow-deploy-api"
+DEPLOY_PROTOCOL = ROOT / "compileflow-deploy" / "compileflow-deploy-protocol"
 DEPLOY_CONTROL_PLANE = ROOT / "compileflow-deploy" / "compileflow-deploy-control-plane"
 DEPLOY_RUNTIME = ROOT / "compileflow-deploy" / "compileflow-deploy-runtime"
+DEPLOY_SPI = ROOT / "compileflow-deploy" / "compileflow-deploy-spi"
+DEPLOY_JDBC = ROOT / "compileflow-deploy" / "compileflow-deploy-jdbc"
+DEPLOY_POSTGRES = ROOT / "compileflow-deploy" / "compileflow-deploy-postgresql"
+DEPLOY_MYSQL = ROOT / "compileflow-deploy" / "compileflow-deploy-mysql"
+DEPLOY_AUTOCONFIGURE = (
+    ROOT / "compileflow-deploy" / "compileflow-deploy-spring-boot-autoconfigure"
+)
+DEPLOY_POSTGRES_AUTOCONFIGURE = (
+    ROOT / "compileflow-deploy" / "compileflow-deploy-spring-boot-autoconfigure-postgresql"
+)
+DEPLOY_MYSQL_AUTOCONFIGURE = (
+    ROOT / "compileflow-deploy" / "compileflow-deploy-spring-boot-autoconfigure-mysql"
+)
+DEPLOY_STARTER = ROOT / "compileflow-deploy" / "compileflow-deploy-spring-boot-starter"
+DEPLOY_POSTGRES_STARTER = (
+    ROOT / "compileflow-deploy" / "compileflow-deploy-spring-boot-starter-postgresql"
+)
+DEPLOY_MYSQL_STARTER = (
+    ROOT / "compileflow-deploy" / "compileflow-deploy-spring-boot-starter-mysql"
+)
 SERVER = ROOT / "compileflow-workbench-server"
 WORKBENCH_WEB_SOURCE = ROOT / "compileflow-workbench" / "apps" / "web" / "src"
 AUTOCONFIGURE = ROOT / "compileflow-spring-boot-autoconfigure"
+ENGINE_STARTER = ROOT / "compileflow-spring-boot-starter"
+TBBPM_STARTER = ROOT / "compileflow-spring-boot-starter-tbbpm"
+BPMN_STARTER = ROOT / "compileflow-spring-boot-starter-bpmn"
 ENGINE_MODULES = (
     ROOT / "compileflow-api",
     ROOT / "compileflow-core",
@@ -64,13 +90,23 @@ DURABLE_API = DURABLE / "compileflow-durable-api"
 DURABLE_SPI = DURABLE / "compileflow-durable-spi"
 DURABLE_TESTKIT = DURABLE / "compileflow-durable-testkit"
 DURABLE_RUNTIME = DURABLE / "compileflow-durable-runtime"
-DURABLE_POSTGRES = DURABLE / "compileflow-durable-postgres"
+DURABLE_POSTGRES = DURABLE / "compileflow-durable-postgresql"
+DURABLE_MYSQL = DURABLE / "compileflow-durable-mysql"
 DURABLE_AUTOCONFIGURE = (
     DURABLE / "compileflow-durable-spring-boot-autoconfigure"
 )
+DURABLE_POSTGRES_AUTOCONFIGURE = (
+    DURABLE / "compileflow-durable-spring-boot-autoconfigure-postgresql"
+)
+DURABLE_MYSQL_AUTOCONFIGURE = (
+    DURABLE / "compileflow-durable-spring-boot-autoconfigure-mysql"
+)
 DURABLE_STARTER = DURABLE / "compileflow-durable-spring-boot-starter"
 DURABLE_POSTGRES_STARTER = (
-    DURABLE / "compileflow-durable-spring-boot-starter-postgres"
+    DURABLE / "compileflow-durable-spring-boot-starter-postgresql"
+)
+DURABLE_MYSQL_STARTER = (
+    DURABLE / "compileflow-durable-spring-boot-starter-mysql"
 )
 LIBRARY_MODULES = (
     ROOT / "compileflow-api",
@@ -78,18 +114,36 @@ LIBRARY_MODULES = (
     ROOT / "compileflow-tbbpm",
     ROOT / "compileflow-bpmn",
     ROOT / "compileflow-deploy" / "compileflow-deploy-api",
+    ROOT / "compileflow-deploy" / "compileflow-deploy-protocol",
+    ROOT / "compileflow-deploy" / "compileflow-deploy-spi",
+    ROOT / "compileflow-deploy" / "compileflow-deploy-testkit",
     ROOT / "compileflow-deploy" / "compileflow-deploy-control-plane",
     ROOT / "compileflow-deploy" / "compileflow-deploy-runtime",
+    DEPLOY_JDBC,
+    DEPLOY_POSTGRES,
+    DEPLOY_MYSQL,
+    DEPLOY_AUTOCONFIGURE,
+    DEPLOY_POSTGRES_AUTOCONFIGURE,
+    DEPLOY_MYSQL_AUTOCONFIGURE,
+    DEPLOY_STARTER,
+    DEPLOY_POSTGRES_STARTER,
+    DEPLOY_MYSQL_STARTER,
     AUTOCONFIGURE,
-    ROOT / "compileflow-spring-boot-starter",
+    ENGINE_STARTER,
+    TBBPM_STARTER,
+    BPMN_STARTER,
     DURABLE_API,
     DURABLE_SPI,
     DURABLE_TESTKIT,
     DURABLE_RUNTIME,
     DURABLE_POSTGRES,
+    DURABLE_MYSQL,
     DURABLE_AUTOCONFIGURE,
+    DURABLE_POSTGRES_AUTOCONFIGURE,
+    DURABLE_MYSQL_AUTOCONFIGURE,
     DURABLE_STARTER,
     DURABLE_POSTGRES_STARTER,
+    DURABLE_MYSQL_STARTER,
 )
 LOGGING_CONFIGURATION_NAMES = {
     "log4j.properties",
@@ -101,32 +155,29 @@ LOGGING_CONFIGURATION_NAMES = {
     "logging.properties",
     "simplelogger.properties",
 }
-DEPLOY_MIGRATION_OWNER = (
-    DEPLOY_CONTROL_PLANE
-    / "src"
-    / "main"
-    / "resources"
-    / "db"
-    / "compileflow-deploy"
-    / "migration"
+DEPLOY_MIGRATION_OWNERS = (
+    ROOT / "compileflow-deploy" / "compileflow-deploy-postgresql" / "src" / "main" / "resources"
+    / "db" / "compileflow-deploy" / "postgres" / "migration",
+    ROOT / "compileflow-deploy" / "compileflow-deploy-mysql" / "src" / "main" / "resources"
+    / "db" / "compileflow-deploy" / "mysql" / "migration",
 )
-WORKBENCH_MIGRATION_OWNER = (
+WORKBENCH_MIGRATION_ROOT = (
     SERVER
     / "src"
     / "main"
     / "resources"
     / "db"
     / "compileflow-workbench-server"
-    / "migration"
 )
-DURABLE_MIGRATION_OWNER = (
-    DURABLE_POSTGRES
-    / "src"
-    / "main"
-    / "resources"
-    / "db"
-    / "compileflow-durable"
-    / "migration"
+WORKBENCH_MIGRATION_OWNERS = tuple(
+    WORKBENCH_MIGRATION_ROOT / provider / "migration"
+    for provider in ("postgres", "mysql")
+)
+DURABLE_MIGRATION_OWNERS = (
+    DURABLE_POSTGRES / "src" / "main" / "resources" / "db" / "compileflow-durable"
+    / "postgres" / "migration",
+    DURABLE_MYSQL / "src" / "main" / "resources" / "db" / "compileflow-durable"
+    / "mysql" / "migration",
 )
 
 DEPLOY_TABLES = {
@@ -146,6 +197,15 @@ LEGACY_DEPLOY_MARKERS = (
     "compileflow-deploy-common",
     "com.alibaba.compileflow.deploy.common",
     "com/alibaba/compileflow/deploy/common",
+    "DeploymentSyncChannel",
+    "VersionDemandPlanner",
+    "RuntimeInstaller",
+    "RuntimeInstallationLease",
+    "RoutingProjectionReconciler",
+    "ChannelProcessArtifactResolver",
+    "RepositoryProcessArtifactResolver",
+    "CompileFlowDeployDataPlaneAutoConfiguration",
+    "CompileFlowEmbeddedDataPlaneAutoConfiguration",
 )
 REMOVED_AUTOMATION_FIELDS = ("abortOnFailure", "abortTriggered")
 LEGACY_ROUTING_KEY_MARKERS = ("stickyKey", "StickyKey")
@@ -279,6 +339,173 @@ def check_deploy_api_dependencies() -> list[str]:
     return errors
 
 
+def check_deploy_protocol_dependencies() -> list[str]:
+    """Keep wire contracts dependent only on the deploy domain API and codec libraries."""
+    errors: list[str] = []
+    pom = DEPLOY_PROTOCOL / "pom.xml"
+    if not pom.is_file():
+        return [f"{relative(pom)} is required"]
+
+    internal_dependencies = [
+        artifact_id
+        for group_id, artifact_id, _ in dependency_coordinates(pom)
+        if group_id == "com.alibaba.compileflow"
+    ]
+    if internal_dependencies != ["compileflow-api", "compileflow-deploy-api"]:
+        errors.append(
+            f"{relative(pom)} may depend only on compileflow-api and "
+            "compileflow-deploy-api internally"
+        )
+    return errors
+
+
+def check_provider_persistence_boundaries() -> list[str]:
+    """Keep semantic Store contracts database-free and Provider composition explicit."""
+    errors: list[str] = []
+    spi_pom = DEPLOY_SPI / "pom.xml"
+    spi_internal = {
+        artifact_id
+        for group_id, artifact_id, _ in dependency_coordinates(spi_pom)
+        if group_id == "com.alibaba.compileflow"
+    }
+    if spi_internal != {"compileflow-api", "compileflow-deploy-api"}:
+        errors.append(
+            f"{relative(spi_pom)} may depend only on compileflow-api and "
+            f"compileflow-deploy-api internally; found {sorted(spi_internal)}"
+        )
+    jdbc_internal = {
+        artifact_id
+        for group_id, artifact_id, _ in dependency_coordinates(DEPLOY_JDBC / "pom.xml")
+        if group_id == "com.alibaba.compileflow"
+    }
+    expected_jdbc_internal = {
+        "compileflow-api",
+        "compileflow-deploy-api",
+        "compileflow-deploy-protocol",
+        "compileflow-deploy-spi",
+    }
+    if jdbc_internal != expected_jdbc_internal:
+        errors.append(
+            f"{relative(DEPLOY_JDBC / 'pom.xml')} must own only the shared relational "
+            f"Deploy implementation; found {sorted(jdbc_internal)}"
+        )
+    errors.extend(
+        check_imports(
+            DEPLOY_SPI / "src" / "main" / "java",
+            ("java.sql", "javax.sql", "org.flywaydb", "org.postgresql", "com.mysql", "org.springframework"),
+            "Deploy Store SPI must express domain transitions without database or framework types",
+        )
+    )
+    errors.extend(
+        check_imports(
+            DEPLOY_AUTOCONFIGURE / "src" / "main" / "java",
+            ("com.alibaba.compileflow.deploy.postgres", "com.alibaba.compileflow.deploy.mysql"),
+            "Provider-neutral Deploy Spring integration must not link a database Provider",
+        )
+    )
+    for provider, other_package in (
+        (DEPLOY_POSTGRES, "com.alibaba.compileflow.deploy.mysql"),
+        (DEPLOY_MYSQL, "com.alibaba.compileflow.deploy.postgres"),
+    ):
+        provider_internal = {
+            artifact_id
+            for group_id, artifact_id, _ in dependency_coordinates(provider / "pom.xml")
+            if group_id == "com.alibaba.compileflow"
+        }
+        expected_provider_internal = {"compileflow-deploy-jdbc"}
+        if provider_internal != expected_provider_internal:
+            errors.append(
+                f"{relative(provider / 'pom.xml')} may compile-depend only on the shared JDBC "
+                f"implementation and the public types in its Store hierarchy; "
+                f"found {sorted(provider_internal)}"
+            )
+        errors.extend(
+            check_imports(
+                provider / "src" / "main" / "java",
+                (other_package, "com.alibaba.compileflow.deploy.control"),
+                "Deploy Provider production code must select only its JDBC dialect and remain independent "
+                "of other Providers and Control Plane",
+            )
+        )
+
+    forbidden_abstractions = ("DatabaseProvider.java", "SqlDialect.java", "StoreRouter.java")
+    for name in forbidden_abstractions:
+        matches = [path for path in ROOT.rglob(name) if "target" not in path.parts]
+        for path in matches:
+            errors.append(f"{relative(path)} is a forbidden cross-context persistence abstraction")
+    return errors
+
+
+def check_provider_selection_and_workbench_store() -> list[str]:
+    """Freeze fail-closed Provider selection and product-private Workbench Store ownership."""
+    errors: list[str] = []
+    condition_files = (
+        ROOT / "compileflow-deploy" / "compileflow-deploy-spring-boot-autoconfigure-postgresql" / "src"
+        / "main" / "java" / "com" / "alibaba" / "compileflow" / "deploy" / "spring" / "boot"
+        / "autoconfigure" / "postgres" / "PostgresDeployProviderCondition.java",
+        ROOT / "compileflow-deploy" / "compileflow-deploy-spring-boot-autoconfigure-mysql" / "src"
+        / "main" / "java" / "com" / "alibaba" / "compileflow" / "deploy" / "spring" / "boot"
+        / "autoconfigure" / "mysql" / "MySqlDeployProviderCondition.java",
+        DURABLE_POSTGRES_AUTOCONFIGURE / "src" / "main" / "java" / "com" / "alibaba" / "compileflow"
+        / "durable" / "spring" / "boot" / "autoconfigure" / "postgres"
+        / "PostgresDurableProviderCondition.java",
+        DURABLE_MYSQL_AUTOCONFIGURE / "src" / "main" / "java" / "com" / "alibaba" / "compileflow"
+        / "durable" / "spring" / "boot" / "autoconfigure" / "mysql"
+        / "MySqlDurableProviderCondition.java",
+    )
+    for path in condition_files:
+        text = read_text(path) if path.is_file() else ""
+        for marker in ("database.provider", "equalsIgnoreCase", "Class.forName"):
+            if marker not in text:
+                errors.append(f"{relative(path)} must retain fail-closed Provider selection marker: {marker}")
+
+    stores = (
+        SERVER / "src" / "main" / "java" / "com" / "alibaba" / "compileflow" / "workbench"
+        / "server" / "execution" / "AsyncInvocationStore.java",
+        SERVER / "src" / "main" / "java" / "com" / "alibaba" / "compileflow" / "workbench"
+        / "server" / "execution" / "JpaAsyncInvocationStore.java",
+    )
+    for path in stores:
+        if not path.is_file():
+            errors.append(f"{relative(path)} is required")
+    repository = stores[0].with_name("AsyncInvocationRepository.java")
+    for path in (stores[0], repository):
+        text = read_text(path) if path.is_file() else ""
+        if re.search(r"(?m)^public\s+(?:interface|class)\s+", text):
+            errors.append(f"{relative(path)} must remain product-private")
+    repository_text = read_text(repository) if repository.is_file() else ""
+    if "createNativeQuery" in repository_text or "CURRENT_TIMESTAMP" in repository_text:
+        errors.append(f"{relative(repository)} must not own Provider-specific SQL or authority time")
+    return errors
+
+
+def check_deploy_protocol_public_surface() -> list[str]:
+    """Keep every protocol helper explicit so wire-contract growth is deliberate."""
+    expected = {
+        "com.alibaba.compileflow.deploy.protocol": {
+            "ProcessArtifactCodec",
+            "ProcessArtifactKeys",
+            "RoutingStateCodec",
+            "RoutingStateKeys",
+            "RoutingStateUpdate",
+        }
+    }
+    actual: dict[str, set[str]] = {}
+    source_root = DEPLOY_PROTOCOL / "src" / "main" / "java"
+    for path in sorted(source_root.rglob("*.java")):
+        source = read_text(path)
+        type_name = public_top_level_type_name(source)
+        package_name = java_package(path)
+        if type_name is not None and package_name is not None:
+            actual.setdefault(package_name, set()).add(type_name)
+    if actual != expected:
+        return [
+            f"{relative(source_root)} public protocol surface differs from the explicit contract: "
+            f"expected={expected}, actual={actual}"
+        ]
+    return []
+
+
 def check_engine_api_dependencies() -> list[str]:
     """Keep compileflow-api a zero-runtime-dependency public contract artifact."""
     pom = ROOT / "compileflow-api" / "pom.xml"
@@ -316,8 +543,8 @@ def check_documented_semantic_contracts() -> list[str]:
     """Keep active architecture, ontology, and supported-surface docs aligned."""
     errors: list[str] = []
     module_docs = (
-        ROOT / "docs" / "architecture" / "03-MODULE_MAP.en.md",
-        ROOT / "docs" / "architecture" / "03-MODULE_MAP.zh.md",
+        ROOT / "docs" / "en" / "architecture" / "module-map.md",
+        ROOT / "docs" / "zh" / "architecture" / "module-map.md",
     )
     for path in module_docs:
         text = read_text(path) if path.is_file() else ""
@@ -330,10 +557,10 @@ def check_documented_semantic_contracts() -> list[str]:
                 errors.append(f"{relative(path)} must document current module boundary: {required}")
 
     ontology_docs = (
-        ROOT / "docs" / "architecture" / "10-DURABLE_ARCHITECTURE.en.md",
-        ROOT / "docs" / "architecture" / "10-DURABLE_ARCHITECTURE.zh.md",
-        ROOT / "docs" / "specs" / "tbbpm-specification.en.md",
-        ROOT / "docs" / "specs" / "tbbpm-specification.zh.md",
+        ROOT / "docs" / "en" / "architecture" / "durable-architecture.md",
+        ROOT / "docs" / "zh" / "architecture" / "durable-architecture.md",
+        ROOT / "docs" / "en" / "specifications" / "tbbpm.md",
+        ROOT / "docs" / "zh" / "specifications" / "tbbpm.md",
     )
     for path in ontology_docs:
         text = read_text(path) if path.is_file() else ""
@@ -344,8 +571,8 @@ def check_documented_semantic_contracts() -> list[str]:
         if "execution=" not in text:
             errors.append(f"{relative(path)} must describe execution=replayable|effect")
 
-    for suffix in ("en", "zh"):
-        path = ROOT / "docs" / "architecture" / f"06-SUPPORTED_SURFACES.{suffix}.md"
+    for locale in ("en", "zh"):
+        path = ROOT / "docs" / locale / "architecture" / "supported-surfaces.md"
         text = read_text(path) if path.is_file() else ""
         for required in (
             "AliasRoutingOptions",
@@ -363,12 +590,12 @@ def check_documented_semantic_contracts() -> list[str]:
 def check_release_compatibility_contracts() -> list[str]:
     """Keep pre-release compatibility decisions explicit and aligned with implementation."""
     errors: list[str] = []
-    policy = ROOT / "docs" / "compatibility-policy.md"
+    policy = ROOT / "docs" / "en" / "compatibility-policy.md"
     policy_text = read_text(policy) if policy.is_file() else ""
     for marker in (
         "ProcessEvent` is a sealed lifecycle hierarchy and is closed for the 2.x line",
         "Supported by deployment",
-        "Flyway migration is immutable",
+        "Every published Flyway migration is immutable",
         "expectedArtifactDigest",
         "compileflow.deploy.*",
         "coordinated homogeneous protocol upgrades",
@@ -387,8 +614,8 @@ def check_release_compatibility_contracts() -> list[str]:
             errors.append(f"{relative(protocol)} must retain Deploy protocol fact: {marker}")
 
     routing_keys = (
-        DEPLOY_API / "src" / "main" / "java" / "com" / "alibaba" / "compileflow"
-        / "deploy" / "api" / "protocol" / "routing" / "RoutingStateKeys.java"
+        DEPLOY_PROTOCOL / "src" / "main" / "java" / "com" / "alibaba" / "compileflow"
+        / "deploy" / "protocol" / "routing" / "RoutingStateKeys.java"
     )
     routing_text = read_text(routing_keys) if routing_keys.is_file() else ""
     for forbidden in ("DEFAULT_ALIAS", "canonicalAlias"):
@@ -452,6 +679,12 @@ def check_module_dependency_directions() -> list[str]:
     errors: list[str] = []
     rules = (
         (
+            DEPLOY_PROTOCOL / "pom.xml",
+            {"compileflow-core", "compileflow-deploy-control-plane", "compileflow-deploy-runtime",
+             "compileflow-workbench-server"},
+            "deploy-protocol must not depend on engine or deployment implementations",
+        ),
+        (
             DEPLOY_CONTROL_PLANE / "pom.xml",
             {"compileflow-workbench-server"},
             "deployment control plane must not depend on server",
@@ -461,6 +694,18 @@ def check_module_dependency_directions() -> list[str]:
             {"compileflow-deploy-control-plane", "compileflow-workbench-server"},
             "deploy-runtime must not depend on deployment control plane or server",
         ),
+        (
+            DEPLOY_JDBC / "pom.xml",
+            {
+                "compileflow-core",
+                "compileflow-deploy-control-plane",
+                "compileflow-deploy-runtime",
+                "compileflow-deploy-postgresql",
+                "compileflow-deploy-mysql",
+                "compileflow-workbench-server",
+            },
+            "deploy-jdbc must remain provider-neutral and independent of runtime and adapters",
+        ),
     )
     for pom, forbidden_artifacts, message in rules:
         if not pom.is_file():
@@ -469,6 +714,192 @@ def check_module_dependency_directions() -> list[str]:
         for group_id, artifact_id, _ in dependency_coordinates(pom):
             if group_id == "com.alibaba.compileflow" and artifact_id in forbidden_artifacts:
                 errors.append(f"{relative(pom)}: {message}: {artifact_id}")
+    return errors
+
+
+def check_deploy_product_boundary() -> list[str]:
+    """Keep Deploy optional, layered, and isolated from the Engine starter."""
+    errors: list[str] = []
+    aggregator_pom = ROOT / "compileflow-deploy" / "pom.xml"
+    if not aggregator_pom.is_file():
+        return [f"{relative(aggregator_pom)} is required"]
+
+    deploy_root_entries = tuple(
+        module for module in root_reactor_modules()
+        if module.startswith("compileflow-deploy")
+    )
+    if deploy_root_entries != ("compileflow-deploy",):
+        errors.append(
+            "root pom.xml must expose Deploy only through the compileflow-deploy product aggregator"
+        )
+
+    expected_children = (
+        "compileflow-deploy-api",
+        "compileflow-deploy-protocol",
+        "compileflow-deploy-spi",
+        "compileflow-deploy-testkit",
+        "compileflow-deploy-control-plane",
+        "compileflow-deploy-runtime",
+        "compileflow-deploy-jdbc",
+        "compileflow-deploy-postgresql",
+        "compileflow-deploy-mysql",
+        "compileflow-deploy-spring-boot-autoconfigure",
+        "compileflow-deploy-spring-boot-autoconfigure-postgresql",
+        "compileflow-deploy-spring-boot-autoconfigure-mysql",
+        "compileflow-deploy-spring-boot-starter",
+        "compileflow-deploy-spring-boot-starter-postgresql",
+        "compileflow-deploy-spring-boot-starter-mysql",
+    )
+    if reactor_modules(aggregator_pom) != expected_children:
+        errors.append(
+            f"{relative(aggregator_pom)} must declare the canonical Deploy layer order exactly"
+        )
+
+    deploy = ROOT / "compileflow-deploy"
+    for child in expected_children:
+        if not (deploy / child / "pom.xml").is_file():
+            errors.append(f"{relative(deploy / child / 'pom.xml')} is required")
+        if (ROOT / child).exists():
+            errors.append(f"{child} must be a child of compileflow-deploy, not a root sibling")
+    unexpected_children = sorted(
+        path.name
+        for path in deploy.iterdir()
+        if path.is_dir()
+        and (path / "pom.xml").is_file()
+        and path.name not in expected_children
+    )
+    if unexpected_children:
+        errors.append(
+            "CompileFlow Deploy must retain its explicit semantic and Provider module set; "
+            f"unexpected modules: {unexpected_children}"
+        )
+
+    dependency_rules = (
+        (
+            DEPLOY_AUTOCONFIGURE / "pom.xml",
+            {
+                "compileflow-api",
+                "compileflow-core",
+                "compileflow-spring-boot-autoconfigure",
+                "compileflow-deploy-api",
+                "compileflow-deploy-protocol",
+                "compileflow-deploy-spi",
+                "compileflow-deploy-control-plane",
+                "compileflow-deploy-runtime",
+            },
+            "Provider-neutral Deploy auto-configuration must compose only Engine integration and Deploy layers",
+        ),
+        (
+            DEPLOY_POSTGRES_AUTOCONFIGURE / "pom.xml",
+            {
+                "compileflow-deploy-spring-boot-autoconfigure",
+                "compileflow-deploy-postgresql",
+                "compileflow-deploy-spi",
+            },
+            "Deploy PostgreSQL auto-configuration may depend only on neutral Deploy integration and its Provider",
+        ),
+        (
+            DEPLOY_MYSQL_AUTOCONFIGURE / "pom.xml",
+            {
+                "compileflow-deploy-spring-boot-autoconfigure",
+                "compileflow-deploy-mysql",
+                "compileflow-deploy-spi",
+            },
+            "Deploy MySQL auto-configuration may depend only on neutral Deploy integration and its Provider",
+        ),
+        (
+            DEPLOY_STARTER / "pom.xml",
+            {
+                "compileflow-spring-boot-starter",
+                "compileflow-deploy-spring-boot-autoconfigure",
+            },
+            "Provider-neutral Deploy starter may aggregate only Engine and neutral Deploy integration",
+        ),
+        (
+            DEPLOY_POSTGRES_STARTER / "pom.xml",
+            {
+                "compileflow-deploy-spring-boot-starter",
+                "compileflow-deploy-spring-boot-autoconfigure-postgresql",
+            },
+            "Deploy PostgreSQL starter may aggregate only neutral Deploy and PostgreSQL composition",
+        ),
+        (
+            DEPLOY_MYSQL_STARTER / "pom.xml",
+            {
+                "compileflow-deploy-spring-boot-starter",
+                "compileflow-deploy-spring-boot-autoconfigure-mysql",
+            },
+            "Deploy MySQL starter may aggregate only neutral Deploy and MySQL composition",
+        ),
+    )
+    for pom, allowed_internal, message in dependency_rules:
+        if not pom.is_file():
+            continue
+        actual_internal = {
+            artifact_id
+            for group_id, artifact_id, _ in dependency_coordinates(pom)
+            if group_id == "com.alibaba.compileflow"
+        }
+        if actual_internal != allowed_internal:
+            errors.append(
+                f"{relative(pom)}: {message}; found {sorted(actual_internal)}"
+            )
+
+    errors.extend(
+        check_imports(
+            AUTOCONFIGURE / "src" / "main" / "java",
+            ("com.alibaba.compileflow.deploy",),
+            "Engine Spring auto-configuration must not link optional Deploy code",
+        )
+    )
+    errors.extend(
+        check_imports(
+            DEPLOY_AUTOCONFIGURE / "src" / "main" / "java",
+            ("java.sql", "javax.sql", "org.flywaydb", "org.postgresql", "com.mysql"),
+            "Provider-neutral Deploy Spring integration must remain database-independent",
+        )
+    )
+
+    engine_pom = AUTOCONFIGURE / "pom.xml"
+    for group_id, artifact_id, _ in dependency_coordinates(engine_pom):
+        if group_id == "com.alibaba.compileflow" and artifact_id.startswith("compileflow-deploy"):
+            errors.append(f"{relative(engine_pom)} must not depend on optional {artifact_id}")
+    return errors
+
+
+def check_spring_starter_boundaries() -> list[str]:
+    """Keep source frontends orthogonal to engine and product composition."""
+    errors: list[str] = []
+    dependency_rules = (
+        (
+            ENGINE_STARTER / "pom.xml",
+            {"compileflow-spring-boot-autoconfigure"},
+            "The base Engine starter must remain format-neutral",
+        ),
+        (
+            TBBPM_STARTER / "pom.xml",
+            {"compileflow-spring-boot-starter", "compileflow-tbbpm"},
+            "The TBBPM starter may compose only the neutral Engine starter and TBBPM frontend",
+        ),
+        (
+            BPMN_STARTER / "pom.xml",
+            {"compileflow-spring-boot-starter", "compileflow-bpmn"},
+            "The BPMN starter may compose only the neutral Engine starter and BPMN frontend",
+        ),
+    )
+    for pom, allowed_internal, message in dependency_rules:
+        if not pom.is_file():
+            errors.append(f"{relative(pom)} is required")
+            continue
+        actual_internal = {
+            artifact_id
+            for group_id, artifact_id, _ in dependency_coordinates(pom)
+            if group_id == "com.alibaba.compileflow"
+        }
+        if actual_internal != allowed_internal:
+            errors.append(
+                f"{relative(pom)}: {message}; found {sorted(actual_internal)}"
+            )
     return errors
 
 
@@ -494,10 +925,14 @@ def check_durable_product_boundary() -> list[str]:
         "compileflow-durable-spi",
         "compileflow-durable-testkit",
         "compileflow-durable-runtime",
-        "compileflow-durable-postgres",
+        "compileflow-durable-postgresql",
+        "compileflow-durable-mysql",
         "compileflow-durable-spring-boot-autoconfigure",
+        "compileflow-durable-spring-boot-autoconfigure-postgresql",
+        "compileflow-durable-spring-boot-autoconfigure-mysql",
         "compileflow-durable-spring-boot-starter",
-        "compileflow-durable-spring-boot-starter-postgres",
+        "compileflow-durable-spring-boot-starter-postgresql",
+        "compileflow-durable-spring-boot-starter-mysql",
     )
     if reactor_modules(aggregator_pom) != expected_children:
         errors.append(
@@ -523,7 +958,7 @@ def check_durable_product_boundary() -> list[str]:
     )
     if unexpected_children:
         errors.append(
-            "CompileFlow Durable must remain an eight-module product; "
+            "CompileFlow Durable must retain its explicit semantic and Provider module set; "
             f"unexpected modules: {unexpected_children}"
         )
 
@@ -571,38 +1006,68 @@ def check_durable_product_boundary() -> list[str]:
             " API and Kernel Provider SPI",
         ),
         (
+            DURABLE_MYSQL / "pom.xml",
+            {
+                "compileflow-api",
+                "compileflow-durable-api",
+                "compileflow-durable-spi",
+            },
+            "Durable MySQL production code may depend only on the public API and Kernel Provider SPI",
+        ),
+        (
             DURABLE_AUTOCONFIGURE / "pom.xml",
             {
                 "compileflow-api",
-                "compileflow-core",
                 "compileflow-durable-api",
-                "compileflow-durable-postgres",
                 "compileflow-durable-runtime",
                 "compileflow-durable-spi",
                 "compileflow-deploy-api",
-                "compileflow-spring-boot-autoconfigure",
             },
             "Durable auto-configuration may depend only on the engine contracts,"
-            " Durable kernel, PostgreSQL implementation, optional Deploy composition API,"
-            " and generic Spring integration internally",
+            " Durable kernel, optional Deploy composition API,"
+            " without assembling a ProcessEngine",
+        ),
+        (
+            DURABLE_POSTGRES_AUTOCONFIGURE / "pom.xml",
+            {
+                "compileflow-durable-postgresql",
+                "compileflow-durable-spi",
+                "compileflow-durable-spring-boot-autoconfigure",
+            },
+            "Durable PostgreSQL auto-configuration may depend only on the neutral Spring integration and Provider",
+        ),
+        (
+            DURABLE_MYSQL_AUTOCONFIGURE / "pom.xml",
+            {
+                "compileflow-durable-mysql",
+                "compileflow-durable-spi",
+                "compileflow-durable-spring-boot-autoconfigure",
+            },
+            "Durable MySQL auto-configuration may depend only on the neutral Spring integration and Provider",
         ),
         (
             DURABLE_STARTER / "pom.xml",
             {
                 "compileflow-durable-spring-boot-autoconfigure",
-                "compileflow-spring-boot-starter",
             },
-            "Provider-neutral Durable starter may only aggregate the generic"
-            " starter and Durable integration internally",
+            "Format-neutral Durable starter may only aggregate Durable integration internally",
         ),
         (
             DURABLE_POSTGRES_STARTER / "pom.xml",
             {
-                "compileflow-durable-postgres",
                 "compileflow-durable-spring-boot-starter",
+                "compileflow-durable-spring-boot-autoconfigure-postgresql",
             },
             "Durable PostgreSQL starter may only aggregate the provider-neutral"
             " Durable starter and PostgreSQL implementation internally",
+        ),
+        (
+            DURABLE_MYSQL_STARTER / "pom.xml",
+            {
+                "compileflow-durable-spring-boot-starter",
+                "compileflow-durable-spring-boot-autoconfigure-mysql",
+            },
+            "Durable MySQL starter may only aggregate the Provider-neutral Durable starter and MySQL composition",
         ),
     )
     for pom, allowed_internal, message in dependency_rules:
@@ -642,6 +1107,7 @@ def check_durable_product_boundary() -> list[str]:
     framework_prefixes = (
         "java.sql",
         "javax.sql",
+        "com.mysql",
         "org.flywaydb",
         "org.postgresql",
         "org.springframework",
@@ -674,6 +1140,23 @@ def check_durable_product_boundary() -> list[str]:
             DURABLE_POSTGRES / "src" / "main" / "java",
             ("com.alibaba.compileflow.durable.runtime",),
             "Durable PostgreSQL Provider must depend on SPI rather than Runtime",
+        )
+    )
+    errors.extend(
+        check_imports(
+            DURABLE_MYSQL / "src" / "main" / "java",
+            ("com.alibaba.compileflow.durable.runtime",),
+            "Durable MySQL Provider must depend on SPI rather than Runtime",
+        )
+    )
+    errors.extend(
+        check_imports(
+            DURABLE_AUTOCONFIGURE / "src" / "main" / "java",
+            (
+                "com.alibaba.compileflow.durable.postgres",
+                "com.alibaba.compileflow.durable.mysql",
+            ),
+            "Provider-neutral Durable Spring integration must not link a database Provider",
         )
     )
     errors.extend(
@@ -775,6 +1258,8 @@ def check_java_package_boundaries() -> list[str]:
             DEPLOY_API / "src" / "main" / "java",
             (
                 "com.alibaba.compileflow.engine.core",
+                "com.alibaba.compileflow.deploy.protocol",
+                "com.alibaba.compileflow.deploy.spi",
                 "com.alibaba.compileflow.deploy.control",
                 "com.alibaba.compileflow.deploy.integration",
                 "com.alibaba.compileflow.deploy.runtime",
@@ -788,6 +1273,19 @@ def check_java_package_boundaries() -> list[str]:
                 "org.springframework",
             ),
             "deploy-api must remain independent of engine and deployment implementations",
+        )
+    )
+    errors.extend(
+        check_imports(
+            DEPLOY_PROTOCOL / "src" / "main" / "java",
+            (
+                "com.alibaba.compileflow.engine.core",
+                "com.alibaba.compileflow.deploy.control",
+                "com.alibaba.compileflow.deploy.runtime",
+                "com.alibaba.compileflow.workbench.server",
+                "org.springframework",
+            ),
+            "deploy-protocol must remain independent of engine and deployment implementations",
         )
     )
     errors.extend(
@@ -942,11 +1440,6 @@ def check_workbench_server_package_graph() -> list[str]:
     }
 
     for path in sorted(source_root.rglob("*.java")):
-        if path.stem.endswith("Store"):
-            errors.append(
-                f"{relative(path)} must use Repository for application collection "
-                "persistence; Store is reserved for atomic kernel persistence ports"
-            )
         text = read_text(path)
         package_match = PACKAGE_RE.search(text)
         if package_match is None:
@@ -1021,11 +1514,9 @@ def check_migration_discovery_boundaries() -> list[str]:
             "root; product roots must opt in to each bounded-context migration"
         )
 
-    owners = (
-        (DEPLOY_MIGRATION_OWNER, "Deploy"),
-        (WORKBENCH_MIGRATION_OWNER, "Workbench"),
-        (DURABLE_MIGRATION_OWNER, "Durable"),
-    )
+    owners = tuple((owner, "Deploy") for owner in DEPLOY_MIGRATION_OWNERS) + tuple(
+        (owner, "Workbench") for owner in WORKBENCH_MIGRATION_OWNERS
+    ) + tuple((owner, "Durable") for owner in DURABLE_MIGRATION_OWNERS)
     migrations = production_migrations()
     for owner, context in owners:
         if not any(owner in path.parents for path in migrations):
@@ -1037,38 +1528,41 @@ def check_migration_discovery_boundaries() -> list[str]:
 
 
 def check_deploy_migration_owner() -> list[str]:
-    """Require one production owner for every deploy table."""
+    """Require one complete, independent Deploy migration per supported Provider."""
     errors: list[str] = []
-    owner_migrations = [
-        path for path in production_migrations() if DEPLOY_MIGRATION_OWNER in path.parents
-    ]
-    if not owner_migrations:
-        errors.append(f"{relative(DEPLOY_MIGRATION_OWNER)} must contain the deploy Flyway migration")
-        return errors
+    migrations = production_migrations()
+    for owner in DEPLOY_MIGRATION_OWNERS:
+        owner_migrations = [path for path in migrations if owner in path.parents]
+        if not owner_migrations:
+            errors.append(f"{relative(owner)} must contain the Deploy Flyway migration")
+            continue
+        owner_text = "\n".join(read_text(path) for path in owner_migrations)
+        normalized_owner_text = re.sub(r"\s+", " ", owner_text)
+        for table in sorted(DEPLOY_TABLES):
+            create_pattern = re.compile(
+                rf"\bCREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?{table}\b",
+                re.IGNORECASE,
+            )
+            if not create_pattern.search(owner_text):
+                errors.append(f"{relative(owner)} must create {table}")
+        for marker in (
+            "CONSTRAINT ck_rollout_event_transition",
+            "sequence = 1 AND from_phase IS NULL",
+            "sequence > 1 AND from_phase IS NOT NULL AND from_phase = 'IN_PROGRESS'",
+            "model_type",
+        ):
+            if marker not in normalized_owner_text:
+                errors.append(f"{relative(owner)} must enforce Deploy semantic marker {marker}")
 
-    owner_text = "\n".join(read_text(path) for path in owner_migrations)
-    for table in sorted(DEPLOY_TABLES):
-        create_pattern = re.compile(rf"\bCREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?{table}\b", re.IGNORECASE)
-        if not create_pattern.search(owner_text):
-            errors.append(f"{relative(DEPLOY_MIGRATION_OWNER)} must create {table}")
-
-    for marker in (
-        "CONSTRAINT ck_rollout_event_transition",
-        "sequence = 1 AND from_phase IS NULL",
-        "sequence > 1 AND from_phase = 'IN_PROGRESS'",
-    ):
-        if marker not in owner_text:
-            errors.append(f"{relative(DEPLOY_MIGRATION_OWNER)} must enforce rollout event transition marker {marker}")
-
-    for path in production_migrations():
-        if DEPLOY_MIGRATION_OWNER in path.parents:
+    allowed_parents = DEPLOY_MIGRATION_OWNERS
+    for path in migrations:
+        if any(owner in path.parents for owner in allowed_parents):
             continue
         text = read_text(path)
         for table in sorted(DEPLOY_TABLES):
             if re.search(rf"\b{table}\b", text):
                 errors.append(
-                    f"{relative(path)} references deploy-owned table {table}; "
-                    "compileflow-deploy-control-plane is the sole migration owner"
+                    f"{relative(path)} references Deploy-owned table {table}; cross-context SQL is forbidden"
                 )
     return errors
 
@@ -1077,6 +1571,7 @@ def check_project_storage_boundaries() -> list[str]:
     """Keep storage out of the Engine and schemas inside one context owner."""
     errors: list[str] = []
     persistence_prefixes = (
+        "com.mysql",
         "com.zaxxer.hikari",
         "jakarta.persistence",
         "javax.persistence",
@@ -1123,6 +1618,20 @@ def check_project_storage_boundaries() -> list[str]:
                 "PostgreSQL Workbench runtime boundary; found "
                 f"{sorted(server_postgres)}"
             )
+        server_mysql = {
+            (group_id, artifact_id, scope)
+            for group_id, artifact_id, scope in server_dependencies
+            if artifact_id in {"mysql-connector-j", "flyway-mysql"}
+        }
+        expected_mysql = {
+            ("com.mysql", "mysql-connector-j", "runtime"),
+            ("org.flywaydb", "flyway-mysql", "compile"),
+        }
+        if server_mysql != expected_mysql:
+            errors.append(
+                f"{relative(SERVER / 'pom.xml')} must expose the exact MySQL Workbench runtime boundary; "
+                f"found {sorted(server_mysql)}"
+            )
         for group_id, artifact_id, scope in server_dependencies:
             if (
                 group_id == "com.alibaba.compileflow"
@@ -1134,8 +1643,8 @@ def check_project_storage_boundaries() -> list[str]:
                     f"Workbench async queue with Durable: {artifact_id}"
                 )
 
-    owned_tables = (
-        (WORKBENCH_MIGRATION_OWNER, WORKBENCH_TABLES, "Workbench"),
+    owned_tables = tuple(
+        (owner, WORKBENCH_TABLES, "Workbench") for owner in WORKBENCH_MIGRATION_OWNERS
     )
     migrations = production_migrations()
     for owner, tables, context in owned_tables:
@@ -1151,14 +1660,6 @@ def check_project_storage_boundaries() -> list[str]:
             )
             if not create_pattern.search(owner_text):
                 errors.append(f"{relative(owner)} must create {table}")
-            for path in migrations:
-                if owner in path.parents:
-                    continue
-                if re.search(rf"\b{table}\b", read_text(path), re.IGNORECASE):
-                    errors.append(
-                        f"{relative(path)} references {context}-owned table "
-                        f"{table}; cross-context SQL is forbidden"
-                    )
         if context == "Workbench":
             for marker in (
                 "CONSTRAINT ck_async_invocation_lifecycle",
@@ -1170,14 +1671,11 @@ def check_project_storage_boundaries() -> list[str]:
                 if marker not in owner_text:
                     errors.append(f"{relative(owner)} must enforce async invocation marker {marker}")
 
-    durable_migrations = [
-        path for path in migrations if DURABLE_MIGRATION_OWNER in path.parents
-    ]
-    if not durable_migrations:
-        errors.append(
-            f"{relative(DURABLE_MIGRATION_OWNER)} must contain Durable migrations"
-        )
-    else:
+    for owner in DURABLE_MIGRATION_OWNERS:
+        durable_migrations = [path for path in migrations if owner in path.parents]
+        if not durable_migrations:
+            errors.append(f"{relative(owner)} must contain Durable migrations")
+            continue
         durable_text = "\n".join(read_text(path) for path in durable_migrations)
         if not re.search(
             r"\bCREATE\s+TABLE\s+(?:public\.)?cf_durable_[a-z0-9_]+\b",
@@ -1185,15 +1683,20 @@ def check_project_storage_boundaries() -> list[str]:
             re.IGNORECASE,
         ):
             errors.append(
-                f"{relative(DURABLE_MIGRATION_OWNER)} must own cf_durable_*"
+                f"{relative(owner)} must own cf_durable_*"
             )
-        for path in migrations:
-            if DURABLE_MIGRATION_OWNER in path.parents:
-                continue
-            if re.search(r"\bcf_durable_[a-z0-9_]+\b", read_text(path), re.IGNORECASE):
+
+    context_owners = DEPLOY_MIGRATION_OWNERS + WORKBENCH_MIGRATION_OWNERS + DURABLE_MIGRATION_OWNERS
+    for path in migrations:
+        if any(owner in path.parents for owner in context_owners):
+            continue
+        text = read_text(path)
+        if re.search(r"\bcf_durable_[a-z0-9_]+\b", text, re.IGNORECASE):
+            errors.append(f"{relative(path)} references Durable-owned tables; cross-context SQL is forbidden")
+        for table in sorted(WORKBENCH_TABLES):
+            if re.search(rf"\b{table}\b", text, re.IGNORECASE):
                 errors.append(
-                    f"{relative(path)} references Durable-owned tables; "
-                    "cross-context SQL is forbidden"
+                    f"{relative(path)} references Workbench-owned table {table}; cross-context SQL is forbidden"
                 )
     return errors
 
@@ -1221,6 +1724,11 @@ def check_workbench_schema_admission() -> list[str]:
         "flyway.validate();",
         "flyway.info().pending();",
         "spring.flyway.enabled",
+        "FlywayConfigurationCustomizer",
+        "classpath:db/compileflow-workbench-server/",
+        "cf_workbench_schema_history",
+        ".baselineVersion(\"0\")",
+        ".cleanDisabled(true)",
     )
     if not configuration.is_file():
         errors.append(f"{relative(configuration)} must own Workbench schema admission")
@@ -1235,9 +1743,7 @@ def check_workbench_schema_admission() -> list[str]:
     application = SERVER / "src" / "main" / "resources" / "application.yml"
     required_application_markers = (
         "ddl-auto: validate",
-        "classpath:db/compileflow-deploy/migration",
-        "classpath:db/compileflow-workbench-server/migration",
-        "clean-disabled: true",
+        "provider: ${compileflow.workbench.server.database.provider:POSTGRESQL}",
     )
     if not application.is_file():
         errors.append(f"{relative(application)} must configure product-root Flyway ownership")
@@ -1281,13 +1787,13 @@ def check_workbench_schema_admission() -> list[str]:
             "postgres: '18.6'",
             "Reject missing, failed, or skipped PostgreSQL evidence",
             "compileflow-integration-tests/**",
-            "DeploymentRuntimeChainIntegrationTest",
             "ProcessDraftServicePersistenceTest",
             "ProcessOptimisticLockPersistenceTest",
-            "SPRING_FLYWAY_LOCATIONS",
-            "compileflow.test.deploy.postgres.required=true",
+            "EmbeddedDeploymentExecutionIntegrationTest",
             "verify_workbench_postgres_evidence.py",
             "test_verify_workbench_postgres_evidence.py",
+            "MySqlDeployRepositoryContractTest",
+            "COMPILEFLOW_WORKBENCH_SERVER_CONFIG_DATABASE_PROVIDER: MYSQL",
         ):
             if marker not in workflow_text:
                 errors.append(
@@ -1300,9 +1806,6 @@ def check_workbench_schema_admission() -> list[str]:
     else:
         verifier_text = read_text(verifier)
         for marker in (
-            "transactionalOutboxConvergesTwoNodesAcrossCanaryPromotionAndRollback",
-            "reconcilerRepublishesTheAuthoritativeAliasForLateNodes",
-            "processCallRemainsBoundToThePublishedChildVersionOnBothNodes",
             "concurrentImmutableVersionWritesPreserveOneExactIdentity",
             "expiredOutboxClaimIsReclaimedAndFencesThePreviousWorker",
             "parse_junit_report",
@@ -1400,7 +1903,7 @@ def check_routing_key_persistence_boundary() -> list[str]:
         service_text = read_text(service)
         validation_index = service_text.find("requestedRouting(processCode, request.routing())")
         admission_index = service_text.find("pinAliasRouting(")
-        persistence_index = service_text.find("repository.save(")
+        persistence_index = service_text.find("store.insert(")
         if (
             validation_index < 0
             or admission_index < 0
@@ -1785,7 +2288,7 @@ def check_api_freeze_contracts() -> list[str]:
         (
             ROOT / "compileflow-api" / "src" / "main" / "java" / "com" / "alibaba"
             / "compileflow" / "engine" / "ProcessDefinition.java",
-            ("static Classpath classpath(String code, String resourcePath)",),
+            ("static Classpath classpath(ProcessModelType modelType, String code, String resourcePath)",),
             ("String namespace();",),
         ),
         (
@@ -1930,7 +2433,7 @@ def check_api_freeze_contracts() -> list[str]:
             / "durable" / "spi" / "admission" / "DurableVersionDefinitionSource.java",
             (
                 "Optional<VersionDefinition> find(ProcessRef.Version version)",
-                "record VersionDefinition(ProcessModelType modelType, ProcessDefinition.Inline definition,",
+                "record VersionDefinition(ProcessDefinition.Inline definition,",
                 "Map<String, ProcessRef.Version> callBindings",
             ),
             ("Optional<ProcessDefinition.Inline>",),
@@ -2019,10 +2522,10 @@ def check_api_freeze_contracts() -> list[str]:
                 errors.append(f"{relative(path)} reintroduces forbidden public SPI {type_name}")
 
     routing_docs = (
-        (ROOT / "docs" / "architecture" / "05-VERSION_ROUTING.en.md", "occurrence identity"),
-        (ROOT / "docs" / "architecture" / "05-VERSION_ROUTING.zh.md", "occurrence identity"),
+        (ROOT / "docs" / "en" / "architecture" / "version-routing.md", "occurrence identity"),
+        (ROOT / "docs" / "zh" / "architecture" / "version-routing.md", "执行实例标识"),
         (ROOT / "docs" / "en" / "troubleshooting.md", "persisted invocation ID is"),
-        (ROOT / "docs" / "zh" / "troubleshooting.md", "持久化 invocation ID 作为 cohort key"),
+        (ROOT / "docs" / "zh" / "troubleshooting.md", "持久化调用 ID 作为分组键"),
     )
     for path, required in routing_docs:
         text = read_text(path) if path.is_file() else ""
@@ -2050,9 +2553,9 @@ def check_api_freeze_contracts() -> list[str]:
         ROOT / "docs" / "zh" / "api-reference.md",
         ROOT / "docs" / "en" / "configuration.md",
         ROOT / "docs" / "zh" / "configuration.md",
-        ROOT / "docs" / "architecture" / "06-SUPPORTED_SURFACES.en.md",
-        ROOT / "docs" / "architecture" / "06-SUPPORTED_SURFACES.zh.md",
-        ROOT / "examples" / "spring-boot-durable-postgres" / "src",
+        ROOT / "docs" / "en" / "architecture" / "supported-surfaces.md",
+        ROOT / "docs" / "zh" / "architecture" / "supported-surfaces.md",
+        ROOT / "examples" / "spring-boot-durable-postgresql" / "src",
     )
     removed_durable_names = (
         "DurableProcessAdminService",
@@ -2087,6 +2590,8 @@ def check_api_freeze_contracts() -> list[str]:
     )
     for path in sorted(durable_runtime_sources.rglob("*.java")):
         text = read_text(path)
+        if re.search(r"^import\s+org\.springframework\.", text, re.MULTILINE):
+            errors.append(f"{relative(path)} must keep Durable runtime ownership independent of Spring")
         for name in obsolete_process_call_names:
             if name in text:
                 errors.append(
@@ -2127,7 +2632,8 @@ def check_api_freeze_contracts() -> list[str]:
         DEPLOY_API / "src" / "main" / "java" / "com" / "alibaba" / "compileflow"
         / "deploy" / "api" / "artifact" / "ProcessArtifact.java"
     )
-    legacy_artifact = artifact.parent.parent / "protocol" / "artifact" / "ProcessArtifact.java"
+    legacy_artifact = DEPLOY_PROTOCOL / "src" / "main" / "java" / "com" / "alibaba" / "compileflow" \
+        / "deploy" / "protocol" / "artifact" / "ProcessArtifact.java"
     if not artifact.is_file():
         errors.append(f"{relative(artifact)} must own the Deploy domain artifact")
     else:
@@ -2140,7 +2646,8 @@ def check_api_freeze_contracts() -> list[str]:
     if legacy_artifact.exists():
         errors.append(f"{relative(legacy_artifact)} must not mix the domain artifact with wire helpers")
 
-    artifact_protocol = artifact.parent.parent / "protocol" / "artifact"
+    artifact_protocol = DEPLOY_PROTOCOL / "src" / "main" / "java" / "com" / "alibaba" / "compileflow" \
+        / "deploy" / "protocol" / "artifact"
     for protocol_type in ("ProcessArtifactPayload.java", "ProcessArtifactPayloads.java"):
         protocol_path = artifact_protocol / protocol_type
         if protocol_path.is_file() and re.search(r"\bmetadata\b", read_text(protocol_path)):
@@ -2157,8 +2664,8 @@ def check_api_freeze_contracts() -> list[str]:
                 "deploy.api.observability"
             )
 
-    for suffix in ("en", "zh"):
-        constitution = ROOT / "docs" / "architecture" / f"12-API_DESIGN.{suffix}.md"
+    for locale in ("en", "zh"):
+        constitution = ROOT / "docs" / locale / "architecture" / "api-design.md"
         if not constitution.is_file():
             errors.append(f"{relative(constitution)} is required by the API Freeze contract")
     return errors
@@ -2227,7 +2734,7 @@ def check_durable_evolution_contract() -> list[str]:
         if marker not in corpus_text:
             errors.append(f"{relative(corpus_test)} must exercise frozen corpus case: {marker}")
 
-    compatibility = ROOT / "docs" / "compatibility-policy.md"
+    compatibility = ROOT / "docs" / "en" / "compatibility-policy.md"
     compatibility_text = read_text(compatibility) if compatibility.is_file() else ""
     for marker in (
         "CompileFlow-owned Process semantic compatibility",
@@ -2237,7 +2744,7 @@ def check_durable_evolution_contract() -> list[str]:
         if marker not in compatibility_text:
             errors.append(f"{relative(compatibility)} must retain evolution policy: {marker}")
 
-    migration = DURABLE_MIGRATION_OWNER / "V1__durable_kernel.sql"
+    migration = DURABLE_MIGRATION_OWNERS[0] / "V1__durable_kernel.sql"
     migration_text = read_text(migration) if migration.is_file() else ""
     for marker in (
         "model_type",
@@ -2269,6 +2776,23 @@ def check_durable_evolution_contract() -> list[str]:
     if "process_version" not in run_table:
         errors.append(f"{relative(migration)} must retain optional Version attribution on cf_durable_run")
 
+    mysql_migration = DURABLE_MIGRATION_OWNERS[1] / "V1__durable_kernel.sql"
+    mysql_text = read_text(mysql_migration) if mysql_migration.is_file() else ""
+    for marker in (
+        "ck_cf_durable_process_model_type",
+        "uq_cf_durable_process_definition_digest",
+        "ck_cf_durable_effect_readiness",
+        "turn_fault_streak = 0 AND retry_code IS NULL AND retry_observed_at IS NULL",
+        "completed_at IS NULL OR completed_at >= updated_at",
+        "status <> 'RUNNING' OR control_state <> 'PAUSED'",
+        "status NOT IN ('SUCCEEDED', 'FAILED', 'CANCELLED') OR control_state = 'ACTIVE'",
+    ):
+        if marker not in mysql_text:
+            errors.append(f"{relative(mysql_migration)} must retain Durable V1 schema fact: {marker}")
+    for marker in ("ENGINE = InnoDB", "utf8mb4_0900_bin"):
+        if marker not in mysql_text:
+            errors.append(f"{relative(mysql_migration)} must retain MySQL authority marker: {marker}")
+
     durable_main = DURABLE_RUNTIME / "src" / "main"
     forbidden_source_packages = (
         "com.alibaba.compileflow.engine.tbbpm.model",
@@ -2286,6 +2810,23 @@ def check_durable_evolution_contract() -> list[str]:
             if package in text:
                 errors.append(
                     f"{relative(path)} must consume ProcessSemanticPlan instead of source package {package}"
+                )
+
+    for frontend in (ROOT / "compileflow-tbbpm", ROOT / "compileflow-bpmn"):
+        errors.extend(
+            check_imports(
+                frontend / "src" / "main" / "java",
+                ("com.alibaba.compileflow.durable",),
+                "Source frontends must not depend on the Durable execution target",
+            )
+        )
+
+    for semantic_runtime in ("kernel", "machine"):
+        source_root = durable_main / "java" / "com" / "alibaba" / "compileflow" / "durable" / "runtime" / semantic_runtime
+        for path in sorted(source_root.rglob("*.java")):
+            if "ProcessModelType" in read_text(path):
+                errors.append(
+                    f"{relative(path)} must lower and execute shared semantics without source-format branching"
                 )
 
     runtime_pom = DURABLE_RUNTIME / "pom.xml"
@@ -2320,7 +2861,7 @@ def check_durable_evolution_contract() -> list[str]:
                 f"{relative(process_engine_source)} contains a removed Process-call resolution marker: {marker}"
             )
     semantic_compiler_users = [
-        path for path in durable_sources if "ProcessSemanticCompiler.discover(" in read_text(path)
+        path for path in durable_sources if "new ProcessSemanticCompilerRegistry(" in read_text(path)
     ]
     if not semantic_compiler_users:
         errors.append(
@@ -2334,9 +2875,11 @@ def check_durable_evolution_contract() -> list[str]:
     compiler_sources = sorted(
         (ROOT / "compileflow-core" / "src" / "main" / "java").rglob("ProcessSemanticCompiler*.java")
     )
-    if len(compiler_sources) != 2:
+    if {path.name for path in compiler_sources} != {
+        "ProcessSemanticCompiler.java", "ProcessSemanticCompilerProvider.java", "ProcessSemanticCompilerRegistry.java"
+    }:
         errors.append(
-            "compileflow-core must own exactly the semantic compiler and its provider contract; "
+            "compileflow-core must own the semantic compiler, provider contract, and frontend registry; "
             f"found {[relative(path) for path in compiler_sources]}"
         )
     for path in compiler_sources:
@@ -2388,7 +2931,7 @@ def check_default_metric_dimensions() -> list[str]:
 def check_execution_surface_vocabulary() -> list[str]:
     """Freeze the current execution surfaces, package roots, and Definition format binding."""
     errors: list[str] = []
-    module_map = ROOT / "docs" / "architecture" / "03-MODULE_MAP.en.md"
+    module_map = ROOT / "docs" / "en" / "architecture" / "module-map.md"
     module_map_text = read_text(module_map) if module_map.is_file() else ""
     for marker in (
         "`ProcessEngine` and `DurableProcessEngine` are sibling",
@@ -2399,7 +2942,7 @@ def check_execution_surface_vocabulary() -> list[str]:
                 f"{relative(module_map)} must retain execution-surface marker: {marker}"
             )
 
-    process_spec = ROOT / "docs" / "specs" / "tbbpm-specification.en.md"
+    process_spec = ROOT / "docs" / "en" / "specifications" / "tbbpm.md"
     process_spec_text = read_text(process_spec) if process_spec.is_file() else ""
     for marker in (
         "Exactly one of `classpath` or `version` is required",
@@ -2546,13 +3089,13 @@ def check_execution_surface_vocabulary() -> list[str]:
     )
     runtime_manager_text = read_text(runtime_manager) if runtime_manager.is_file() else ""
     for marker in (
-        "this.definitionModelType = config.getModelType();",
+        "source.getModelType()",
         "register(ProcessDefinition definition)",
         "register(ProcessRef.Version version)",
     ):
         if marker not in runtime_manager_text:
             errors.append(
-                f"{relative(runtime_manager)} must retain Direct Definition execution-context binding: {marker}"
+                f"{relative(runtime_manager)} must preserve typed Definition admission: {marker}"
             )
     return errors
 
@@ -2622,7 +3165,12 @@ def check_api_artifact_public_classification() -> list[str]:
         (
             DEPLOY_API / "src" / "main" / "java",
             ("com.alibaba.compileflow.deploy.api",),
-            ("com.alibaba.compileflow.deploy.api.spi", "com.alibaba.compileflow.deploy.api.sync"),
+            ("com.alibaba.compileflow.deploy.api.spi", "com.alibaba.compileflow.deploy.api.spi"),
+        ),
+        (
+            DEPLOY_PROTOCOL / "src" / "main" / "java",
+            ("com.alibaba.compileflow.deploy.protocol",),
+            (),
         ),
         (
             DURABLE_API / "src" / "main" / "java",
@@ -2653,14 +3201,15 @@ def check_public_default_constants() -> list[str]:
     """Keep implementation tuning defaults out of compile-time public API constants."""
     errors: list[str] = []
     allowed = {
-        "compileflow-deploy/compileflow-deploy-api/src/main/java/com/alibaba/compileflow/deploy/api/"
+        "compileflow-deploy/compileflow-deploy-protocol/src/main/java/com/alibaba/compileflow/deploy/"
         "protocol/artifact/ProcessArtifactKeys.java": {"DEFAULT_PREFIX"},
-        "compileflow-deploy/compileflow-deploy-api/src/main/java/com/alibaba/compileflow/deploy/api/"
+        "compileflow-deploy/compileflow-deploy-protocol/src/main/java/com/alibaba/compileflow/deploy/"
         "protocol/routing/RoutingStateKeys.java": {"DEFAULT_PREFIX"},
     }
     source_roots = (
         ROOT / "compileflow-api" / "src" / "main" / "java",
         DEPLOY_API / "src" / "main" / "java",
+        DEPLOY_PROTOCOL / "src" / "main" / "java",
         DURABLE_API / "src" / "main" / "java",
         DURABLE_SPI / "src" / "main" / "java",
     )
@@ -2692,11 +3241,9 @@ def check_supported_spring_bean_seams() -> list[str]:
         "ProcessAliasRouteSource",
         "ProcessAliasTargetingPolicy",
         "ScriptExecutor",
-        "RetryPolicy",
-        "FailureHandler",
         "ProcessEnginePlugin",
         "ProcessDeploymentService",
-        "DeploymentSyncChannel",
+        "DeploymentProjectionStore",
         "ProcessArtifactSource",
         "DurableProcessEngine",
         "DurableOperatorService",
@@ -2708,6 +3255,7 @@ def check_supported_spring_bean_seams() -> list[str]:
     )
     auto_configuration_roots = (
         ROOT / "compileflow-spring-boot-autoconfigure" / "src" / "main" / "java",
+        DEPLOY_AUTOCONFIGURE / "src" / "main" / "java",
         DURABLE_AUTOCONFIGURE / "src" / "main" / "java",
     )
     auto_configuration = "\n".join(
@@ -2744,7 +3292,7 @@ def check_configuration_ownership() -> list[str]:
                 errors.append(f"{relative(path)} uses retired configuration key {key}")
 
     deploy_root = (
-        AUTOCONFIGURE
+        DEPLOY_AUTOCONFIGURE
         / "src"
         / "main"
         / "java"
@@ -2885,14 +3433,63 @@ def check_library_logging_configuration() -> list[str]:
     return errors
 
 
+def check_runtime_realization_boundary() -> list[str]:
+    """Keep source parsing out of both runtime realization backends."""
+    source_root = ROOT / "compileflow-core/src/main/java/com/alibaba/compileflow/engine/core/runtime"
+    errors = []
+    for name in ("ProcessRuntimeFactory", "CompiledProcessRuntimeFactory", "InterpretedProcessRuntimeFactory"):
+        path = source_root / f"{name}.java"
+        source = read_text(path)
+        if "com.alibaba.compileflow.engine.core.source." in source or re.search(
+            r"\bProcessSemanticCompiler\b(?!\.ProcessSemanticCompilation)", source
+        ):
+            errors.append(f"{relative(path)} must realize semantic compilations without owning a source frontend")
+    return errors
+
+
+def check_definition_and_lifecycle_ownership() -> list[str]:
+    """Reject format-bound resource ownership and framework-owned Durable runtime."""
+    errors = []
+    for path in ROOT.rglob("*.java"):
+        repository_path = path.relative_to(ROOT)
+        if "src/main/java" not in repository_path.as_posix() or "target" in repository_path.parts:
+            continue
+        source = read_text(path)
+        if re.search(r"\bProcessEngineRegistry\b|Map<ProcessModelType,\s*ProcessEngine>", source):
+            errors.append(f"{relative(path)} must not route definitions through format-bound engines")
+        if path.name in ("ProcessEngineConfig.java", "DurableProcessEngineConfig.java",
+                         "ProcessEnginePluginContext.java", "ProcessEngineProperties.java"):
+            if re.search(r"\bProcessModelType\b|\bgetModelType\s*\(", source):
+                errors.append(f"{relative(path)} must leave model type ownership with ProcessDefinition")
+        if "compileflow-durable-runtime" in path.parts:
+            if re.search(r"\bProcessEngineConfig\b|import org.springframework.", source):
+                errors.append(f"{relative(path)} must remain independent of ProcessEngine configuration and Spring")
+        if "durable" in path.parts and "autoconfigure" in path.parts:
+            if "new ScheduledThreadPoolExecutor" in source or "new DurableTurnWorker(" in source:
+                errors.append(f"{relative(path)} must delegate Worker ownership to the Durable engine factory")
+    for module in (ROOT / "compileflow-tbbpm", ROOT / "compileflow-bpmn"):
+        descriptor = module / "src/main/resources/META-INF/services/com.alibaba.compileflow.engine.spi.ProcessEngineProvider"
+        if descriptor.exists():
+            errors.append(f"{relative(descriptor)} must register a semantic frontend, not another engine bootstrap")
+    return errors
+
+
 def main() -> int:
     """Run every architecture boundary check."""
     checks = (
         check_engine_api_dependencies,
         check_java_script_provider_boundary,
+        check_runtime_realization_boundary,
+        check_definition_and_lifecycle_ownership,
         check_deploy_api_dependencies,
+        check_deploy_protocol_dependencies,
+        check_deploy_protocol_public_surface,
+        check_provider_persistence_boundaries,
+        check_provider_selection_and_workbench_store,
         check_optional_deploy_configuration_binding,
         check_module_dependency_directions,
+        check_spring_starter_boundaries,
+        check_deploy_product_boundary,
         check_durable_product_boundary,
         check_no_internal_java_packages,
         check_java_package_boundaries,

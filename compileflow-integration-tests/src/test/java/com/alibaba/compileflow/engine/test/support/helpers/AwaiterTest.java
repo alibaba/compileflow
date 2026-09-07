@@ -14,10 +14,36 @@
 package com.alibaba.compileflow.engine.test.support.helpers;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 class AwaiterTest {
+    @Test
+    void conditionInterruptionStopsPollingAndPreservesTheInterrupt() {
+        try {
+            assertThatThrownBy(() -> Awaiter.await("interrupted condition", Duration.ofSeconds(1), () -> {
+                throw new InterruptedException("stop");
+            }))
+                .isInstanceOf(AssertionError.class)
+                .hasMessage("Interrupted while awaiting: interrupted condition")
+                .hasCauseInstanceOf(InterruptedException.class);
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    @Timeout(2)
+    void pollingIntervalCannotExtendTheDeadlineIndefinitely() {
+        assertThatThrownBy(() -> Awaiter.await("long interval", Duration.ofMillis(1), Duration.ofDays(1), () -> false,
+                null))
+            .isInstanceOf(AssertionError.class)
+            .hasMessageStartingWith("Timeout awaiting:");
+    }
+
     @Test
     void rejectsNonPositiveTimingConfiguration() {
         assertThatThrownBy(() -> Awaiter.await("invalid timeout", Duration.ZERO, Duration.ofMillis(1), () -> false, null))

@@ -13,7 +13,6 @@
  */
 package com.alibaba.compileflow.durable.runtime.worker;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
@@ -24,18 +23,11 @@ class DurableTurnWorkerOptionsTest {
     }
 
     @Test
-    void defaultsProvideSchedulingPolicyWithoutBusinessTerminalization() {
-        DurableTurnWorkerOptions options = DurableTurnWorkerOptions.defaults("worker-1");
-
-        assertThat(options.turnFaultBackoff()).isEqualTo(Duration.ofSeconds(1));
-    }
-
-    @Test
     void rejectsMissingZeroOrExcessiveFaultBackoff() {
         assertThatThrownBy(() -> options(null)).isInstanceOf(NullPointerException.class).hasMessage("turnFaultBackoff");
         assertThatThrownBy(() -> options(Duration.ZERO))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("positive whole-millisecond");
+            .hasMessage("turnFaultBackoff must be positive");
         assertThatThrownBy(() -> options(Duration.ofNanos(1)))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("whole-millisecond");
@@ -44,6 +36,6 @@ class DurableTurnWorkerOptionsTest {
             .hasMessageContaining("whole-millisecond");
         assertThatThrownBy(() -> options(Duration.ofHours(1).plusMillis(1)))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("at most PT1H");
+            .hasMessage("turnFaultBackoff must be in [PT0S, PT1H]");
     }
 }

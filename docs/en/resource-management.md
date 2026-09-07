@@ -6,13 +6,12 @@ them during application shutdown.
 
 ## 1. Choose the right scope
 
-Use one engine for each distinct **model type and immutable configuration boundary**. Most applications therefore use
-one TBBPM engine. An application that executes both TBBPM and BPMN uses one long-lived engine for each format; engines
-do not share mutable caches, executors, or generated class loaders.
+Use one engine for each distinct **resource and immutable configuration boundary**. One engine supports all installed
+semantic frontends; TBBPM and BPMN definitions share its bounded cache, executors, and generated-class lifecycle.
 
-Do not construct an engine per request, flow, tenant, or version. Process identity and version routing are request data,
-not reasons to create another engine. Create a separate engine only when the application genuinely needs different model
-types, class-loader scopes, extension snapshots, or resource limits.
+Do not construct an engine per request, flow, tenant, or version. Process identity and version routing are request data
+and do not by themselves require a separate engine. Create a separate engine only when the application genuinely needs different
+class-loader scopes, extension snapshots, or resource limits.
 
 Extension capabilities supplied through the builder or dependency-injection container are application-owned and may be
 shared when they are thread-safe. `ProcessEngine.close()` closes only engine-owned resources.
@@ -24,8 +23,9 @@ reuse that bean:
 
 ```java
 import com.alibaba.compileflow.engine.ProcessEngine;
+import com.alibaba.compileflow.engine.ProcessDefinition;
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessExecutionOptions;
-import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.ProcessResult;
 import org.springframework.stereotype.Service;
 
@@ -40,7 +40,7 @@ public final class OrderService {
 
     public ProcessResult<OrderResponse> process(OrderRequest request) {
         return engine.execute(
-                ProcessDefinition.classpath("bpm.order.process", "flows/order.process.bpm"),
+                ProcessDefinition.classpath(ProcessModelType.TBBPM, "bpm.order.process", "flows/order.process.bpm"),
                 request,
                 OrderResponse.class,
                 ProcessExecutionOptions.defaults());
@@ -48,8 +48,7 @@ public final class OrderService {
 }
 ```
 
-CompileFlow Workbench Server uses an internal `ProcessEngineRegistry` because it hosts both supported model types.
-ProcessEngine starter applications do not need that platform-specific registry.
+CompileFlow Workbench Server reuses the same single-engine composition for both supported model types.
 
 ## 3. Plain Java lifecycle
 
@@ -59,16 +58,17 @@ Create the engine with other application infrastructure and give one owner respo
 ```java
 import com.alibaba.compileflow.engine.ProcessEngine;
 import com.alibaba.compileflow.engine.ProcessEngineFactory;
-import com.alibaba.compileflow.engine.ProcessRef;
+import com.alibaba.compileflow.engine.ProcessDefinition;
+import com.alibaba.compileflow.engine.ProcessModelType;
 
 import java.util.Map;
 
 public final class Application {
 
     public static void main(String[] args) {
-        try (ProcessEngine engine = ProcessEngineFactory.createTbbpm()) {
+        try (ProcessEngine engine = ProcessEngineFactory.create()) {
             engine.execute(
-                    ProcessDefinition.classpath("batch.item.process", "flows/batch/item.process.bpm"),
+                    ProcessDefinition.classpath(ProcessModelType.TBBPM, "batch.item.process", "flows/batch/item.process.bpm"),
                     Map.of("itemId", "item-1"))
                     .orElseThrow();
         }
@@ -90,12 +90,11 @@ Executor and runtime residency defaults are bounded. Tune `ProcessExecutorConfig
 saturation fails visibly instead of allocating unbounded work.
 
 `close()` immediately rejects new public operations and lets admitted work drain. Operation draining and orderly
-shutdown of engine-owned executors share `shutdown.grace-period` (10 seconds by default), rather than restarting the
-budget at every layer. The close path scans stable non-negative per-thread counter stripes every 50ms. Operation
-completion updates only its assigned stripe: it takes no lock, sends no shutdown notification, and does not contend on
-one global counter. When the grace period expires, forced cleanup clears engine-owned caches and interrupts
-remaining executor work within `shutdown.force-period`. Async callbacks that re-enter after forced cleanup begins fail
-as closed. If a worker still ignores interruption after both budgets, cleanup continues and `close()` reports an
+shutdown of engine-owned executors share `compileflow.engine.shutdown.timeout` (15 seconds by default), rather than
+restarting the budget at every layer. Programmatic configuration uses `ProcessEngineConfig.Builder.shutdownTimeout(...)`.
+An internal portion of the same budget is reserved for forced termination; it is not a separate configuration setting.
+Forced cleanup clears engine-owned caches and interrupts remaining executor work. Async callbacks that re-enter after
+forced cleanup begins fail as closed. If a worker still ignores interruption after that budget, cleanup continues and `close()` reports an
 `IllegalStateException` rather than claiming success. Java cannot safely kill a caller thread or code that ignores
 interruption. Stop admission and drain in-flight calls at the host boundary before closing the engine.
 

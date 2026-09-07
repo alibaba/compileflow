@@ -119,7 +119,11 @@ public interface ExecutionLogRepository
                   e.routingSource,
                   e.routeAlias,
                   e.routeRevision
-         order by max(e.loggedAt) desc, e.processCode asc
+         order by max(e.loggedAt) desc, e.processCode asc,
+                  e.errorCode asc nulls first, e.errorMessage asc nulls first,
+                  e.namespace asc nulls first, e.requestedVersion asc nulls first,
+                  e.effectiveVersion asc nulls first, e.routingSource asc,
+                  e.routeAlias asc nulls first, e.routeRevision asc nulls first
         """)
     List<ErrorAggregateProjection> aggregateErrorsBetween(@Param("startMs") long startMs, @Param("endMs") long endMs,
             Pageable pageable);
@@ -148,7 +152,10 @@ public interface ExecutionLogRepository
                   e.routeAlias
          order by count(e) desc,
                   e.processCode asc,
-                  e.effectiveVersion asc
+                  e.effectiveVersion asc nulls first,
+                  e.namespace asc nulls first,
+                  e.routingSource asc,
+                  e.routeAlias asc nulls first
         """)
     List<VersionAggregateProjection> aggregateVersionsBetween(@Param("processCode") String processCode,
             @Param("startMs") long startMs, @Param("endMs") long endMs, Pageable pageable);
@@ -161,11 +168,7 @@ public interface ExecutionLogRepository
                sum(case when status = 'failed' then 1 else 0 end)
                    as "failedCount"
           from (
-                select cast(
-                               floor(
-                                       (logged_at - :startMs)
-                                       * 1.0 / :bucketMs)
-                               as bigint)
+                select floor((logged_at - :startMs) * 1.0 / :bucketMs)
                            as bucket_index,
                        status
                  from cf_execution_log

@@ -262,6 +262,67 @@ class BpmnSemanticContractTest {
             .containsExactly(TimerValue.Kind.DATE, "wakeAt", true);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"invocationPolicy", "effectPolicy"})
+    void rejectsScriptPoliciesRepeatedAcrossExtensionContainers(String policy) {
+        String extensions = "<bpmn:extensionElements><cf:" + policy + "/></bpmn:extensionElements>";
+        String xml = scriptFlow().replace("<bpmn:script>", extensions + extensions + "<bpmn:script>");
+
+        assertThatThrownBy(() -> parseWithoutSchema(xml))
+            .isInstanceOf(CompileFlowException.class)
+            .hasMessageContaining("at most one cf:" + policy);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"missing:tFormalExpression", "cf:tFormalExpression",
+            "tFormalExpression", "bpmn:extra:tFormalExpression"})
+    void rejectsFormalExpressionTypeOutsideTheBpmnNamespace(String type) {
+        String xml = standardLoopFlow().replace("bpmn:tFormalExpression", type);
+
+        assertThatThrownBy(() -> parseWithoutSchema(xml))
+            .isInstanceOf(CompileFlowException.class)
+            .hasMessageContaining("xsi:type");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"expr", ""})
+    void acceptsFormalExpressionTypeResolvedThroughALocalNamespaceBinding(String prefix) {
+        String binding = """
+            %s="http://www.omg.org/spec/BPMN/20100524/MODEL" xsi:type="%s"
+            """
+            .formatted(prefix.isEmpty() ? "xmlns" : "xmlns:" + prefix,
+                    prefix.isEmpty() ? "tFormalExpression" : prefix + ":tFormalExpression");
+        String xml = standardLoopFlow().replace("xsi:type=\"bpmn:tFormalExpression\"", binding);
+
+        assertThat(parseWithoutSchema(xml)).isNotNull();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"language=\"javascript\" xsi:type=\"bpmn:tFormalExpression\"",
+            "xsi:type=\"cf:tFormalExpression\"", "language=\"java\""})
+    void rejectsUnsupportedExpressionMetadataOnLiteralTimers(String attributes) {
+        String xml = catchEventFlow(
+                "<bpmn:timerEventDefinition><bpmn:timeDuration " + attributes
+                + ">PT5M</bpmn:timeDuration></bpmn:timerEventDefinition>");
+
+        assertThatThrownBy(() -> parseWithoutSchema(xml))
+            .isInstanceOf(CompileFlowException.class)
+            .hasMessageContaining("BPMN timeDuration");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"implementation=\"\"", "implementation=\"   \"",
+            "operationRef=\"\"", "operationRef=\"   \""})
+    void rejectsDeclaredUnsupportedReceiveTaskAttributes(String attribute) {
+        String xml =
+                receiveTaskFlow()
+            .replace("implementation=\"##WebService\" operationRef=\"operation_order\"", attribute);
+
+        assertThatThrownBy(() -> parseWithoutSchema(xml))
+            .isInstanceOf(CompileFlowException.class)
+            .hasMessageContaining("implementation and operationRef are not supported");
+    }
+
     @Test
     void parallelMultiInstanceRoundTripPreservesOrderedOutputAggregation() {
         BpmnModel reparsed = parseStrict(write(parseStrict(multiInstanceFlow(false))));
@@ -755,14 +816,13 @@ class BpmnSemanticContractTest {
 
     @Test
     void writerRejectsUnknownModelElements() {
-        BpmnModel model = new BpmnModel();
         com.alibaba.compileflow.engine.bpmn.model.Process process =
                 new com.alibaba.compileflow.engine.bpmn.model.Process();
         process.setId("unknown");
         UnsupportedFlowElement unsupported = new UnsupportedFlowElement();
         unsupported.setId("unsupported");
         process.addElement(unsupported);
-        model.addProcess(process);
+        BpmnModel model = new BpmnModel(process);
 
         assertThatThrownBy(() -> BpmnXmlWriter.getInstance().write(model))
             .isInstanceOf(CompileFlowException.class)

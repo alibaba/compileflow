@@ -7,6 +7,7 @@ compileflow:
   workbench:
     server:
       database:
+        provider: POSTGRESQL
         migrate: true
       preview-execution:
         enabled: true

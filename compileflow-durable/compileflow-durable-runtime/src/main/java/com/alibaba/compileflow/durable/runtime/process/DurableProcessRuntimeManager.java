@@ -36,9 +36,9 @@ import com.alibaba.compileflow.engine.ProcessDefinitionDigest;
 import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.ProcessText;
-import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
+import com.alibaba.compileflow.engine.config.ProcessDefinitionConfig;
 import com.alibaba.compileflow.engine.core.runtime.ProcessRuntimeRequest;
-import com.alibaba.compileflow.engine.core.semantic.ProcessSemanticCompiler;
+import com.alibaba.compileflow.engine.core.semantic.ProcessSemanticCompilerRegistry;
 import com.alibaba.compileflow.engine.core.semantic.ProcessSemanticCompiler.ProcessSemanticCompilation;
 import com.alibaba.compileflow.engine.core.semantic.ProcessCallContract;
 import com.alibaba.compileflow.engine.core.semantic.plan.ProcessCallPlan;
@@ -48,7 +48,6 @@ import com.alibaba.compileflow.engine.core.source.ProcessDefinitionSnapshot;
 import com.alibaba.compileflow.engine.core.source.loader.DefaultProcessDefinitionLoader;
 import com.alibaba.compileflow.engine.spi.script.ScriptProgram;
 import com.alibaba.compileflow.engine.spi.script.ScriptProgramSpec;
-import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -63,55 +62,47 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 
 /**
- * Owns exact stored Process semantics and their disposable node-local executable realization.
+ * Registers exact Process semantics in the Store and loads their disposable node-local executable realization.
  *
  * @author yusu
  */
 public final class DurableProcessRuntimeManager {
     private final DurableCatalogStore store;
     private final DurableProcessRuntimeCache runtimeCache;
-    private final DurableProcessCompiler structureCompiler;
+    private final DurableProcessCompiler structureCompiler = DurableProcessCompiler.structural();
     private final DurableProcessCompiler planCompiler;
     private final DurableProgramCompiler programCompiler;
-    private final ProcessModelType definitionModelType;
     private final DefaultProcessDefinitionLoader definitionLoader;
     private final DurableVersionDefinitionSource versionSource;
     private final ClassLoader classLoader;
     private final int maxProcessCallDepth;
     private final RunContinuationCodec continuations = new RunContinuationCodec();
-    private final ConcurrentMap<ProcessModelType, ProcessSemanticCompiler<?>> semanticCompilers =
-            new ConcurrentHashMap<>();
+    private final ProcessSemanticCompilerRegistry semanticCompilers;
     private final ConcurrentMap<UUID, CompletableFuture<DurableProcessRuntime>> loads = new ConcurrentHashMap<>();
 
     public DurableProcessRuntimeManager(DurableCatalogStore store, DurableProcessRuntimeCache runtimeCache,
-            DurableProgramCompiler programCompiler, ProcessEngineConfig engineConfig,
-            DurableVersionDefinitionSource versionSource) {
-        this(store, runtimeCache, DurableProcessCompiler.structural(), new DurableProcessCompiler(), programCompiler,
-                engineConfig, versionSource);
+            DurableProgramCompiler programCompiler, ProcessDefinitionConfig definitionConfig, ClassLoader classLoader,
+            int maxProcessCallDepth, DurableVersionDefinitionSource versionSource) {
+        this(store, runtimeCache, new DurableProcessCompiler(), programCompiler, definitionConfig, classLoader,
+                maxProcessCallDepth, versionSource);
     }
 
     public DurableProcessRuntimeManager(DurableCatalogStore store, DurableProcessRuntimeCache runtimeCache,
             DurableProcessCompiler planCompiler, DurableProgramCompiler programCompiler,
-            ProcessEngineConfig engineConfig, DurableVersionDefinitionSource versionSource) {
-        this(store, runtimeCache, DurableProcessCompiler.structural(), planCompiler, programCompiler, engineConfig,
-                versionSource);
-    }
-
-    private DurableProcessRuntimeManager(DurableCatalogStore store, DurableProcessRuntimeCache runtimeCache,
-            DurableProcessCompiler structureCompiler, DurableProcessCompiler planCompiler,
-            DurableProgramCompiler programCompiler, ProcessEngineConfig engineConfig,
+            ProcessDefinitionConfig definitionConfig, ClassLoader classLoader, int maxProcessCallDepth,
             DurableVersionDefinitionSource versionSource) {
-        ProcessEngineConfig config = Objects.requireNonNull(engineConfig, "engineConfig");
+        if (maxProcessCallDepth < 1 || maxProcessCallDepth > 256) {
+            throw new IllegalArgumentException("maxProcessCallDepth must be between 1 and 256");
+        }
         this.store = Objects.requireNonNull(store, "store");
         this.runtimeCache = Objects.requireNonNull(runtimeCache, "runtimeCache");
-        this.structureCompiler = Objects.requireNonNull(structureCompiler, "structureCompiler");
         this.planCompiler = Objects.requireNonNull(planCompiler, "planCompiler");
         this.programCompiler = Objects.requireNonNull(programCompiler, "programCompiler");
-        this.definitionModelType = config.getModelType();
-        this.definitionLoader = new DefaultProcessDefinitionLoader(config.getDefinitionConfig());
+        this.definitionLoader = new DefaultProcessDefinitionLoader(definitionConfig);
         this.versionSource = Objects.requireNonNull(versionSource, "versionSource");
-        this.classLoader = config.getClassLoader();
-        this.maxProcessCallDepth = config.getMaxCallDepth();
+        this.classLoader = Objects.requireNonNull(classLoader, "classLoader");
+        this.semanticCompilers = new ProcessSemanticCompilerRegistry(classLoader);
+        this.maxProcessCallDepth = maxProcessCallDepth;
     }
 
     /**
@@ -119,7 +110,7 @@ public final class DurableProcessRuntimeManager {
      */
     public DurableStore.RunProcess register(ProcessDefinition definition) {
         ProcessDefinition requested = Objects.requireNonNull(definition, "definition");
-        return registerDefinition(ProcessRef.DEFAULT_NAMESPACE, definitionModelType, requested);
+        return registerDefinition(ProcessRef.DEFAULT_NAMESPACE, requested);
     }
 
     /**
@@ -132,9 +123,13 @@ public final class DurableProcessRuntimeManager {
                 .find(requested)
                 .orElseThrow(() -> DurableProcessException.of(DurableErrorCode.VERSION_NOT_FOUND,
                         "Versioned Durable Process definition was not found: " + requested));
-            validateVersionBindings(requested, versionDefinition);
-            DurableStore.StoredProcess stored =
-                    register(requested.code(), versionDefinition.modelType(), versionDefinition.definition());
+            if (!requested.code().equals(versionDefinition.definition().code())) {
+                throw new IllegalStateException("Definition source returned a different Process code");
+            }
+            ProcessDefinitionSnapshot source = loadDefinition(versionDefinition.definition());
+            ProcessSemanticCompilation parsed = parse(source);
+            validateVersionBindings(requested, versionDefinition, parsed);
+            DurableStore.StoredProcess stored = register(source, parsed);
             return runProcess(stored, requested.namespace(), requested);
         });
     }
@@ -151,7 +146,11 @@ public final class DurableProcessRuntimeManager {
             return awaitRuntimeLoad(active);
         }
         try {
-            DurableProcessRuntime loaded = inClassLoaderScope(() -> loadRuntimeUncached(requested));
+            // A previous owner may have published and removed its load after our initial cache miss.
+            DurableProcessRuntime loaded = runtimeCache.get(requested).orElse(null);
+            if (loaded == null) {
+                loaded = inClassLoaderScope(() -> loadRuntimeUncached(requested));
+            }
             candidate.complete(loaded);
             return loaded;
         } catch (RuntimeException | Error failure) {
@@ -300,7 +299,8 @@ public final class DurableProcessRuntimeManager {
 
     private DurableStore.RunProcess resolveProcessCall(DurableStore.RunProcess caller, ProcessModelType callerModelType,
             ProcessCallPlan call, Map<CallTargetKey, DurableStore.RunProcess> targetsByKey) {
-        CallTargetKey key = new CallTargetKey(caller.namespace(), call.code(), call.target(), callerModelType);
+        CallTargetKey key = new CallTargetKey(caller.namespace(), call.code(), call.target(),
+                call.target() instanceof ProcessCallTarget.Classpath ? callerModelType : null);
         if (!targetsByKey.containsKey(key) && targetsByKey.size() >= RunContinuation.MAX_PROCESS_CALL_TARGETS) {
             throw DurableProcessException.of(DurableErrorCode.UNSUPPORTED_PROCESS,
                     "Durable Process dependency graph exceeds the target limit");
@@ -316,10 +316,8 @@ public final class DurableProcessRuntimeManager {
         }
     }
 
-    private void validateVersionBindings(ProcessRef.Version requested,
-            DurableVersionDefinitionSource.VersionDefinition versionDefinition) {
-        ProcessSemanticCompilation parsed = parse(requested.code(), versionDefinition.modelType(),
-                versionDefinition.definition().content().getBytes(StandardCharsets.UTF_8));
+    private static void validateVersionBindings(ProcessRef.Version requested,
+            DurableVersionDefinitionSource.VersionDefinition versionDefinition, ProcessSemanticCompilation parsed) {
         Map<String, ProcessRef.Version> actual = new LinkedHashMap<>();
         for (ProcessSemanticPlan.NodePlan node : parsed.semanticPlan().getNodes().values()) {
             if (!(node.operation() instanceof ProcessCallPlan call)) {
@@ -346,8 +344,8 @@ public final class DurableProcessRuntimeManager {
     private DurableStore.RunProcess registerProcessCallTarget(DurableStore.RunProcess caller,
             ProcessModelType callerModelType, ProcessCallPlan call) {
         if (call.target() instanceof ProcessCallTarget.Classpath classpath) {
-            return registerDefinition(caller.namespace(), callerModelType,
-                    ProcessDefinition.classpath(call.code(), classpath.resourcePath()));
+            return registerDefinition(caller.namespace(),
+                    ProcessDefinition.classpath(callerModelType, call.code(), classpath.resourcePath()));
         }
         if (call.target() instanceof ProcessCallTarget.Version version) {
             return register(ProcessRef.version(caller.namespace(), call.code(), version.version()));
@@ -355,40 +353,33 @@ public final class DurableProcessRuntimeManager {
         throw new IllegalStateException("Unsupported Process call target: " + call.target().getClass().getName());
     }
 
-    private DurableStore.RunProcess registerDefinition(String namespace, ProcessModelType modelType,
-            ProcessDefinition definition) {
+    private DurableStore.RunProcess registerDefinition(String namespace, ProcessDefinition definition) {
         return inClassLoaderScope(() -> {
-            ProcessDefinitionSnapshot source = loadDefinition(definition, modelType);
-            DurableStore.StoredProcess stored = register(source.getCode(), modelType, source.getBytes());
+            ProcessDefinitionSnapshot source = loadDefinition(definition);
+            DurableStore.StoredProcess stored = register(source, parse(source));
             return runProcess(stored, namespace, null);
         });
     }
 
-    private ProcessDefinitionSnapshot loadDefinition(ProcessDefinition definition, ProcessModelType modelType) {
+    private ProcessDefinitionSnapshot loadDefinition(ProcessDefinition definition) {
         try {
-            return definitionLoader.load(ProcessRuntimeRequest.from(definition), modelType, classLoader);
+            ProcessDefinitionSnapshot source =
+                    definitionLoader.load(ProcessRuntimeRequest.from(definition), classLoader);
+            if (source.getBytes().length > DurableStore.MAX_DEFINITION_BYTES) {
+                throw DurableProcessException.of(DurableErrorCode.UNSUPPORTED_PROCESS,
+                        "Process definition exceeds the Durable size limit of " + DurableStore.MAX_DEFINITION_BYTES + " bytes");
+            }
+            return source;
         } catch (CompileFlowException failure) {
             throw DurableProcessException.of(DurableErrorCode.INVALID_ARGUMENT,
                     "Durable Process definition could not be loaded", failure);
         }
     }
 
-    private DurableStore.StoredProcess register(String processCode, ProcessModelType modelType,
-            ProcessDefinition.Inline definition) {
-        ProcessDefinition.Inline source = Objects.requireNonNull(definition, "definition");
-        if (!processCode.equals(source.code())) {
-            throw new IllegalStateException("Definition source returned a different Process code");
-        }
-        byte[] bytes = source.content().getBytes(StandardCharsets.UTF_8);
-        return register(processCode, modelType, bytes);
-    }
-
-    private DurableStore.StoredProcess register(String processCode, ProcessModelType modelType, byte[] bytes) {
-        if (bytes.length > DurableStore.MAX_DEFINITION_BYTES) {
-            throw DurableProcessException.of(DurableErrorCode.UNSUPPORTED_PROCESS,
-                    "Process definition exceeds the Durable size limit of " + DurableStore.MAX_DEFINITION_BYTES + " bytes");
-        }
-        ProcessSemanticCompilation parsed = parse(processCode, modelType, bytes);
+    private DurableStore.StoredProcess register(ProcessDefinitionSnapshot source, ProcessSemanticCompilation parsed) {
+        String processCode = source.getCode();
+        ProcessModelType modelType = source.getModelType();
+        byte[] bytes = source.getBytes();
         validateProcess(processCode, parsed);
         String definitionDigest = ProcessDefinitionDigest.compute(modelType, processCode, bytes);
         UUID processId = DurableProcessIdentity.fromDefinitionDigest(definitionDigest);
@@ -440,22 +431,24 @@ public final class DurableProcessRuntimeManager {
     private ProcessSemanticCompilation parse(String processCode, ProcessModelType modelType, byte[] bytes) {
         ProcessDefinitionSnapshot definition;
         try {
-            definition = ProcessDefinitionSnapshot.of(ProcessRef.DEFAULT_NAMESPACE, processCode, null, bytes,
+            definition = ProcessDefinitionSnapshot.of(modelType, ProcessRef.DEFAULT_NAMESPACE, processCode, null, bytes,
                     "Durable stored Process");
         } catch (IllegalArgumentException failure) {
             throw DurableProcessException.of(DurableErrorCode.INVALID_ARGUMENT,
                     "Process definition must be exact valid UTF-8", failure);
         }
+        return parse(definition);
+    }
+
+    private ProcessSemanticCompilation parse(ProcessDefinitionSnapshot definition) {
         try {
-            ProcessSemanticCompiler<?> compiler =
-                    semanticCompilers.computeIfAbsent(modelType, type -> ProcessSemanticCompiler.discover(type,
-                    classLoader));
-            return compiler.compile(definition);
+            return semanticCompilers.compile(definition);
         } catch (DurableProcessException failure) {
             throw failure;
         } catch (RuntimeException failure) {
             throw DurableProcessException.of(DurableErrorCode.UNSUPPORTED_PROCESS,
-                    "Process definition cannot be compiled to shared semantics for model type " + modelType, failure);
+                    "Process definition cannot be compiled to shared semantics for model type " + definition.getModelType(),
+                    failure);
         }
     }
 

@@ -5,7 +5,7 @@ import { useMonitoringData } from '../useMonitoringData'
 
 import { getDeploymentControlHealth } from '@/operate/api/deployments'
 import {
-  getDeployRuntimeDiagnostics,
+  getDeploymentRuntimeDiagnostics,
   getExecutionTrends,
   getMetrics,
   getRecentErrors,
@@ -19,7 +19,7 @@ import type { MonitoringMetrics, MonitoringTimeRange } from '@/shared/contracts'
 vi.mock('@/operate/api/deployments', () => ({ getDeploymentControlHealth: vi.fn() }))
 vi.mock('@/shared/api/processes', () => ({ getAsyncInvocationHealth: vi.fn() }))
 vi.mock('@/operate/api/monitoring', () => ({
-  getDeployRuntimeDiagnostics: vi.fn(),
+  getDeploymentRuntimeDiagnostics: vi.fn(),
   getExecutionTrends: vi.fn(),
   getMetrics: vi.fn(),
   getRecentErrors: vi.fn(),
@@ -48,7 +48,7 @@ describe('useMonitoringData polling', () => {
     vi.mocked(getTopProcesses).mockResolvedValue([])
     vi.mocked(getRecentErrors).mockResolvedValue([])
     vi.mocked(getVersionDistribution).mockResolvedValue([])
-    vi.mocked(getDeployRuntimeDiagnostics).mockResolvedValue({
+    vi.mocked(getDeploymentRuntimeDiagnostics).mockResolvedValue({
       available: false,
       started: false,
       message: 'not configured',
@@ -78,7 +78,7 @@ describe('useMonitoringData polling', () => {
       dispatchedCount: 0,
       workerId: 'worker-test',
       leaseDurationMs: 30000,
-      dispatchBatchSize: 50,
+      concurrency: 4,
       checkedAt: '2026-08-02T00:00:00Z',
     })
   })

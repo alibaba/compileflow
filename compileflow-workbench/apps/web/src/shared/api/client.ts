@@ -12,13 +12,7 @@ class ApiClient {
       timeout: TIMEOUTS.API_REQUEST,
     })
 
-    // Unwrap the response envelope so callers receive T directly.
-    // Errors are passed through as-is; handleApiError() in errorHandler.tsx
-    // will classify them by AxiosError shape (status code, code, etc.).
-    this.client.interceptors.response.use(
-      (response) => response.data,
-      (error) => Promise.reject(error)
-    )
+    this.client.interceptors.response.use((response) => response.data)
   }
 
   async get<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T> {

@@ -455,7 +455,7 @@ public final class StructuredControlFlowAnalyzer {
             .outgoingTransitions()
             .forEach(transition -> addExpressionReads(transition.condition(), semanticPlan.getVariables().keySet(),
                     reads));
-        addIterationAccess(node.iteration(), semanticPlan.getVariables().keySet(), reads);
+        addIterationAccess(node.iteration(), semanticPlan.getVariables().keySet(), reads, writes);
         addOperationAccess(node.operation(), semanticPlan.getVariables().keySet(), reads, writes);
         if (semanticPlan.ownsScope(nodeId) && visitedScopes.add(nodeId)) {
             for (ProcessSemanticPlan.NodePlan nested : semanticPlan.nodesInScope(nodeId)) {
@@ -464,11 +464,16 @@ public final class StructuredControlFlowAnalyzer {
         }
     }
 
-    private void addIterationAccess(IterationPlan iteration, Set<String> variables, Set<String> reads) {
+    private void addIterationAccess(IterationPlan iteration, Set<String> variables, Set<String> reads,
+            Set<String> writes) {
         if (iteration instanceof IterationPlan.While whilePlan) {
             addExpressionReads(whilePlan.condition(), variables, reads);
         } else if (iteration instanceof IterationPlan.ForEach forEach) {
             addMappedVariableAccess(forEach.collectionVariable(), variables, reads);
+            if (forEach.outputTargetVariable() != null) {
+                writes.add(forEach.outputSourceVariable());
+                writes.add(forEach.outputTargetVariable());
+            }
         }
     }
 

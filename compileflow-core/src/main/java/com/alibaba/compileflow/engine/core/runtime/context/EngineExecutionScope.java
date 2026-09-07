@@ -23,7 +23,9 @@ import java.util.Objects;
  * @author yusu
  */
 public final class EngineExecutionScope implements AutoCloseable {
+    private static final ThreadLocal<EngineExecutionScope> CURRENT = new ThreadLocal<>();
     private final Thread owner;
+    private final EngineExecutionScope previousScope;
     private final EngineExecutionContext context;
     private final EngineExecutionContext previousContext;
     private final Map<String, String> previousLogContext;
@@ -31,6 +33,7 @@ public final class EngineExecutionScope implements AutoCloseable {
 
     private EngineExecutionScope(EngineExecutionContext context) {
         this.owner = Thread.currentThread();
+        this.previousScope = CURRENT.get();
         this.context = Objects.requireNonNull(context, "context");
         this.previousContext = EngineExecutionContextHolder.current();
         this.previousLogContext = LogContext.getContext();
@@ -39,6 +42,7 @@ public final class EngineExecutionScope implements AutoCloseable {
         try {
             LogContext.setTraceId(context.traceId());
             LogContext.setProcessCode(context.processCode());
+            CURRENT.set(this);
         } catch (RuntimeException | Error failure) {
             restoreExecutionContext(previousContext);
             try {
@@ -80,7 +84,7 @@ public final class EngineExecutionScope implements AutoCloseable {
         if (closed) {
             return;
         }
-        if (EngineExecutionContextHolder.current() != context) {
+        if (CURRENT.get() != this || EngineExecutionContextHolder.current() != context) {
             throw new IllegalStateException("Engine execution scopes must close in LIFO order");
         }
         closed = true;
@@ -89,6 +93,11 @@ public final class EngineExecutionScope implements AutoCloseable {
             LogContext.setContext(previousLogContext);
         } finally {
             restoreExecutionContext(previousContext);
+            if (previousScope == null) {
+                CURRENT.remove();
+            } else {
+                CURRENT.set(previousScope);
+            }
         }
     }
 

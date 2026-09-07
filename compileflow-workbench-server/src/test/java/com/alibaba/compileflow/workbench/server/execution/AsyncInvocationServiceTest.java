@@ -26,62 +26,151 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import com.alibaba.compileflow.engine.AliasRoutingOptions;
 import com.alibaba.compileflow.engine.ProcessAliasTarget;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.ProcessExecutionOptions;
-import com.alibaba.compileflow.deploy.runtime.install.RuntimeInstallationLease;
-import com.alibaba.compileflow.deploy.runtime.install.RuntimeInstaller;
+import com.alibaba.compileflow.deploy.runtime.version.VersionRuntimeLease;
+import com.alibaba.compileflow.deploy.runtime.version.VersionRuntimeManager;
 import com.alibaba.compileflow.workbench.server.config.CompileFlowWorkbenchServerProperties;
+import jakarta.persistence.EntityManager;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.boot.autoconfigure.context.LifecycleProperties;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import tools.jackson.databind.ObjectMapper;
 
 class AsyncInvocationServiceTest {
-    private static final int TEST_DISPATCH_BATCH_SIZE = 50;
+    private static final int TEST_CONCURRENCY = 50;
     private static final Duration TEST_LEASE_DURATION = Duration.ofSeconds(30);
 
-    private static AsyncInvocationService service(AsyncInvocationRepository repository,
-            PublishedProcessExecutionService executionService) {
-        return service(repository, executionService, readyRuntimeInstaller());
+    @Test
+    void dispatchIsBoundedByFreeCapacityAndReleasesSlotsAfterLostClaims() {
+        AsyncInvocationRepository repository = repository();
+        when(repository.findByStatusAndAvailableAtLessThanEqual(anyString(), anyLong(), any(PageRequest.class)))
+            .thenAnswer(invocation -> new PageImpl<>(List.of(queued("inv-second", "payment.second")),
+                    invocation.getArgument(2), 2));
+        AsyncInvocationStore store = mock(AsyncInvocationStore.class);
+        when(store.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+        List<Runnable> tasks = new ArrayList<>();
+        AsyncInvocationWorker worker = new AsyncInvocationWorker(repository, store,
+                mock(PublishedProcessExecutionService.class), readyVersionRuntimeManager(), tasks::add, 2,
+                TEST_LEASE_DURATION);
+
+        assertThat(worker.dispatch("inv-first")).isTrue();
+        assertThat(worker.dispatch("inv-first")).isFalse();
+        assertThat(worker.dispatchQueuedInvocations()).isTrue();
+        assertThat(worker.dispatch("inv-third")).isFalse();
+        assertThat(worker.dispatchedCount()).isEqualTo(2);
+        assertThat(worker.dispatchQueuedInvocations()).isFalse();
+        verify(store, times(1)).currentTimeMillis();
+        verify(repository)
+            .findByStatusAndAvailableAtLessThanEqual(eq(AsyncInvocationService.STATUS_QUEUED), anyLong(),
+                    argThat(page -> page.getPageSize() == 1));
+
+        tasks.remove(0).run();
+        assertThat(worker.dispatch("inv-third")).isTrue();
+        assertThat(worker.dispatchedCount()).isEqualTo(2);
+        tasks.forEach(Runnable::run);
+        assertThat(worker.dispatchedCount()).isZero();
+        assertThat(worker.dispatch("inv-first")).isTrue();
+        assertThat(worker.dispatch("inv-second")).isTrue();
+        assertThat(worker.dispatch("inv-third")).isFalse();
+    }
+
+    @Test
+    void failedSubmissionDoesNotLeakExecutionCapacity() {
+        AtomicInteger attempts = new AtomicInteger();
+        List<Runnable> tasks = new ArrayList<>();
+        AsyncInvocationWorker worker = new AsyncInvocationWorker(repository(), mock(AsyncInvocationStore.class),
+                mock(PublishedProcessExecutionService.class), readyVersionRuntimeManager(),
+                task -> {
+                    if (attempts.getAndIncrement() == 0) {
+                        throw new RejectedExecutionException("busy");
+                    }
+                    if (attempts.get() == 2) {
+                        throw new IllegalStateException("broken executor");
+                    }
+                    tasks.add(task);
+                }, 1, TEST_LEASE_DURATION);
+
+        assertThat(worker.dispatch("inv-first")).isFalse();
+        assertThatThrownBy(() -> worker.dispatch("inv-first")).isInstanceOf(IllegalStateException.class);
+        assertThat(worker.dispatch("inv-first")).isTrue();
+        assertThat(worker.dispatch("inv-second")).isFalse();
+        tasks.remove(0).run();
+        worker.stop();
+        assertThat(worker.dispatch("inv-first")).isFalse();
+        worker.start();
+        assertThat(worker.dispatch("inv-first")).isTrue();
+    }
+
+    @Test
+    void synchronousExecutionFailureReleasesCapacityOnlyOnce() {
+        AsyncInvocationStore store = mock(AsyncInvocationStore.class);
+        when(store.claim(anyString(), anyString(), anyLong())).thenThrow(new AssertionError("failed claim"));
+        List<Runnable> tasks = new ArrayList<>();
+        AtomicInteger attempts = new AtomicInteger();
+        AsyncInvocationWorker worker = new AsyncInvocationWorker(repository(), store,
+                mock(PublishedProcessExecutionService.class), readyVersionRuntimeManager(),
+                task -> {
+                    if (attempts.getAndIncrement() == 0) {
+                        task.run();
+                    } else {
+                        tasks.add(task);
+                    }
+                }, 1, TEST_LEASE_DURATION);
+
+        assertThatThrownBy(() -> worker.dispatch("inv-first")).isInstanceOf(AssertionError.class);
+        assertThat(worker.dispatchedCount()).isZero();
+        assertThat(worker.dispatch("inv-first")).isTrue();
+        assertThat(worker.dispatch("inv-second")).isFalse();
+        assertThat(tasks).hasSize(1);
     }
 
     private static AsyncInvocationService service(AsyncInvocationRepository repository,
-            PublishedProcessExecutionService executionService, RuntimeInstaller runtimeInstaller) {
+            PublishedProcessExecutionService executionService) {
+        return service(repository, executionService, readyVersionRuntimeManager());
+    }
+
+    private static AsyncInvocationService service(AsyncInvocationRepository repository,
+            PublishedProcessExecutionService executionService, VersionRuntimeManager versionRuntimeManager) {
         stubAliasResolution(executionService);
-        return new AsyncInvocationService(repository, stateMachine(repository), executionService, runtimeInstaller,
-                new ObjectMapper(), Runnable::run, TEST_DISPATCH_BATCH_SIZE, TEST_LEASE_DURATION);
+        return new AsyncInvocationService(repository, invocationStore(repository), executionService,
+                versionRuntimeManager, Runnable::run, TEST_CONCURRENCY, TEST_LEASE_DURATION);
     }
 
     private static AsyncInvocationService serviceWithoutDispatch(AsyncInvocationRepository repository,
             PublishedProcessExecutionService executionService) {
         stubAliasResolution(executionService);
-        return new AsyncInvocationService(repository, stateMachine(repository), executionService,
-                readyRuntimeInstaller(), new ObjectMapper(), runnable -> {}, TEST_DISPATCH_BATCH_SIZE,
-                TEST_LEASE_DURATION);
+        return new AsyncInvocationService(repository, invocationStore(repository), executionService,
+                readyVersionRuntimeManager(), runnable -> {}, TEST_CONCURRENCY, TEST_LEASE_DURATION);
     }
 
-    private static RuntimeInstaller readyRuntimeInstaller() {
-        RuntimeInstaller installer = mock(RuntimeInstaller.class);
-        when(installer.acquireInstallation(any(ProcessRef.Version.class)))
-            .thenAnswer(invocation -> CompletableFuture.completedFuture(mock(RuntimeInstallationLease.class)));
-        return installer;
+    private static VersionRuntimeManager readyVersionRuntimeManager() {
+        VersionRuntimeManager manager = mock(VersionRuntimeManager.class);
+        when(manager.acquireInstallation(any(ProcessRef.Version.class)))
+            .thenAnswer(invocation -> CompletableFuture.completedFuture(mock(VersionRuntimeLease.class)));
+        return manager;
     }
 
     private static void stubAliasResolution(PublishedProcessExecutionService executionService) {
@@ -211,7 +300,7 @@ class AsyncInvocationServiceTest {
         return entity;
     }
 
-    private static AsyncInvocationStateMachine stateMachine(AsyncInvocationRepository repository) {
+    private static AsyncInvocationStore invocationStore(AsyncInvocationRepository repository) {
         AsyncInvocationAttemptRepository attempts = mock(AsyncInvocationAttemptRepository.class);
         when(attempts.saveAndFlush(any(AsyncInvocationAttemptEntity.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -221,13 +310,46 @@ class AsyncInvocationServiceTest {
         when(attempts.finishExpired(anyString(), anyString(), anyString(), anyString(), anyString(), anyString(),
                 anyString(), anyLong(), anyLong(), any()))
             .thenReturn(1);
-        return new AsyncInvocationStateMachine(repository, attempts);
+        CompileFlowWorkbenchServerProperties properties = mock(CompileFlowWorkbenchServerProperties.class);
+        CompileFlowWorkbenchServerProperties.Database database =
+                mock(CompileFlowWorkbenchServerProperties.Database.class);
+        when(properties.getDatabase()).thenReturn(database);
+        when(database.getProvider()).thenReturn(CompileFlowWorkbenchServerProperties.Database.Provider.POSTGRESQL);
+        return new JpaAsyncInvocationStore(repository, attempts, mock(EntityManager.class), properties) {
+            @Override
+            public void insert(AsyncInvocationEntity invocation) {
+                repository.save(invocation);
+            }
+
+            @Override
+            public long currentTimeMillis() {
+                return System.currentTimeMillis();
+            }
+
+            @Override
+            public Set<String> renewLeases(Map<String, String> authorities, String runningStatus, long extensionMillis) {
+                long now = currentTimeMillis();
+                long leaseUntil = now > Long.MAX_VALUE - extensionMillis ? Long.MAX_VALUE : now + extensionMillis;
+                Set<String> renewed = new LinkedHashSet<>();
+                for (Map.Entry<String, String> authority : authorities.entrySet()) {
+                    AsyncInvocationEntity entity = repository.findById(authority.getKey()).orElse(null);
+                    if (entity != null && runningStatus.equals(entity.getStatus())
+                            && authority.getValue().equals(entity.getLeaseToken()) && entity.getLeaseUntil() != null
+                            && entity.getLeaseUntil() >= now) {
+                        entity.setLeaseUntil(leaseUntil);
+                        entity.setUpdatedAt(now);
+                        repository.save(entity);
+                        renewed.add(authority.getKey());
+                    }
+                }
+                return Set.copyOf(renewed);
+            }
+        };
     }
 
     private static AsyncInvocationRepository repository() {
         AsyncInvocationRepository repository = mock(AsyncInvocationRepository.class);
         Map<String, AsyncInvocationEntity> store = new ConcurrentHashMap<>();
-        when(repository.currentTimeMillis()).thenAnswer(inv -> System.currentTimeMillis());
         when(repository.findById(any(String.class))).thenAnswer(inv -> {
             String invocationId = inv.getArgument(0);
             AsyncInvocationEntity entity = store.get(invocationId);
@@ -258,22 +380,6 @@ class AsyncInvocationServiceTest {
                 entity.setUpdatedAt(now);
                 entity.setLeaseToken(leaseToken);
                 entity.setLeaseUntil(leaseUntil);
-                return 1;
-            });
-        when(repository.extendLease(any(String.class), any(String.class), any(String.class), anyLong(), anyLong()))
-            .thenAnswer(inv -> {
-                String invocationId = inv.getArgument(0);
-                String running = inv.getArgument(1);
-                String leaseToken = inv.getArgument(2);
-                Long leaseUntil = inv.getArgument(3);
-                Long now = inv.getArgument(4);
-                AsyncInvocationEntity entity = store.get(invocationId);
-                if (entity == null || !running.equals(entity.getStatus()) || !leaseToken.equals(entity.getLeaseToken())
-                        || entity.getLeaseUntil() == null || entity.getLeaseUntil() < now) {
-                    return 0;
-                }
-                entity.setLeaseUntil(leaseUntil);
-                entity.setUpdatedAt(now);
                 return 1;
             });
         when(repository.pinOwnedRouting(any(String.class), any(String.class), any(String.class), any(String.class),
@@ -563,11 +669,10 @@ class AsyncInvocationServiceTest {
                 mock(CompileFlowWorkbenchServerProperties.AsyncInvocation.class);
         when(properties.getAsyncInvocation()).thenReturn(asyncInvocation);
         when(asyncInvocation.getConcurrency()).thenReturn(0);
-        when(asyncInvocation.getQueueCapacity()).thenReturn(1);
 
-        assertThatThrownBy(() -> new AsyncInvocationService(repository(), mock(AsyncInvocationStateMachine.class),
-                mock(PublishedProcessExecutionService.class), readyRuntimeInstaller(), properties,
-                new LifecycleProperties(), new ObjectMapper()))
+        assertThatThrownBy(() -> new AsyncInvocationService(repository(), mock(AsyncInvocationStore.class),
+                mock(PublishedProcessExecutionService.class), readyVersionRuntimeManager(), properties,
+                new LifecycleProperties()))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessage("concurrency must be greater than 0");
     }
@@ -607,16 +712,16 @@ class AsyncInvocationServiceTest {
         PublishedProcessExecutionService executionService = mock(PublishedProcessExecutionService.class);
         when(executionService.execute(pinFor("payment.materialize"), anyMap(), any(ProcessExecutionOptions.class)))
             .thenReturn(response(true, "trace-materialized", "v1"));
-        RuntimeInstaller installer = mock(RuntimeInstaller.class);
-        RuntimeInstallationLease installation = mock(RuntimeInstallationLease.class);
-        when(installer.acquireInstallation(any(ProcessRef.Version.class)))
+        VersionRuntimeManager manager = mock(VersionRuntimeManager.class);
+        VersionRuntimeLease installation = mock(VersionRuntimeLease.class);
+        when(manager.acquireInstallation(any(ProcessRef.Version.class)))
             .thenReturn(CompletableFuture.completedFuture(installation));
-        AsyncInvocationService service = service(repository, executionService, installer);
+        AsyncInvocationService service = service(repository, executionService, manager);
 
         service.submit("payment.materialize", request("inv-materialized", 1, 0L));
 
         ArgumentCaptor<ProcessRef.Version> version = ArgumentCaptor.forClass(ProcessRef.Version.class);
-        verify(installer).acquireInstallation(version.capture());
+        verify(manager).acquireInstallation(version.capture());
         assertThat(version.getValue()).isEqualTo(ProcessRef.version("default", "payment.materialize", "v1"));
         verify(installation).close();
         assertThat(service.get("inv-materialized").orElseThrow().status()).isEqualTo(AsyncInvocationStatus.SUCCEEDED);
@@ -626,19 +731,19 @@ class AsyncInvocationServiceTest {
     void exactVersionExecutionReusesTheWorkerInstallationLease() {
         AsyncInvocationRepository repository = repository();
         PublishedProcessExecutionService executionService = mock(PublishedProcessExecutionService.class);
-        RuntimeInstaller installer = mock(RuntimeInstaller.class);
-        RuntimeInstallationLease installation = mock(RuntimeInstallationLease.class);
+        VersionRuntimeManager manager = mock(VersionRuntimeManager.class);
+        VersionRuntimeLease installation = mock(VersionRuntimeLease.class);
         ProcessRef.Version ref = ProcessRef.version("default", "payment.exact", "v1");
-        when(installer.acquireInstallation(ref)).thenReturn(CompletableFuture.completedFuture(installation));
+        when(manager.acquireInstallation(ref)).thenReturn(CompletableFuture.completedFuture(installation));
         when(executionService.executeInstalled(eq(ref), eq(installation), anyMap(), any(ProcessExecutionOptions.class)))
             .thenReturn(response(true, "trace-exact", "v1"));
-        AsyncInvocationService service = service(repository, executionService, installer);
+        AsyncInvocationService service = service(repository, executionService, manager);
         AsyncInvocationSubmitRequest request = new AsyncInvocationSubmitRequest("inv-exact", Map.of("amount", 100),
                 new ExecutionRoutingRequest("v1", null, null, Map.of()), 1, 0L);
 
         service.submit("payment.exact", request);
 
-        verify(installer, times(1)).acquireInstallation(ref);
+        verify(manager, times(1)).acquireInstallation(ref);
         verify(executionService).executeInstalled(eq(ref), eq(installation), anyMap(),
                 any(ProcessExecutionOptions.class));
         verify(executionService, never()).execute(any(ProcessRef.class), anyMap(), any(ProcessExecutionOptions.class));
@@ -650,11 +755,11 @@ class AsyncInvocationServiceTest {
     void runtimeLoadFailureIsRetryableAndDoesNotPersistInfrastructureDetails() {
         AsyncInvocationRepository repository = repository();
         PublishedProcessExecutionService executionService = mock(PublishedProcessExecutionService.class);
-        RuntimeInstaller installer = mock(RuntimeInstaller.class);
-        when(installer.acquireInstallation(any(ProcessRef.Version.class)))
+        VersionRuntimeManager manager = mock(VersionRuntimeManager.class);
+        when(manager.acquireInstallation(any(ProcessRef.Version.class)))
             .thenReturn(CompletableFuture.failedFuture(
                     new IllegalStateException("artifact credential must stay private")));
-        AsyncInvocationService service = service(repository, executionService, installer);
+        AsyncInvocationService service = service(repository, executionService, manager);
 
         service.submit("payment.unavailable", request("inv-unavailable", 1, 0L));
 
@@ -666,15 +771,37 @@ class AsyncInvocationServiceTest {
     }
 
     @Test
+    void runtimeLoadClassificationDoesNotTraverseTheProviderCauseGraph() {
+        AsyncInvocationRepository repository = repository();
+        PublishedProcessExecutionService executionService = mock(PublishedProcessExecutionService.class);
+        VersionRuntimeManager manager = mock(VersionRuntimeManager.class);
+        IllegalStateException failure = mock(IllegalStateException.class);
+        when(failure.getCause()).thenThrow(new AssertionError("Provider cause graph must not be traversed"));
+        when(manager.acquireInstallation(any(ProcessRef.Version.class))).thenReturn(CompletableFuture.failedFuture(
+                failure));
+        AsyncInvocationService service = service(repository, executionService, manager);
+
+        service.submit("payment.unavailable", request("inv-unavailable", 1, 0L));
+
+        assertThat(service.get("inv-unavailable").orElseThrow().error())
+            .isEqualTo("Async invocation runtime could not be loaded");
+        assertThat(service.worker().dispatchedCount()).isZero();
+        verify(failure, never()).getCause();
+    }
+
+    @Test
     void lostDatabaseLeaseAfterRuntimeLoadingPreventsProcessStart() {
         AsyncInvocationRepository repository = repository();
-        when(repository.extendLease(anyString(), anyString(), anyString(), anyLong(), anyLong())).thenReturn(0);
         PublishedProcessExecutionService executionService = mock(PublishedProcessExecutionService.class);
-        RuntimeInstaller installer = mock(RuntimeInstaller.class);
-        RuntimeInstallationLease installation = mock(RuntimeInstallationLease.class);
-        when(installer.acquireInstallation(any(ProcessRef.Version.class)))
-            .thenReturn(CompletableFuture.completedFuture(installation));
-        AsyncInvocationService service = service(repository, executionService, installer);
+        VersionRuntimeManager manager = mock(VersionRuntimeManager.class);
+        VersionRuntimeLease installation = mock(VersionRuntimeLease.class);
+        when(manager.acquireInstallation(any(ProcessRef.Version.class))).thenAnswer(invocation -> {
+            AsyncInvocationEntity entity = repository.findById("inv-fenced").orElseThrow();
+            entity.setLeaseToken("another-owner");
+            repository.save(entity);
+            return CompletableFuture.completedFuture(installation);
+        });
+        AsyncInvocationService service = service(repository, executionService, manager);
 
         service.submit("payment.fenced", request("inv-fenced", 2, 0L));
 
@@ -682,6 +809,77 @@ class AsyncInvocationServiceTest {
         verify(executionService, never())
             .execute(any(PublishedProcessExecutionService.AliasPin.class), anyMap(), any(ProcessExecutionOptions.class));
         verify(installation).close();
+    }
+
+    @Test
+    void interruptedRuntimeLoadingCancelsDemandAndReleasesWorkerCapacity() throws Exception {
+        AsyncInvocationRepository repository = repository();
+        PublishedProcessExecutionService executionService = mock(PublishedProcessExecutionService.class);
+        VersionRuntimeManager manager = mock(VersionRuntimeManager.class);
+        CompletableFuture<VersionRuntimeLease> loading = new CompletableFuture<>();
+        VersionRuntimeLease installation = mock(VersionRuntimeLease.class);
+        CountDownLatch loadingStarted = new CountDownLatch(1);
+        when(manager.acquireInstallation(any(ProcessRef.Version.class))).thenAnswer(invocation -> {
+            loadingStarted.countDown();
+            return loading;
+        });
+        AsyncInvocationService service = service(repository, executionService, manager);
+        java.util.concurrent.atomic.AtomicBoolean interruptedOnReturn = new java.util.concurrent.atomic.AtomicBoolean();
+        Thread task = new Thread(() -> {
+            service.submit("payment.loading", request("inv-interrupted-loading", 1, 0L));
+            interruptedOnReturn.set(Thread.currentThread().isInterrupted());
+        }, "async-interrupted-loading-test");
+        task.setDaemon(true);
+        task.start();
+        try {
+            assertThat(loadingStarted.await(5, TimeUnit.SECONDS)).isTrue();
+            task.interrupt();
+            task.join(1_000L);
+
+            assertThat(task.isAlive()).isFalse();
+            assertThat(loading.isCancelled()).isTrue();
+            assertThat(interruptedOnReturn).isTrue();
+            assertThat(service.worker().dispatchedCount()).isZero();
+            assertThat(service.worker().localRunningCount()).isZero();
+            verify(executionService, never())
+                .execute(any(PublishedProcessExecutionService.AliasPin.class), anyMap(),
+                        any(ProcessExecutionOptions.class));
+        } finally {
+            loading.complete(installation);
+            task.join(5_000L);
+            service.worker().destroy();
+        }
+    }
+
+    @Test
+    void interruptedRuntimeLoadingReleasesLeaseWhenCompletionWinsCancellation() throws Exception {
+        AsyncInvocationRepository repository = repository();
+        PublishedProcessExecutionService executionService = mock(PublishedProcessExecutionService.class);
+        VersionRuntimeManager manager = mock(VersionRuntimeManager.class);
+        VersionRuntimeLease installation = mock(VersionRuntimeLease.class);
+        CompletableFuture<VersionRuntimeLease> loading = new CompletableFuture<>() {
+            @Override
+            public VersionRuntimeLease get() throws InterruptedException {
+                complete(installation);
+                throw new InterruptedException("completion won cancellation");
+            }
+        };
+        when(manager.acquireInstallation(any(ProcessRef.Version.class))).thenReturn(loading);
+        AsyncInvocationService service = service(repository, executionService, manager);
+        Thread task = new Thread(() -> service.submit("payment.loading", request("inv-loading-race", 1, 0L)),
+                "async-loading-cancellation-race-test");
+        task.setDaemon(true);
+        task.start();
+        task.join(5_000L);
+
+        assertThat(task.isAlive()).isFalse();
+        assertThat(loading.isCancelled()).isFalse();
+        verify(installation).close();
+        assertThat(service.worker().dispatchedCount()).isZero();
+        assertThat(service.worker().localRunningCount()).isZero();
+        verify(executionService, never())
+            .execute(any(PublishedProcessExecutionService.AliasPin.class), anyMap(), any(ProcessExecutionOptions.class));
+        service.worker().destroy();
     }
 
     @Test
@@ -877,6 +1075,40 @@ class AsyncInvocationServiceTest {
     }
 
     @Test
+    void submitRejectsUnreadableParamsBeforePersistenceOrAliasAdmission() {
+        AsyncInvocationRepository repository = repository();
+        PublishedProcessExecutionService executionService = mock(PublishedProcessExecutionService.class);
+        AsyncInvocationService service = serviceWithoutDispatch(repository, executionService);
+        AsyncInvocationSubmitRequest request = new AsyncInvocationSubmitRequest("inv-unreadable",
+                Map.of("x".repeat(513), true), aliasRouting("production", null), 1, 0L);
+
+        assertThatThrownBy(() -> service.submit("payment.invalid", request))
+            .isInstanceOf(InvalidAsyncInvocationRequestException.class);
+        verifyNoInteractions(executionService);
+        verify(repository, never()).save(any(AsyncInvocationEntity.class));
+    }
+
+    @Test
+    void invalidPinnedRevisionIsDeadLetteredWithoutCallingEngine() {
+        AsyncInvocationRepository repository = repository();
+        PublishedProcessExecutionService executionService = mock(PublishedProcessExecutionService.class);
+        AsyncInvocationEntity queued = queued("inv-invalid-revision", "payment.invalid");
+        queued.setRoutingJson(
+                "{\"namespace\":\"default\",\"alias\":\"production\","
+                + "\"effectiveVersion\":\"v1\",\"routeRevision\":1.5,\"target\":\"CANDIDATE\"}");
+        repository.save(queued);
+        AsyncInvocationService service = service(repository, executionService);
+
+        service.worker().dispatchQueuedInvocations();
+
+        AsyncInvocationResponse result = service.get("inv-invalid-revision").orElseThrow();
+        assertThat(result.status()).isEqualTo(AsyncInvocationStatus.DEAD_LETTER);
+        assertThat(result.errorCode()).isEqualTo("INVALID_ASYNC_INVOCATION_PAYLOAD");
+        verify(executionService, never())
+            .execute(any(PublishedProcessExecutionService.AliasPin.class), anyMap(), any(ProcessExecutionOptions.class));
+    }
+
+    @Test
     void submitCanonicalizesOmittedNamespaceBeforePersistence() {
         AsyncInvocationRepository repository = repository();
         AsyncInvocationService service =
@@ -1056,7 +1288,6 @@ class AsyncInvocationServiceTest {
     @Test
     void dispatchAndRecoveryUseDeterministicDatabaseOrdering() {
         AsyncInvocationRepository repository = mock(AsyncInvocationRepository.class);
-        when(repository.currentTimeMillis()).thenReturn(100L);
         when(repository.findByStatusAndAvailableAtLessThanEqual(any(String.class), anyLong(), any(PageRequest.class)))
             .thenReturn(new PageImpl<AsyncInvocationEntity>(List.of()));
         when(repository.findByStatusAndLeaseUntilLessThan(any(String.class), anyLong(), any(PageRequest.class)))
@@ -1069,10 +1300,10 @@ class AsyncInvocationServiceTest {
         ArgumentCaptor<PageRequest> dispatchPage = ArgumentCaptor.forClass(PageRequest.class);
         ArgumentCaptor<PageRequest> recoveryPage = ArgumentCaptor.forClass(PageRequest.class);
         verify(repository)
-            .findByStatusAndAvailableAtLessThanEqual(eq(AsyncInvocationService.STATUS_QUEUED), eq(100L),
+            .findByStatusAndAvailableAtLessThanEqual(eq(AsyncInvocationService.STATUS_QUEUED), anyLong(),
                     dispatchPage.capture());
         verify(repository)
-            .findByStatusAndLeaseUntilLessThan(eq(AsyncInvocationService.STATUS_RUNNING), eq(100L),
+            .findByStatusAndLeaseUntilLessThan(eq(AsyncInvocationService.STATUS_RUNNING), anyLong(),
                     recoveryPage.capture());
         assertThat(dispatchPage.getValue().getSort())
             .containsExactly(Sort.Order.asc("availableAt"), Sort.Order.asc("createdAt"), Sort.Order.asc("invocationId"));
@@ -1219,11 +1450,10 @@ class AsyncInvocationServiceTest {
         AsyncInvocationService service = service(repository, mock(PublishedProcessExecutionService.class));
 
         service.worker().dispatchQueuedInvocations();
+        clearInvocations(repository);
         service.worker().renewLocalRunningLeases();
 
-        verify(repository, never())
-            .extendLease(eq("inv-load-failure"), eq(AsyncInvocationService.STATUS_RUNNING), any(String.class), anyLong(),
-                    anyLong());
+        verifyNoInteractions(repository);
     }
 
     @Test
@@ -1280,8 +1510,6 @@ class AsyncInvocationServiceTest {
                 mock(CompileFlowWorkbenchServerProperties.AsyncInvocation.class);
         when(properties.getAsyncInvocation()).thenReturn(asyncInvocation);
         when(asyncInvocation.getConcurrency()).thenReturn(1);
-        when(asyncInvocation.getQueueCapacity()).thenReturn(1);
-        when(asyncInvocation.getDispatchBatchSize()).thenReturn(1);
         when(asyncInvocation.getLeaseDuration()).thenReturn(Duration.ofMillis(500));
         LifecycleProperties lifecycleProperties = new LifecycleProperties();
         lifecycleProperties.setTimeoutPerShutdownPhase(Duration.ofSeconds(5));
@@ -1296,8 +1524,8 @@ class AsyncInvocationServiceTest {
                 assertThat(releaseExecution.await(5, TimeUnit.SECONDS)).isTrue();
                 return response(true, "trace-drain", "v1");
             });
-        AsyncInvocationService service = new AsyncInvocationService(repository, stateMachine(repository),
-                executionService, readyRuntimeInstaller(), properties, lifecycleProperties, new ObjectMapper());
+        AsyncInvocationService service = new AsyncInvocationService(repository, invocationStore(repository),
+                executionService, readyVersionRuntimeManager(), properties, lifecycleProperties);
         repository.save(queued("inv-drain-stop", "payment.drain"));
         org.springframework.context.ApplicationContext context =
                 mock(org.springframework.context.ApplicationContext.class);
@@ -1335,19 +1563,69 @@ class AsyncInvocationServiceTest {
     }
 
     @Test
+    void interruptedStopWaitsForForcedTaskTerminationAndRestoresInterruptStatus() throws Exception {
+        CompileFlowWorkbenchServerProperties properties = mock(CompileFlowWorkbenchServerProperties.class);
+        CompileFlowWorkbenchServerProperties.AsyncInvocation asyncInvocation =
+                mock(CompileFlowWorkbenchServerProperties.AsyncInvocation.class);
+        when(properties.getAsyncInvocation()).thenReturn(asyncInvocation);
+        when(asyncInvocation.getConcurrency()).thenReturn(1);
+        when(asyncInvocation.getLeaseDuration()).thenReturn(TEST_LEASE_DURATION);
+        LifecycleProperties lifecycleProperties = new LifecycleProperties();
+        lifecycleProperties.setTimeoutPerShutdownPhase(Duration.ofSeconds(1));
+        AsyncInvocationRepository repository = repository();
+        PublishedProcessExecutionService executionService = mock(PublishedProcessExecutionService.class);
+        stubAliasResolution(executionService);
+        CountDownLatch executionStarted = new CountDownLatch(1);
+        CountDownLatch taskInterrupted = new CountDownLatch(1);
+        CountDownLatch taskCompleted = new CountDownLatch(1);
+        when(executionService.execute(pinFor("payment.interrupted-stop"), anyMap(), any(ProcessExecutionOptions.class)))
+            .thenAnswer(invocation -> {
+                executionStarted.countDown();
+                try {
+                    new CountDownLatch(1).await();
+                } catch (InterruptedException stop) {
+                    taskInterrupted.countDown();
+                    Thread.interrupted();
+                    Thread.sleep(100L);
+                } finally {
+                    taskCompleted.countDown();
+                }
+                return response(true, "trace-interrupted-stop", "v1");
+            });
+        AsyncInvocationService service = new AsyncInvocationService(repository, invocationStore(repository),
+                executionService, readyVersionRuntimeManager(), properties, lifecycleProperties);
+        repository.save(queued("inv-interrupted-stop", "payment.interrupted-stop"));
+        service.worker().start();
+        assertThat(executionStarted.await(5L, TimeUnit.SECONDS)).isTrue();
+
+        java.util.concurrent.atomic.AtomicBoolean closeReturnedInterrupted =
+                new java.util.concurrent.atomic.AtomicBoolean();
+        Thread stopThread = new Thread(() -> {
+            Thread.currentThread().interrupt();
+            service.worker().stop();
+            closeReturnedInterrupted.set(Thread.currentThread().isInterrupted());
+        }, "async-worker-interrupted-stop-test");
+        stopThread.start();
+
+        assertThat(taskInterrupted.await(1L, TimeUnit.SECONDS)).isTrue();
+        stopThread.join(2_000L);
+        assertThat(stopThread.isAlive()).isFalse();
+        assertThat(taskCompleted.getCount()).isZero();
+        assertThat(closeReturnedInterrupted).isTrue();
+    }
+
+    @Test
     void ownedWorkerRecreatesItsExecutorAcrossLifecycleRestart() {
         CompileFlowWorkbenchServerProperties properties = mock(CompileFlowWorkbenchServerProperties.class);
         CompileFlowWorkbenchServerProperties.AsyncInvocation asyncInvocation =
                 mock(CompileFlowWorkbenchServerProperties.AsyncInvocation.class);
         when(properties.getAsyncInvocation()).thenReturn(asyncInvocation);
         when(asyncInvocation.getConcurrency()).thenReturn(1);
-        when(asyncInvocation.getQueueCapacity()).thenReturn(1);
-        when(asyncInvocation.getDispatchBatchSize()).thenReturn(1);
         when(asyncInvocation.getLeaseDuration()).thenReturn(TEST_LEASE_DURATION);
         AsyncInvocationRepository repository = repository();
-        AsyncInvocationService service = new AsyncInvocationService(repository, stateMachine(repository),
-                mock(PublishedProcessExecutionService.class), readyRuntimeInstaller(), properties,
-                new LifecycleProperties(), new ObjectMapper());
+        AsyncInvocationService service = new AsyncInvocationService(repository, invocationStore(repository),
+                mock(PublishedProcessExecutionService.class), readyVersionRuntimeManager(), properties,
+                new LifecycleProperties());
 
         service.worker().start();
         service.worker().stop();
@@ -1361,14 +1639,12 @@ class AsyncInvocationServiceTest {
     }
 
     @Test
-    void forcedStopReleasesQueuedDispatchForLifecycleRestart() throws Exception {
+    void saturatedWorkerLeavesBacklogInDatabaseForLifecycleRestart() throws Exception {
         CompileFlowWorkbenchServerProperties properties = mock(CompileFlowWorkbenchServerProperties.class);
         CompileFlowWorkbenchServerProperties.AsyncInvocation asyncInvocation =
                 mock(CompileFlowWorkbenchServerProperties.AsyncInvocation.class);
         when(properties.getAsyncInvocation()).thenReturn(asyncInvocation);
         when(asyncInvocation.getConcurrency()).thenReturn(1);
-        when(asyncInvocation.getQueueCapacity()).thenReturn(1);
-        when(asyncInvocation.getDispatchBatchSize()).thenReturn(2);
         when(asyncInvocation.getLeaseDuration()).thenReturn(TEST_LEASE_DURATION);
         LifecycleProperties lifecycleProperties = new LifecycleProperties();
         lifecycleProperties.setTimeoutPerShutdownPhase(Duration.ofMillis(50));
@@ -1392,16 +1668,17 @@ class AsyncInvocationServiceTest {
                 }
                 return response(true, "trace-second", "v1");
             });
-        AsyncInvocationService service = new AsyncInvocationService(repository, stateMachine(repository),
-                executionService, readyRuntimeInstaller(), properties, lifecycleProperties, new ObjectMapper());
+        AsyncInvocationService service = new AsyncInvocationService(repository, invocationStore(repository),
+                executionService, readyVersionRuntimeManager(), properties, lifecycleProperties);
         service.worker().start();
         try {
             repository.save(queued("inv-first", "payment.first"));
             repository.save(queued("inv-second", "payment.second"));
             service.worker().dispatch("inv-first");
             assertThat(firstStarted.await(5, TimeUnit.SECONDS)).isTrue();
-            service.worker().dispatch("inv-second");
-            assertThat(service.worker().dispatchedCount()).isEqualTo(2);
+            assertThat(service.worker().dispatch("inv-second")).isFalse();
+            assertThat(service.worker().dispatchedCount()).isEqualTo(1);
+            assertThat(service.get("inv-second").orElseThrow().status()).isEqualTo(AsyncInvocationStatus.QUEUED);
 
             service.worker().stop();
 
@@ -1409,6 +1686,7 @@ class AsyncInvocationServiceTest {
             long completionDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
             while (service.get("inv-second").orElseThrow().status() != AsyncInvocationStatus.SUCCEEDED
                     && System.nanoTime() < completionDeadline) {
+                service.worker().dispatchQueuedInvocations();
                 TimeUnit.MILLISECONDS.sleep(10);
             }
             assertThat(service.get("inv-second").orElseThrow().status()).isEqualTo(AsyncInvocationStatus.SUCCEEDED);

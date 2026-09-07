@@ -26,8 +26,7 @@ import com.alibaba.compileflow.engine.ProcessToolingService;
 import com.alibaba.compileflow.engine.core.routing.LocalRoutingState;
 import com.alibaba.compileflow.deploy.api.ProcessDeploymentService;
 import com.alibaba.compileflow.deploy.api.command.PublishProcessVersionCommand;
-import com.alibaba.compileflow.deploy.runtime.install.ProcessArtifactRuntimeLoader;
-import com.alibaba.compileflow.engine.spring.boot.autoconfigure.ProcessEngineRegistry;
+import com.alibaba.compileflow.deploy.runtime.version.ProcessArtifactRuntimeLoader;
 import com.alibaba.compileflow.workbench.server.process.CreateProcessRequest;
 import com.alibaba.compileflow.workbench.server.execution.ProcessExecutionResponse;
 import com.alibaba.compileflow.workbench.server.process.UpdateProcessRequest;
@@ -54,8 +53,6 @@ class EmbeddedDeploymentExecutionIntegrationTest {
     private ProcessDeploymentService processDeploymentService;
     @Autowired
     private ProcessEngine processEngine;
-    @Autowired
-    private ProcessEngineRegistry processEngineRegistry;
     @Autowired
     private ProcessRuntimeManager processRuntimeManager;
     @Autowired
@@ -89,20 +86,15 @@ class EmbeddedDeploymentExecutionIntegrationTest {
     }
 
     @Test
-    void composesOnePrimaryEngineAndOneFormatBoundEnginePerSupportedModel() {
-        assertThat(processEngineRegistry.getEngines().keySet())
-            .containsExactlyInAnyOrder(ProcessModelType.BPMN, ProcessModelType.TBBPM);
-        assertThat(processEngine).isSameAs(processEngineRegistry.get(ProcessModelType.TBBPM));
+    void composesOneEngineWithSharedRuntimeAndTooling() {
         assertThat(processRuntimeManager).isSameAs(processEngine.runtime());
         assertThat(processToolingService).isSameAs(processEngine.tooling());
         assertThat(processDataMapper).isNotNull();
         assertThat(processRuntimeLoader).isNotNull();
         assertThat(applicationContext.getBeansOfType(ProcessEngine.class)).containsOnlyKeys("processEngine");
-        assertThat(applicationContext.getBeansOfType(ProcessEngineRegistry.class)).containsOnlyKeys(
-                "processEngineRegistry");
         assertThat(applicationContext.getBeansOfType(ProcessDataMapper.class)).containsOnlyKeys("processDataMapper");
         assertThat(applicationContext.getBeansOfType(ProcessArtifactRuntimeLoader.class))
-            .containsOnlyKeys("processRuntimeLoader");
+            .containsOnlyKeys("embeddedProcessRuntimeLoader");
         assertThat(applicationContext.getBeansOfType(ProcessRuntimeManager.class)).containsOnlyKeys("processEngine");
         assertThat(applicationContext.getBeansOfType(ProcessToolingService.class)).containsOnlyKeys("processEngine");
     }
@@ -157,7 +149,8 @@ class EmbeddedDeploymentExecutionIntegrationTest {
 
     private void publish(String code, String version, String xml) {
         processDeploymentService.publish(
-                new PublishProcessVersionCommand(ProcessRef.version("default", code, version), ProcessModelType.TBBPM,
-                        ProcessDefinition.inline(code, xml), "integration-test", Collections.emptyMap()));
+                new PublishProcessVersionCommand(ProcessRef.version("default", code, version),
+                        ProcessDefinition.inline(ProcessModelType.TBBPM, code, xml), "integration-test",
+                        Collections.emptyMap()));
     }
 }

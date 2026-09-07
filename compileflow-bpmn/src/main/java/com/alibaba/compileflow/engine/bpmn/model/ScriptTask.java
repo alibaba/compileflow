@@ -28,7 +28,7 @@ import java.util.Objects;
  *
  * @author yusu
  */
-public class ScriptTask extends Task implements MappingModel {
+public class ScriptTask extends Activity implements MappingModel {
     private final List<InputMapping> inputMappings = new ArrayList<>();
     private final List<OutputMapping> outputMappings = new ArrayList<>();
     private String script;
@@ -36,9 +36,6 @@ public class ScriptTask extends Task implements MappingModel {
     private ActionExecution execution = ActionExecution.REPLAYABLE;
     private InvocationPolicy invocationPolicy;
     private EffectPolicy effectPolicy;
-
-    public ScriptTask() {
-    }
 
     public String getScript() {
         return script;

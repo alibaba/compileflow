@@ -65,7 +65,7 @@ class DeployDurableAdaptersTest {
             .find(VERSION)
             .orElseThrow();
 
-        assertThat(mapped.modelType()).isEqualTo(ProcessModelType.TBBPM);
+        assertThat(mapped.definition().modelType()).isEqualTo(ProcessModelType.TBBPM);
         assertThat(mapped.definition().code()).isEqualTo(VERSION.code());
         assertThat(mapped.definition().content()).isEqualTo(DEFINITION);
     }
@@ -77,7 +77,7 @@ class DeployDurableAdaptersTest {
                 new DeployDurableVersionDefinitionSourceAdapter(version -> Optional.of(bpmn))
             .find(VERSION)
             .orElseThrow();
-        assertThat(mapped.modelType()).isEqualTo(ProcessModelType.BPMN);
+        assertThat(mapped.definition().modelType()).isEqualTo(ProcessModelType.BPMN);
 
         ProcessArtifact corrupted = artifact(ProcessModelType.TBBPM, "0".repeat(64));
         assertThatThrownBy(() -> new DeployDurableVersionDefinitionSourceAdapter(version -> Optional.of(corrupted))
@@ -114,10 +114,10 @@ class DeployDurableAdaptersTest {
     }
 
     private static ProcessArtifact artifact(ProcessRef.Version version, ProcessModelType modelType, String digest) {
-        return new ProcessArtifact(version, modelType, ProcessDefinition.inline(version.code(), DEFINITION), digest);
+        return new ProcessArtifact(version, ProcessDefinition.inline(modelType, version.code(), DEFINITION), digest);
     }
 
     private static String digest(ProcessModelType modelType, ProcessRef.Version version) {
-        return ProcessArtifactDigest.compute(modelType, ProcessDefinition.inline(version.code(), DEFINITION), Map.of());
+        return ProcessArtifactDigest.compute(ProcessDefinition.inline(modelType, version.code(), DEFINITION), Map.of());
     }
 }

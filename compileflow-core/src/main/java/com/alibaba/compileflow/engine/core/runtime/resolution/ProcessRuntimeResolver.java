@@ -16,7 +16,6 @@ package com.alibaba.compileflow.engine.core.runtime.resolution;
 import com.alibaba.compileflow.engine.CompileFlowException;
 import com.alibaba.compileflow.engine.ErrorCode;
 import com.alibaba.compileflow.engine.ProcessRef;
-import com.alibaba.compileflow.engine.core.runtime.ProcessRuntime;
 import com.alibaba.compileflow.engine.core.runtime.ProcessRuntimeEntry;
 import com.alibaba.compileflow.engine.core.runtime.ProcessRuntimeRequest;
 import com.alibaba.compileflow.engine.core.runtime.cache.ProcessRuntimeCache;
@@ -69,10 +68,6 @@ public final class ProcessRuntimeResolver {
     private static CompileFlowException versionNotInstalled(ProcessRuntimeRequest request, String version) {
         return new CompileFlowException(ErrorCode.CF_EXEC_012,
                 "Version " + version + " is not installed on this node: ns=" + request.getNamespace() + " code=" + request.getCode());
-    }
-
-    public ProcessRuntime resolveRuntime(ClassLoader classLoader, ProcessRuntimeRequest request) {
-        return resolve(classLoader, request).entry().getRuntime();
     }
 
     /**

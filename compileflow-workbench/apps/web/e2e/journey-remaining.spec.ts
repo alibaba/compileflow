@@ -1,6 +1,4 @@
 import fs from 'node:fs'
-import os from 'node:os'
-import path from 'node:path'
 
 import { expect, type Page, test } from '@playwright/test'
 
@@ -164,28 +162,27 @@ test.describe('Remaining details — Settings / mobile / designer tools', () => 
     await expect(shortcutsDialog).toBeHidden({ timeout: TIMEOUT })
 
     await page.getByRole('button', { name: /帮助文档|Help/i }).click()
-    const helpDialog = page.getByRole('dialog', { name: /帮助文档|Help/i })
+    const helpDialog = page.getByRole('dialog', { name: /^帮助$|Help/i })
     await expect(helpDialog).toBeVisible({ timeout: TIMEOUT })
     await shot(page, '85-designer-help')
     await page.keyboard.press('Escape')
     await expect(helpDialog).toBeHidden({ timeout: TIMEOUT })
 
     await page.getByRole('button', { name: /变量管理|Variable/i }).click()
-    const variablesDialog = page.getByRole('dialog', { name: /变量管理|Variable/i })
+    const variablesDialog = page.getByRole('dialog', { name: /流程变量|Process variables/i })
     await expect(variablesDialog).toBeVisible({ timeout: TIMEOUT })
     await shot(page, '86-designer-variables')
     await page.keyboard.press('Escape')
     await expect(variablesDialog).toBeHidden({ timeout: TIMEOUT })
 
-    const history = page.getByRole('button', { name: /版本历史|Version history/i })
-    if (await history.count()) {
-      await history.click()
-      const historyDialog = page.getByRole('dialog', { name: /版本历史|Version history/i })
-      await expect(historyDialog).toBeVisible({ timeout: TIMEOUT })
-      await shot(page, '87-designer-history')
-      await page.keyboard.press('Escape')
-      await expect(historyDialog).toBeHidden({ timeout: TIMEOUT })
-    }
+    const snapshots = page.getByRole('button', { name: /本地快照|Local snapshots/i })
+    await expect(snapshots).toBeVisible({ timeout: TIMEOUT })
+    await snapshots.click()
+    const snapshotsDialog = page.getByRole('dialog', { name: /本地快照|Local snapshots/i })
+    await expect(snapshotsDialog).toBeVisible({ timeout: TIMEOUT })
+    await shot(page, '87-designer-snapshots')
+    await page.keyboard.press('Escape')
+    await expect(snapshotsDialog).toBeHidden({ timeout: TIMEOUT })
 
     await page.getByRole('button', { name: /搜索节点|Search nodes/i }).click()
     const searchDialog = page.getByRole('dialog', { name: /搜索节点|Search nodes/i })
@@ -239,7 +236,7 @@ test.describe('Remaining details — Operate filters / import / list actions', (
     await page.goto('/operate/processes')
     await expect(page.locator('.ant-table').first()).toBeVisible({ timeout: TIMEOUT })
 
-    const importPath = path.join(os.tmpdir(), `journey-import-${Date.now()}.bpmn`)
+    const importPath = test.info().outputPath(`journey-import-${Date.now()}.bpmn`)
     fs.writeFileSync(importPath, MINIMAL_BPMN, 'utf8')
     const fileInput = page.locator('input[type="file"]')
     await expect(fileInput).toBeAttached()

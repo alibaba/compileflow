@@ -361,19 +361,17 @@ const ValidationResultPanel = React.memo(function ValidationResultPanel({
   }, [flowDefinition])
 
   useEffect(() => {
-    if (autoValidate && flowDefinition) {
-      runValidation()
-    }
-  }, [autoValidate, flowDefinition, runValidation])
+    setValidationResult(null)
+    setActiveKeys([])
+    onHighlightNodes?.([])
+    onHighlightConnections?.([])
+    if (autoValidate) runValidation()
+  }, [autoValidate, flowDefinition, runValidation, onHighlightNodes, onHighlightConnections])
 
   const handleIssueClick = useCallback(
     (issue: ValidationIssue) => {
-      if (issue.nodeIds.length > 0) {
-        onHighlightNodes?.(issue.nodeIds)
-      }
-      if (issue.connectionIds?.length) {
-        onHighlightConnections?.(issue.connectionIds)
-      }
+      onHighlightNodes?.(issue.nodeIds)
+      onHighlightConnections?.(issue.connectionIds ?? [])
     },
     [onHighlightConnections, onHighlightNodes]
   )

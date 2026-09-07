@@ -29,15 +29,33 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 
 class DurableLeaseRenewerTest {
     private static final Duration TEST_LEASE = Duration.ofMillis(90);
+    private final ConcurrentLinkedQueue<Throwable> backgroundFailures = new ConcurrentLinkedQueue<>();
+
+    @AfterEach
+    void verifiesBackgroundWorkDidNotFail() {
+        assertThat(backgroundFailures).as("unexpected renewal callback failures").isEmpty();
+    }
+
+    @Test
+    void rejectsLeaseWithoutRoomForTheMinimumRenewalInterval() {
+        DurableLeaseStore store = org.mockito.Mockito.mock(DurableLeaseStore.class);
+        assertThatThrownBy(() -> new DurableLeaseRenewer(store, Duration.ofMillis(1)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("renewal before expiry");
+        org.mockito.Mockito.verifyNoInteractions(store);
+    }
 
     @Test
     void heartbeatsAllThreeKindsOfApplicationWork() throws Exception {
@@ -67,12 +85,17 @@ class DurableLeaseRenewerTest {
     void slowRunRenewalCannotStarveEffectOrOutboxRenewal() throws Exception {
         CountDownLatch runEntered = new CountDownLatch(1);
         CountDownLatch releaseRun = new CountDownLatch(1);
+        CountDownLatch runFinished = new CountDownLatch(1);
         CountDownLatch otherLanesRenewed = new CountDownLatch(2);
         DurableLeaseStore store = store((instance, method, arguments) -> switch (method.getName()) {
             case "renewRunLeases" -> {
                 runEntered.countDown();
-                if (!releaseRun.await(2, TimeUnit.SECONDS)) {
-                    throw new AssertionError("Timed out waiting to release Run renewal");
+                try {
+                    if (releaseRun.getCount() != 0 && !releaseRun.await(2, TimeUnit.SECONDS)) {
+                        throw new AssertionError("Timed out waiting to release Run renewal");
+                    }
+                } finally {
+                    runFinished.countDown();
                 }
                 yield arguments[0];
             }
@@ -88,13 +111,16 @@ class DurableLeaseRenewerTest {
                 DurableLeaseRenewer.Handle run = renewer.trackRun(runLease(1));
                 DurableLeaseRenewer.Handle effect = renewer.trackEffect(effectLease(2));
                 DurableLeaseRenewer.Handle outbox = renewer.trackOutbox(outboxLease(3))) {
-            assertThat(run).isNotNull();
-            assertThat(effect).isNotNull();
-            assertThat(outbox).isNotNull();
-            assertThat(runEntered.await(2, TimeUnit.SECONDS)).isTrue();
-            assertThat(otherLanesRenewed.await(1, TimeUnit.SECONDS)).isTrue();
-        } finally {
-            releaseRun.countDown();
+            try {
+                assertThat(run).isNotNull();
+                assertThat(effect).isNotNull();
+                assertThat(outbox).isNotNull();
+                assertThat(runEntered.await(2, TimeUnit.SECONDS)).isTrue();
+                assertThat(otherLanesRenewed.await(1, TimeUnit.SECONDS)).isTrue();
+            } finally {
+                releaseRun.countDown();
+                assertThat(runFinished.await(2, TimeUnit.SECONDS)).isTrue();
+            }
         }
     }
 
@@ -126,21 +152,22 @@ class DurableLeaseRenewerTest {
 
     @Test
     void retriesAfterTransientStoreFailure() throws Exception {
+        IllegalStateException expectedFailure = new IllegalStateException("database temporarily unavailable");
         CountDownLatch recovered = new CountDownLatch(1);
         AtomicInteger runCalls = new AtomicInteger();
         DurableRuntimeMetrics metrics = new DurableRuntimeMetrics();
         DurableLeaseStore store = store((instance, method, arguments) -> switch (method.getName()) {
-            case "renewRunLeases" -> {
-                if (runCalls.incrementAndGet() == 1) {
-                    throw new IllegalStateException("database temporarily unavailable");
-                }
-                recovered.countDown();
-                yield arguments[0];
-            }
-            case "renewEffectLeases", "renewOutboxLeases" -> arguments[0];
-            case "toString" -> "RecoveringLeaseStore";
-            default -> throw new AssertionError("Unexpected Store call: " + method.getName());
-        });
+                    case "renewRunLeases" -> {
+                        if (runCalls.incrementAndGet() == 1) {
+                            throw expectedFailure;
+                        }
+                        recovered.countDown();
+                        yield arguments[0];
+                    }
+                    case "renewEffectLeases", "renewOutboxLeases" -> arguments[0];
+                    case "toString" -> "RecoveringLeaseStore";
+                    default -> throw new AssertionError("Unexpected Store call: " + method.getName());
+                }, expectedFailure);
 
         try (DurableLeaseRenewer renewer = new DurableLeaseRenewer(store, TEST_LEASE, metrics);
                 DurableLeaseRenewer.Handle ignored = renewer.trackRun(runLease(1))) {
@@ -157,18 +184,19 @@ class DurableLeaseRenewerTest {
 
     @Test
     void persistentRenewalFaultsDegradeAndSuccessfulCycleRecovers() throws Exception {
+        IllegalStateException expectedFailure = new IllegalStateException("secret-database-location");
         AtomicBoolean failing = new AtomicBoolean(true);
         DurableLeaseStore store = store((instance, method, arguments) -> switch (method.getName()) {
-            case "renewRunLeases" -> {
-                if (failing.get()) {
-                    throw new IllegalStateException("secret-database-location");
-                }
-                yield arguments[0];
-            }
-            case "renewEffectLeases", "renewOutboxLeases" -> arguments[0];
-            case "toString" -> "HealthLeaseStore";
-            default -> throw new AssertionError("Unexpected Store call: " + method.getName());
-        });
+                    case "renewRunLeases" -> {
+                        if (failing.get()) {
+                            throw expectedFailure;
+                        }
+                        yield arguments[0];
+                    }
+                    case "renewEffectLeases", "renewOutboxLeases" -> arguments[0];
+                    case "toString" -> "HealthLeaseStore";
+                    default -> throw new AssertionError("Unexpected Store call: " + method.getName());
+                }, expectedFailure);
 
         try (DurableLeaseRenewer renewer = new DurableLeaseRenewer(store, TEST_LEASE);
                 DurableLeaseRenewer.Handle ignored = renewer.trackRun(runLease(1))) {
@@ -197,10 +225,17 @@ class DurableLeaseRenewerTest {
     void stalledRenewalCycleBecomesDegradedBeforeLeaseExpiry() throws Exception {
         CountDownLatch entered = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
+        CountDownLatch finished = new CountDownLatch(1);
         DurableLeaseStore store = store((instance, method, arguments) -> switch (method.getName()) {
             case "renewRunLeases" -> {
                 entered.countDown();
-                release.await(2, TimeUnit.SECONDS);
+                try {
+                    if (release.getCount() != 0 && !release.await(2, TimeUnit.SECONDS)) {
+                        throw new AssertionError("Timed out waiting to release stalled renewal");
+                    }
+                } finally {
+                    finished.countDown();
+                }
                 yield arguments[0];
             }
             case "renewEffectLeases", "renewOutboxLeases" -> arguments[0];
@@ -210,15 +245,18 @@ class DurableLeaseRenewerTest {
 
         try (DurableLeaseRenewer renewer = new DurableLeaseRenewer(store, TEST_LEASE);
                 DurableLeaseRenewer.Handle ignored = renewer.trackRun(runLease(1))) {
-            assertThat(ignored).isNotNull();
-            assertThat(entered.await(2, TimeUnit.SECONDS)).isTrue();
-            assertThat(awaitCondition(() -> renewer.renewalHealth().run().stale(), Duration.ofSeconds(2))).isTrue();
-            DurableLeaseRenewer.LaneHealth stalled = renewer.renewalHealth().run();
-            assertThat(stalled.degraded()).isTrue();
-            assertThat(stalled.consecutiveFaults()).isZero();
-            assertThat(stalled.currentCycleStarted()).isNotNull();
-        } finally {
-            release.countDown();
+            try {
+                assertThat(ignored).isNotNull();
+                assertThat(entered.await(2, TimeUnit.SECONDS)).isTrue();
+                assertThat(awaitCondition(() -> renewer.renewalHealth().run().stale(), Duration.ofSeconds(2))).isTrue();
+                DurableLeaseRenewer.LaneHealth stalled = renewer.renewalHealth().run();
+                assertThat(stalled.degraded()).isTrue();
+                assertThat(stalled.consecutiveFaults()).isZero();
+                assertThat(stalled.currentCycleStarted()).isNotNull();
+            } finally {
+                release.countDown();
+                assertThat(finished.await(2, TimeUnit.SECONDS)).isTrue();
+            }
         }
     }
 
@@ -269,24 +307,25 @@ class DurableLeaseRenewerTest {
 
     @Test
     void oneFailedChunkCannotStarveLaterAuthorities() throws Exception {
+        IllegalStateException expectedFailure = new IllegalStateException("one renewal chunk failed");
         int authorityCount = DurableLeaseStore.MAX_RENEWAL_BATCH_SIZE + 1;
         CountDownLatch laterChunkRenewed = new CountDownLatch(1);
         AtomicInteger calls = new AtomicInteger();
         DurableRuntimeMetrics metrics = new DurableRuntimeMetrics();
         DurableLeaseStore store = store((instance, method, arguments) -> switch (method.getName()) {
-            case "renewRunLeases" -> {
-                @SuppressWarnings("unchecked")
-                Set<DurableStore.RunLease> leases = (Set<DurableStore.RunLease>) arguments[0];
-                if (calls.incrementAndGet() == 1) {
-                    throw new IllegalStateException("one renewal chunk failed");
-                }
-                laterChunkRenewed.countDown();
-                yield leases;
-            }
-            case "renewEffectLeases", "renewOutboxLeases" -> arguments[0];
-            case "toString" -> "ChunkedLeaseStore";
-            default -> throw new AssertionError("Unexpected Store call: " + method.getName());
-        });
+                    case "renewRunLeases" -> {
+                        @SuppressWarnings("unchecked")
+                        Set<DurableStore.RunLease> leases = (Set<DurableStore.RunLease>) arguments[0];
+                        if (calls.incrementAndGet() == 1) {
+                            throw expectedFailure;
+                        }
+                        laterChunkRenewed.countDown();
+                        yield leases;
+                    }
+                    case "renewEffectLeases", "renewOutboxLeases" -> arguments[0];
+                    case "toString" -> "ChunkedLeaseStore";
+                    default -> throw new AssertionError("Unexpected Store call: " + method.getName());
+                }, expectedFailure);
         List<DurableLeaseRenewer.Handle> handles = new ArrayList<>(authorityCount);
 
         try (DurableLeaseRenewer renewer = new DurableLeaseRenewer(store, Duration.ofMillis(600), metrics)) {
@@ -297,7 +336,7 @@ class DurableLeaseRenewerTest {
             assertThat(calls.get()).isGreaterThanOrEqualTo(2);
             assertThat(metrics.count(Operation.LEASE_RENEWAL, Outcome.FAULT)).isEqualTo(
                     DurableLeaseStore.MAX_RENEWAL_BATCH_SIZE);
-            assertThat(metrics.count(Operation.LEASE_RENEWAL, Outcome.SUCCESS)).isGreaterThanOrEqualTo(1L);
+            awaitSuccessfulRenewals(metrics, 1L);
         } finally {
             handles.forEach(DurableLeaseRenewer.Handle::close);
         }
@@ -313,21 +352,86 @@ class DurableLeaseRenewerTest {
         DurableStore.RunLease lease = runLease(1);
         DurableLeaseRenewer renewer = new DurableLeaseRenewer(store, Duration.ofSeconds(30));
 
-        try (DurableLeaseRenewer.Handle ignored = renewer.trackRun(lease)) {
+        try (renewer;
+                DurableLeaseRenewer.Handle ignored = renewer.trackRun(lease)) {
             assertThat(ignored).isNotNull();
             assertThatThrownBy(() -> renewer.trackRun(lease))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Lease authority is already tracked");
         }
-        renewer.close();
         assertThatThrownBy(() -> renewer.trackRun(runLease(2)))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("closed");
     }
 
-    private static DurableLeaseStore store(InvocationHandler handler) {
+    @Test
+    void closeWaitsForInFlightRenewalEvenWhenInterrupted() throws Exception {
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        CountDownLatch closing = new CountDownLatch(1);
+        CountDownLatch closed = new CountDownLatch(1);
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        DurableLeaseStore store = store((instance, method, arguments) -> {
+            entered.countDown();
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            while (release.getCount() != 0L) {
+                if (System.nanoTime() >= deadline) {
+                    throw new AssertionError("renewal not released");
+                }
+                try {
+                    release.await(10, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException ignored) {
+                    // Model a database call whose cleanup cannot finish on interruption alone.
+                }
+            }
+            return arguments[0];
+        });
+        DurableLeaseRenewer renewer = new DurableLeaseRenewer(store, TEST_LEASE);
+        Thread closer = new Thread(() -> {
+            try {
+                Thread.currentThread().interrupt();
+                closing.countDown();
+                renewer.close();
+                assertThat(Thread.currentThread().isInterrupted()).isTrue();
+            } catch (Throwable thrown) {
+                failure.set(thrown);
+            } finally {
+                closed.countDown();
+            }
+        });
+        try (DurableLeaseRenewer.Handle handle = renewer.trackRun(runLease(1))) {
+            assertThat(handle).isNotNull();
+            assertThat(entered.await(2, TimeUnit.SECONDS)).isTrue();
+            closer.start();
+            assertThat(closing.await(2, TimeUnit.SECONDS)).isTrue();
+            assertThat(closed.await(100, TimeUnit.MILLISECONDS)).isFalse();
+        } finally {
+            release.countDown();
+            closer.join(5000);
+            renewer.close();
+        }
+        assertThat(closed.getCount()).isZero();
+        assertThat(failure.get()).isNull();
+    }
+
+    private DurableLeaseStore store(InvocationHandler handler) {
+        return store(handler, null);
+    }
+
+    private DurableLeaseStore store(InvocationHandler handler, RuntimeException expectedFailure) {
+        InvocationHandler capturing =
+                (instance, method, arguments) -> {
+            try {
+                return handler.invoke(instance, method, arguments);
+            } catch (Throwable failure) {
+                if (failure != expectedFailure) {
+                    backgroundFailures.add(failure);
+                }
+                throw failure;
+            }
+        };
         return (DurableLeaseStore) Proxy.newProxyInstance(DurableLeaseStore.class.getClassLoader(),
-                new Class<?>[] {DurableLeaseStore.class}, handler);
+                new Class<?>[] {DurableLeaseStore.class}, capturing);
     }
 
     private static DurableStore.RunLease runLease(int value) {

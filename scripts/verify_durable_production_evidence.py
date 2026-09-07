@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify one complete, same-environment Durable production drill campaign."""
+"""Verify one complete, same-environment PostgreSQL Durable production drill campaign."""
 
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ REQUIRED_SCENARIOS = frozenset(
         "PITR_NEW_TIMELINE",
         "RESTORE_DURABLE_INVENTORY_RECONCILIATION",
         "START_RESPONSE_LOSS",
-        "TRIGGER_RESPONSE_LOSS",
+        "WAIT_COMPLETION_RESPONSE_LOSS",
         "OPERATOR_RESPONSE_LOSS",
     }
 )
@@ -148,7 +148,7 @@ def parse_args() -> argparse.Namespace:
     """Parse one exact campaign policy."""
     parser = argparse.ArgumentParser(
         description=(
-            "Verify the full Durable production fault/recovery drill matrix "
+            "Verify the full PostgreSQL Durable production fault/recovery drill matrix "
             "and emit a sanitized aggregate manifest."
         )
     )

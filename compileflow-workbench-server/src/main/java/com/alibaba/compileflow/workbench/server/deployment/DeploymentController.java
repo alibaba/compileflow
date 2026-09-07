@@ -172,16 +172,17 @@ public class DeploymentController {
             throw ApiProblemException.invalidRequest("Idempotency-Key is required");
         }
         long expectedRouteRevision;
+        String validatedKey;
         try {
             expectedRouteRevision = requireBody(body).requireExpectedRouteRevision();
+            validatedKey = RolloutConstraints.requireIdempotencyKey(idempotencyKey);
         } catch (IllegalArgumentException failure) {
             throw ApiProblemException.invalidRequest(failure.getMessage());
         }
         DeploymentView deployment;
         try {
-            deployment = deploymentService.rollbackDeployment(id,
-                    RolloutConstraints.requireIdempotencyKey(idempotencyKey), expectedRouteRevision);
-        } catch (IllegalArgumentException failure) {
+            deployment = deploymentService.rollbackDeployment(id, validatedKey, expectedRouteRevision);
+        } catch (InvalidDeploymentRequestException failure) {
             throw ApiProblemException.invalidRequest(failure.getMessage());
         }
         return ResponseEntity.ok(DeploymentResponseMapper.toResponse(deployment));

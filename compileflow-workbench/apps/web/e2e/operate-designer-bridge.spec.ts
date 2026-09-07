@@ -1,13 +1,28 @@
 import { expect, test } from '@playwright/test'
 
-import { installOperateApiMocks } from './helpers/operateApiMock'
-
 const OPERATE_PROCESSES_URL = '/operate/processes'
 const TIMEOUT = 20000
 
 test.describe('运维流程 → 设计器桥接', () => {
+  let processRequests: string[]
+
   test.beforeEach(async ({ page }) => {
-    await installOperateApiMocks(page)
+    processRequests = []
+    page.on('request', (request) => {
+      if (/^\/api\/(?:flows|processes)(?:\/|$)/.test(new URL(request.url()).pathname)) {
+        processRequests.push(`${request.method()} ${request.url()}`)
+      }
+    })
+  })
+
+  test.afterEach(async () => {
+    await test.info().attach('in-memory-process-http-requests', {
+      body: JSON.stringify(processRequests),
+      contentType: 'application/json',
+    })
+    expect(processRequests, 'This suite exercises in-memory mock mode, not HTTP fixtures').toEqual(
+      []
+    )
   })
   test('从流程管理打开设计器并显示 processCode', async ({ page }) => {
     await page.goto(OPERATE_PROCESSES_URL)
@@ -48,7 +63,7 @@ test.describe('运维流程 → 设计器桥接', () => {
       .first()
       .click()
     await expect(
-      page.locator('.ant-message-notice').filter({ hasText: '已保存到运维流程库' }).first()
+      page.locator('.ant-message-notice').filter({ hasText: '已保存到流程管理' }).first()
     ).toBeVisible({
       timeout: TIMEOUT,
     })

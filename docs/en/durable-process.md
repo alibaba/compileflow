@@ -1,36 +1,51 @@
 # Durable Process
 
-Durable Process is an opt-in PostgreSQL-backed persisted execution runtime. It does not turn ProcessEngine
-`ProcessEngine` invocations into implicit workflows or make application compatibility part of persisted identity.
+Durable Process is an opt-in persisted execution runtime backed by one `DurableStore` authority. The first-party
+distributions provide PostgreSQL and MySQL stores. Durable does not turn `ProcessEngine` invocations into implicit
+workflows or make application compatibility part of persisted identity.
 
 ## Add the starter
 
 ```xml
 <dependency>
   <groupId>com.alibaba.compileflow</groupId>
-  <artifactId>compileflow-durable-spring-boot-starter-postgres</artifactId>
+  <artifactId>compileflow-tbbpm</artifactId>
+  <version>2.0.0-SNAPSHOT</version>
+</dependency>
+<dependency>
+  <groupId>com.alibaba.compileflow</groupId>
+  <artifactId>compileflow-durable-spring-boot-starter-postgresql</artifactId>
   <version>2.0.0-SNAPSHOT</version>
 </dependency>
 ```
 
-When using the repository snapshot, install only the starter and its reactor dependencies:
+The Durable starter selects a store provider but no source format. Add exactly the frontend modules used by the
+application; replace `compileflow-tbbpm` with `compileflow-bpmn` for a BPMN-only Durable application, or add both.
+
+When building from source, install the selected frontend, starter, and their reactor dependencies:
 
 ```bash
-./mvnw install -pl compileflow-durable/compileflow-durable-spring-boot-starter-postgres -am -DskipTests
+./mvnw install -pl compileflow-tbbpm,compileflow-durable/compileflow-durable-spring-boot-starter-postgresql -am -DskipTests
 ```
 
 ```yaml
 compileflow:
-  durable:
-    enabled: true
-  durable-postgres:
-    migrate: true
+    durable:
+        enabled: true
+        database:
+            migrate: true
 ```
 
-Configure a PostgreSQL `DataSource`. When the application also has a business `DataSource`, expose the Durable authority
+For MySQL 8.4, use `compileflow-durable-spring-boot-starter-mysql` with the same database configuration keys. Do not place both
+Provider starters on the classpath unless `compileflow.durable.database.provider` explicitly selects one.
+
+Configure a `DataSource` matching the selected Provider. When the application also has a business `DataSource`, expose the Durable authority
 connection as the bean named `compileFlowDurableDataSource`; otherwise the unique or primary `DataSource` is used.
-Production deployments should normally run Flyway externally and use `durable-postgres.migrate: false`; startup rejects
-non-PostgreSQL data sources, validates the schema, and fails closed when migrations are pending.
+Production deployments should normally run the Provider-owned Flyway migrations externally and disable in-process
+migration; startup rejects a mismatched database product, validates the schema, and fails closed when migrations are pending.
+Use a separate migration identity for DDL. MySQL with binary logging can require elevated privileges to create the
+immutability triggers; do not grant those privileges to the runtime account or relax global trust to run application code.
+The runtime identity needs schema validation and the Store's DML permissions, not migration authority.
 
 ## Configure exact Version acquisition
 
@@ -39,12 +54,15 @@ ProcessRef.Version process = ProcessRef.version("sales", "approval", "v17");
 ```
 
 `DurableVersionDefinitionSource` provides the authoritative exact definition for each new Version or Alias admission.
-Its minimal `VersionDefinition` carries only `ProcessModelType`
-and `ProcessDefinition.Inline`; it is separate from Alias selection and is not another Artifact type.
+Its `VersionDefinition` carries a typed `ProcessDefinition.Inline` and exact `callBindings`.
+Bindings prove that each direct ProcessCall in the returned source agrees with the child Version frozen at publication;
+they are admission proof, not an independently mutable execution graph. The source is separate from Alias selection
+and is not another Artifact type.
 Durable encodes the content as exact UTF-8, computes SHA-256, and stores model type, process code, exact bytes, and
 digest as immutable Process semantics. The resulting content-addressed `processId` is the recovery and program-cache
 identity; namespace and Version remain optional Run attribution. Recovery reads stored semantics and never consults
-the Version source.
+the Version source. Each Definition owns its model type. Exact Version ProcessCalls may cross frontend boundaries;
+their input/output contracts are validated before starting the Run. Classpath calls inherit the caller's frontend.
 
 Durable accepts the documented strict TBBPM and BPMN profiles and rejects every other model type or unsupported
 construct before registration. The schema preserves the closed `ProcessModelType` fact so recovery never guesses a
@@ -56,13 +74,17 @@ boundary events, and event-based gateways remain separate product choices.
 ```java
 ProcessRun run = durable.start(
     ProcessRunId.random(),
-    ProcessDefinition.inline("approval", definitionText),
+    ProcessDefinition.inline(ProcessModelType.TBBPM, "approval", definitionText),
     Map.of("orderId", "o-42"));
 ```
 
-The caller supplies only the definition. Durable uses its configured `ProcessEngineConfig` and Core's source loader to
-freeze the definition as an immutable inline snapshot with the configured `ProcessModelType`. Explicit called-process definitions
-use the caller's format.
+The caller supplies a typed definition. Durable uses its independent `DurableProcessEngineConfig` and Core source loader
+to freeze exact source bytes and the declared type. There is no engine-level format default.
+
+Plain Java applications construct the node-local lifecycle root through `DurableProcessEngineFactory.create(config)`.
+It immediately accepts application operations. Call no-argument `start()` to start configured Workers, `stop()` to drain them,
+and `close()` to drain operations and release owned resources. The Store and supplied capabilities remain application-owned.
+Spring uses the same factory and only adapts lifecycle timing. A Durable-only starter does not create a `ProcessEngine`.
 
 ## Start by Version or Alias
 
@@ -85,7 +107,7 @@ ProcessRun started = durable.start(
     new AliasRoutingOptions("customer-43", Map.of("region", "cn")));
 ```
 
-The public API uses strong-typed Version and Alias overloads. Code is therefore not a callable Durable
+The public API uses type-safe Version and Alias overloads. Code is therefore not a callable Durable
 reference, and exact Version has no overload that accepts routing inputs. Alias Start reads committed Alias state,
 applies its optional named `ProcessAliasTargetingPolicy`, then falls through to the protocol-defined percentage split,
 and retains the selected Version as Run attribution. Routing keys and attributes are admission-only and are not
@@ -110,31 +132,29 @@ otherwise read-only containers. Mutating the callback input therefore cannot mut
 state changes must be returned through the declared Action output mapping or a committed typed
 boundary result.
 
-## Persisted state types and upgrades
+## Persisted state types
 
 Exact stored Process semantics pin the Process source, control semantics, variable declarations, Action declarations, and
 semantic recovery coordinates. It does **not** pin Spring beans, Java Action bytecode, third-party libraries,
 ScriptExecutor implementations, or application POJO class shape. Every declared Java type reachable from a persisted
 variable, scope frame, Effect input/output, or Wait result is therefore an application-managed persistence schema.
 
-Compatible application changes keep those historical values decodable. A breaking class-shape/provider change requires
-draining the affected Runs, migrating state, or a controlled cutover. CompileFlow deliberately does not persist an
-ApplicationBuildId or route recovery by application build.
+Application-owned implementations must keep those values decodable for as long as the corresponding Runs are retained.
+CompileFlow does not persist an ApplicationBuildId or route recovery by application build.
 
 CompileFlow does own compatibility of its parser, semantic compiler, resume coordinates, and Engine envelope format.
 The persisted envelope has a compact internal version header used only for fail-closed decode and migration; it is not
-Process/codec identity. Historical Definition + continuation + Wait/Timer/Effect fixtures are recovered by the checked-in
-compatibility corpus on every release.
+Process/codec identity. The checked-in compatibility corpus verifies recovery from frozen Definition, continuation,
+Wait, Timer, and Effect fixtures.
 
-Durable Developer Preview currently requires a coordinated homogeneous upgrade. Stop admission and Workers, verify a
-recoverable backup, apply the reviewed migration/application change, and restart one version. Promotion to Supported
-requires an explicit tested mixed-version contract (preferably N/N-1); do not infer rolling-upgrade support from a
-successful startup.
+Persisted Runs require matching application, Kernel, and Store protocol versions. Mixed-version rolling operation is
+not a Supported contract.
 
 ## Wait and complete
 
-`WAIT_COMMITTED` contains the raw 256-bit Wait token for delivery to the authorized caller. The
-database stores only its SHA-256 digest. Do not log the raw token.
+`WAIT_COMMITTED` contains the raw 256-bit Wait token for delivery to the authorized caller. The Wait authority row stores
+only its SHA-256 digest; an active Outbox record temporarily retains the raw token until crash-safe delivery succeeds or
+the authority is otherwise disposed. Protect the Outbox as credential storage and do not log the raw token.
 
 ```java
 durable.completeWait(
@@ -152,16 +172,17 @@ raw token in a metric label, browser-visible URL, third-party metadata, or Workb
 not provide message subscriptions, buffering, TTL, or early-arrival correlation.
 
 The payload is a typed partial update of variables declared by the Run's exact Process and is
-validated before the Wait fact is committed. The same token and same canonical typed result are a
-zero-write current equivalent. A different result conflicts. A cancelled or unrelated occurrence
-does not accept the token.
+validated before the Wait fact is committed. Completing the same token with the same canonical typed result is a
+no-op; a different result conflicts. A cancelled or unrelated occurrence does not accept the token.
 
 ## Effect actions
 
 External observations use `execution="effect"` on an Action:
 
 ```xml
-<action type="spring-bean" execution="effect" bean="payment" method="charge">...
+<action type="spring-bean" execution="effect" bean="payment"
+        class="com.example.PaymentService" method="charge">
+  <input source="requestId" target="requestId" dataType="java.lang.String"/>
   <effectPolicy recovery="reconcile"
                 maxAttempts="3"
                 maxReconcileAttempts="10"
@@ -190,9 +211,9 @@ causes UNKNOWN. The uncertainty episode keeps one `unknownSince` across Reconcil
 `maxRecoveryDuration` is measured from that first uncertainty. Business rejection is a normal typed
 return and Decision path.
 
-Operator resolution requires the current `reviewRevision` and is limited to confirmed success,
-confirmed not executed plus retry, or fail Run. Retrying confirmed success is a zero-write current
-equivalent only when its canonical typed result matches the committed result. Retrying fail Run is
+Operator resolution requires the expected `reviewRevision` and is limited to confirmed success,
+confirmed not executed plus retry, or fail Run. Repeating a confirmed-success resolution is a no-op
+only when its canonical typed result matches the committed result. Repeating a fail-Run resolution is
 equivalent only when that Effect resolution actually caused the failed terminal state, not when Run
 cancellation merely cancelled the Effect.
 
@@ -215,7 +236,7 @@ Provide `DurableOutboxSink` only as the generic external-delivery adapter. Deliv
 contains the same event ID, type, and logical payload. A successful return means the destination boundary durably
 accepted the event, not that a process-local buffer accepted it. The sink must durably deduplicate by event ID or
 propagate it unchanged downstream; arbitrary external side effects are never claimed as exactly once. This SPI is not
-the contract for a future CompileFlow-owned Run-to-Run protocol.
+the contract for a CompileFlow-owned Run-to-Run protocol.
 
 ## Queries
 
@@ -229,7 +250,7 @@ payload-bearing query and returns a closed `ProcessRunResult`: `NotFound`, `NotC
 
 ## Operational rules
 
-- PostgreSQL database time owns availability and leases.
+- The selected Store's database time owns availability and leases.
 - Lock order is Run first and exact occurrence second.
 - Claim/reclaim generates a new random lease token; renew keeps it; completion must match it.
 - Continuation/Effect/Wait payloads and raw tokens must not be logged.

@@ -22,7 +22,9 @@ import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.config.ProcessDefinitionConfig;
 import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
 import com.alibaba.compileflow.engine.core.assembly.EngineAssembly;
+import com.alibaba.compileflow.engine.core.assembly.EngineDependencies;
 import com.alibaba.compileflow.engine.core.runtime.ProcessRuntimeRequest;
+import com.alibaba.compileflow.engine.core.runtime.script.ScriptExecutorRegistry;
 import com.alibaba.compileflow.engine.core.source.ProcessDefinitionSnapshot;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -50,8 +52,8 @@ class DefaultProcessDefinitionLoaderTest {
     private static void assertRejectedClasspathProtocol(ProcessDefinitionLoader definitionLoader, URL resource,
             String protocol) {
         assertThatThrownBy(() -> load(definitionLoader,
-                ProcessRuntimeRequest.from(ProcessDefinition.classpath("remote.flow", "flows/test.bpm")),
-                fixedResourceLoader(resource)))
+                ProcessRuntimeRequest.from(ProcessDefinition.classpath(ProcessModelType.TBBPM, "remote.flow",
+                        "flows/test.bpm")), fixedResourceLoader(resource)))
             .isInstanceOf(CompileFlowException.ResourceException.class)
             .hasMessageContaining("must resolve to a supported local location")
             .hasMessageContaining("protocol=" + protocol);
@@ -86,7 +88,7 @@ class DefaultProcessDefinitionLoaderTest {
 
     private static ProcessDefinitionSnapshot load(ProcessDefinitionLoader loader, ProcessRuntimeRequest source,
             ClassLoader classLoader) {
-        return loader.load(source, ProcessModelType.TBBPM, classLoader);
+        return loader.load(source, classLoader);
     }
 
     @Test
@@ -101,17 +103,15 @@ class DefaultProcessDefinitionLoaderTest {
             thread.setContextClassLoader(contextLoader);
             try {
                 ProcessEngineConfig config =
-                        ProcessEngineConfig
-                    .tbbpmBuilder()
-                    .discoverPlugins(false)
-                    .classLoader(configuredLoader)
-                    .build();
-                ProcessDefinitionLoader loader = EngineAssembly.assemble(config).definitionLoader();
-
-                ProcessDefinitionSnapshot source = load(loader,
-                        ProcessRuntimeRequest.from(ProcessDefinition.classpath("test.flow", "flows/test.bpm")),
-                        configuredLoader);
-                assertThat(new String(source.getBytes(), StandardCharsets.UTF_8)).isEqualTo("configured-definition");
+                        ProcessEngineConfig.builder().discoverPlugins(false).classLoader(configuredLoader).build();
+                EngineDependencies dependencies = EngineAssembly.assemble(config);
+                try (ScriptExecutorRegistry scripts = dependencies.scriptExecutors()) {
+                    assertThat(scripts.getLanguageNames()).contains("qlexpress");
+                    ProcessDefinitionSnapshot source = load(dependencies.definitionLoader(),
+                            ProcessRuntimeRequest.from(ProcessDefinition.classpath(ProcessModelType.TBBPM, "test.flow",
+                                    "flows/test.bpm")), configuredLoader);
+                    assertThat(new String(source.getBytes(), StandardCharsets.UTF_8)).isEqualTo("configured-definition");
+                }
             } finally {
                 thread.setContextClassLoader(original);
             }
@@ -125,7 +125,8 @@ class DefaultProcessDefinitionLoaderTest {
                     new DefaultProcessDefinitionLoader(ProcessDefinitionConfig.defaults());
 
             assertThatThrownBy(() -> load(definitionLoader,
-                    ProcessRuntimeRequest.from(ProcessDefinition.classpath("missing.flow", "flows/missing.bpm")), loader))
+                    ProcessRuntimeRequest.from(ProcessDefinition.classpath(ProcessModelType.TBBPM, "missing.flow",
+                            "flows/missing.bpm")), loader))
                 .isInstanceOf(CompileFlowException.ResourceException.class)
                 .hasMessageContaining("Classpath process definition not found")
                 .hasMessageContaining("missing.flow")
@@ -143,10 +144,11 @@ class DefaultProcessDefinitionLoaderTest {
             ProcessDefinitionLoader definitionLoader =
                     new DefaultProcessDefinitionLoader(ProcessDefinitionConfig.defaults());
 
-            ProcessDefinitionSnapshot source = definitionLoader.load(ProcessRuntimeRequest.from(ProcessDefinition.classpath("f"
-                            + "lows.order", "flows/order.bpmn")), ProcessModelType.BPMN, loader);
+            ProcessDefinitionSnapshot source = definitionLoader.load(ProcessRuntimeRequest.from(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                            "f" + "lows.order", "flows/order.bpmn")), loader);
 
             assertThat(source.getContent()).isEqualTo("bpmn-definition");
+            assertThat(source.getModelType()).isEqualTo(ProcessModelType.BPMN);
             assertThat(source.getSourceDescription()).isEqualTo("classpath resource flows/order.bpmn");
         }
     }
@@ -160,12 +162,14 @@ class DefaultProcessDefinitionLoaderTest {
             ProcessDefinitionLoader definitionLoader = new DefaultProcessDefinitionLoader(definitionConfig);
 
             assertThatThrownBy(() -> load(definitionLoader,
-                    ProcessRuntimeRequest.from(ProcessDefinition.inline("inline.flow", "12345")), loader))
+                    ProcessRuntimeRequest.from(ProcessDefinition.inline(ProcessModelType.TBBPM, "inline.flow", "12345")),
+                    loader))
                 .isInstanceOf(CompileFlowException.ResourceException.class)
                 .hasMessageContaining("maxBytes=4")
                 .hasMessageContaining("inline.flow");
             assertThatThrownBy(() -> load(definitionLoader,
-                    ProcessRuntimeRequest.from(ProcessDefinition.classpath("classpath.flow", "flows/test.bpm")), loader))
+                    ProcessRuntimeRequest.from(ProcessDefinition.classpath(ProcessModelType.TBBPM, "classpath.flow",
+                            "flows/test.bpm")), loader))
                 .isInstanceOf(CompileFlowException.ResourceException.class)
                 .hasMessageContaining("maxBytes=4")
                 .hasMessageContaining("classpath.flow");
@@ -185,7 +189,8 @@ class DefaultProcessDefinitionLoaderTest {
                 new DefaultProcessDefinitionLoader(ProcessDefinitionConfig.defaults());
 
         assertThatThrownBy(() -> load(definitionLoader,
-                ProcessRuntimeRequest.from(ProcessDefinition.classpath("remote.flow", "flows/test.bpm")), remoteLoader))
+                ProcessRuntimeRequest.from(ProcessDefinition.classpath(ProcessModelType.TBBPM, "remote.flow",
+                        "flows/test.bpm")), remoteLoader))
             .isInstanceOf(CompileFlowException.ResourceException.class)
             .hasMessageContaining("must resolve to a supported local location")
             .hasMessageContaining("protocol=https");
@@ -210,7 +215,8 @@ class DefaultProcessDefinitionLoaderTest {
         ClassLoader nestedLoader = fixedResourceLoader(nested);
 
         ProcessDefinitionSnapshot resolved = load(definitionLoader,
-                ProcessRuntimeRequest.from(ProcessDefinition.classpath("nested.flow", "flows/test.bpm")), nestedLoader);
+                ProcessRuntimeRequest.from(ProcessDefinition.classpath(ProcessModelType.TBBPM, "nested.flow",
+                        "flows/test.bpm")), nestedLoader);
 
         assertThat(resolved.getContent()).isEqualTo("nested-definition");
     }
@@ -224,7 +230,7 @@ class DefaultProcessDefinitionLoaderTest {
         ProcessDefinitionLoader definitionLoader =
                 new DefaultProcessDefinitionLoader(ProcessDefinitionConfig.defaults());
         ProcessRuntimeRequest source = ProcessRuntimeRequest.versioned(ProcessRef.version("orders", "snapshot.flow", "7"),
-                ProcessDefinition.classpath("snapshot.flow", "flows/flow.bpm"));
+                ProcessDefinition.classpath(ProcessModelType.TBBPM, "snapshot.flow", "flows/flow.bpm"));
 
         try (URLClassLoader classLoader = resourceLoader(root)) {
             ProcessDefinitionSnapshot first = load(definitionLoader, source, classLoader);
@@ -251,8 +257,8 @@ class DefaultProcessDefinitionLoaderTest {
 
         try (URLClassLoader classLoader = resourceLoader(root)) {
             assertThatThrownBy(() -> load(definitionLoader,
-                    ProcessRuntimeRequest.from(ProcessDefinition.classpath("invalid.flow", "flows/flow.bpm")),
-                    classLoader))
+                    ProcessRuntimeRequest.from(ProcessDefinition.classpath(ProcessModelType.TBBPM, "invalid.flow",
+                            "flows/flow.bpm")), classLoader))
                 .isInstanceOf(CompileFlowException.ResourceException.class)
                 .hasMessageContaining("not valid UTF-8")
                 .hasMessageContaining("invalid.flow");

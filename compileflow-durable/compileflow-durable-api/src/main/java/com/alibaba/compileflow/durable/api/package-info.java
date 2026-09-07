@@ -18,10 +18,9 @@
  * lease tokens, persistence rows, and disposable loaded process runtimes
  * intentionally remain outside this package.</p>
  *
- * <p>This package is a Developer Preview candidate. Only the documented
- * both TBBPM and BPMN Durable profiles are implemented; consumers must not infer
- * remote-worker, migration, multi-region, or
- * Production-Ready guarantees from the presence of this API.</p>
+ * <p>The supported TBBPM and BPMN Durable profiles are defined by the public
+ * documentation. This API does not define a remote-worker protocol,
+ * multi-region coordination, or provider-schema migration contract.</p>
  *
  * @author yusu
  */

@@ -1,0 +1,24 @@
+compileflow:
+  deploy:
+    enabled: false
+  durable:
+    enabled: true
+    worker:
+      enabled: true
+      idle-poll-delay: 10ms
+      lease-duration: 5s
+      turn-fault-backoff: 20ms
+    maintenance:
+      interval: 20ms
+    outbox:
+      retry:
+        initial-delay: 20ms
+        max-delay: 1s
+    database:
+      migrate: true
+
+spring:
+  application:
+    name: compileflow-durable-postgresql-example
+  flyway:
+    enabled: false

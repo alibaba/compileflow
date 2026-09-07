@@ -39,6 +39,8 @@ import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Round-trip tests for every BPMN 2.0 node type supported by CompileFlow:
@@ -48,6 +50,25 @@ import org.junit.jupiter.api.Test;
  * @author yusu
  */
 class BpmnNodeRoundTripTest {
+    @Test
+    void processIdentityRemainsAuthoritativeAfterModelEdits() {
+        BpmnModel model = parse(minimalBpmn());
+        model.getProcess().setId("renamed.process");
+
+        assertThat(model.getCode()).isEqualTo("renamed.process");
+        assertThat(model.getId()).isEqualTo("renamed.process");
+        assertThat(parse(write(model)).getCode()).isEqualTo(model.getCode());
+    }
+
+    @Test
+    void processNameRemainsAuthoritativeAfterModelEdits() {
+        BpmnModel model = parse(minimalBpmn());
+        model.getProcess().setName("Renamed process");
+
+        assertThat(model.getName()).isEqualTo("Renamed process");
+        assertThat(parse(write(model)).getName()).isEqualTo(model.getName());
+    }
+
     private static BpmnModel parse(String xml) {
         return BpmnXmlParser
             .getInstance()
@@ -73,6 +94,65 @@ class BpmnNodeRoundTripTest {
                 "    <startEvent id=\"start\" name=\"Start\"/>", "    <endEvent id=\"end\" name=\"End\"/>",
                 "    <sequenceFlow id=\"flow1\" sourceRef=\"start\" targetRef=\"end\"/>", "  </process>",
                 "</definitions>");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "   "})
+    void blankDefaultsSurviveRoundTrip(String value) {
+        String xml = serviceTaskFlow()
+            .replace("    <startEvent",
+                    "<extensionElements><cf:var name=\"value\" dataType=\"java.lang.String\""
+                    + " inOutType=\"param\" defaultValue=\"" + value + "\"/></extensionElements>\n    <startEvent")
+            .replace("method=\"process\"/>",
+                    "method=\"process\"><cf:input target=\"value\"" + " dataType=\"java.lang.String\" defaultValue=\""
+                    + value + "\"/></cf:action>");
+        BpmnModel parsed = parse(xml);
+        assertThat(parsed.getProcess().getVariables().get(0).getDefaultValue()).isEqualTo(value);
+        assertThat(parsed
+            .getFlowElement("task", ServiceTask.class)
+            .getAction()
+            .getInputMappings()
+            .get(0)
+            .getDefaultValue())
+            .isEqualTo(value);
+
+        BpmnModel restored = parse(write(parsed));
+        assertThat(restored.getProcess().getVariables().get(0).getDefaultValue()).isEqualTo(value);
+        assertThat(restored
+            .getFlowElement("task", ServiceTask.class)
+            .getAction()
+            .getInputMappings()
+            .get(0)
+            .getDefaultValue())
+            .isEqualTo(value);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "   "})
+    void rejectsBlankEffectRecoveryWithoutSchemaValidation(String recovery) {
+        String xml = serviceTaskFlow()
+            .replace("method=\"process\"/>",
+                    "method=\"process\"><cf:effectPolicy recovery=\"" + recovery + "\"/></cf:action>");
+
+        assertThatThrownBy(() -> parse(xml))
+            .isInstanceOf(CompileFlowException.class)
+            .hasMessageContaining("Unsupported Effect recovery");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"exclusiveGateway", "inclusiveGateway"})
+    void preservesUnresolvedDefaultFlowForValidation(String gatewayType) {
+        String xml = exclusiveGatewayFlow()
+            .replace("exclusiveGateway", gatewayType)
+            .replace("id=\"gw\"", "id=\"gw\" default=\"missing\"");
+        BpmnModel restored = roundTrip(xml);
+
+        assertThat(restored
+            .getFlowElement("gw", com.alibaba.compileflow.engine.bpmn.model.ConditionalGateway.class)
+            .getDefaultFlowId())
+            .isEqualTo("missing");
+        assertThat(new com.alibaba.compileflow.engine.bpmn.validation.BpmnModelValidator().validate(restored))
+            .anyMatch(failure -> failure.message().contains("default must reference exactly one outgoing"));
     }
 
     static String serviceTaskFlow() {
@@ -379,7 +459,7 @@ class BpmnNodeRoundTripTest {
         }
 
         @Test
-        void rejectsVersionReferenceInProcessDefinition() {
+        void rejectsProcessRefExtensionElement() {
             String xml = callActivityFlow()
                 .replace("<callActivity id=\"call\" name=\"Call\" calledElement=\"test.subflow\"\n"
                         + "                  cf:classpath=\"test/subflow.bpmn\"/>",
@@ -397,17 +477,12 @@ class BpmnNodeRoundTripTest {
         @Test
         void rejectsCrossNamespaceCall() {
             String xml = callActivityFlow()
-                .replace("<callActivity id=\"call\" name=\"Call\" calledElement=\"test.subflow\"\n"
-                        + "                  cf:classpath=\"test/subflow.bpmn\"/>",
-                        """
-                    <callActivity id="call" name="Call" calledElement="test.subflow"
-                                  cf:classpath="test/subflow.bpmn">
-                      <extensionElements>
-                        <cf:processRef namespace="shared" version="child-v3"/>
-                      </extensionElements>
-                    </callActivity>""");
+                .replace("cf:classpath=\"test/subflow.bpmn\"", "cf:namespace=\"shared\" cf:version=\"child-v3\"");
 
-            assertThatThrownBy(() -> parse(xml)).isInstanceOf(CompileFlowException.class);
+            assertThatThrownBy(() -> parse(xml))
+                .isInstanceOf(CompileFlowException.class)
+                .hasMessageContaining(
+                        "Unsupported BPMN attribute '{http://www.compileflow.org}namespace' on callActivity");
         }
 
         @Test

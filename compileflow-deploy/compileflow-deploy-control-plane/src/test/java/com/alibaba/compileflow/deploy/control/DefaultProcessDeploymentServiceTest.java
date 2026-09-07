@@ -27,17 +27,17 @@ import com.alibaba.compileflow.deploy.api.command.PromoteRolloutCommand;
 import com.alibaba.compileflow.deploy.api.command.PublishProcessVersionCommand;
 import com.alibaba.compileflow.deploy.api.command.RollbackRolloutCommand;
 import com.alibaba.compileflow.deploy.api.command.UpdateCanaryWeightCommand;
-import com.alibaba.compileflow.deploy.api.observability.ProcessDeploymentOperationMetrics;
-import com.alibaba.compileflow.deploy.api.observability.ProcessDeploymentOperationMetrics.Operation;
-import com.alibaba.compileflow.deploy.api.observability.ProcessDeploymentOperationMetrics.Outcome;
+import com.alibaba.compileflow.deploy.control.observability.DeploymentOperationMetrics;
+import com.alibaba.compileflow.deploy.control.observability.DeploymentOperationMetrics.Operation;
+import com.alibaba.compileflow.deploy.control.observability.DeploymentOperationMetrics.Outcome;
 import com.alibaba.compileflow.deploy.api.rollout.ProcessRollout;
 import com.alibaba.compileflow.deploy.api.routing.ProcessAliasState;
 import com.alibaba.compileflow.deploy.api.version.PublishedProcessVersion;
 import com.alibaba.compileflow.deploy.control.projection.ArtifactProjectionCoordinator;
-import com.alibaba.compileflow.deploy.control.repository.ProcessAliasRecord;
-import com.alibaba.compileflow.deploy.control.repository.ProcessAliasRepository;
-import com.alibaba.compileflow.deploy.control.repository.ProcessVersionRepository;
-import com.alibaba.compileflow.deploy.control.repository.ProcessVersionRecord;
+import com.alibaba.compileflow.deploy.spi.store.ProcessAliasRecord;
+import com.alibaba.compileflow.deploy.spi.store.ProcessAliasStore;
+import com.alibaba.compileflow.deploy.spi.store.ProcessVersionStore;
+import com.alibaba.compileflow.deploy.spi.store.ProcessVersionRecord;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -49,16 +49,17 @@ class DefaultProcessDeploymentServiceTest {
     void publishesAndProjectsThroughTheFacade() {
         VersionPublicationService publication = mock(VersionPublicationService.class);
         ArtifactProjectionCoordinator artifacts = mock(ArtifactProjectionCoordinator.class);
-        ProcessDeploymentOperationMetrics metrics = new ProcessDeploymentOperationMetrics();
-        ProcessVersionRepository versions = mock(ProcessVersionRepository.class);
-        ProcessAliasRepository aliases = mock(ProcessAliasRepository.class);
+        DeploymentOperationMetrics metrics = new DeploymentOperationMetrics();
+        ProcessVersionStore versions = mock(ProcessVersionStore.class);
+        ProcessAliasStore aliases = mock(ProcessAliasStore.class);
         ProcessRef.Version ref = ProcessRef.version("default", "order.process", "v1");
-        ProcessDefinition.Inline definition = ProcessDefinition.inline("order.process", "<process/>");
-        PublishProcessVersionCommand command = new PublishProcessVersionCommand(ref, ProcessModelType.TBBPM, definition,
-                "release-bot", Map.of("owner", "payments"));
+        ProcessDefinition.Inline definition =
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "order.process", "<process/>");
+        PublishProcessVersionCommand command =
+                new PublishProcessVersionCommand(ref, definition, "release-bot", Map.of("owner", "payments"));
         ProcessVersionRecord record = mock(ProcessVersionRecord.class);
-        when(publication.publish(ref, ProcessModelType.TBBPM, definition, command.getExpectedArtifactDigest(),
-                command.getMetadata(), "release-bot"))
+        when(publication.publish(ref, definition, command.getExpectedArtifactDigest(), command.getMetadata(),
+                "release-bot"))
             .thenReturn(record);
         when(record.getRef()).thenReturn(ref);
         when(record.getModelType()).thenReturn(ProcessModelType.TBBPM);
@@ -67,7 +68,7 @@ class DefaultProcessDeploymentServiceTest {
         when(record.getActor()).thenReturn("release-bot");
         when(record.getCreatedAt()).thenReturn(10L);
         DefaultProcessDeploymentService service = new DefaultProcessDeploymentService(publication, artifacts, metrics, mock(
-                RolloutControlService.class), versions, aliases, ignored -> {});
+                RolloutService.class), versions, aliases, ignored -> {});
 
         PublishedProcessVersion published = service.publish(command);
 
@@ -81,16 +82,17 @@ class DefaultProcessDeploymentServiceTest {
     void recordsUnexpectedPublicationFailure() {
         VersionPublicationService publication = mock(VersionPublicationService.class);
         ArtifactProjectionCoordinator artifacts = mock(ArtifactProjectionCoordinator.class);
-        ProcessDeploymentOperationMetrics metrics = new ProcessDeploymentOperationMetrics();
+        DeploymentOperationMetrics metrics = new DeploymentOperationMetrics();
         ProcessRef.Version ref = ProcessRef.version("default", "order.process", "v1");
-        ProcessDefinition.Inline definition = ProcessDefinition.inline("order.process", "<process/>");
+        ProcessDefinition.Inline definition =
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "order.process", "<process/>");
         PublishProcessVersionCommand command =
-                new PublishProcessVersionCommand(ref, ProcessModelType.TBBPM, definition, "release-bot", Map.of());
-        when(publication.publish(ref, ProcessModelType.TBBPM, definition, command.getExpectedArtifactDigest(),
-                command.getMetadata(), "release-bot"))
+                new PublishProcessVersionCommand(ref, definition, "release-bot", Map.of());
+        when(publication.publish(ref, definition, command.getExpectedArtifactDigest(), command.getMetadata(),
+                "release-bot"))
             .thenThrow(new IllegalStateException("database unavailable"));
         DefaultProcessDeploymentService service = new DefaultProcessDeploymentService(publication, artifacts, metrics, mock(
-                RolloutControlService.class), mock(ProcessVersionRepository.class), mock(ProcessAliasRepository.class), ignored -> {});
+                RolloutService.class), mock(ProcessVersionStore.class), mock(ProcessAliasStore.class), ignored -> {});
 
         assertThatThrownBy(() -> service.publish(command))
             .isInstanceOf(com.alibaba.compileflow.deploy.api.error.DeploymentException.class)
@@ -102,9 +104,9 @@ class DefaultProcessDeploymentServiceTest {
     @Test
     void activatesTheLatestAuthoritativeAliasAfterEveryRouteMutation() {
         VersionPublicationService publication = mock(VersionPublicationService.class);
-        RolloutControlService rollouts = mock(RolloutControlService.class);
-        ProcessVersionRepository versions = mock(ProcessVersionRepository.class);
-        ProcessAliasRepository aliases = mock(ProcessAliasRepository.class);
+        RolloutService rollouts = mock(RolloutService.class);
+        ProcessVersionStore versions = mock(ProcessVersionStore.class);
+        ProcessAliasStore aliases = mock(ProcessAliasStore.class);
         CreateRolloutCommand create = mock(CreateRolloutCommand.class);
         UpdateCanaryWeightCommand update = mock(UpdateCanaryWeightCommand.class);
         PromoteRolloutCommand promote = mock(PromoteRolloutCommand.class);
@@ -133,8 +135,8 @@ class DefaultProcessDeploymentServiceTest {
                 .build()));
         List<ProcessAliasState> activated = new ArrayList<>();
         DefaultProcessDeploymentService service = new DefaultProcessDeploymentService(publication,
-                ArtifactProjectionCoordinator.database(), new ProcessDeploymentOperationMetrics(), rollouts, versions,
-                aliases, activated::add);
+                ArtifactProjectionCoordinator.source(), new DeploymentOperationMetrics(), rollouts, versions, aliases,
+                activated::add);
 
         assertThat(service.createRollout(create)).isSameAs(committed);
         assertThat(service.updateCanaryWeight(update)).isSameAs(committed);
@@ -155,9 +157,9 @@ class DefaultProcessDeploymentServiceTest {
     @Test
     void exposesActivationFailureAfterTheRouteTransactionCommits() {
         VersionPublicationService publication = mock(VersionPublicationService.class);
-        RolloutControlService rollouts = mock(RolloutControlService.class);
-        ProcessVersionRepository versions = mock(ProcessVersionRepository.class);
-        ProcessAliasRepository aliases = mock(ProcessAliasRepository.class);
+        RolloutService rollouts = mock(RolloutService.class);
+        ProcessVersionStore versions = mock(ProcessVersionStore.class);
+        ProcessAliasStore aliases = mock(ProcessAliasStore.class);
         CreateRolloutCommand command = mock(CreateRolloutCommand.class);
         ProcessRollout committed = mock(ProcessRollout.class);
         when(committed.getId()).thenReturn("rollout-1");
@@ -175,12 +177,12 @@ class DefaultProcessDeploymentServiceTest {
                 .updatedAt(10L)
                 .build()));
         IllegalStateException failure = new IllegalStateException("local activation failed");
-        RoutingActivation activation = ignored -> {
+        RoutingStatePropagator activation = ignored -> {
             throw failure;
         };
         DefaultProcessDeploymentService service = new DefaultProcessDeploymentService(publication,
-                ArtifactProjectionCoordinator.database(), new ProcessDeploymentOperationMetrics(), rollouts, versions,
-                aliases, activation);
+                ArtifactProjectionCoordinator.source(), new DeploymentOperationMetrics(), rollouts, versions, aliases,
+                activation);
 
         assertThatThrownBy(() -> service.createRollout(command)).isSameAs(failure);
     }

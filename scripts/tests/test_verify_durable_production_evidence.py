@@ -145,6 +145,14 @@ def build(paths: list[Path]) -> dict[str, object]:
 
 class VerifyDurableProductionEvidenceTest(unittest.TestCase):
 
+    def test_requires_wait_completion_response_loss_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            campaign = build(complete_campaign(Path(directory)))
+        self.assertIn(
+            "WAIT_COMPLETION_RESPONSE_LOSS",
+            {entry["scenario"] for entry in campaign["subjects"]},
+        )
+
     def test_published_subject_schema_matches_verifier_policy(self) -> None:
         schema_path = (
             Path(__file__).resolve().parents[2]

@@ -20,11 +20,11 @@ package com.alibaba.compileflow.deploy.control.projection;
  */
 public enum ArtifactProjectionStatus {
     /**
-     * The selected artifact mode has no channel projection.
+     * The selected artifact mode has no projection store projection.
      */
     NOT_REQUIRED,
     /**
-     * The channel already contains the exact immutable projection.
+     * The projection store already contains the exact immutable projection.
      */
     PRESENT,
     /**

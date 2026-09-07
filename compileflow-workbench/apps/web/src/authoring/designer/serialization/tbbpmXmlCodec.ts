@@ -759,12 +759,12 @@ export function generateTbbpmXml(
   const vars = definition.variables || []
   const processVariableNames = validateGeneratedProcessVariables(vars)
   validateTbbpmVariableMappings(nodes, processVariableNames)
+  const context = createTbbpmGenerationContext(nodes, connections, indent)
   validateLoopVariableContracts(
     nodes,
     processVariableNames,
     new Map(vars.map((variable) => [variable.name, variable]))
   )
-  const context = createTbbpmGenerationContext(nodes, connections, indent)
 
   if (includeDeclaration) {
     lines.push(`<?xml version="1.0" encoding="${encoding}"?>`)
@@ -958,7 +958,8 @@ function collectReachableNodes(
   const pending = [startNodeId]
   while (pending.length > 0) {
     const currentId = pending.shift()!
-    if (!reachable.add(currentId)) continue
+    if (reachable.has(currentId)) continue
+    reachable.add(currentId)
     ;(connectionsBySource.get(currentId) || []).forEach((connection) =>
       pending.push(connection.targetId)
     )
@@ -1015,7 +1016,8 @@ function collectReachableLoopNodes(
   const pending = [startNodeId]
   while (pending.length > 0) {
     const currentId = pending.shift()!
-    if (!reachable.add(currentId)) continue
+    if (reachable.has(currentId)) continue
+    reachable.add(currentId)
 
     const outgoing = connectionsBySource.get(currentId) || []
     const current = childrenById.get(currentId)

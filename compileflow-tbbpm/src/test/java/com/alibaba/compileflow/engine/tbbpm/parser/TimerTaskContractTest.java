@@ -100,6 +100,20 @@ class TimerTaskContractTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {"duration=\"PT1S\" durationExpression=\"\"",
+            "duration=\"PT1S\" wakeAtExpression=\"   \"", "duration=\"\" durationExpression=\"delay\""})
+    void rejectsBlankSchedulesAlongsideAnotherDeclaredSchedule(String attributes) {
+        assertThat(validationMessagesWithoutSchema(flow(attributes))).anyMatch(message -> message.contains(
+                "exactly one"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"duration=\"\"", "durationExpression=\"   \"", "wakeAtExpression=\"\""})
+    void rejectsBlankSingleSchedule(String attributes) {
+        assertThat(validationMessagesWithoutSchema(flow(attributes))).isNotEmpty();
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {"P", "PT", "PT+1S", "PT-1S", "-PT1S", "P1Y", "P1M", "P1W", "pt1s",
             "PT1.0000000000S", "PT0.000000001S"})
     void schemaRejectsValuesOutsideTheProtocolDurationLanguage(String duration) {

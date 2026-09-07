@@ -53,11 +53,7 @@ public final class GeneratedClassCompiler {
     }
 
     private static String failureType(Throwable failure) {
-        Throwable root = failure;
-        while (root.getCause() != null && root.getCause() != root) {
-            root = root.getCause();
-        }
-        return root.getClass().getName();
+        return failure.getClass().getName();
     }
 
     public Class<?> compile(String fullClassName, String sourceCode, ClassLoader classLoader) {

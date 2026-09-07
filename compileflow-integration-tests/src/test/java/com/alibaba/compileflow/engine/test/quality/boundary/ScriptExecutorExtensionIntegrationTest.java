@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.quality.boundary;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.alibaba.compileflow.engine.CompileFlowException;
@@ -163,13 +164,13 @@ class ScriptExecutorExtensionIntegrationTest {
     void registeredLanguageWorksThroughParseCompileAndExecution() {
         AtomicInteger preparationCount = new AtomicInteger();
         ProcessEngineConfig config = ProcessEngineTestFactory
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .scriptExecutor(customExecutor(preparationCount))
             .build();
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
-            ProcessDefinition definition = ProcessDefinition.inline("test.custom-script", FLOW);
+            ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.TBBPM, "test.custom-script", FLOW);
             engine.tooling().generateJavaCode(definition);
             ProcessResult<Map<String, Object>> first = engine.execute(definition, Map.of());
             ProcessResult<Map<String, Object>> second = engine.execute(definition, Map.of());
@@ -186,13 +187,14 @@ class ScriptExecutorExtensionIntegrationTest {
     void explicitActionsAroundTriggerEntriesUseTheSameScriptExecutorRegistry() {
         AtomicInteger preparationCount = new AtomicInteger();
         ProcessEngineConfig config = ProcessEngineTestFactory
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .scriptExecutor(TestScriptExecutors.of("custom-script", (source, context) -> "custom-ok", source -> preparationCount.incrementAndGet()))
             .build();
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
-            ProcessDefinition definition = ProcessDefinition.inline("test.boundary-script", BOUNDARY_FLOW);
+            ProcessDefinition definition =
+                    ProcessDefinition.inline(ProcessModelType.TBBPM, "test.boundary-script", BOUNDARY_FLOW);
             ProcessRef.Version ref = ProcessRef.version("default", definition.code(), "v1");
 
             engine.tooling().generateJavaCode(definition);
@@ -220,15 +222,11 @@ class ScriptExecutorExtensionIntegrationTest {
     @Test
     void registeredLanguageWorksForBpmnScriptFormat() {
         ProcessEngineConfig config =
-                ProcessEngineTestFactory
-            .bpmnBuilder()
-            .discoverPlugins(false)
-            .scriptExecutor(customExecutor())
-            .build();
+                ProcessEngineTestFactory.builder().discoverPlugins(false).scriptExecutor(customExecutor()).build();
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
-            ProcessResult<Map<String, Object>> result =
-                    engine.execute(ProcessDefinition.inline("test.custom-script-bpmn", BPMN_FLOW), Map.of());
+            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.inline(ProcessModelType.BPMN,
+                            "test.custom-script-bpmn", BPMN_FLOW), Map.of());
 
             assertThat(result.isSuccess()).isTrue();
             assertThat(result.getOutput()).containsEntry("result", "custom-ok");
@@ -238,14 +236,14 @@ class ScriptExecutorExtensionIntegrationTest {
     @Test
     void scriptResultsUseTheCanonicalDataTypeConversion() {
         ProcessEngineConfig config = ProcessEngineTestFactory
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .scriptExecutor(TestScriptExecutors.of("custom-number", (source, context) -> Integer.valueOf(7)))
             .build();
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
-            ProcessResult<Map<String, Object>> result =
-                    engine.execute(ProcessDefinition.inline("test.custom-number-script", NUMERIC_FLOW), Map.of());
+            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.inline(ProcessModelType.TBBPM,
+                            "test.custom-number-script", NUMERIC_FLOW), Map.of());
 
             assertThat(result.isSuccess()).isTrue();
             assertThat(result.getOutput()).containsEntry("result", 7L);
@@ -254,12 +252,12 @@ class ScriptExecutorExtensionIntegrationTest {
 
     @Test
     void missingLanguageFailsDuringCodeGeneration() {
-        ProcessEngineConfig config = ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory.builder().discoverPlugins(false).build();
 
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
             assertThatThrownBy(() -> engine
                 .tooling()
-                .generateJavaCode(ProcessDefinition.inline("test.custom-script", FLOW)))
+                .generateJavaCode(ProcessDefinition.inline(ProcessModelType.TBBPM, "test.custom-script", FLOW)))
                 .isInstanceOf(CompileFlowException.ConfigurationException.class)
                 .hasMessageContaining("No script executor is registered for language 'custom-script'");
         }
@@ -269,7 +267,7 @@ class ScriptExecutorExtensionIntegrationTest {
     void providerValidationFailsDuringCodeGeneration() {
         ProcessEngineConfig config =
                 ProcessEngineTestFactory
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .scriptExecutor(rejectingExecutor())
             .build();
@@ -277,7 +275,7 @@ class ScriptExecutorExtensionIntegrationTest {
         try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
             assertThatThrownBy(() -> engine
                 .tooling()
-                .generateJavaCode(ProcessDefinition.inline("test.custom-script", FLOW)))
+                .generateJavaCode(ProcessDefinition.inline(ProcessModelType.TBBPM, "test.custom-script", FLOW)))
                 .isInstanceOf(ScriptException.class)
                 .hasMessage("Rejected by test language");
         }

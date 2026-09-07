@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto'
-
 import { describe, expect, it } from 'vitest'
 
 import { MockEngine } from '../mockEngine'
@@ -14,19 +12,20 @@ describe('MockEngine', () => {
       params: { userId: 'u-1' },
     })
 
-    expect(result).toMatchObject({
+    expect(result).toEqual({
       success: true,
-      modelType: 'BPMN',
+      message: expect.stringContaining('mock'),
+      traceId: expect.stringMatching(/^trace-/),
+      invocationId: expect.stringMatching(/^inv-/),
+      processCode: 'bpm.hello',
+      durationMs: expect.any(Number),
       routing: { namespace: 'default' },
       result: {
-        processCode: 'bpm.hello',
+        output: 'Mock preview result',
         inputParams: { userId: 'u-1' },
       },
     })
-    expect(result.message).toContain('mock')
-    expect(result.traceId).toMatch(/^trace-/)
-    expect(result.invocationId).toMatch(/^inv-/)
-    expect(result.sourceDigest).toBe(createHash('sha256').update(xml, 'utf8').digest('hex'))
+    expect(result.durationMs).toBeGreaterThanOrEqual(0)
   })
 
   it('preserves a caller-supplied invocation id', async () => {

@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.feature.invocationpolicy;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessEngine;
@@ -47,7 +48,7 @@ class InvocationPolicyIntegrationTest {
     void setUp() {
         InvocationPolicyTestService.resetCounters();
         engine = ProcessEngineFactory.create(ProcessEngineTestFactory
-            .tbbpmBuilder()
+            .builder()
             .executors(ProcessExecutorConfig.builder().actionTimeoutMaxConcurrency(4).build())
             .failureHandler("custom-failure-handler", context -> FailureResolution.CONTINUE_PROCESS)
             .build());
@@ -73,8 +74,8 @@ class InvocationPolicyIntegrationTest {
             Map<String, Object> context = Maps.newHashMap();
             context.put("failUntilAttempt", 2);
 
-            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpm.invocation-"
-                            + "policy.retryTransientFailures",
+            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            "bpm.invocation-" + "policy.retryTransientFailures",
                             "bpm.invocation-policy.retryTransientFailures".replace(".", "/") + ".bpm"), context);
 
             assertThat(result).isNotNull();
@@ -97,14 +98,14 @@ class InvocationPolicyIntegrationTest {
                     ProcessExecutionOptions.builder().invocationId("invocation-policy-replay-1").build();
             Map<String, Object> context = Map.of("failUntilAttempt", 2);
 
-            ProcessResult<Map<String, Object>> first = engine.execute(ProcessDefinition.classpath("bpm.invocation-"
-                            + "policy.retryTransientFailures",
+            ProcessResult<Map<String, Object>> first = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            "bpm.invocation-" + "policy.retryTransientFailures",
                             "bpm.invocation-policy.retryTransientFailures".replace(".", "/") + ".bpm"), context, options);
             String firstKey = InvocationPolicyTestService.actionContexts().get(0).getInvocationKey();
 
             InvocationPolicyTestService.resetCounters();
-            ProcessResult<Map<String, Object>> replay = engine.execute(ProcessDefinition.classpath("bpm.invocation-"
-                            + "policy.retryTransientFailures",
+            ProcessResult<Map<String, Object>> replay = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            "bpm.invocation-" + "policy.retryTransientFailures",
                             "bpm.invocation-policy.retryTransientFailures".replace(".", "/") + ".bpm"), context, options);
             String replayKey = InvocationPolicyTestService.actionContexts().get(0).getInvocationKey();
 
@@ -120,8 +121,8 @@ class InvocationPolicyIntegrationTest {
             Map<String, Object> context = Maps.newHashMap();
             context.put("failUntilAttempt", 10);
 
-            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpm.invocation-"
-                            + "policy.retryTransientFailures",
+            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            "bpm.invocation-" + "policy.retryTransientFailures",
                             "bpm.invocation-policy.retryTransientFailures".replace(".", "/") + ".bpm"), context);
 
             assertThat(result).isNotNull();
@@ -136,12 +137,12 @@ class InvocationPolicyIntegrationTest {
             context.put("failUntilAttempt", 2);
             String source = engine
                 .tooling()
-                .generateJavaCode(ProcessDefinition.classpath("bpm.invocation-policy.retryWithInterval",
-                        "bpm/invocation-policy/retryWithInterval.bpm"));
+                .generateJavaCode(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                        "bpm.invocation-policy.retryWithInterval", "bpm/invocation-policy/retryWithInterval.bpm"));
 
             long startTime = System.nanoTime();
-            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpm.invocation-"
-                            + "policy.retryWithInterval",
+            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            "bpm.invocation-" + "policy.retryWithInterval",
                             "bpm.invocation-policy.retryWithInterval".replace(".", "/") + ".bpm"), context);
             long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
 
@@ -157,8 +158,8 @@ class InvocationPolicyIntegrationTest {
         void doesNotRetryDeterministicFailures() {
             Map<String, Object> context = Maps.newHashMap();
 
-            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpm.invocation-"
-                            + "policy.retryNeverPolicy",
+            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            "bpm.invocation-" + "policy.retryNeverPolicy",
                             "bpm.invocation-policy.retryNeverPolicy".replace(".", "/") + ".bpm"), context);
 
             assertThat(result).isNotNull();
@@ -175,8 +176,8 @@ class InvocationPolicyIntegrationTest {
         void failsImmediatelyWithFailFastHandler() {
             Map<String, Object> context = Maps.newHashMap();
 
-            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpm.invocation-"
-                            + "policy.failFastHandler",
+            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            "bpm.invocation-" + "policy.failFastHandler",
                             "bpm.invocation-policy.failFastHandler".replace(".", "/") + ".bpm"), context);
 
             assertThat(result).isNotNull();
@@ -189,8 +190,8 @@ class InvocationPolicyIntegrationTest {
         void continuesWithCustomFailureHandler() {
             Map<String, Object> context = Maps.newHashMap();
 
-            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpm.invocation-"
-                            + "policy.customFailureHandler",
+            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            "bpm.invocation-" + "policy.customFailureHandler",
                             "bpm.invocation-policy.customFailureHandler".replace(".", "/") + ".bpm"), context);
 
             assertThat(result.isSuccess()).as("Custom handler should continue the process after transient failure").isTrue();
@@ -205,10 +206,10 @@ class InvocationPolicyIntegrationTest {
         void appliesDefaultActionParameterInsideInvocationPolicy() {
             String source = engine
                 .tooling()
-                .generateJavaCode(ProcessDefinition.classpath("bpm.invocation-policy.fullConfiguration",
-                        "bpm/invocation-policy/fullConfiguration.bpm"));
-            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpm.invocation-"
-                            + "policy.fullConfiguration",
+                .generateJavaCode(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                        "bpm.invocation-policy.fullConfiguration", "bpm/invocation-policy/fullConfiguration.bpm"));
+            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            "bpm.invocation-" + "policy.fullConfiguration",
                             "bpm.invocation-policy.fullConfiguration".replace(".", "/") + ".bpm"), Map.of());
 
             assertThat(source).contains("RetryJitter.FULL");
@@ -223,8 +224,8 @@ class InvocationPolicyIntegrationTest {
             context.put("a", 10);
             context.put("b", 20);
 
-            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpm.invocation-"
-                            + "policy.parallelWithInvocationPolicy",
+            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            "bpm.invocation-" + "policy.parallelWithInvocationPolicy",
                             "bpm.invocation-policy.parallelWithInvocationPolicy".replace(".", "/") + ".bpm"), context);
 
             assertThat(result).isNotNull();
@@ -239,10 +240,11 @@ class InvocationPolicyIntegrationTest {
         void doesNotCommitMappedResultFromTimedOutAttempt() {
             String source = engine
                 .tooling()
-                .generateJavaCode(ProcessDefinition.classpath("bpm.invocation-policy.timeoutOutputIsolation",
+                .generateJavaCode(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                        "bpm.invocation-policy.timeoutOutputIsolation",
                         "bpm/invocation-policy/timeoutOutputIsolation.bpm"));
-            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath("bpm.invocation-"
-                            + "policy.timeoutOutputIsolation",
+            ProcessResult<Map<String, Object>> result = engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            "bpm.invocation-" + "policy.timeoutOutputIsolation",
                             "bpm.invocation-policy.timeoutOutputIsolation".replace(".", "/") + ".bpm"), Map.of());
 
             assertThat(source)

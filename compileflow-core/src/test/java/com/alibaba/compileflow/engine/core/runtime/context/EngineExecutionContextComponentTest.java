@@ -19,12 +19,12 @@ import static com.alibaba.compileflow.engine.core.runtime.RuntimeTestFixtures.re
 import com.alibaba.compileflow.engine.CompileFlowException;
 import com.alibaba.compileflow.engine.ErrorCode;
 import com.alibaba.compileflow.engine.ProcessModelType;
-import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
 import com.alibaba.compileflow.engine.config.ProcessExecutorConfig;
 import com.alibaba.compileflow.engine.core.concurrent.ProcessEngineExecutors;
 import com.alibaba.compileflow.engine.core.runtime.script.ScriptExecutorRegistry;
 import com.alibaba.compileflow.engine.spi.ProcessComponentResolver;
 import java.util.HashMap;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -84,7 +84,7 @@ class EngineExecutionContextComponentTest {
             .processCallInvoker(rejectingProcessCallInvoker())
             .executors(executors)
             .componentResolver(resolver)
-            .scriptExecutors(ScriptExecutorRegistry.builtIns(ProcessEngineConfig.tbbpm()))
+            .scriptExecutors(ScriptExecutorRegistry.from(List.of()))
             .build();
     }
 

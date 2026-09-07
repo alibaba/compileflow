@@ -104,6 +104,11 @@ class CompileFlowWorkbenchServerConfigurationMetadataTest {
             .stringValue())
             .isEqualTo("API_KEY");
         assertThat(properties
+            .get("compileflow.workbench.server.database.provider")
+            .path("defaultValue")
+            .stringValue())
+            .isEqualTo("POSTGRESQL");
+        assertThat(properties
             .get("compileflow.workbench.server.database.migrate")
             .path("defaultValue")
             .booleanValue())
@@ -133,6 +138,9 @@ class CompileFlowWorkbenchServerConfigurationMetadataTest {
 
         assertThat(properties).doesNotContainKey("compileflow.workbench.server.api-key");
         assertThat(properties).doesNotContainKey("compileflow.workbench.server.async-invocation.lease-renewal-interval");
+        assertThat(properties)
+            .doesNotContainKeys("compileflow.workbench.server.async-invocation.queue-capacity",
+                    "compileflow.workbench.server.async-invocation.dispatch-batch-size");
         assertThat(properties.keySet()).noneMatch(name -> name.startsWith("compileflow.workbench.server.cors."));
         assertThat(properties
             .entrySet()

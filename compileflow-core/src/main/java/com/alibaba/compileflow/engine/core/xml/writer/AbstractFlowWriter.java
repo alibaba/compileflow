@@ -14,7 +14,6 @@
 package com.alibaba.compileflow.engine.core.xml.writer;
 
 import javax.xml.stream.XMLStreamWriter;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * Base implementation for XML flow writers with optional-attribute handling.
@@ -23,7 +22,7 @@ import org.apache.commons.lang3.StringUtils;
  */
 public abstract class AbstractFlowWriter {
     protected void writeAttribute(XMLStreamWriter xsw, String name, String value) throws Exception {
-        if (StringUtils.isNotBlank(name) && StringUtils.isNotBlank(value)) {
+        if (value != null) {
             xsw.writeAttribute(name, value);
         }
     }

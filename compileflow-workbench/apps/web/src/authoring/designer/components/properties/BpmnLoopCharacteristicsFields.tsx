@@ -1,4 +1,4 @@
-import { Divider, Form, Input, InputNumber, Select, Switch } from 'antd'
+import { AutoComplete, Divider, Form, Input, InputNumber, Select, Switch } from 'antd'
 import { useTranslation } from 'react-i18next'
 
 import { selectCurrentProcess } from '../../store/editorSlice'
@@ -125,15 +125,18 @@ function MultiInstanceLoopFields({
   return (
     <>
       <Form.Item label={t('designer.props.node.loop.collection')} required>
-        <Select
-          value={value.collection || undefined}
+        <AutoComplete
+          value={value.collection}
           onChange={(collection) => update({ collection })}
           options={processVariables.map((variable) => ({
             value: variable.name,
             label: `${variable.name} (${variable.type})`,
           }))}
-          showSearch
-          optionFilterProp="label"
+          filterOption={(input, option) =>
+            String(option?.label ?? option?.value ?? '')
+              .toLowerCase()
+              .includes(input.toLowerCase())
+          }
           aria-label={t('designer.props.node.loop.collection')}
         />
       </Form.Item>

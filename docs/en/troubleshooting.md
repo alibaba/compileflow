@@ -7,17 +7,19 @@ enable broad debug logging or log process variables/source content as a first re
 
 ### Unknown Or Invalid Configuration
 
-CompileFlow Spring properties use strict binding. A misspelled `compileflow.engine.*`,
-`compileflow.deploy.*`, or `compileflow.workbench.server.*` field must fail startup.
+CompileFlow Spring properties use strict binding. Unknown fields in enumerable configuration sources under
+`compileflow.engine.*`, `compileflow.deploy.*`, `compileflow.durable.*`, or `compileflow.workbench.server.*`
+fail startup. This is not an arbitrary OS-environment typo detector: Workbench's explicit `CONFIG_*` aliases have
+a whitelist, while other environment names follow Spring relaxed binding. See the exact source boundary in Configuration.
 
 1. Read the binding failure and property path.
 2. Compare it with [Configuration](configuration.md).
 3. Remove obsolete aliases instead of duplicating the same setting under another prefix.
 4. Keep datasource, HTTP server, Actuator, and logging settings under Spring's standard prefixes.
 
-`CF_CONFIG_001` indicates an invalid value. `CF_CONFIG_005` usually means no matching format provider or more than one
-provider for the same `ProcessModelType`; ensure exactly the intended
-`compileflow-tbbpm` or `compileflow-bpmn` provider is present.
+`CF_CONFIG_001` indicates an invalid value. `CF_CONFIG_005` usually means no matching semantic-compiler provider or more
+than one provider for the same `ProcessModelType`; ensure the intended `compileflow-tbbpm` or `compileflow-bpmn`
+frontend module is present exactly once.
 
 ### Runtime Compiler Missing
 
@@ -26,22 +28,22 @@ runtime image. A JRE-only or over-trimmed image cannot compile generated flows.
 
 ## 2. Definition Cannot Be Loaded
 
-| Code              | Meaning                        | Checks                                                             |
-|-------------------|--------------------------------|--------------------------------------------------------------------|
-| `CF_RESOURCE_001` | definition not found           | Check process code and classpath resource name                     |
-| `CF_RESOURCE_002` | read or UTF-8 decoding failed  | Check readability and strict UTF-8                                 |
-| `CF_RESOURCE_003` | resource policy rejected input | Check size limit and local-only classpath URL                     |
+| Code              | Meaning                        | Checks                                         |
+| ----------------- | ------------------------------ | ---------------------------------------------- |
+| `CF_RESOURCE_001` | definition not found           | Check process code and classpath resource name |
+| `CF_RESOURCE_002` | read or UTF-8 decoding failed  | Check readability and strict UTF-8             |
+| `CF_RESOURCE_003` | resource policy rejected input | Check size limit and local-only classpath URL  |
 
 For an explicit packaged definition:
 
 ```java
 ProcessDefinition definition =
-        ProcessDefinition.classpath("order.process", "flows/order.bpm");
+        ProcessDefinition.classpath(ProcessModelType.TBBPM, "order.process", "flows/order.bpm");
 ```
 
-Use an explicit resource path that matches the selected engine format, for example
-`ProcessDefinition.classpath("order.process", "flows/order.process.bpm")` for TBBPM or
-`ProcessDefinition.classpath("order.process", "flows/order.process.bpmn")` for BPMN.
+Use an explicit resource path that matches the definition's explicit model type, for example
+`ProcessDefinition.classpath(ProcessModelType.TBBPM, "order.process", "flows/order.process.bpm")` for TBBPM or
+`ProcessDefinition.classpath(ProcessModelType.BPMN, "order.process", "flows/order.process.bpmn")` for BPMN.
 
 Network-backed classpath URLs are rejected. Remote artifacts must be fetched and verified outside the Engine.
 
@@ -96,11 +98,11 @@ Use `getError().getCode()` for machine handling. Do not infer failure from `getO
 Common codes:
 
 | Code          | Meaning                                                                 |
-|---------------|-------------------------------------------------------------------------|
+| ------------- | ----------------------------------------------------------------------- |
 | `CF_EXEC_001` | process action/execution failure                                        |
 | `CF_EXEC_003` | script failure                                                          |
 | `CF_EXEC_004` | action or process timeout                                               |
-| `CF_EXEC_005` | local bounded execution capacity was exhausted                           |
+| `CF_EXEC_005` | local bounded execution capacity was exhausted                          |
 | `CF_EXEC_007` | operation interrupted                                                   |
 | `CF_EXEC_008` | execution validation failure                                            |
 | `CF_EXEC_009` | typed output mapping failed after process completion                    |
@@ -126,7 +128,7 @@ Check:
 
 1. the control-plane Alias revision and stable/candidate versions;
 2. outbox status and dead letters;
-3. `DeployRuntime.snapshot()` desired, in-flight, deployed, and backed-off versions;
+3. `DeploymentRuntime.snapshot()` desired, in-flight, deployed, and backed-off versions;
 4. artifact identity, model type, and digest;
 5. local-ready revision and the bounded installation failure reason.
 
@@ -137,15 +139,15 @@ Control-plane `COMPLETED` means the route transaction committed; it does not mea
 actions, but retries must remain bounded because an invalid Alias or unavailable artifact will not recover merely by
 waiting.
 
-`CF_EXEC_013` requires correcting an intentionally undersized `compileflow.engine.call.max-depth`; it is not a transient
-retry condition. `CF_EXEC_014` means the process-call graph is invalid: for example, it contains a cycle, an exact-Version
+`CF_EXEC_013` means `compileflow.engine.call.max-depth` is too small for the requested call graph; increase it rather
+than retrying. `CF_EXEC_014` means the process-call graph is invalid: for example, it contains a cycle, an exact-Version
 or published graph declares a `classpath` target, or a target's process code does not match the call declaration. A
 Direct graph may target either `classpath` or an exact `version`. Fix the definition or publish/install the correct exact
 graph; execution never guesses an Alias, latest version, or caller-relative classpath.
 
 ## 6. Repeated Compilation Or High Memory
 
-Do not create an Engine per request. Reuse one Engine for each model type/configuration and close it with the
+Do not create an Engine per request. Reuse one Engine for each resource/configuration boundary and close it with the
 application lifecycle.
 
 If compilation repeats:
@@ -157,7 +159,7 @@ If compilation repeats:
 5. preflight and `engine.runtime().warmUp(definition)` known definitions at startup.
 
 Do not create random version identifiers for repeated calls. Published version identity is immutable, and changed
-content requires a new deliberate version.
+content requires a new explicit version.
 
 ## 7. Executor Rejection
 
@@ -170,7 +172,7 @@ content requires a new deliberate version.
 - Event capacity:
   `compileflow.engine.observability.events.max-concurrency` and `max-pending`.
 - Deploy installation capacity:
-  `compileflow.deploy.runtime.concurrency` and `queue-capacity` in a distributed runtime process; embedded
+  `compileflow.deploy.runtime.installation-concurrency` in a distributed runtime process; embedded
   installation admission derives from the engine runtime-load capacity.
 
 Measure queue wait, service time, rejection rate, and upstream concurrency before increasing limits. Apply backpressure

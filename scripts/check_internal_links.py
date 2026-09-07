@@ -3,12 +3,14 @@
 
 from __future__ import annotations
 
+import fnmatch
+import hashlib
+import json
 import os
 import re
 import shlex
 import subprocess
 import sys
-import hashlib
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from urllib.parse import unquote
@@ -80,6 +82,29 @@ def extract_micrometer_metric_names(java_text: str) -> set[str]:
             for suffix in MICROMETER_PREFIX_SUFFIX_RE.findall(java_text)
         )
     return {name for name in names if not name.endswith(".")}
+
+
+def find_missing_workflow_tests(root: Path) -> list[str]:
+    """Check each explicit Surefire class selector, including quoted globs."""
+    test_classes = {
+        path.stem
+        for path in root.glob("**/src/test/java/**/*.java")
+        if not any(part in SKIP_DIRS for part in path.relative_to(root).parts)
+    }
+    errors: list[str] = []
+    for workflow in sorted((root / ".github/workflows").glob("*.yml")):
+        for match in re.finditer(r'''-Dtest=("[^"]*"|'[^']*'|[^\s\\]+)''', workflow.read_text(encoding="utf-8")):
+            for selector in shlex.split(match.group(1))[0].split(","):
+                if selector.startswith("!"):
+                    continue
+                pattern = selector.split("#", 1)[0].removesuffix(".java").rsplit(".", 1)[-1]
+                if not any(fnmatch.fnmatchcase(name, pattern) for name in test_classes):
+                    errors.append(f"{workflow.relative_to(root)}: CI test selector matches no source: {selector}")
+    return errors
+
+
+def check_workflow_tests() -> list[str]:
+    return find_missing_workflow_tests(ROOT)
 
 
 def find_internal_identifier_casing_errors(root: Path) -> list[str]:
@@ -154,9 +179,6 @@ ALLOWED_TRACKED_BINARY_PATHS = {
     Path(".mvn/wrapper/maven-wrapper.jar"),
 }
 INTERNAL_ONLY_PATTERNS = [
-    "compileflow@list.alibaba-inc.com",
-    "compileflow@alibaba-inc.com",
-    "alibaba-inc.com",
     "compileflow-examples",
 ]
 INSECURE_SECRET_DEFAULT_PATTERNS = [
@@ -188,11 +210,31 @@ STALE_EXECUTION_FLOW_DOC_RE = re.compile(
     r"com\.alibaba\.compileflow\.engine\.runtime\.ProcessRuntime|"
     r"耗时:\s*5-10|100-500ms"
 )
-MAVEN_COMMAND_RE = re.compile(r"(?<!\S)(?:mvn|\./mvnw)\s+")
-DANGEROUS_MAVEN_GOALS = {"test", "install"}
 MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 MARKDOWN_FENCE_RE = re.compile(r"^[ ]{0,3}(`{3,}|~{3,})(.*)$")
 MARKDOWN_HEADING_RE = re.compile(r"^#{1,6}\s+(.+?)\s*$")
+PNPM_COMMAND_RE = re.compile(
+    r"^\s*(?:[A-Z][A-Z0-9_]*=\S+\s+)*pnpm\s+([^\s\\]+)"
+)
+PNPM_BUILTIN_COMMANDS = {
+    "add",
+    "audit",
+    "config",
+    "deploy",
+    "dlx",
+    "env",
+    "exec",
+    "help",
+    "install",
+    "list",
+    "pack",
+    "publish",
+    "remove",
+    "run",
+    "store",
+    "update",
+    "why",
+}
 KFILE_RE = re.compile(r"<kfile\b")
 LOCKFILE_DELETION_RE = re.compile(r"rm\s+-rf[^\n]*(?:pnpm-lock\.yaml|package-lock\.json|yarn\.lock)")
 STALE_TYPESCRIPT_DOC_RE = re.compile(r"TypeScript\s+5\.(?:5|6)|应该是\s+5\.5\.x")
@@ -230,12 +272,14 @@ PHANTOM_CONFIG_RE = re.compile(
 )
 STALE_API_DOC_RE = re.compile(
     r"ProcessSource\.fromCode\([^)]+\)\s*\n\s*\.(?:namespace|version)\(|"
+    r"\bProcessRef\.code\s*\(|"
     r"\bCompileFlowAutoConfiguration\b|"
     r"ProcessResult[^\n]{0,120}\bon(?:Success|Failure)\b|"
     r"\bresult\.getMessage\(\)|\bresult\.getException\(\)|\bgetResultData\(\)|"
     r"\bProcessEngine<[^>]+>\s+extends\s+Closeable|"
     r"\bgetAdminService\(\)|\bgetConfig\(\)|"
-    r"ProcessEngineConfig\.builder\(\)|"
+    r"ProcessEngineConfig\.(?:tbbpm|bpmn)(?:Builder)?\(|"
+    r"ProcessEngineFactory\.create(?:Tbbpm|Bpmn)\(|"
     r"\.dumpGeneratedCode\(|\.dumpDirectory\(|COMPILEFLOW_DUMP_CODE|COMPILEFLOW_DUMP_DIR|"
     r"\.generateJavaSource\(|\.getCacheStats\(\)|\bCacheStats\b|"
     r"selectVersion\(String namespace|selectVersion\(namespace|source\.getAlias\(\)|"
@@ -250,6 +294,10 @@ STALE_API_DOC_RE = re.compile(
     r"loading-sources-max-size`?\s*(?:\(|（)默认 1024|"
     r"compileflow:\s*\n(?:.*\n){0,8}\s+execution:\s*\n\s+default-timeout-seconds:|"
     r"\bFlowStorage\b|the current `SpanContext`"
+    r"|Provider implementations are shipped by the format|semantic frontends?, and providers?"
+    r"|(?:C|c)ore consumes their provider boundary|matching format provider"
+    r"|provider 实现位于格式模块|semantic frontend 和 provider"
+    r"|Core 只依赖 provider 边界|没有匹配格式 provider"
 )
 ACTIVE_DOC_RETIRED_SEMANTIC_PATTERNS = (
     (
@@ -295,6 +343,18 @@ ACTIVE_DOC_RETIRED_SEMANTIC_PATTERNS = (
         ),
         "persisted Child Run state",
     ),
+    (
+        re.compile(
+            r"(?:\b(?:database|Store)\b[^.。\n]{0,120}(?:stores?|persists?)[^.。\n]{0,40}"
+            r"\bonly\b[^.。\n]{0,40}(?:SHA-256\s+)?digest|"
+            r"Wait tokens?[^.。\n]{0,120}\bonly their digests are persisted|"
+            r"(?:数据库|Store)[^.。\n]{0,80}只(?:存|持久化)[^.。\n]{0,40}"
+            r"(?:SHA-256\s+)?(?:digest|Digest|摘要)|"
+            r"Wait token[^.。\n]{0,80}只持久化其摘要)",
+            re.IGNORECASE,
+        ),
+        "overbroad Wait-token persistence claim",
+    ),
 )
 REMOVED_2_0_SURFACE_RE = re.compile(
     r"\bProcessSource\b|\bResourceLocator\b|\bRouteContextKeys\b|"
@@ -315,7 +375,7 @@ STALE_DEPLOY_DOC_RE = re.compile(
     r"\bFlowArtifactKeys\b|\bFlowArtifactParser\b|\bFlowArtifactPayloads\b|"
     r"\bFlowArtifactSource\b|\bFlowDeploymentMetrics\b|\bFlowDeploymentOpsMetrics\b|"
     r"\.invalidateCache\(|\.invalidateAllCaches\(|"
-    r"\bDeployRuntime\.bootstrap(?:Db|Channel)\(|"
+    r"\bDeploymentRuntime\.bootstrap(?:Db|Channel)\(|"
     r"\bRoutingStatePublisher\b|\"processSource\"\s*:\s*\{|"
     r"\b(?:PublishProcessVersionCommand|ActivateFlowVersionCommand|UpsertAliasWeightsCommand|"
     r"FinalizeRolloutCommand|RollbackCommand)\.builder\("
@@ -430,16 +490,8 @@ SERVER_CI_REQUIRED_GATES = [
     ("postgres: '17.11'", "Workbench and Deploy CI must cover PostgreSQL 17"),
     ("postgres: '18.6'", "Workbench and Deploy CI must cover PostgreSQL 18"),
     (
-        "compileflow-integration-tests/**",
-        "Workbench and Deploy CI must run when deployment runtime-chain tests change",
-    ),
-    (
-        "DeploymentRuntimeChainIntegrationTest",
-        "Workbench and Deploy CI must execute the deployment runtime chain on PostgreSQL",
-    ),
-    (
-        "compileflow.test.deploy.postgres.required=true",
-        "deployment runtime-chain evidence must fail instead of falling back to H2",
+        "EmbeddedDeploymentExecutionIntegrationTest",
+        "Workbench and Deploy CI must exercise the embedded deployment execution path",
     ),
     (
         "Reject missing, failed, or skipped PostgreSQL evidence",
@@ -457,6 +509,30 @@ SERVER_CI_REQUIRED_GATES = [
         "compileflow-workbench-postgres-${{ matrix.postgres }}",
         "Workbench and Deploy CI artifacts must identify the PostgreSQL version",
     ),
+    (
+        "Execute the production release lifecycle example",
+        "Workbench and Deploy CI must execute the production release lifecycle example against PostgreSQL",
+    ),
+    (
+        "DeploymentExampleApplicationTest",
+        "Workbench and Deploy CI must reject a skipped production release lifecycle example",
+    ),
+    (
+        "mysql:8.4.7@sha256:",
+        "Workbench and Deploy CI must pin the supported MySQL service image",
+    ),
+    (
+        "MySqlDeployRepositoryContractTest,AsyncInvocationStoreContractTest,WorkbenchExternalSchemaAdmissionTest",
+        "Workbench and Deploy CI must execute all MySQL persistence contracts together",
+    ),
+    (
+        "verify_database_contract_evidence.py",
+        "Workbench and Deploy CI must reject skipped or failed MySQL evidence",
+    ),
+    (
+        "compileflow-workbench-mysql-8.4.7",
+        "Workbench and Deploy CI artifacts must identify the MySQL version",
+    ),
     ("java-version: '17'", "CompileFlow Workbench Server CI must own quality gates on Java 17"),
     ("java: ['21', '25']", "CompileFlow Workbench Server CI must smoke newer supported runtimes"),
     ("java-version: ${{ matrix.java }}", "CompileFlow Workbench Server CI must select the compatibility JDK"),
@@ -470,10 +546,6 @@ INTEGRATION_CI_REQUIRED_GATES = [
     (
         "Run storage-free Spring Boot example",
         "Integration CI must prove that the base starter needs no Deploy runtime",
-    ),
-    (
-        "DeploymentRuntimeChainIntegrationTest",
-        "Integration CI must execute the current multi-node deployment runtime contract",
     ),
     (
         "-pl examples/spring-boot-basic",
@@ -491,7 +563,7 @@ INTEGRATION_CI_REQUIRED_GATES = [
 ]
 JAVA_PLATFORM_SUPPORT_REQUIRED_FRAGMENTS = [
     (
-        Path("docs/compatibility-policy.md"),
+        Path("docs/en/compatibility-policy.md"),
         [
             ("Java 17 is the minimum", "Java 17 source and bytecode baseline"),
             ("maven.compiler.release=17", "compiler release contract"),
@@ -608,7 +680,7 @@ DOCUMENT_INDEX_REQUIRED_LINKS = [
             "threat-model.md",
             "../../SUPPORT.md",
             "../../CONTRIBUTING.md",
-            "../architecture/06-SUPPORTED_SURFACES.en.md",
+            "architecture/supported-surfaces.md",
         ],
     ),
     (
@@ -622,7 +694,7 @@ DOCUMENT_INDEX_REQUIRED_LINKS = [
             "threat-model.md",
             "../../SUPPORT.md",
             "../../CONTRIBUTING.md",
-            "../architecture/06-SUPPORTED_SURFACES.zh.md",
+            "architecture/supported-surfaces.md",
         ],
     ),
     (
@@ -630,25 +702,28 @@ DOCUMENT_INDEX_REQUIRED_LINKS = [
         [
             "../CONTRIBUTING.md",
             "../SUPPORT.md",
-            "architecture/06-SUPPORTED_SURFACES.en.md",
+            "../compileflow-bom/README.md",
+            "en/architecture/supported-surfaces.md",
+            "zh/architecture/supported-surfaces.md",
         ],
     ),
     (
-        Path("docs/architecture/README.md"),
+        Path("docs/en/architecture/README.md"),
         [
-            "06-SUPPORTED_SURFACES.en.md",
+            "supported-surfaces.md",
         ],
     ),
 ]
 SUPPORTED_SURFACES_REQUIRED_FRAGMENTS = [
     (
-        Path("docs/architecture/06-SUPPORTED_SURFACES.en.md"),
+        Path("docs/en/architecture/supported-surfaces.md"),
         [
             ("ProcessEngine", "engine entry"),
             ("ProcessRef", "existing-process identity"),
             ("ProcessDefinition", "explicit process definition"),
             ("compileflow-deploy-api", "supported deployment API artifact"),
-            ("DeploymentSyncChannel", "deployment transport SPI"),
+            ("compileflow-deploy-protocol", "supported deployment protocol artifact"),
+            ("DeploymentProjectionStore", "deployment transport SPI"),
             ("deploy admin/runtime/integration", "unsupported deployment implementation packages"),
             ("compileflow.engine.*", "engine configuration prefix"),
             ("compileflow.deploy.*", "deploy configuration prefix"),
@@ -657,14 +732,15 @@ SUPPORTED_SURFACES_REQUIRED_FRAGMENTS = [
         ],
     ),
     (
-        Path("docs/architecture/06-SUPPORTED_SURFACES.zh.md"),
+        Path("docs/zh/architecture/supported-surfaces.md"),
         [
             ("ProcessEngine", "engine entry"),
             ("ProcessRef", "existing-process identity"),
             ("ProcessDefinition", "explicit process definition"),
             ("compileflow-deploy-api", "supported deployment API artifact"),
-            ("DeploymentSyncChannel", "deployment transport SPI"),
-            ("deploy admin/runtime/integration", "unsupported deployment implementation packages"),
+            ("compileflow-deploy-protocol", "supported deployment protocol artifact"),
+            ("DeploymentProjectionStore", "deployment transport SPI"),
+            ("部署协调器", "unsupported deployment implementation packages"),
             ("compileflow.engine.*", "engine configuration prefix"),
             ("compileflow.deploy.*", "deploy configuration prefix"),
             ("OpenAPI 描述", "Operate wire contract authority"),
@@ -688,7 +764,7 @@ API_REFERENCE_REQUIRED_FRAGMENTS = [
             ("String generateJavaCode(ProcessDefinition definition);", "tooling definition API"),
             ("static ProcessPreflightOptions strict();", "preflight strict factory"),
             ("ProcessPreflightReport.OverallStatus getOverallStatus();", "preflight report status API"),
-            ("ProcessEngineConfig.Builder tbbpmBuilder();", "typed engine config builders"),
+            ("ProcessEngineConfig.Builder builder();", "engine configuration builder"),
         ],
     ),
     (
@@ -706,7 +782,7 @@ API_REFERENCE_REQUIRED_FRAGMENTS = [
             ("String generateJavaCode(ProcessDefinition definition);", "tooling definition API"),
             ("static ProcessPreflightOptions strict();", "preflight strict factory"),
             ("ProcessPreflightReport.OverallStatus getOverallStatus();", "preflight report status API"),
-            ("ProcessEngineConfig.Builder tbbpmBuilder();", "typed engine config builders"),
+            ("ProcessEngineConfig.Builder builder();", "engine configuration builder"),
         ],
     ),
 ]
@@ -725,8 +801,6 @@ CONFIGURATION_REQUIRED_FRAGMENTS = [
             ("COMPILEFLOW_DEV_GATEWAY_LOG_LEVEL", "development gateway log level"),
             ("VITE_COMPILEFLOW_DEBUG", "web debug build input"),
             ("public **build-time** inputs", "public Vite build-time semantics"),
-            ("## Delivery Toolchain", "delivery toolchain configuration contract"),
-            ("minimumReleaseAge", "dependency publication cooling period"),
         ],
     ),
     (
@@ -743,21 +817,21 @@ CONFIGURATION_REQUIRED_FRAGMENTS = [
             ("COMPILEFLOW_DEV_GATEWAY_LOG_LEVEL", "development gateway log level"),
             ("VITE_COMPILEFLOW_DEBUG", "web debug build input"),
             ("公开 **构建时输入**", "public Vite build-time semantics"),
-            ("## 构建与交付工具链", "delivery toolchain configuration contract"),
-            ("minimumReleaseAge", "dependency publication cooling period"),
         ],
     ),
 ]
 MODULE_MAP_REQUIRED_FRAGMENTS = [
     (
-        Path("docs/architecture/03-MODULE_MAP.en.md"),
+        Path("docs/en/architecture/module-map.md"),
         [
+            ("compileflow-bom", "consumer dependency alignment"),
             ("compileflow-workbench-server", "server module"),
             ("compileflow-deploy-runtime", "deploy runtime module"),
+            ("compileflow-deploy-jdbc", "shared Deploy JDBC implementation module"),
             ("ProcessRef", "existing-process identity"),
             ("ProcessDefinition", "explicit process definition"),
-            ("CompileFlowCoreAutoConfiguration", "current Spring Boot core auto-configuration"),
-            ("DeployRuntime", "deploy data-plane runtime"),
+            ("CompileFlowEngineAutoConfiguration", "current Spring Boot core auto-configuration"),
+            ("DeploymentRuntime", "deploy data-plane runtime"),
             ("ProcessRuntimeResolver", "core runtime provider"),
             ("AliasAdmission", "published Alias router"),
             ("DeterministicAliasSelector", "deterministic alias target selector"),
@@ -767,12 +841,11 @@ MODULE_MAP_REQUIRED_FRAGMENTS = [
 ]
 EXECUTION_FLOW_REQUIRED_FRAGMENTS = [
     (
-        Path("docs/architecture/04-EXECUTION_FLOW.en.md"),
+        Path("docs/en/architecture/execution-flow.md"),
         [
             ("EngineExecutionContext", "execution context lifecycle"),
             ("ProcessExecutionOptions", "isolated execution request metadata"),
             ("ProcessExecution", "controlled execution attribution"),
-            ("Neither exposes a generic metadata map", "closed execution attribution contract"),
             ("CF_EXEC_010", "pre-execution input mapping failure"),
             ("CF_EXEC_009", "post-execution output mapping failure"),
             ("code#version", "versioned runtime cache key"),
@@ -787,19 +860,12 @@ EXECUTION_FLOW_REQUIRED_FRAGMENTS = [
 ]
 VERSION_ROUTING_REQUIRED_FRAGMENTS = [
     (
-        Path("docs/architecture/05-VERSION_ROUTING.en.md"),
+        Path("docs/en/architecture/version-routing.md"),
         [
-            ("Percentage routing is fixed by the protocol", "closed percentage-selection semantics"),
-            ("There is no public percentage-selection SPI", "absence of replaceable percentage routing"),
-            ("Only when exact runtime acquisition misses", "route handoff concurrency validation"),
             ("one stable version", "stable/candidate route shape"),
             ("candidateWeightBps", "basis-point candidate weight"),
             ("SHA-256", "deterministic routing hash"),
-            ("There is no request-local", "absence of random fallback"),
-            ("never guesses a version", "explicit no-route semantics"),
-            ("There is no active-version lookup", "absence of implicit version fallback"),
             ("present in `InstalledVersionState`", "dedicated local-installation boundary"),
-            ("execution fails closed", "fail-closed unavailable-version behavior"),
             ("tombstone retains", "alias deletion high-watermark semantics"),
             ("expected Alias revision", "Alias compare-and-set precondition"),
             ("Alias revision", "execution Alias attribution"),
@@ -821,7 +887,7 @@ NODE_SUPPORT_REQUIRED_FRAGMENTS = [
             ("BpmnElementParserRegistry", "BPMN parser registry source of truth"),
             ("BpmnSemanticFrontend", "BPMN semantic frontend source of truth"),
             ("JavaProcessCodeGenerator", "shared compiled realization source of truth"),
-            ("Parser presence alone is not enough.", "parser-only boundary"),
+            ("DurableMachineLowerer", "Durable lowering boundary source of truth"),
         ],
     ),
     (
@@ -836,7 +902,7 @@ NODE_SUPPORT_REQUIRED_FRAGMENTS = [
             ("BpmnElementParserRegistry", "BPMN parser registry source of truth"),
             ("BpmnSemanticFrontend", "BPMN semantic frontend source of truth"),
             ("JavaProcessCodeGenerator", "shared compiled realization source of truth"),
-            ("只有 parser 并不代表可执行。", "parser-only boundary"),
+            ("DurableMachineLowerer", "Durable lowering boundary source of truth"),
         ],
     ),
 ]
@@ -855,17 +921,18 @@ CODEQL_REQUIRED_GATES = [
     ("security-events: write", "CodeQL analysis must be able to publish code-scanning results"),
 ]
 SUPPLY_CHAIN_REQUIRED_GATES = [
+    ("./mvnw install -DskipTests", "Supply Chain inventory must install the current default reactor before BOM resolution"),
     ("cyclonedx-maven-plugin:makeAggregateBom", "Supply Chain workflow must generate a Maven aggregate SBOM"),
     ("scripts/verify_maven_sbom.py", "Supply Chain workflow must structurally verify the Maven SBOM"),
     ("target/compileflow-bom.json", "Supply Chain workflow must verify the Maven SBOM artifact"),
     ("target/compileflow-bom.sha256", "Supply Chain workflow must publish a checksum subject for the SBOM"),
-    ("base64-subjects", "Supply Chain workflow must pass checksum subjects to provenance generation"),
     (
-        "generator_generic_slsa3.yml@v2.1.0",
-        "Supply Chain workflow must use the verifier-compatible SLSA generator release",
+        "actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f",
+        "Supply Chain workflow must use the reviewed GitHub build-provenance action",
     ),
-    ("compileflow-maven-sbom.intoto.jsonl", "Supply Chain workflow must name the SLSA provenance artifact"),
-    ("id-token: write", "Supply Chain workflow must grant OIDC only to the provenance job"),
+    ("subject-checksums: target/compileflow-bom.sha256", "Supply Chain workflow must attest the SBOM checksum subject"),
+    ("attestations: write", "Supply Chain workflow must publish artifact attestations"),
+    ("id-token: write", "Supply Chain workflow must grant OIDC to the attesting SBOM job"),
     ("actions/upload-artifact@", "Supply Chain workflow must upload the generated SBOM"),
 ]
 DEV_GATEWAY_QUALITY_RULES = [
@@ -890,10 +957,6 @@ WORKBENCH_TOOLCHAIN_REQUIRED_FRAGMENTS = [
         ],
     ),
     (
-        Path("compileflow-workbench/.node-version"),
-        [("24.18.0", "exact Node 24 LTS development release")],
-    ),
-    (
         Path("compileflow-workbench/apps/web/vite.config.ts"),
         [
             ("require('./package.json')", "Web package version source"),
@@ -906,7 +969,6 @@ WORKBENCH_TOOLCHAIN_REQUIRED_FRAGMENTS = [
             ("engineStrict: true", "strict runtime engine enforcement"),
             ("autoInstallPeers: false", "explicit peer dependency ownership"),
             ("strictPeerDependencies: true", "fail-fast peer dependency validation"),
-            ("nodeVersion: 24.18.0", "dependency target Node release"),
             ("minimumReleaseAge: 1440", "dependency publication cooling period"),
             (
                 "minimumReleaseAgeIgnoreMissingTime: false",
@@ -948,7 +1010,7 @@ DOCKER_DELIVERY_RULES = [
         Path("compileflow-workbench/docker/Dockerfile.all-in-one"),
         [
             (
-                "FROM node:24.18.0-alpine3.24@sha256:",
+                re.compile(r"FROM node:\d+\.\d+\.\d+-alpine3\.24@sha256:[0-9a-f]{64} AS web-build"),
                 "Bundled image must pin its Node 24 LTS build image",
             ),
             (
@@ -975,7 +1037,7 @@ DOCKER_DELIVERY_RULES = [
         Path("compileflow-workbench/docker/Dockerfile.web"),
         [
             (
-                "FROM node:24.18.0-alpine3.24@sha256:",
+                re.compile(r"FROM node:\d+\.\d+\.\d+-alpine3\.24@sha256:[0-9a-f]{64} AS build"),
                 "Web image must pin its Node 24 LTS manifest digest",
             ),
             (
@@ -1212,7 +1274,7 @@ OPERATE_CONTRACT_REQUIRED_FRAGMENTS = [
                 "AsyncInvocationDeadLetterRequeueRequest",
                 "async invocation dead-letter requeue request",
             ),
-            ("DeployRuntimeDiagnostics", "deploy runtime diagnostics contract"),
+            ("DeploymentRuntimeDiagnostics", "deploy runtime diagnostics contract"),
         ],
     ),
     (
@@ -1234,7 +1296,9 @@ ASSERTJ_ENFORCED_TEST_DIRS = [
     Path("compileflow-core/src/test/java"),
     Path("compileflow-deploy/compileflow-deploy-control-plane/src/test/java"),
     Path("compileflow-deploy/compileflow-deploy-api/src/test/java"),
+    Path("compileflow-deploy/compileflow-deploy-protocol/src/test/java"),
     Path("compileflow-deploy/compileflow-deploy-runtime/src/test/java"),
+    Path("compileflow-deploy/compileflow-deploy-spring-boot-autoconfigure/src/test/java"),
     Path("compileflow-integration-tests/src/test/java"),
     Path("compileflow-workbench-server/src/test/java"),
     Path("compileflow-spring-boot-autoconfigure/src/test/java"),
@@ -1258,7 +1322,7 @@ IN_MEMORY_DEPLOY_REPOSITORIES = [
 ]
 IN_MEMORY_DEPLOY_PRODUCTION_TYPES = [
     *IN_MEMORY_DEPLOY_REPOSITORIES,
-    "InMemoryDeploymentSyncChannel",
+    "InMemoryDeploymentProjectionStore",
 ]
 BROKEN_HELPER_SCRIPT_RE = re.compile(
     r"bash-buddy/|(?<!\S)-Plint(?!\S)|spotbugs\.failOnError=false"
@@ -1399,6 +1463,45 @@ def check_markdown_structure() -> list[str]:
     return errors
 
 
+def find_unknown_documented_pnpm_scripts(root: Path) -> list[str]:
+    """Reject documented root pnpm commands that are not declared scripts or pnpm built-ins."""
+    package_json = root / "compileflow-workbench" / "package.json"
+    if not package_json.exists():
+        return []
+    scripts = set(json.loads(package_json.read_text(encoding="utf-8")).get("scripts", {}))
+    errors: list[str] = []
+    for current, directories, names in os.walk(root):
+        directories[:] = sorted(
+            directory for directory in directories if directory not in SKIP_DIRS
+        )
+        for name in sorted(names):
+            if not name.endswith(".md"):
+                continue
+            path = Path(current) / name
+            relative_path = path.relative_to(root)
+            for line_number, line in enumerate(
+                path.read_text(encoding="utf-8", errors="replace").splitlines(), start=1
+            ):
+                match = PNPM_COMMAND_RE.match(line)
+                if not match:
+                    continue
+                command = match.group(1)
+                if (
+                    command.startswith("-")
+                    or command in PNPM_BUILTIN_COMMANDS
+                    or command in scripts
+                ):
+                    continue
+                errors.append(
+                    f"{relative_path}:{line_number} documents unknown root pnpm script {command!r}"
+                )
+    return errors
+
+
+def check_documented_pnpm_scripts() -> list[str]:
+    return find_unknown_documented_pnpm_scripts(ROOT)
+
+
 def check_markdown_links() -> list[str]:
     errors: list[str] = []
     anchor_cache: dict[Path, set[str]] = {}
@@ -1448,6 +1551,15 @@ def check_issue_templates() -> list[str]:
     if markdown_templates:
         names = ", ".join(str(p.relative_to(ROOT)) for p in markdown_templates)
         errors.append(f"Use YAML issue forms only; remove Markdown issue templates: {names}")
+    config_path = template_dir / "config.yml"
+    if config_path.exists():
+        config_text = config_path.read_text(encoding="utf-8", errors="replace")
+        if "github.com/alibaba/compileflow/discussions" in config_text:
+            errors.append("Issue contacts must not link to the unavailable GitHub Discussions channel")
+        if "github.com/alibaba/compileflow/tree/master/docs/examples" in config_text:
+            errors.append("Issue contacts must link to the runnable root examples, not docs/examples")
+        if "github.com/alibaba/compileflow/tree/master/examples" not in config_text:
+            errors.append("Issue contacts must link to the runnable root examples")
     return errors
 
 
@@ -1633,17 +1745,21 @@ def check_process_stage_language() -> list[str]:
 
 def check_unsupported_architecture_claims() -> list[str]:
     errors: list[str] = []
-    architecture_dir = ROOT / "docs" / "architecture"
-    if not architecture_dir.exists():
-        return errors
-    for path in sorted(architecture_dir.rglob("*.md")):
-        text = path.read_text(encoding="utf-8", errors="replace")
-        match = UNSUPPORTED_ARCHITECTURE_CLAIM_RE.search(text)
-        if match:
-            errors.append(f"{path.relative_to(ROOT)} contains unsupported architecture claim: {match.group(0)}")
-        match = STALE_ARCHITECTURE_EXAMPLE_RE.search(text)
-        if match:
-            errors.append(f"{path.relative_to(ROOT)} contains stale architecture example: {match.group(0)}")
+    architecture_dirs = (
+        ROOT / "docs" / "en" / "architecture",
+        ROOT / "docs" / "zh" / "architecture",
+    )
+    for architecture_dir in architecture_dirs:
+        if not architecture_dir.exists():
+            continue
+        for path in sorted(architecture_dir.rglob("*.md")):
+            text = path.read_text(encoding="utf-8", errors="replace")
+            match = UNSUPPORTED_ARCHITECTURE_CLAIM_RE.search(text)
+            if match:
+                errors.append(f"{path.relative_to(ROOT)} contains unsupported architecture claim: {match.group(0)}")
+            match = STALE_ARCHITECTURE_EXAMPLE_RE.search(text)
+            if match:
+                errors.append(f"{path.relative_to(ROOT)} contains stale architecture example: {match.group(0)}")
     return errors
 
 
@@ -1739,6 +1855,7 @@ def check_required_workflows() -> list[str]:
         ROOT / ".github" / "workflows" / "security-scorecard.yml",
         ROOT / ".github" / "workflows" / "codeql.yml",
         ROOT / ".github" / "workflows" / "java-security.yml",
+        ROOT / ".github" / "workflows" / "release-build.yml",
         ROOT / ".github" / "workflows" / "supply-chain.yml",
         ROOT / ".github" / "workflows" / "dependency-review.yml",
     ]
@@ -1885,8 +2002,10 @@ def check_text_normalization_policy() -> list[str]:
     return errors
 
 
-def workflow_fragment_present(text: str, fragment: str) -> bool:
+def workflow_fragment_present(text: str, fragment: str | re.Pattern[str]) -> bool:
     """Match workflow contracts without coupling them to YAML presentation."""
+    if isinstance(fragment, re.Pattern):
+        return fragment.search(text) is not None
     if fragment in text:
         return True
     compact = lambda value: re.sub(r"[\s'\"]+", "", value)
@@ -2211,6 +2330,23 @@ def check_dependabot_coverage() -> list[str]:
     return errors
 
 
+def find_release_attestation_permission_errors(root: Path) -> list[str]:
+    """Require both sides of the reusable release workflow to grant attestation authority."""
+    errors: list[str] = []
+    workflow_dir = root / ".github" / "workflows"
+    for name in ("release.yml", "release-build.yml"):
+        path = workflow_dir / name
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for permission in ("attestations: write", "id-token: write"):
+            if permission not in text:
+                errors.append(
+                    f"{path.relative_to(root)} must grant {permission} for release attestations"
+                )
+    return errors
+
+
 def check_release_document_set() -> list[str]:
     errors: list[str] = []
     for path in iter_files(".md"):
@@ -2218,11 +2354,21 @@ def check_release_document_set() -> list[str]:
         if path.name.upper() == "CHANGELOG.MD" and rel_path != Path("CHANGELOG.md"):
             errors.append(f"Use the root CHANGELOG.md only; remove duplicate changelog: {rel_path}")
     workflow = ROOT / ".github" / "workflows" / "release.yml"
+    build_workflow = ROOT / ".github" / "workflows" / "release-build.yml"
     if not workflow.exists():
         errors.append(".github/workflows/release.yml is required")
     else:
         text = workflow.read_text(encoding="utf-8", errors="replace")
+        if not build_workflow.exists():
+            errors.append(".github/workflows/release-build.yml is required")
+        else:
+            text += "\n" + build_workflow.read_text(encoding="utf-8", errors="replace")
         required = [
+            (
+                "uses: ./.github/workflows/release-build.yml",
+                "release workflow must delegate build and attestation to the trusted reusable workflow",
+            ),
+            ("workflow_call:", "release build workflow must be reusable"),
             ("Verify tag and project version", "release tags must be checked against the Maven version"),
             (
                 "scripts/check_release_baselines.py --online",
@@ -2274,7 +2420,7 @@ def check_release_document_set() -> list[str]:
                 "      - workbench-delivery-candidate-evidence",
                 "release build must wait for all same-commit product evidence",
             ),
-            ("./mvnw clean verify", "release artifacts must be built through verify"),
+            ("./mvnw clean install", "release artifacts must pass verify and be installed locally for SBOM resolution"),
             (
                 "-pl examples/spring-boot-basic",
                 "release workflow must execute the basic Spring Boot example",
@@ -2290,6 +2436,7 @@ def check_release_document_set() -> list[str]:
             ("Missing META-INF/NOTICE", "release workflow must require notice text in binary JARs"),
             ("Incorrect Implementation-Version", "release workflow must verify JAR implementation versions"),
             ("expected_artifacts=(", "release workflow must enumerate the complete artifact set"),
+            ("compileflow-deploy-jdbc", "release workflow must include the shared Deploy JDBC artifact"),
             ("compileflow-workbench-server", "release workflow must include the executable Server"),
             (
                 "compileflow-workbench-all-in-one-",
@@ -2303,33 +2450,53 @@ def check_release_document_set() -> list[str]:
             ("SHA256SUMS", "release workflow must publish a checksum manifest"),
             ("compileflow-bom.json", "release workflow must publish the aggregate SBOM"),
             (
+                "cyclonedx-maven-plugin:makeBom@workbench-application",
+                "release workflow must generate the separate Workbench application SBOM",
+            ),
+            (
+                "dependency:copy@workbench-sbom-loader",
+                "release workflow must resolve the exact Spring Boot loader for application verification",
+            ),
+            (
+                "python3 scripts/verify_workbench_sbom.py",
+                "release workflow must verify application dependencies against the distributed JAR",
+            ),
+            (
+                "cp compileflow-workbench-server/target/compileflow-workbench-server-bom.json staging/",
+                "release workflow must publish the Workbench application SBOM",
+            ),
+            (
                 "compileflow-workbench-web-bom.json",
                 "release workflow must publish the Workbench Web SBOM",
             ),
             ("verify_source_archive.py", "release workflow must validate a deterministic source archive"),
             ("*-source.tar.gz", "release provenance must cover the complete source archive"),
+            ("Verify release source archive bootstrap", "release workflow must test the distributed source archive"),
+            ("./mvnw -version", "release source archive must bootstrap its Maven Wrapper"),
             (
-                "generator_generic_slsa3.yml@v2.1.0",
-                "SLSA reusable workflow must use the verifier-compatible v2.1.0 tag",
+                "actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f",
+                "release build must use the reviewed GitHub build-provenance action",
             ),
-            ("draft-release: true", "SLSA provenance must be staged in a draft release"),
-            ("--source-tag", "release verification must bind provenance to the release tag"),
+            ("subject-checksums: staging/SHA256SUMS", "release provenance must cover every checksum subject"),
+            ("gh attestation verify", "release instructions must use GitHub attestation verification"),
+            ("--signer-workflow", "release verification must bind provenance to the reusable build workflow"),
             ("Publish complete GitHub Release", "the final job must publish the complete release"),
         ]
         for fragment, description in required:
             if not workflow_fragment_present(text, fragment):
-                errors.append(f".github/workflows/release.yml: {description}")
+                errors.append(f"release workflows: {description}")
         verify_skips_tests = re.search(
-            r"\./mvnw clean verify\s*\\\n"
+            r"\./mvnw clean (?:verify|install)\s*\\\n"
             r"(?:\s+[^\n]*\\\n)*"
             r"\s+[^\n]*-DskipTests",
             text,
         )
         if "-DperformRelease" in text or verify_skips_tests:
             errors.append(
-                ".github/workflows/release.yml must not use the implicit Maven release "
+                "release workflows must not use the implicit Maven release "
                 "profile or skip release verification tests"
             )
+        errors.extend(find_release_attestation_permission_errors(ROOT))
     freshness = ROOT / ".github" / "workflows" / "release-baseline-freshness.yml"
     if not freshness.exists():
         errors.append(".github/workflows/release-baseline-freshness.yml is required")
@@ -2372,7 +2539,8 @@ def check_release_document_set() -> list[str]:
         ROOT / "compileflow-benchmarks" / "pom.xml",
         ROOT / "examples" / "spring-boot-basic" / "pom.xml",
         ROOT / "examples" / "spring-boot-order-fulfillment" / "pom.xml",
-        ROOT / "examples" / "spring-boot-durable-postgres" / "pom.xml",
+        ROOT / "examples" / "spring-boot-deployment" / "pom.xml",
+        ROOT / "examples" / "spring-boot-durable-postgresql" / "pom.xml",
     ]
     for non_publishable_pom in non_publishable_poms:
         if not non_publishable_pom.exists():
@@ -2412,9 +2580,9 @@ def check_governance_document_set() -> list[str]:
     required_root_docs = {
         Path("CODE_OF_CONDUCT.md"): ["Contributor Covenant"],
         Path("CONTRIBUTING.md"): ["Pull Request", "Developer Certificate of Origin 1.1"],
-        Path("MAINTAINERS.md"): ["@kangzhiqiang", ".github/CODEOWNERS", "review", "Access Management"],
+        Path("MAINTAINERS.md"): ["@yusu1210", ".github/CODEOWNERS", "review", "Access Management"],
         Path("SECURITY.md"): ["GitHub Security Advisories", "CycloneDX VEX", "Repository Credential Policy"],
-        Path("SUPPORT.md"): ["no dedicated Q&A channel", "GitHub Security Advisories", "Supported Lines"],
+        Path("SUPPORT.md"): ["no dedicated Q&A channel", "GitHub Security Advisories", "Support Scope"],
         Path("docs/en/threat-model.md"): ["TM-01", "TM-11", "CycloneDX VEX"],
         Path("docs/zh/threat-model.md"): ["TM-01", "TM-11", "CycloneDX VEX"],
     }
@@ -2440,7 +2608,7 @@ def check_governance_document_set() -> list[str]:
     else:
         codeowners_text = codeowners_path.read_text(encoding="utf-8", errors="replace")
         for fragment in [
-            "* @kangzhiqiang",
+            "* @yusu1210",
             "/compileflow-api/",
             "/compileflow-core/",
             "/compileflow-deploy/",
@@ -2464,6 +2632,72 @@ def check_document_index_required_links() -> list[str]:
         for link in required_links:
             if link not in text:
                 errors.append(f"{rel_path} must link to {link}")
+    return errors
+
+
+def check_adopter_logos() -> list[str]:
+    """Keep the root adoption section and its local vector assets complete and uniform."""
+    errors: list[str] = []
+    readme = ROOT / "README.md"
+    text = readme.read_text(encoding="utf-8", errors="replace")
+    if "## Adopters" not in text:
+        errors.append("README.md must include the Adopters section")
+    for name in (
+        "alibaba.svg",
+        "taobao.svg",
+        "tmall.svg",
+        "alipay.svg",
+        "aliyun.svg",
+        "aliexpress.svg",
+        "lazada.svg",
+        "fliggy.svg",
+    ):
+        relative_path = Path("docs/assets/images/adopters") / name
+        logo_path = ROOT / relative_path
+        if not logo_path.exists():
+            errors.append(f"Adopter logo is missing: {relative_path}")
+            continue
+        if relative_path.as_posix() not in text:
+            errors.append(f"README.md must display adopter logo: {relative_path}")
+        image_tag = re.compile(
+            rf'<img\s+src="{re.escape(relative_path.as_posix())}"[^>]*'
+            r'width="64"\s+height="64"',
+        )
+        if not image_tag.search(text):
+            errors.append(f"README.md must render {relative_path} at 64 by 64 pixels")
+        try:
+            root = ET.parse(logo_path).getroot()
+        except ET.ParseError as exc:
+            errors.append(f"Adopter logo is not valid XML: {relative_path}: {exc}")
+            continue
+        view_box = root.attrib.get("viewBox", "").split()
+        try:
+            view_box_numbers = [float(value) for value in view_box]
+        except ValueError:
+            view_box_numbers = []
+        if len(view_box_numbers) != 4 or abs(view_box_numbers[2] - view_box_numbers[3]) > 0.01:
+            errors.append(f"Adopter logo must use a square viewBox: {relative_path}")
+        if root.attrib.get("role") != "img" or root.attrib.get("aria-labelledby") != "title":
+            errors.append(f"Adopter logo must expose an accessible image title: {relative_path}")
+        direct_titles = [
+            child for child in root
+            if child.tag.rsplit("}", 1)[-1] == "title" and child.attrib.get("id") == "title"
+        ]
+        if not direct_titles or not (direct_titles[0].text or "").strip():
+            errors.append(f"Adopter logo must contain a non-empty title: {relative_path}")
+        for element in root.iter():
+            local_name = element.tag.rsplit("}", 1)[-1]
+            if local_name in {"image", "text"}:
+                errors.append(
+                    f"Adopter logo must remain self-contained vector paths: {relative_path} contains {local_name}"
+                )
+                break
+            for attribute, value in element.attrib.items():
+                if attribute.rsplit("}", 1)[-1] == "href" and (
+                    value.startswith(("http://", "https://", "data:"))
+                ):
+                    errors.append(f"Adopter logo must not load external or embedded raster data: {relative_path}")
+                    break
     return errors
 
 
@@ -2634,34 +2868,6 @@ def check_public_documentation_code_antipatterns() -> list[str]:
     return errors
 
 
-def check_dangerous_commands() -> list[str]:
-    errors: list[str] = []
-    for path in iter_files(".md", ".yml", ".yaml"):
-        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
-        for index, line in enumerate(lines):
-            if not MAVEN_COMMAND_RE.search(line):
-                continue
-            command = line.strip()
-            cursor = index
-            while command.endswith("\\") and cursor + 1 < len(lines):
-                cursor += 1
-                command = command[:-1] + " " + lines[cursor].strip()
-            try:
-                tokens = shlex.split(command)
-            except ValueError:
-                tokens = command.split()
-            goals = {token for token in tokens[1:] if not token.startswith("-")}
-            has_scope = (
-                "-pl" in tokens
-                or "--projects" in tokens
-                or any(token.startswith("-pl") for token in tokens)
-                or any(token.startswith("-Dtest=") for token in tokens)
-            )
-            if goals & DANGEROUS_MAVEN_GOALS and not has_scope:
-                errors.append(f"{path.relative_to(ROOT)}:{index + 1} uses unscoped Maven command")
-    return errors
-
-
 def check_stale_java_baseline_references() -> list[str]:
     errors: list[str] = []
     for path in iter_files(".md", ".yml", ".yaml", ".xml", "Dockerfile"):
@@ -2674,14 +2880,14 @@ def check_stale_java_baseline_references() -> list[str]:
 
 def check_action_policy_protocol() -> list[str]:
     errors: list[str] = []
-    process_model = ROOT / "docs" / "architecture" / "07-PROCESS_MODEL.en.md"
+    process_model = ROOT / "docs" / "en" / "architecture" / "process-model.md"
     if not process_model.exists():
-        errors.append("docs/architecture/07-PROCESS_MODEL.en.md is required")
+        errors.append("docs/en/architecture/process-model.md is required")
     else:
         protocol_text = process_model.read_text(encoding="utf-8", errors="replace")
         for fragment, description in INVOCATION_POLICY_PROTOCOL_REQUIRED_FRAGMENTS:
             if fragment not in protocol_text:
-                errors.append(f"docs/architecture/07-PROCESS_MODEL.en.md must document {description}")
+                errors.append(f"docs/en/architecture/process-model.md must document {description}")
 
     for path in iter_files(".md", ".bpm", ".bpmn", ".xml", ".ts", ".tsx", ".java"):
         rel_path = path.relative_to(ROOT)
@@ -2736,7 +2942,7 @@ def check_micrometer_documentation_contract() -> list[str]:
             "spring/boot/autoconfigure/observability/CompileFlowMetricsBinder.java"
         ),
         Path(
-            "compileflow-spring-boot-autoconfigure/src/main/java/com/alibaba/compileflow/deploy/"
+            "compileflow-deploy/compileflow-deploy-spring-boot-autoconfigure/src/main/java/com/alibaba/compileflow/deploy/"
             "spring/boot/autoconfigure/observability/CompileFlowDeploymentMetricsBinder.java"
         ),
         Path(
@@ -2781,7 +2987,7 @@ def check_micrometer_documentation_contract() -> list[str]:
 
 def check_stale_api_documentation() -> list[str]:
     errors: list[str] = []
-    for path in iter_files(".md"):
+    for path in iter_files(".md", ".yml", ".yaml"):
         text = path.read_text(encoding="utf-8", errors="replace")
         match = STALE_API_DOC_RE.search(text)
         if match:
@@ -2797,7 +3003,7 @@ def check_removed_2_0_surfaces_in_user_docs() -> list[str]:
     """User docs must not present deleted 2.0 surfaces as current APIs."""
     errors: list[str] = []
     allowed_mentions = {
-        Path("docs/architecture/06-SUPPORTED_SURFACES.en.md"),
+        Path("docs/en/architecture/supported-surfaces.md"),
         Path("CHANGELOG.md"),
     }
     user_doc_roots = [ROOT / "README.md", ROOT / "docs" / "en", ROOT / "docs" / "zh", ROOT / "CONTRIBUTING.md"]
@@ -2860,6 +3066,10 @@ def check_supported_surfaces_contract() -> list[str]:
         (
             Path("compileflow-deploy/compileflow-deploy-api/pom.xml"),
             "jacoco-check-deploy-api",
+        ),
+        (
+            Path("compileflow-deploy/compileflow-deploy-protocol/pom.xml"),
+            "jacoco-check-deploy-protocol",
         ),
     ]
     for rel_path, coverage_execution in api_poms:
@@ -3014,9 +3224,8 @@ def check_security_policy() -> list[str]:
     text = path.read_text(encoding="utf-8", errors="replace")
     required = [
         "GitHub Security Advisories",
-        "Default branch",
-        "Latest stable release",
-        "Snapshot builds and unreleased changelog entries",
+        "Security fixes are provided for the current `2.x` line",
+        "Security Automation",
         "Finding And Exception Policy",
         "CycloneDX VEX",
         "Repository Credential Policy",
@@ -3048,6 +3257,69 @@ def check_top_level_maven_modules_are_declared() -> list[str]:
             continue
         if module_dir not in declared_modules:
             errors.append(f"Top-level Maven module is not declared in root pom.xml: {module_dir}")
+    return errors
+
+
+def check_bom_dependency_alignment() -> list[str]:
+    """Require the consumer BOM to manage every published CompileFlow JAR exactly once."""
+    errors: list[str] = []
+    namespace = {"m": "http://maven.apache.org/POM/4.0.0"}
+    bom_path = ROOT / "compileflow-bom" / "pom.xml"
+    if not bom_path.exists():
+        return ["compileflow-bom/pom.xml is required"]
+
+    published_artifacts: set[str] = set()
+    for pom in sorted(ROOT.rglob("pom.xml")):
+        relative_path = pom.relative_to(ROOT)
+        if relative_path == Path("pom.xml") or any(
+            part in SKIP_DIRS for part in relative_path.parts
+        ):
+            continue
+        project = ET.parse(pom).getroot()
+        artifact_id = project.findtext(
+            "m:artifactId", default="", namespaces=namespace
+        ).strip()
+        packaging = project.findtext(
+            "m:packaging", default="jar", namespaces=namespace
+        ).strip()
+        deploy_skip = project.findtext(
+            "m:properties/m:maven.deploy.skip", default="", namespaces=namespace
+        ).strip()
+        if packaging == "jar" and deploy_skip != "true":
+            published_artifacts.add(artifact_id)
+
+    bom = ET.parse(bom_path).getroot()
+    managed_entries = bom.findall(
+        "m:dependencyManagement/m:dependencies/m:dependency", namespace
+    )
+    managed_artifacts = [
+        entry.findtext("m:artifactId", default="", namespaces=namespace).strip()
+        for entry in managed_entries
+        if entry.findtext("m:groupId", default="", namespaces=namespace).strip()
+        == "com.alibaba.compileflow"
+    ]
+    duplicate_artifacts = sorted(
+        artifact_id
+        for artifact_id in set(managed_artifacts)
+        if managed_artifacts.count(artifact_id) > 1
+    )
+    missing_artifacts = sorted(published_artifacts - set(managed_artifacts))
+    extra_artifacts = sorted(set(managed_artifacts) - published_artifacts)
+    if duplicate_artifacts:
+        errors.append(
+            "compileflow-bom duplicates managed artifacts: "
+            + ", ".join(duplicate_artifacts)
+        )
+    if missing_artifacts:
+        errors.append(
+            "compileflow-bom does not manage published artifacts: "
+            + ", ".join(missing_artifacts)
+        )
+    if extra_artifacts:
+        errors.append(
+            "compileflow-bom manages non-published JAR artifacts: "
+            + ", ".join(extra_artifacts)
+        )
     return errors
 
 
@@ -3229,7 +3501,7 @@ def check_deploy_inmemory_repositories_not_production_registered() -> list[str]:
     source_roots = [
         ROOT / "compileflow-deploy" / "compileflow-deploy-api" / "src" / "main",
         ROOT / "compileflow-deploy" / "compileflow-deploy-control-plane" / "src" / "main",
-        ROOT / "compileflow-spring-boot-autoconfigure" / "src" / "main",
+        ROOT / "compileflow-deploy" / "compileflow-deploy-spring-boot-autoconfigure" / "src" / "main",
     ]
     for source_root in source_roots:
         if not source_root.exists():
@@ -3264,7 +3536,7 @@ def check_docker_delivery_rules() -> list[str]:
             continue
         text = path.read_text(encoding="utf-8", errors="replace")
         for fragment, message in required_fragments:
-            if fragment not in text:
+            if not workflow_fragment_present(text, fragment):
                 errors.append(f"{rel_path}: {message}")
         for line_number, line in enumerate(text.splitlines(), start=1):
             from_match = re.match(r"^\s*FROM\s+(\S+)", line, re.IGNORECASE)
@@ -3355,6 +3627,12 @@ def check_public_package_documentation() -> list[str]:
         / "src"
         / "main"
         / "java",
+        ROOT
+        / "compileflow-deploy"
+        / "compileflow-deploy-protocol"
+        / "src"
+        / "main"
+        / "java",
     ]
     package_pattern = re.compile(r"^package\s+([A-Za-z0-9_.]+);", re.MULTILINE)
     for source_root in source_roots:
@@ -3374,8 +3652,10 @@ def check_public_package_documentation() -> list[str]:
 
 def main() -> int:
     checks = [
+        check_workflow_tests,
         check_markdown_links,
         check_markdown_structure,
+        check_documented_pnpm_scripts,
         check_issue_templates,
         check_generated_artifacts,
         check_tracked_local_tooling_files,
@@ -3416,6 +3696,7 @@ def main() -> int:
         check_release_document_set,
         check_governance_document_set,
         check_document_index_required_links,
+        check_adopter_logos,
         check_api_reference_contract,
         check_configuration_reference_contract,
         check_module_map_contract,
@@ -3423,7 +3704,6 @@ def main() -> int:
         check_version_routing_contract,
         check_node_support_contract,
         check_public_documentation_code_antipatterns,
-        check_dangerous_commands,
         check_stale_java_baseline_references,
         check_action_policy_protocol,
         check_phantom_configuration_references,
@@ -3443,6 +3723,7 @@ def main() -> int:
         check_security_policy,
         check_maven_project_identities,
         check_top_level_maven_modules_are_declared,
+        check_bom_dependency_alignment,
         check_user_docs_release_versions,
         check_quality_gates,
         check_checkstyle_configs_are_enforcing,

@@ -24,7 +24,6 @@ import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.ProcessResult;
 import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
 import com.alibaba.compileflow.engine.config.ProcessObservabilityConfig;
-import com.alibaba.compileflow.engine.core.assembly.AssembledProcessEngineFactory;
 import com.alibaba.compileflow.engine.core.assembly.EngineAssembly;
 import com.alibaba.compileflow.engine.core.routing.DeterministicAliasSelector;
 import com.alibaba.compileflow.engine.core.routing.LocalRoutingState;
@@ -66,7 +65,7 @@ class ProcessExecutionRoutingIntegrationTest {
     void routingUsesExplicitCohortsWithoutLeakingAndInvocationIdentityByDefault() {
         List<ProcessEvent> events = new CopyOnWriteArrayList<>();
         ProcessEngineConfig config = ProcessEngineTestFactory
-            .tbbpmBuilder()
+            .builder()
             .discoverPlugins(false)
             .observability(ProcessObservabilityConfig.builder().eventsAsync(false).build())
             .eventListener(events::add)
@@ -76,10 +75,15 @@ class ProcessExecutionRoutingIntegrationTest {
         ProcessAliasRoute route = ProcessAliasRoute.canary(alias, "v1", "v2", 5_000, 1L);
         localRoutingState.applyAliasRoute(route);
 
-        try (ProcessEngine engine =
-                AssembledProcessEngineFactory.create(config, EngineAssembly.assemble(config, localRoutingState))) {
-            engine.runtime().load(ProcessRef.version("default", CODE, "v1"), ProcessDefinition.inline(CODE, FLOW));
-            engine.runtime().load(ProcessRef.version("default", CODE, "v2"), ProcessDefinition.inline(CODE, FLOW));
+        try (ProcessEngine engine = EngineAssembly.create(config, EngineAssembly.assemble(config, localRoutingState))) {
+            engine
+                .runtime()
+                .load(ProcessRef.version("default", CODE, "v1"),
+                        ProcessDefinition.inline(ProcessModelType.TBBPM, CODE, FLOW));
+            engine
+                .runtime()
+                .load(ProcessRef.version("default", CODE, "v2"),
+                        ProcessDefinition.inline(ProcessModelType.TBBPM, CODE, FLOW));
 
             String sensitiveRoutingKey = "customer-secret-routing-key";
             ProcessAliasTarget expectedTarget = DeterministicAliasSelector.select(route, sensitiveRoutingKey);
@@ -131,11 +135,10 @@ class ProcessExecutionRoutingIntegrationTest {
 
     @Test
     void routeAndRuntimeAvailabilityRemainDistinctPublicProcessOutcomes() {
-        ProcessEngineConfig config = ProcessEngineTestFactory.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineTestFactory.builder().discoverPlugins(false).build();
         LocalRoutingState localRoutingState = LocalRoutingState.requiringLocalInstallation();
 
-        try (ProcessEngine engine =
-                AssembledProcessEngineFactory.create(config, EngineAssembly.assemble(config, localRoutingState))) {
+        try (ProcessEngine engine = EngineAssembly.create(config, EngineAssembly.assemble(config, localRoutingState))) {
             ProcessResult<Map<String, Object>> missingRoute =
                     engine.execute(ProcessRef.alias("default", CODE, "prod"), Map.of());
             ProcessResult<Map<String, Object>> missingRuntime =

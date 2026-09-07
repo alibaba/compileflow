@@ -17,16 +17,16 @@ import com.alibaba.compileflow.engine.ProcessAliasTarget;
 import com.alibaba.compileflow.engine.AliasRoutingOptions;
 import com.alibaba.compileflow.engine.ProcessExecution;
 import com.alibaba.compileflow.engine.ProcessExecutionOptions;
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.ProcessResult;
 import com.alibaba.compileflow.engine.core.routing.AliasSelection;
-import com.alibaba.compileflow.deploy.api.ProcessDeploymentService;
 import com.alibaba.compileflow.deploy.api.error.DeploymentException;
-import com.alibaba.compileflow.deploy.api.version.PublishedProcessVersion;
-import com.alibaba.compileflow.deploy.runtime.install.RuntimeInstallationLease;
-import com.alibaba.compileflow.deploy.runtime.install.RuntimeInstaller;
-import com.alibaba.compileflow.engine.spring.boot.autoconfigure.ProcessEngineRegistry;
+import com.alibaba.compileflow.deploy.runtime.version.VersionRuntimeLease;
+import com.alibaba.compileflow.deploy.runtime.version.VersionRuntimeManager;
+import com.alibaba.compileflow.engine.ProcessEngine;
+import com.alibaba.compileflow.engine.ErrorCode;
+import com.alibaba.compileflow.engine.core.routing.AliasAdmission;
+import com.alibaba.compileflow.engine.core.routing.AliasSelectionExecutor;
 import java.io.Serial;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,33 +49,42 @@ import org.springframework.stereotype.Service;
 @Service
 public class PublishedProcessExecutionService {
     private static final Logger LOGGER = LoggerFactory.getLogger(PublishedProcessExecutionService.class);
-    private final ProcessEngineRegistry engineRegistry;
-    private final ProcessDeploymentService deploymentService;
-    private final RuntimeInstaller runtimeInstaller;
+    private final ProcessEngine engine;
+    private final AliasAdmission aliasAdmission;
+    private final AliasSelectionExecutor aliasExecutor;
+    private final VersionRuntimeManager versionRuntimeManager;
 
     @Autowired
-    public PublishedProcessExecutionService(ProcessEngineRegistry engineRegistry,
-            ProcessDeploymentService deploymentService, ObjectProvider<RuntimeInstaller> installerProvider) {
-        this(engineRegistry, deploymentService, installerProvider.getIfAvailable());
+    public PublishedProcessExecutionService(ProcessEngine engine, AliasAdmission aliasAdmission,
+            ObjectProvider<VersionRuntimeManager> versionRuntimeManagerProvider) {
+        this(engine, aliasAdmission, versionRuntimeManagerProvider.getIfAvailable());
     }
 
-    private PublishedProcessExecutionService(ProcessEngineRegistry engineRegistry,
-            ProcessDeploymentService deploymentService, RuntimeInstaller runtimeInstaller) {
-        this.engineRegistry = engineRegistry;
-        this.deploymentService = deploymentService;
-        this.runtimeInstaller = runtimeInstaller;
-    }
-
-    private static ProcessExecutionOptions ensureInvocationId(ProcessExecutionOptions options) {
-        Objects.requireNonNull(options, "options");
-        if (StringUtils.isNotBlank(options.getInvocationId())) {
-            return options;
+    private PublishedProcessExecutionService(ProcessEngine engine, AliasAdmission aliasAdmission,
+            VersionRuntimeManager versionRuntimeManager) {
+        this.engine = Objects.requireNonNull(engine, "engine");
+        this.aliasAdmission = Objects.requireNonNull(aliasAdmission, "aliasAdmission");
+        if (!(engine instanceof AliasSelectionExecutor executor)) {
+            throw new IllegalArgumentException("Published execution requires preselected Alias execution support");
         }
-        return ProcessExecutionOptions
-            .builder()
-            .invocationId("inv-" + UUID.randomUUID())
-            .aliasRouting(options.getAliasRouting())
-            .build();
+        this.aliasExecutor = executor;
+        this.versionRuntimeManager = versionRuntimeManager;
+    }
+
+    private static ProcessExecutionOptions engineOptions(ProcessRef selector, ProcessExecutionOptions options) {
+        Objects.requireNonNull(selector, "selector");
+        Objects.requireNonNull(options, "options");
+        String invocationId =
+                StringUtils.isNotBlank(options.getInvocationId())
+                ? options.getInvocationId()
+                : "inv-" + UUID.randomUUID();
+        ProcessExecutionOptions.Builder builder = ProcessExecutionOptions.builder().invocationId(invocationId);
+        if (selector instanceof ProcessRef.Alias) {
+            AliasRoutingOptions routing = options.getAliasRouting();
+            builder.aliasRouting(
+                    routing.routingKey() == null ? new AliasRoutingOptions(invocationId, routing.attributes()) : routing);
+        }
+        return builder.build();
     }
 
     public ProcessExecutionResponse execute(ProcessRef selector, Map<String, Object> params,
@@ -89,16 +98,16 @@ public class PublishedProcessExecutionService {
         return execute(aliasPin.alias(), aliasPin, null, params, options);
     }
 
-    ProcessExecutionResponse executeInstalled(ProcessRef.Version selector, RuntimeInstallationLease installation,
+    ProcessExecutionResponse executeInstalled(ProcessRef.Version selector, VersionRuntimeLease installation,
             Map<String, Object> params, ProcessExecutionOptions options) {
         return execute(Objects.requireNonNull(selector, "selector"), null,
                 Objects.requireNonNull(installation, "installation"), params, options);
     }
 
-    private ProcessExecutionResponse execute(ProcessRef selector, AliasPin aliasPin,
-            RuntimeInstallationLease installation, Map<String, Object> params, ProcessExecutionOptions options) {
+    private ProcessExecutionResponse execute(ProcessRef selector, AliasPin aliasPin, VersionRuntimeLease installation,
+            Map<String, Object> params, ProcessExecutionOptions options) {
         long startedAtNanos = System.nanoTime();
-        ProcessExecutionOptions engineOptions = ensureInvocationId(options);
+        ProcessExecutionOptions engineOptions = engineOptions(selector, options);
         Map<String, Object> context = new HashMap<>(Objects.requireNonNull(params, "params"));
         EngineExecution engineExecution = executeEngine(selector, aliasPin, installation, context, engineOptions);
         ProcessResult<Map<String, Object>> result = engineExecution.result();
@@ -114,14 +123,19 @@ public class PublishedProcessExecutionService {
             .withRouting(routingResponse(selector, result.getExecution(), engineExecution.aliasSelection()));
     }
 
-    private EngineExecution executeEngine(ProcessRef selector, AliasPin aliasPin, RuntimeInstallationLease installation,
+    private EngineExecution executeEngine(ProcessRef selector, AliasPin aliasPin, VersionRuntimeLease installation,
             Map<String, Object> context, ProcessExecutionOptions options) {
         if (aliasPin == null) {
             if (selector instanceof ProcessRef.Alias alias) {
-                ProcessEngineRegistry.AliasExecution execution =
-                        engineRegistry.executeAliasWithSelection(alias, this::requirePublishedModelType, context,
-                                options);
-                return new EngineExecution(execution.result(), execution.selection());
+                for (int attempt = 0; ; attempt++) {
+                    AliasSelection selection = aliasAdmission.admit(alias, options.getAliasRouting());
+                    ProcessResult<Map<String, Object>> result =
+                            aliasExecutor.execute(alias, selection, context, options);
+                    if (result.isSuccess() || attempt == 1
+                            || !ErrorCode.CF_EXEC_012.getCode().equals(result.getError().getCode())) {
+                        return new EngineExecution(result, selection);
+                    }
+                }
             }
             return new EngineExecution(installation == null
                     ? executeExact(selector, context, options)
@@ -130,18 +144,17 @@ public class PublishedProcessExecutionService {
         ProcessRef.Alias alias = aliasPin.alias();
         AliasSelection selection = new AliasSelection(ProcessRef.version(alias.namespace(), alias.code(),
                         aliasPin.version()), aliasPin.target(), aliasPin.routeRevision());
-        return new EngineExecution(engineRegistry.executeAliasSelection(alias, selection,
-                        this::requirePublishedModelType, context, options), selection);
+        return new EngineExecution(aliasExecutor.execute(alias, selection, context, options), selection);
     }
 
     private ProcessResult<Map<String, Object>> executeExact(ProcessRef selector, Map<String, Object> context,
             ProcessExecutionOptions options) {
-        if (!(selector instanceof ProcessRef.Version version) || runtimeInstaller == null) {
-            return engineRegistry.execute(selector, this::requirePublishedModelType, context, options);
+        if (!(selector instanceof ProcessRef.Version version) || versionRuntimeManager == null) {
+            return engine.execute(selector, context, options);
         }
-        RuntimeInstallationLease lease;
+        VersionRuntimeLease lease;
         try {
-            lease = runtimeInstaller.acquireInstallation(version).join();
+            lease = versionRuntimeManager.acquireInstallation(version).join();
         } catch (CompletionException failure) {
             if (failure.getCause() instanceof DeploymentException deploymentFailure) {
                 throw deploymentFailure;
@@ -156,11 +169,9 @@ public class PublishedProcessExecutionService {
     }
 
     private ProcessResult<Map<String, Object>> executeInstalledExact(ProcessRef.Version version,
-            RuntimeInstallationLease installation, Map<String, Object> context, ProcessExecutionOptions options) {
-        ProcessModelType modelType = installation
-            .getModelType()
-            .orElseThrow(() -> new IllegalStateException("Exact runtime lease has no model type"));
-        return engineRegistry.get(modelType).execute(version, context, options);
+            VersionRuntimeLease installation, Map<String, Object> context, ProcessExecutionOptions options) {
+        Objects.requireNonNull(installation, "installation");
+        return engine.execute(version, context, options);
     }
 
     private static ExecutionRoutingResponse routingResponse(ProcessRef selector, ProcessExecution execution,
@@ -191,21 +202,8 @@ public class PublishedProcessExecutionService {
         } catch (IllegalArgumentException exception) {
             throw new InvalidExecutionRequestException(exception.getMessage(), exception);
         }
-        AliasSelection selection = engineRegistry.admitAlias(ref, Objects.requireNonNull(routing, "routing"));
+        AliasSelection selection = aliasAdmission.admit(ref, Objects.requireNonNull(routing, "routing"));
         return new AliasPin(ref, selection.version().version(), selection.aliasRevision(), selection.target());
-    }
-
-    private ProcessModelType requirePublishedModelType(ProcessRef.Version ref) {
-        if (runtimeInstaller != null) {
-            ProcessModelType locallyInstalled = runtimeInstaller.findInstalledModelType(ref).orElse(null);
-            if (locallyInstalled != null) {
-                return locallyInstalled;
-            }
-        }
-        return deploymentService
-            .getVersion(ref)
-            .map(PublishedProcessVersion::getModelType)
-            .orElseThrow(() -> new PublishedProcessVersionNotFoundException(ref));
     }
 
     /**
@@ -224,15 +222,6 @@ public class PublishedProcessExecutionService {
                 throw new IllegalArgumentException("routeRevision must be greater than 0");
             }
             target = Objects.requireNonNull(target, "target");
-        }
-    }
-
-    public static final class PublishedProcessVersionNotFoundException extends RuntimeException {
-        @Serial
-        private static final long serialVersionUID = 1L;
-
-        public PublishedProcessVersionNotFoundException(ProcessRef.Version ref) {
-            super("Published process version not found: " + ref.namespace() + "/" + ref.code() + "@" + ref.version());
         }
     }
 

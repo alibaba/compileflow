@@ -22,9 +22,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.time.Instant;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
- * Durable Process draft persistence entity.
+ * Persisted editable process draft.
  *
  * @author yusu
  */
@@ -39,7 +41,8 @@ public class ProcessDraftEntity {
     @Column(nullable = false, length = 32)
     @Enumerated(EnumType.STRING)
     private ProcessModelType type;
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false)
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
     private String xml;
     @Column(length = 1024)
     private String description;
@@ -53,7 +56,7 @@ public class ProcessDraftEntity {
     private String tagsJson;
     @Version
     @Column(nullable = false)
-    private long revision;
+    private Long revision;
 
     public String getCode() {
         return code;
@@ -127,7 +130,7 @@ public class ProcessDraftEntity {
         this.tagsJson = tagsJson;
     }
 
-    public long getRevision() {
+    public Long getRevision() {
         return revision;
     }
 

@@ -39,8 +39,8 @@ public record EffectRecoveryPlan(Mode mode, int maxAttempts, int maxReconcileAtt
 
     public EffectRecoveryPlan {
         mode = Objects.requireNonNull(mode, "mode");
-        requireRange(maxAttempts, 1, MAX_DISPATCH_ATTEMPTS, "maxAttempts");
-        requireRange(maxReconcileAttempts, 0, MAX_RECONCILE_ATTEMPTS, "maxReconcileAttempts");
+        DurableNumbers.requireRange(maxAttempts, 1, MAX_DISPATCH_ATTEMPTS, "maxAttempts");
+        DurableNumbers.requireRange(maxReconcileAttempts, 0, MAX_RECONCILE_ATTEMPTS, "maxReconcileAttempts");
         recoveryDelay = boundedPositive(recoveryDelay, MAX_RECOVERY_DELAY, "recoveryDelay");
         maxRecoveryDuration = boundedPositive(maxRecoveryDuration, MAX_MAX_RECOVERY_DURATION, "maxRecoveryDuration");
         switch (mode) {
@@ -89,16 +89,7 @@ public record EffectRecoveryPlan(Mode mode, int maxAttempts, int maxReconcileAtt
     }
 
     private static Duration boundedPositive(Duration value, Duration maximum, String name) {
-        if (value != null && (value.isZero() || value.isNegative() || value.compareTo(maximum) > 0)) {
-            throw new IllegalArgumentException(name + " must be positive and at most " + maximum);
-        }
-        return value == null ? null : DurableNumbers.requireDurationMillis(value, maximum, name);
-    }
-
-    private static void requireRange(int value, int minimum, int maximum, String name) {
-        if (value < minimum || value > maximum) {
-            throw new IllegalArgumentException(name + " must be in [" + minimum + ", " + maximum + "]");
-        }
+        return value == null ? null : DurableNumbers.requirePositiveDurationMillis(value, maximum, name);
     }
 
     /**

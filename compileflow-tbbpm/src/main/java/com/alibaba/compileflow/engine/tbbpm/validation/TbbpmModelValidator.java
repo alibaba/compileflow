@@ -105,12 +105,15 @@ public final class TbbpmModelValidator extends AbstractFlowModelValidator {
         for (FlowNode node : nodes) {
             if (node instanceof TimerTaskNode timer) {
                 int schedules = 0;
-                schedules += StringUtils.isNotBlank(timer.getDuration()) ? 1 : 0;
-                schedules += StringUtils.isNotBlank(timer.getDurationExpression()) ? 1 : 0;
-                schedules += StringUtils.isNotBlank(timer.getWakeAtExpression()) ? 1 : 0;
-                if (schedules != 1) {
+                schedules += timer.getDuration() != null ? 1 : 0;
+                schedules += timer.getDurationExpression() != null ? 1 : 0;
+                schedules += timer.getWakeAtExpression() != null ? 1 : 0;
+                if (schedules != 1
+                        || StringUtils.isAllBlank(timer.getDuration(), timer.getDurationExpression(),
+                                timer.getWakeAtExpression())) {
                     messages.add(ValidationFailure.of(
-                            "TBBPM timerTask must declare exactly one of duration, durationExpression, or wakeAtExpression, id=" + node.getId()));
+                            "TBBPM timerTask must declare exactly one non-blank duration, durationExpression, or wakeAtExpression, id="
+                            + node.getId()));
                 }
                 if (StringUtils.isNotBlank(timer.getDuration())) {
                     validateLiteralDuration(timer, messages);

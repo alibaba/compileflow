@@ -54,7 +54,7 @@ class JavaDiagnosticsConfigTest {
     @Test
     void rejectsLossyOrOverflowingRuntimeDurations() {
         assertThatThrownBy(() -> ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .runtimeLoadTimeout(Duration.ofSeconds(Long.MAX_VALUE))
             .build())
             .isInstanceOf(IllegalArgumentException.class)
@@ -75,12 +75,13 @@ class JavaDiagnosticsConfigTest {
 
         ProcessEngineConfig first =
                 ProcessEngineConfig
-            .tbbpmBuilder()
+            .builder()
             .runtimeLoadTimeout(Duration.ofSeconds(2))
             .javaDiagnostics(fast)
             .build();
-        ProcessEngineConfig second = ProcessEngineConfig
-            .tbbpmBuilder()
+        ProcessEngineConfig second =
+                ProcessEngineConfig
+            .builder()
             .runtimeLoadTimeout(Duration.ofSeconds(30))
             .javaDiagnostics(diagnostic)
             .build();

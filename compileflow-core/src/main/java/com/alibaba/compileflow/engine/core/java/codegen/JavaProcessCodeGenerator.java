@@ -32,7 +32,6 @@ import com.alibaba.compileflow.engine.core.semantic.plan.IterationPlan;
 import com.alibaba.compileflow.engine.core.semantic.plan.ProcessSemanticPlan;
 import com.alibaba.compileflow.engine.core.type.DataTypes;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -84,7 +83,6 @@ public final class JavaProcessCodeGenerator {
     private final Map<String, String> scriptSpecFieldNames;
     private final Map<String, String> policyFieldNames;
     private final Map<String, String> gatewayMethodNames;
-    private final Set<String> imports;
     private Map<String, String> typeReplacements;
     private final Map<FlowKey, String> flowMethodNames = new LinkedHashMap<>();
     private final List<FlowKey> flowMethodQueue = new ArrayList<>();
@@ -106,7 +104,6 @@ public final class JavaProcessCodeGenerator {
         this.scriptSpecFieldNames = collectScriptSpecFieldNames();
         this.policyFieldNames = collectPolicyFieldNames();
         this.gatewayMethodNames = collectGatewayMethodNames();
-        this.imports = collectImports();
     }
 
     public String generateCode() {
@@ -176,7 +173,7 @@ public final class JavaProcessCodeGenerator {
             DataTypes.DefaultValueCode value =
                     DataTypes.generateDefaultValueCode(DataTypes.getJavaClass(variable.dataType()),
                             variable.defaultValue());
-            String defaultValue = qualifiedDefaultValue(value);
+            String defaultValue = value.expression();
             String initializer = "null".equals(defaultValue) ? "" : " = " + defaultValue;
             line(code, 1, "private " + variable.dataType() + " " + variable.name() + initializer + ";");
         }
@@ -760,7 +757,7 @@ public final class JavaProcessCodeGenerator {
         line(code, 3,
                 "com.alibaba.compileflow.engine.core.runtime.execution.LoopSemantics.<" + boxedSourceType(itemType)
                 + ">snapshot(" + expression(node.id(), loop.collectionVariable()) + ", " + literal(node.id()) + ", "
-                + rawSourceType(itemType) + ".class);");
+                + boxedSourceType(itemType) + ".class);");
         if (loop.outputTargetVariable() != null) {
             line(code, 2, "java.util.List<Object> _cf$collectedOutputs =");
             line(code, 3, "new java.util.ArrayList<>(_cf$iterationValues.size());");
@@ -1124,20 +1121,7 @@ public final class JavaProcessCodeGenerator {
     }
 
     private String defaultValue(String typeName, String value) {
-        return qualifiedDefaultValue(DataTypes.generateDefaultValueCode(DataTypes.getJavaClass(typeName), value));
-    }
-
-    private String qualifiedDefaultValue(DataTypes.DefaultValueCode value) {
-        String expression = value.expression();
-        for (Class<?> type : value.referencedTypes()) {
-            if (type.isPrimitive() || type.getPackageName().equals("java.lang") || imports.contains(sourceType(type))) {
-                continue;
-            }
-            String simple = type.getSimpleName();
-            expression = expression.replaceAll("(?<![\\p{Alnum}_$.])" + java.util.regex.Pattern.quote(simple)
-                    + "(?![\\p{Alnum}_$])", java.util.regex.Matcher.quoteReplacement(sourceType(type)));
-        }
-        return expression;
+        return DataTypes.generateDefaultValueCode(DataTypes.getJavaClass(typeName), value).expression();
     }
 
     private String policySource(EffectiveInvocationPolicy policy) {
@@ -1152,26 +1136,6 @@ public final class JavaProcessCodeGenerator {
 
     private static boolean defaultPolicy(EffectiveInvocationPolicy policy) {
         return EffectiveInvocationPolicy.defaults().equals(policy);
-    }
-
-    private Set<String> collectImports() {
-        Map<String, Set<String>> candidates = new TreeMap<>();
-        defaultValueCodes()
-            .stream()
-            .flatMap(value -> value.referencedTypes().stream())
-            .filter(type -> !type.isPrimitive() && !type.getPackageName().equals("java.lang"))
-            .map(JavaProcessCodeGenerator::sourceType)
-            .forEach(type -> candidates
-                .computeIfAbsent(simpleTypeName(type), ignored -> new LinkedHashSet<>())
-                .add(type));
-
-        Set<String> result = new LinkedHashSet<>();
-        candidates.forEach((name, types) -> {
-            if (types.size() == 1) {
-                result.add(types.iterator().next());
-            }
-        });
-        return Collections.unmodifiableSet(result);
     }
 
     private List<DataTypes.DefaultValueCode> defaultValueCodes() {
@@ -1204,7 +1168,7 @@ public final class JavaProcessCodeGenerator {
         Map<String, String> replacements = typeReplacements();
         Set<String> usedTypes = new LinkedHashSet<>();
         String body = shortenQualifiedTypes(source, replacements, usedTypes);
-        Set<String> organizedImports = new TreeSet<>(imports);
+        Set<String> organizedImports = new TreeSet<>();
         String generatedPackage = className.substring(0, className.lastIndexOf('.'));
         usedTypes
             .stream()
@@ -1233,17 +1197,21 @@ public final class JavaProcessCodeGenerator {
             .computeIfAbsent(simpleTypeName(type), ignored -> new LinkedHashSet<>())
             .add(type));
 
-        Map<String, String> authoredBySimpleName = new LinkedHashMap<>();
-        imports.forEach(type -> authoredBySimpleName.put(simpleTypeName(type), type));
+        Set<String> variableNames = new LinkedHashSet<>(semantics.getVariables().keySet());
+        semantics.getNodes().values().forEach(node -> {
+            if (node.iteration() instanceof IterationPlan.ForEach loop) {
+                variableNames.add(loop.itemVariable());
+                variableNames.add(loop.indexVariable());
+            } else if (node.iteration() instanceof IterationPlan.While loop) {
+                variableNames.add(loop.indexVariable());
+            }
+        });
         Map<String, String> replacements = new LinkedHashMap<>();
         bySimpleName.forEach((simpleName, types) -> {
-            if (simpleName.equals(this.simpleName)) {
+            if (simpleName.equals(this.simpleName) || variableNames.contains(simpleName)) {
                 return;
             }
-            String authored = authoredBySimpleName.get(simpleName);
-            if (authored != null) {
-                replacements.put(authored, simpleName);
-            } else if (types.size() == 1) {
+            if (types.size() == 1) {
                 replacements.put(types.iterator().next(), simpleName);
             }
         });
@@ -1253,7 +1221,12 @@ public final class JavaProcessCodeGenerator {
 
     private Set<String> typeCandidates() {
         Set<String> result = new LinkedHashSet<>(GENERATOR_TYPES);
-        result.addAll(imports);
+        defaultValueCodes()
+            .stream()
+            .flatMap(value -> value.referencedTypes().stream())
+            .filter(type -> !type.isPrimitive())
+            .map(JavaProcessCodeGenerator::sourceType)
+            .forEach(type -> addTypeCandidates(result, type));
         semantics
             .getVariables()
             .values()
@@ -1911,7 +1884,7 @@ public final class JavaProcessCodeGenerator {
     private boolean hasDefaultValue(ProcessSemanticPlan.VariablePlan variable) {
         DataTypes.DefaultValueCode value =
                 DataTypes.generateDefaultValueCode(DataTypes.getJavaClass(variable.dataType()), variable.defaultValue());
-        return !"null".equals(qualifiedDefaultValue(value));
+        return !"null".equals(value.expression());
     }
 
     private Set<String> concurrentBranchVariables() {

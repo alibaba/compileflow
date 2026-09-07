@@ -117,7 +117,7 @@ test.describe('2. 节点工具箱', () => {
   })
 
   test('2.5 搜索功能 - 搜索"任务"只显示任务类节点', async ({ page }) => {
-    const searchInput = page.getByPlaceholder('搜索节点...')
+    const searchInput = page.getByPlaceholder('搜索节点…')
     await searchInput.fill('任务')
     await page.waitForTimeout(500)
     await expect(page.locator('.drag-palette-item').filter({ hasText: '自动任务' })).toBeVisible()
@@ -126,7 +126,7 @@ test.describe('2. 节点工具箱', () => {
   })
 
   test('2.6 搜索无结果时显示空状态', async ({ page }) => {
-    const searchInput = page.getByPlaceholder('搜索节点...')
+    const searchInput = page.getByPlaceholder('搜索节点…')
     await searchInput.fill('xyznotexist999')
     await page.waitForTimeout(500)
     await expect(page.getByText('未找到匹配的节点')).toBeVisible()
@@ -173,7 +173,7 @@ test.describe('3. 画布操作', () => {
   })
 
   test('3.2 工具栏放大按钮可点击', async ({ page }) => {
-    const zoomInBtn = page.locator('.x6-canvas-toolbar button[aria-label="放大 (Ctrl+滚轮)"]')
+    const zoomInBtn = page.locator('.x6-canvas-toolbar button[aria-label="放大（Ctrl+滚轮）"]')
     await expect(zoomInBtn).toBeVisible()
     await expect(zoomInBtn).not.toBeDisabled()
     await zoomInBtn.click({ force: true })
@@ -181,7 +181,7 @@ test.describe('3. 画布操作', () => {
   })
 
   test('3.3 工具栏缩小按钮可点击', async ({ page }) => {
-    const zoomOutBtn = page.locator('.x6-canvas-toolbar button[aria-label="缩小 (Ctrl+滚轮)"]')
+    const zoomOutBtn = page.locator('.x6-canvas-toolbar button[aria-label="缩小（Ctrl+滚轮）"]')
     await expect(zoomOutBtn).toBeVisible()
     await zoomOutBtn.click({ force: true })
     await page.waitForTimeout(200)
@@ -224,26 +224,24 @@ test.describe('4. 拖拽创建节点', () => {
   test('4.1 拖拽开始节点到画布', async ({ page }) => {
     const startItem = page.locator('.drag-palette-item').filter({ hasText: '开始' }).first()
     const canvas = page.locator('.tbbpm-canvas')
+    const nodeCount = await page.locator('.x6-node').count()
 
     await expect(startItem).toBeVisible()
-    const itemBox = await startItem.boundingBox()
+    await expect(startItem).toBeEnabled()
     const canvasBox = await canvas.boundingBox()
-    if (!itemBox || !canvasBox) throw new Error('Elements not found')
-
-    await page.mouse.move(itemBox.x + itemBox.width / 2, itemBox.y + itemBox.height / 2)
-    await page.mouse.down()
-    await page.mouse.move(canvasBox.x + canvasBox.width / 2, canvasBox.y + canvasBox.height / 2, {
-      steps: 10,
+    if (!canvasBox) throw new Error('Canvas not found')
+    await startItem.dragTo(canvas, {
+      targetPosition: { x: canvasBox.width / 2, y: canvasBox.height / 2 },
     })
-    await page.mouse.up()
-    await page.waitForTimeout(800)
+    await expect(page.locator('.x6-node')).toHaveCount(nodeCount + 1)
   })
 
   test('4.2 键盘 Enter 添加节点到画布中心', async ({ page }) => {
     const nodeItem = page.locator('.drag-palette-item').first()
+    const nodeCount = await page.locator('.x6-node').count()
     await nodeItem.focus()
     await page.keyboard.press('Enter')
-    await page.waitForTimeout(500)
+    await expect(page.locator('.x6-node')).toHaveCount(nodeCount + 1)
   })
 })
 
@@ -369,7 +367,7 @@ test.describe('6. Header 功能', () => {
     const backBtn = page.getByRole('button', { name: '返回构建' })
     await backBtn.click()
     await page.waitForTimeout(500)
-    await expect(page).toHaveURL(/build|workspace/)
+    await expect(page).toHaveURL('/build')
   })
 })
 
@@ -542,10 +540,17 @@ test.describe('9. 无障碍与视觉质量', () => {
   test('9.6 节点 hover 无 translateY 位移', async ({ page }) => {
     const nodeItem = page.locator('.drag-palette-item').first()
     await nodeItem.hover()
-    const transform = await nodeItem.evaluate((el) => window.getComputedStyle(el).transform)
-    if (transform && transform !== 'none') {
-      expect(transform).not.toContain('translateY(-2px)')
-    }
+    await nodeItem.evaluate(async (el) => {
+      await Promise.all(el.getAnimations().map((animation) => animation.finished))
+    })
+    await expect
+      .poll(() =>
+        nodeItem.evaluate((el) => {
+          const transform = window.getComputedStyle(el).transform
+          return transform === 'none' ? 0 : new DOMMatrixReadOnly(transform).m42
+        })
+      )
+      .toBe(0)
   })
 
   test('9.7 antd deprecation 警告不含致命错误', async ({ page }) => {
@@ -596,9 +601,8 @@ test.describe('10. DesignerHeader 深度交互', () => {
     await expect(sourceTag).toBeVisible()
   })
 
-  test('10.4 版本历史按钮存在', async ({ page }) => {
-    const historyBtn = page.locator('.anticon-history').first()
-    await expect(historyBtn).toBeVisible()
+  test('10.4 本地快照按钮存在', async ({ page }) => {
+    await expect(page.getByRole('button', { name: /本地快照|Local snapshots/i })).toBeVisible()
   })
 
   test('10.5 快捷键按钮存在', async ({ page }) => {

@@ -15,6 +15,7 @@ package com.alibaba.compileflow.durable.spring.boot.autoconfigure.runtime;
 
 import com.alibaba.compileflow.durable.runtime.program.DurableProcessRuntimeCache;
 import com.alibaba.compileflow.durable.runtime.worker.DurableLeaseRenewer;
+import com.alibaba.compileflow.durable.runtime.worker.DurableWorkerCoordinator;
 import com.alibaba.compileflow.durable.runtime.worker.DurableLeaseRenewer.LaneHealth;
 import com.alibaba.compileflow.durable.runtime.worker.DurableLeaseRenewer.RenewalHealth;
 import com.alibaba.compileflow.durable.spi.store.DurableStore;
@@ -24,7 +25,6 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
-import org.springframework.boot.health.contributor.Status;
 
 /**
  * Reports Durable authority health without treating optional application capabilities as global readiness.
@@ -32,7 +32,6 @@ import org.springframework.boot.health.contributor.Status;
  * @author yusu
  */
 public final class DurableHealthIndicator implements HealthIndicator {
-    private static final Status DEGRADED = new Status("DEGRADED");
     private final DurableStore store;
     private final DurableProcessRuntimeCache runtimeCache;
     private final Supplier<DurableWorkerCoordinator> coordinator;
@@ -69,12 +68,12 @@ public final class DurableHealthIndicator implements HealthIndicator {
                 .build();
         }
         DurableWorkerCoordinator workers = coordinator.get();
-        DurableWorkerHealth.Snapshot workerHealth = workers == null ? null : workers.workerHealthSnapshot();
+        DurableWorkerCoordinator.HealthSnapshot workerHealth = workers == null ? null : workers.workerHealthSnapshot();
         DurableLeaseRenewer renewer = leaseRenewer.get();
         RenewalHealth renewalHealth = renewer == null ? null : renewer.renewalHealth();
         boolean degraded =
                 workerHealth != null && workerHealth.degraded() || renewalHealth != null && renewalHealth.degraded();
-        Health.Builder health = degraded ? Health.status(DEGRADED) : Health.up();
+        Health.Builder health = Health.up().withDetail("degraded", degraded);
         health
             .withDetail("durableAuthority", "up")
             .withDetail("workerRuntime", workerRuntime(workers))

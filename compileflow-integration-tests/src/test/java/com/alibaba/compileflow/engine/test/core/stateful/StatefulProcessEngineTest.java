@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.core.stateful;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ErrorCode;
@@ -27,7 +28,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -46,16 +46,14 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = ProcessEngineTestConfiguration.class)
 @DisplayName("Stateful Process Engine Comprehensive Integration Tests")
-// Stateful process trigger mechanism is prone to race conditions in
 @Execution(ExecutionMode.SAME_THREAD)
-class // parallel environments
-StatefulProcessEngineTest {
+class StatefulProcessEngineTest {
     protected ProcessEngine engine;
     private ProcessToolingService toolingService;
 
     @BeforeEach
     void setUp() {
-        engine = ProcessEngineTestFactory.createTbbpm();
+        engine = ProcessEngineTestFactory.create();
         toolingService = engine.tooling();
     }
 
@@ -77,18 +75,19 @@ StatefulProcessEngineTest {
             Map<String, Object> taskContext =
                     ProcessContextBuilder.newContext().with("taskData", "test_task_data").build();
             // Verify code generation
-            assertThat(toolingService.generateJavaCode(ProcessDefinition.classpath(waitTaskProcessCode,
-                    "bpm/stateful/waitTaskProcess.bpm")))
+            assertThat(toolingService.generateJavaCode(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                    waitTaskProcessCode, "bpm/stateful/waitTaskProcess.bpm")))
                 .as("Code generation should succeed")
                 .contains("private int _cf$awaitWaitTask1()")
                 .contains("this._cf$triggerPending")
                 .contains("return _CF_PAUSED;");
             // When: Execute initial flow and trigger the waiting task
-            engine.execute(ProcessDefinition.classpath(waitTaskProcessCode,
+            engine.execute(ProcessDefinition.classpath(ProcessModelType.TBBPM, waitTaskProcessCode,
                             waitTaskProcessCode.replace(".", "/") + ".bpm"), taskContext);
             taskContext.put("waitResult", "external_result");
-            ProcessResult<Map<String, Object>> triggerResult = engine.trigger(ProcessDefinition.classpath(waitTaskProcessCode,
-                            waitTaskProcessCode.replace(".", "/") + ".bpm"), ProcessTrigger.at("waitTask1"), taskContext);
+            ProcessResult<Map<String, Object>> triggerResult = engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            waitTaskProcessCode, waitTaskProcessCode.replace(".", "/") + ".bpm"),
+                    ProcessTrigger.at("waitTask1"), taskContext);
             // Then: Verify execution success and semantic output (waitResult)
             assertThat(triggerResult.isSuccess()).as("WaitTask flow should execute successfully").isTrue();
             assertThat(triggerResult.getOutput())
@@ -99,8 +98,8 @@ StatefulProcessEngineTest {
         @Test
         @DisplayName("should generate actionless wait entries without empty branches")
         void shouldGenerateActionlessWaitEntriesWithoutEmptyBranches() {
-            String source = toolingService.generateJavaCode(ProcessDefinition.classpath("bpm.stateful."
-                    + "nestedStatefulSubProcess", "bpm/stateful/nestedStatefulSubProcess.bpm"));
+            String source = toolingService.generateJavaCode(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                    "bpm.stateful." + "nestedStatefulSubProcess", "bpm/stateful/nestedStatefulSubProcess.bpm"));
 
             assertThat(source)
                 .contains("_cf$awaitAfterSubProcess1", "_cf$awaitAfterSubProcess2", "_cf$awaitMainWait")
@@ -121,8 +120,8 @@ StatefulProcessEngineTest {
             Map<String, Object> paymentContext = new HashMap<>(orderContext);
             paymentContext.put("payment_received", "payment_success");
             // trigger starts a new execution at the named entry with caller-supplied variables.
-            ProcessResult<Map<String, Object>> paymentResult = engine.trigger(ProcessDefinition.classpath(multiWaitEventFlowCode,
-                            multiWaitEventFlowCode.replace(".", "/") + ".bpm"),
+            ProcessResult<Map<String, Object>> paymentResult = engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            multiWaitEventFlowCode, multiWaitEventFlowCode.replace(".", "/") + ".bpm"),
                     ProcessTrigger.on("waitPayment", "paymentComplete"), paymentContext);
             // Then: Verify payment trigger succeeds and semantic output
             assertThat(paymentResult.isSuccess()).as("Payment trigger should succeed").isTrue();
@@ -135,8 +134,8 @@ StatefulProcessEngineTest {
             // When: Trigger delivery complete event
             Map<String, Object> deliveryContext = new HashMap<>(orderContext);
             deliveryContext.put("delivery_completed", "delivery_success");
-            ProcessResult<Map<String, Object>> deliveryResult = engine.trigger(ProcessDefinition.classpath(multiWaitEventFlowCode,
-                            multiWaitEventFlowCode.replace(".", "/") + ".bpm"),
+            ProcessResult<Map<String, Object>> deliveryResult = engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            multiWaitEventFlowCode, multiWaitEventFlowCode.replace(".", "/") + ".bpm"),
                     ProcessTrigger.on("waitDelivery", "deliveryComplete"), deliveryContext);
             // Then: Verify delivery trigger succeeds and semantic outputs
             assertThat(deliveryResult.isSuccess()).as("Delivery trigger should succeed").isTrue();
@@ -160,8 +159,8 @@ StatefulProcessEngineTest {
             Map<String, Object> subprocessContext = new HashMap<>();
             subprocessContext.put("mainData", "main_process_data");
             // When: Trigger main event
-            ProcessResult<Map<String, Object>> mainTriggerResult = engine.trigger(ProcessDefinition.classpath(nestedStatefulSubProcessCode,
-                            nestedStatefulSubProcessCode.replace(".", "/") + ".bpm"),
+            ProcessResult<Map<String, Object>> mainTriggerResult = engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            nestedStatefulSubProcessCode, nestedStatefulSubProcessCode.replace(".", "/") + ".bpm"),
                     ProcessTrigger.on("mainWait", "mainEvent"), subprocessContext);
             // Then: Verify main event trigger succeeds
             assertThat(mainTriggerResult.isSuccess()).as("Main event trigger should succeed").isTrue();
@@ -174,27 +173,27 @@ StatefulProcessEngineTest {
         @Test
         @DisplayName("should handle BPMN stateful receive task flow when approval message is received")
         void shouldHandleBpmnStatefulReceiveTaskWhenApprovalMessageIsReceived() {
-            // Given: BPMN engine and stateful receive task flow
-            try (ProcessEngine bpmnEngine = ProcessEngineTestFactory.createBpmn()) {
+            // Given: a BPMN stateful receive task flow
+            try (ProcessEngine engine = ProcessEngineTestFactory.create()) {
                 String bpmnStatefulReceiveTaskCode = "bpmn20.stateful.stateful_receive_task";
                 Map<String, Object> receiveTaskContext = new HashMap<>();
                 receiveTaskContext.put("taskData", "user_task_data");
                 // Verify code generation
-                ProcessToolingService bpmnTooling = bpmnEngine.tooling();
-                assertThat(bpmnTooling.generateJavaCode(ProcessDefinition.classpath(bpmnStatefulReceiveTaskCode,
-                        "bpmn20/stateful/stateful_receive_task.bpmn")))
+                ProcessToolingService tooling = engine.tooling();
+                assertThat(tooling.generateJavaCode(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        bpmnStatefulReceiveTaskCode, "bpmn20/stateful/stateful_receive_task.bpmn")))
                     .as("Code generation should succeed")
                     .isNotNull();
                 // When: Trigger final approval
                 Map<String, Object> approvalContext = new HashMap<>(receiveTaskContext);
                 approvalContext.put("final_approval", "approved");
-                ProcessResult<Map<String, Object>> modelIdTrigger = bpmnEngine.trigger(ProcessDefinition.classpath(bpmnStatefulReceiveTaskCode,
-                                bpmnStatefulReceiveTaskCode.replace(".", "/") + ".bpmn"),
+                ProcessResult<Map<String, Object>> modelIdTrigger = engine.trigger(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                                bpmnStatefulReceiveTaskCode, bpmnStatefulReceiveTaskCode.replace(".", "/") + ".bpmn"),
                         ProcessTrigger.on("receiveTask1", "approvalMessage"), approvalContext);
                 assertThat(modelIdTrigger.isFailure()).as("BPMN message id is model identity, not the trigger event").isTrue();
 
-                ProcessResult<Map<String, Object>> triggerResult = bpmnEngine.trigger(ProcessDefinition.classpath(bpmnStatefulReceiveTaskCode,
-                                bpmnStatefulReceiveTaskCode.replace(".", "/") + ".bpmn"),
+                ProcessResult<Map<String, Object>> triggerResult = engine.trigger(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                                bpmnStatefulReceiveTaskCode, bpmnStatefulReceiveTaskCode.replace(".", "/") + ".bpmn"),
                         ProcessTrigger.on("receiveTask1", "approval.received"), approvalContext);
                 // Then: Verify trigger succeeds
                 assertThat(triggerResult.isSuccess()).as("BPMN stateful receive task should succeed").isTrue();
@@ -205,9 +204,10 @@ StatefulProcessEngineTest {
         @Test
         @DisplayName("should reject BPMN stateful parallel waits without token correlation")
         void shouldRejectBpmnStatefulParallelWaitsWithoutTokenCorrelation() {
-            try (ProcessEngine bpmnStatefulEngine = ProcessEngineTestFactory.createBpmn()) {
+            try (ProcessEngine bpmnStatefulEngine = ProcessEngineTestFactory.create()) {
                 String statefulParallelGatewayFlowCode = "bpmn20.stateful.stateful_parallel_gateway";
-                ProcessResult<Map<String, Object>> result = bpmnStatefulEngine.execute(ProcessDefinition.classpath(statefulParallelGatewayFlowCode,
+                ProcessResult<Map<String, Object>> result = bpmnStatefulEngine.execute(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                                statefulParallelGatewayFlowCode,
                                 statefulParallelGatewayFlowCode.replace(".", "/") + ".bpmn"),
                         Map.of("processData", "parallel_process_data"));
 
@@ -228,9 +228,9 @@ StatefulProcessEngineTest {
             Map<String, Object> taskContext = new HashMap<>();
             taskContext.put("taskData", "test_data");
             // When: Try to trigger with the unknown node id
-            ProcessResult<Map<String, Object>> triggerResult = engine.trigger(ProcessDefinition.classpath(waitTaskProcessCode,
-                            waitTaskProcessCode.replace(".", "/") + ".bpm"), ProcessTrigger.at("invalidTag"),
-                    taskContext);
+            ProcessResult<Map<String, Object>> triggerResult = engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            waitTaskProcessCode, waitTaskProcessCode.replace(".", "/") + ".bpm"),
+                    ProcessTrigger.at("invalidTag"), taskContext);
             // Then: Verify failure and error information
             assertThat(triggerResult.isSuccess()).as("Trigger with an unknown stateful node id should fail").isFalse();
             assertThat(triggerResult.getError().getMessage())
@@ -248,11 +248,12 @@ StatefulProcessEngineTest {
             String statelessProcessCode = "bpmn20.compat.simple_service";
             Map<String, Object> processContext = new HashMap<>();
             // When: Try to trigger on stateless process
-            ProcessResult<Map<String, Object>> triggerResult = engine.trigger(ProcessDefinition.classpath(statelessProcessCode,
-                            statelessProcessCode.replace(".", "/") + ".bpm"), ProcessTrigger.at("someTag"),
+            ProcessResult<Map<String, Object>> triggerResult = engine.trigger(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                            statelessProcessCode, "bpmn20/compat/simple_service.bpmn"), ProcessTrigger.at("someTag"),
                     processContext);
             // Then: Verify failure and error information
             assertThat(triggerResult.isSuccess()).as("Trigger on non-stateful process should fail").isFalse();
+            assertThat(triggerResult.getError().getCode()).isEqualTo(ErrorCode.CF_EXEC_008.getCode());
             assertThat(triggerResult.getError().getMessage())
                 .as("Error message should be present")
                 .isNotNull()
@@ -262,47 +263,30 @@ StatefulProcessEngineTest {
 
         @Test
         @DisplayName("should isolate concurrent trigger invocations for the same process")
-        void shouldHandleConcurrentTriggersWhenMultipleThreadsTriggerSameStatefulProcess() throws InterruptedException {
+        void shouldHandleConcurrentTriggersWhenMultipleThreadsTriggerSameStatefulProcess() throws Exception {
             // Given: Stateful wait task process and concurrent execution setup
             String waitTaskProcessCode = "bpm.stateful.waitTaskProcess";
             int concurrentThreadCount = 5;
-            CountDownLatch completionLatch = new CountDownLatch(concurrentThreadCount);
-            List<Future<Boolean>> triggerFutures = new ArrayList<>();
+            List<Future<ProcessResult<Map<String, Object>>>> triggerFutures = new ArrayList<>();
             ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(concurrentThreadCount);
-            // When: Trigger concurrently from multiple threads
-            for (int i = 0; i < concurrentThreadCount; i++) {
-                final int threadIndex = i;
-                Future<Boolean> triggerFuture = threadPoolExecutor.submit(() -> {
-                    try {
-                        Map<String, Object> concurrentTriggerContext = new HashMap<>();
-                        concurrentTriggerContext.put("taskData", "concurrent_test_" + threadIndex);
-
-                        ProcessResult<Map<String, Object>> concurrentTriggerResult = engine.trigger(ProcessDefinition.classpath(waitTaskProcessCode,
+            try {
+                for (int i = 0; i < concurrentThreadCount; i++) {
+                    final int threadIndex = i;
+                    triggerFutures.add(threadPoolExecutor.submit(() -> {
+                        Map<String, Object> context = Map.of("taskData", "concurrent_test_" + threadIndex);
+                        return engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM, waitTaskProcessCode,
                                         waitTaskProcessCode.replace(".", "/") + ".bpm"), ProcessTrigger.at("waitTask1"),
-                                concurrentTriggerContext);
-
-                        completionLatch.countDown();
-                        return concurrentTriggerResult.isSuccess();
-                    } catch (Exception failure) {
-                        completionLatch.countDown();
-                        return false;
-                    }
-                });
-                triggerFutures.add(triggerFuture);
-            }
-
-            completionLatch.await(10, TimeUnit.SECONDS);
-            threadPoolExecutor.shutdown();
-            // Then: Verify at least some concurrent triggers succeeded
-            long successfulTriggerCount = triggerFutures.stream().filter(future -> {
-                try {
-                    return future.get();
-                } catch (Exception failure) {
-                    return false;
+                                context);
+                    }));
                 }
-            }).count();
-
-            assertThat(successfulTriggerCount).as("At least some concurrent triggers should succeed").isPositive();
+                for (Future<ProcessResult<Map<String, Object>>> future : triggerFutures) {
+                    ProcessResult<Map<String, Object>> result = future.get(10, TimeUnit.SECONDS);
+                    assertThat(result.isSuccess()).as("Concurrent trigger failed: %s", result.getError()).isTrue();
+                }
+            } finally {
+                threadPoolExecutor.shutdownNow();
+                assertThat(threadPoolExecutor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
+            }
         }
     }
 
@@ -320,9 +304,9 @@ StatefulProcessEngineTest {
                 Map<String, Object> rapidTriggerContext = new HashMap<>();
                 rapidTriggerContext.put("taskData", "rapid_test_" + i);
 
-                ProcessResult<Map<String, Object>> rapidTriggerResult = engine.trigger(ProcessDefinition.classpath(waitTaskProcessCode,
-                                waitTaskProcessCode.replace(".", "/") + ".bpm"), ProcessTrigger.at("waitTask1"),
-                        rapidTriggerContext);
+                ProcessResult<Map<String, Object>> rapidTriggerResult = engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                                waitTaskProcessCode, waitTaskProcessCode.replace(".", "/") + ".bpm"),
+                        ProcessTrigger.at("waitTask1"), rapidTriggerContext);
 
                 assertThat(rapidTriggerResult.isSuccess()).as("Rapid trigger %d should succeed", i).isTrue();
             }
@@ -339,8 +323,8 @@ StatefulProcessEngineTest {
             Map<String, Object> paymentTriggerContext = new HashMap<>(orderContext);
             paymentTriggerContext.put("payment_received", "payment_success");
 
-            ProcessResult<Map<String, Object>> paymentTriggerResult = engine.trigger(ProcessDefinition.classpath(multiWaitEventFlowCode,
-                            multiWaitEventFlowCode.replace(".", "/") + ".bpm"),
+            ProcessResult<Map<String, Object>> paymentTriggerResult = engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            multiWaitEventFlowCode, multiWaitEventFlowCode.replace(".", "/") + ".bpm"),
                     ProcessTrigger.on("waitPayment", "paymentComplete"), paymentTriggerContext);
 
             assertThat(paymentTriggerResult.isSuccess()).as("Payment trigger should succeed").isTrue();
@@ -348,8 +332,8 @@ StatefulProcessEngineTest {
             Map<String, Object> deliveryTriggerContext = new HashMap<>(orderContext);
             deliveryTriggerContext.put("delivery_completed", "delivery_success");
 
-            ProcessResult<Map<String, Object>> deliveryTriggerResult = engine.trigger(ProcessDefinition.classpath(multiWaitEventFlowCode,
-                            multiWaitEventFlowCode.replace(".", "/") + ".bpm"),
+            ProcessResult<Map<String, Object>> deliveryTriggerResult = engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                            multiWaitEventFlowCode, multiWaitEventFlowCode.replace(".", "/") + ".bpm"),
                     ProcessTrigger.on("waitDelivery", "deliveryComplete"), deliveryTriggerContext);
 
             assertThat(deliveryTriggerResult.isSuccess()).as("Delivery trigger should succeed").isTrue();

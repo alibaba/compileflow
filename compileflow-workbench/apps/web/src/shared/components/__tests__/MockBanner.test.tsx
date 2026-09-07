@@ -20,7 +20,7 @@ describe('MockBanner', () => {
     render(<MockBanner />)
 
     expect(screen.getByText(/演示模式/)).toBeInTheDocument()
-    expect(screen.getByText(/非真实引擎输出/)).toBeInTheDocument()
+    expect(screen.getByText(/不代表引擎实际输出/)).toBeInTheDocument()
   })
 
   it('does not render in real mode', () => {

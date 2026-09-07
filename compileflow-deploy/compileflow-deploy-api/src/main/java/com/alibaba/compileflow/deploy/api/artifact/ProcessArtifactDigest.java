@@ -16,7 +16,6 @@ package com.alibaba.compileflow.deploy.api.artifact;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessDefinitionDigest;
 import com.alibaba.compileflow.engine.ProcessIdentifiers;
-import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -44,17 +43,15 @@ public final class ProcessArtifactDigest {
     /**
      * Computes the digest of one published artifact and its direct exact call edges.
      *
-     * @param modelType    process definition format
      * @param definition   exact inline definition
      * @param callBindings exact target Version selected for every direct call site
      * @return lowercase SHA-256 digest
      */
-    public static String compute(ProcessModelType modelType, ProcessDefinition.Inline definition,
-            Map<String, ProcessRef.Version> callBindings) {
+    public static String compute(ProcessDefinition.Inline definition, Map<String, ProcessRef.Version> callBindings) {
         ProcessDefinition.Inline source = Objects.requireNonNull(definition, "definition");
         MessageDigest digest = sha256();
         update(digest, DOMAIN);
-        update(digest, ProcessDefinitionDigest.compute(modelType, source));
+        update(digest, ProcessDefinitionDigest.compute(source));
         Map<String, ProcessRef.Version> bindings =
                 new LinkedHashMap<>(Objects.requireNonNull(callBindings, "callBindings"));
         bindings

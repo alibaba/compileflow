@@ -27,6 +27,7 @@ import static com.alibaba.compileflow.durable.testkit.DurableStoreContractFixtur
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.alibaba.compileflow.durable.api.command.EffectResolutionDecision;
+import com.alibaba.compileflow.durable.api.command.OutboxResolutionDecision;
 import com.alibaba.compileflow.durable.api.effect.EffectRecoveryPlan;
 import com.alibaba.compileflow.durable.api.error.DurableErrorCode;
 import com.alibaba.compileflow.durable.api.error.DurableProcessException;
@@ -50,6 +51,7 @@ import com.alibaba.compileflow.engine.ProcessDefinitionDigest;
 import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessRef;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -603,6 +605,41 @@ public abstract class DurableStoreContract {
     }
 
     @Test
+    void pastAbsoluteTimerIsImmediatelyDueAndRetainsItsRequestedInstant() {
+        ProcessRun run = startRun();
+        DurableStore.RunClaim claim = claimRun();
+        Instant dueAt = run.createdAt().minusSeconds(60).truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
+        assertThat(store.commitTurn(claim.lease(),
+                timerTurn(UUID.randomUUID(), 1, "past-deadline", null, dueAt, envelope("timer-state"))))
+            .isTrue();
+        assertThat(store.resolveDueWaits(10)).isOne();
+        assertThat(store.resolveDueWaits(10)).isZero();
+        DurableStore.RunClaim fired = claimRun();
+        assertThat(fired.occurrenceResults())
+            .singleElement()
+            .isInstanceOfSatisfying(DurableStore.TimerResult.class, result -> {
+                assertThat(result.dueAt()).isEqualTo(dueAt);
+                assertThat(result.scheduledAt()).isAfter(dueAt);
+                assertThat(result.resolvedAt()).isAfterOrEqualTo(result.scheduledAt());
+                assertThat(result.resolvedAt()).isAfterOrEqualTo(result.dueAt());
+            });
+        assertThat(store.commitTurn(fired.lease(), consumeClaimedResults(fired, succeededTurn(envelope("done"))))).isTrue();
+        assertThat(store.findRun(run.runId()).orElseThrow().status()).isEqualTo(ProcessRunStatus.SUCCEEDED);
+    }
+
+    @Test
+    void futureAbsoluteTimerIsNotResolvedEarly() {
+        ProcessRun run = startRun();
+        DurableStore.RunClaim claim = claimRun();
+        assertThat(store.commitTurn(claim.lease(),
+                timerTurn(UUID.randomUUID(), 1, "future-deadline", null, run.createdAt().plusSeconds(3600),
+                        envelope("timer-state"))))
+            .isTrue();
+        assertThat(store.resolveDueWaits(10)).isZero();
+        assertThat(store.findRun(run.runId()).orElseThrow().status()).isEqualTo(ProcessRunStatus.WAITING);
+    }
+
+    @Test
     void timerAndEffectBoundariesResumeFromCommittedFacts() {
         ProcessRun timerRun = startRun();
         DurableStore.RunClaim timerClaim = claimRun();
@@ -825,8 +862,8 @@ public abstract class DurableStoreContract {
             .findFirst()
             .orElseThrow();
         DurableStore.OutboxResolution abandon = new DurableStore.OutboxResolution(UUID.fromString(event.eventId()),
-                event.revision(), DurableStore.OutboxResolutionDecision.ABANDON, ACTOR,
-                "delivery intentionally suppressed", "incident-4");
+                event.revision(), OutboxResolutionDecision.ABANDON, ACTOR, "delivery intentionally suppressed",
+                "incident-4");
         OutboxEvent abandoned = store.resolveOutbox(abandon);
         OutboxEvent abandonReplay = store.resolveOutbox(abandon);
         assertThat(abandoned.status()).isEqualTo(OutboxEventStatus.ABANDONED);
@@ -1388,8 +1425,7 @@ public abstract class DurableStoreContract {
         assertWaitCommittedAuthoritySecretDisposed(cancelledRun.runId());
         assertThatThrownBy(() -> store.resolveOutbox(
                 new DurableStore.OutboxResolution(revoked.lease().eventId(), abandoned.revision(),
-                        DurableStore.OutboxResolutionDecision.RETRY, ACTOR, "obsolete authority must stay revoked",
-                        "wait-revocation")))
+                        OutboxResolutionDecision.RETRY, ACTOR, "obsolete authority must stay revoked", "wait-revocation")))
             .isInstanceOfSatisfying(DurableProcessException.class, failure -> assertThat(failure.getErrorCode())
                 .isEqualTo(DurableErrorCode.INVALID_ARGUMENT));
     }
@@ -1430,6 +1466,64 @@ public abstract class DurableStoreContract {
         } finally {
             executor.shutdownNow();
         }
+    }
+
+    @Test
+    void turnCommitCannotFinishPauseWhileAnotherEffectOwnsAuthority() throws Exception {
+        assertTurnReleaseKeepsPauseRequested(0);
+    }
+
+    @Test
+    void turnFaultCannotFinishPauseWhileAnotherEffectOwnsAuthority() throws Exception {
+        assertTurnReleaseKeepsPauseRequested(1);
+    }
+
+    @Test
+    void capabilityLossCannotFinishPauseWhileAnotherEffectOwnsAuthority() throws Exception {
+        assertTurnReleaseKeepsPauseRequested(2);
+    }
+
+    @Test
+    void expiredTurnCannotFinishPauseWhileAnotherEffectOwnsAuthority() throws Exception {
+        assertTurnReleaseKeepsPauseRequested(3);
+    }
+
+    private void assertTurnReleaseKeepsPauseRequested(int release) throws Exception {
+        ProcessRun run = startRun();
+        issueTwoEffects(run.runId());
+        DurableStore.EffectClaim first = claimEffect();
+        DurableStore.EffectClaim remaining = claimEffect();
+        assertThat(store.completeEffect(first.lease(), envelope("first-result"))).isTrue();
+        DurableStore.RunClaim turn = store
+            .claimRun(
+                    new DurableStore.RunClaimRequest("turn-worker", Set.of(PROCESS.processId()),
+                            release == 3 ? Duration.ofMillis(100) : LEASE))
+            .orElseThrow();
+        assertThat(store
+            .control(
+                    new DurableStore.ControlCommand(run.runId(), 0, DurableStore.ControlOperation.PAUSE, ACTOR,
+                            "pause-with-two-authorities", null))
+            .control()
+            .state())
+            .isEqualTo(ProcessRunControlState.PAUSE_REQUESTED);
+        switch (release) {
+            case 0 -> assertThat(store.commitTurn(turn.lease(),
+                    consumeClaimedResults(turn, runnableTurn(envelope("after-first")))))
+                .isTrue();
+            case 1 -> assertThat(store.releaseRunFault(turn.lease(), Duration.ZERO, RunRetryCode.TURN_EXECUTION_FAULT))
+                .isTrue();
+            case 2 -> assertThat(store.releaseRunAfterCapabilityLoss(turn.lease(), Duration.ZERO)).isTrue();
+            case 3 -> {
+                Thread.sleep(200);
+                assertThat(store.reclaimExpiredRuns(10)).isOne();
+            }
+            default -> throw new AssertionError("Unexpected release path");
+        }
+        ProcessRun pending = store.findRun(run.runId()).orElseThrow();
+        assertThat(pending.control().state()).isEqualTo(ProcessRunControlState.PAUSE_REQUESTED);
+        assertThat(pending.activeWork().runningEffects()).isOne();
+        assertThat(store.completeEffect(remaining.lease(), envelope("last-result"))).isTrue();
+        assertThat(store.findRun(run.runId()).orElseThrow().control().state()).isEqualTo(ProcessRunControlState.PAUSED);
     }
 
     @Test

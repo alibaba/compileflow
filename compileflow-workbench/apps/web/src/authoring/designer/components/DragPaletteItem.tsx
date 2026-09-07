@@ -37,14 +37,26 @@ export function DragPaletteItem({
 }: DragPaletteItemProps) {
   const { t } = useTranslation()
   const itemRef = useRef<HTMLButtonElement>(null)
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null)
+  const pointerMovedRef = useRef(false)
+  const suppressNextClickRef = useRef(false)
+  const touchInputRef = useRef(false)
   const [isDragging, setIsDragging] = useState(false)
 
   useEffect(() => {
     if (!itemRef.current || !graph || !dnd) return
 
+    const handlePointerDown = (event: PointerEvent) => {
+      touchInputRef.current = event.pointerType !== 'mouse'
+    }
+
     const handleMouseDown = (e: MouseEvent) => {
+      if (e.button !== 0) return
+      if (touchInputRef.current) return
       const config = getConfig()
       if (!config) return
+      pointerStartRef.current = { x: e.clientX, y: e.clientY }
+      pointerMovedRef.current = false
       setIsDragging(true)
       const node = graph.createNode({
         shape: config.shape,
@@ -55,33 +67,52 @@ export function DragPaletteItem({
       dnd.start(node, e)
     }
 
-    const handleMouseUp = () => setIsDragging(false)
+    const handleMouseMove = (e: MouseEvent) => {
+      const start = pointerStartRef.current
+      if (!start || pointerMovedRef.current) return
+      pointerMovedRef.current = Math.hypot(e.clientX - start.x, e.clientY - start.y) > 4
+    }
+
+    const handleMouseUp = () => {
+      const shouldAddNode = pointerStartRef.current !== null && !pointerMovedRef.current
+      pointerStartRef.current = null
+      pointerMovedRef.current = false
+      setIsDragging(false)
+      suppressNextClickRef.current = shouldAddNode
+      if (shouldAddNode) onKeyAddNode?.()
+    }
 
     const element = itemRef.current
+    element.addEventListener('pointerdown', handlePointerDown)
     element.addEventListener('mousedown', handleMouseDown)
-    document.addEventListener('mouseup', handleMouseUp)
+    document.addEventListener('mousemove', handleMouseMove, true)
+    document.addEventListener('mouseup', handleMouseUp, true)
 
     return () => {
+      element.removeEventListener('pointerdown', handlePointerDown)
       element.removeEventListener('mousedown', handleMouseDown)
-      document.removeEventListener('mouseup', handleMouseUp)
+      document.removeEventListener('mousemove', handleMouseMove, true)
+      document.removeEventListener('mouseup', handleMouseUp, true)
     }
-  }, [graph, dnd, getConfig, getNodeData])
+  }, [graph, dnd, getConfig, getNodeData, onKeyAddNode])
 
   return (
     <button
       type="button"
       ref={itemRef}
       disabled={!graph || !dnd}
-      aria-label={t('designer.palette.dragToAdd', {
+      aria-label={t('designer.palette.addNode', {
         label: accessibleLabel ?? (typeof label === 'string' ? label : ''),
       })}
       className={`drag-palette-item${isDragging ? ' drag-palette-item--dragging' : ''}`}
       style={{ '--drag-accent-color': color } as React.CSSProperties}
-      onKeyDown={(e) => {
-        if ((e.key === 'Enter' || e.key === ' ') && graph && onKeyAddNode) {
-          e.preventDefault()
-          onKeyAddNode()
+      onClick={() => {
+        if (suppressNextClickRef.current) {
+          suppressNextClickRef.current = false
+          return
         }
+        touchInputRef.current = false
+        onKeyAddNode?.()
       }}
     >
       {icon && <span className="drag-palette-item-icon">{icon}</span>}

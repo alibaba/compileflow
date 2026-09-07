@@ -547,7 +547,7 @@ describe('operate api truth strategy', () => {
       dispatchedCount: 0,
       workerId: 'worker-1',
       leaseDurationMs: 30000,
-      dispatchBatchSize: 50,
+      concurrency: 4,
       checkedAt: '2026-07-05T00:00:00.000Z',
     }
     const requeue = {
@@ -617,9 +617,9 @@ describe('operate api truth strategy', () => {
     }
     mockApiClient.get.mockResolvedValueOnce(diagnostics)
 
-    const { getDeployRuntimeDiagnostics } = await import('../monitoring')
+    const { getDeploymentRuntimeDiagnostics } = await import('../monitoring')
 
-    await expect(getDeployRuntimeDiagnostics()).resolves.toEqual(diagnostics)
+    await expect(getDeploymentRuntimeDiagnostics()).resolves.toEqual(diagnostics)
     expect(mockApiClient.get).toHaveBeenCalledWith('/api/monitoring/deploy-runtime')
   })
 
@@ -659,9 +659,9 @@ describe('operate api truth strategy', () => {
   it('returns mock deploy runtime diagnostics only in explicit operate mock mode', async () => {
     mockIsOperateMockMode.mockReturnValue(true)
 
-    const { getDeployRuntimeDiagnostics } = await import('../monitoring')
+    const { getDeploymentRuntimeDiagnostics } = await import('../monitoring')
 
-    const diagnostics = await getDeployRuntimeDiagnostics()
+    const diagnostics = await getDeploymentRuntimeDiagnostics()
     expect(diagnostics.available).toBe(true)
     if (!diagnostics.available) throw new Error('expected available diagnostics')
     expect(diagnostics.demandedVersions.length).toBeGreaterThan(0)

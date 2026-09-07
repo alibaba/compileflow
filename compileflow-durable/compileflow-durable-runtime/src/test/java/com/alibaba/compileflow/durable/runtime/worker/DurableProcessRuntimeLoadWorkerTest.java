@@ -24,7 +24,7 @@ import com.alibaba.compileflow.engine.ProcessModelType;
 import com.alibaba.compileflow.engine.ProcessDefinitionDigest;
 import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.engine.config.JavaDiagnosticsConfig;
-import com.alibaba.compileflow.engine.config.ProcessEngineConfig;
+import com.alibaba.compileflow.engine.config.ProcessDefinitionConfig;
 import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -56,9 +56,8 @@ class DurableProcessRuntimeLoadWorkerTest {
         InMemoryDurableProcessRuntimeCache runtimeCache = new InMemoryDurableProcessRuntimeCache(2);
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
         DurableProcessRuntimeManager processes = new DurableProcessRuntimeManager(store, runtimeCache,
-                new DurableJavaProgramCompiler(JavaDiagnosticsConfig.defaults()),
-                ProcessEngineConfig.tbbpmBuilder().classLoader(getClass().getClassLoader()).discoverPlugins(false).build(),
-                DurableVersionDefinitionSource.empty());
+                new DurableJavaProgramCompiler(JavaDiagnosticsConfig.defaults()), ProcessDefinitionConfig.defaults(),
+                getClass().getClassLoader(), 32, DurableVersionDefinitionSource.empty());
         DurableProcessRuntimeLoadWorker worker =
                 new DurableProcessRuntimeLoadWorker(store, processes, runtimeCache, Duration.ofSeconds(30), clock);
 
@@ -75,9 +74,8 @@ class DurableProcessRuntimeLoadWorkerTest {
         DurableStore store = oversizedDemandStore();
         InMemoryDurableProcessRuntimeCache runtimeCache = new InMemoryDurableProcessRuntimeCache(2);
         DurableProcessRuntimeManager processes = new DurableProcessRuntimeManager(store, runtimeCache,
-                new DurableJavaProgramCompiler(JavaDiagnosticsConfig.defaults()),
-                ProcessEngineConfig.tbbpmBuilder().classLoader(getClass().getClassLoader()).discoverPlugins(false).build(),
-                DurableVersionDefinitionSource.empty());
+                new DurableJavaProgramCompiler(JavaDiagnosticsConfig.defaults()), ProcessDefinitionConfig.defaults(),
+                getClass().getClassLoader(), 32, DurableVersionDefinitionSource.empty());
         DurableProcessRuntimeLoadWorker worker = new DurableProcessRuntimeLoadWorker(store, processes, runtimeCache,
                 Duration.ofSeconds(30), Clock.systemUTC());
 

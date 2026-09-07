@@ -26,61 +26,34 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class ProcessEngineFactoryTest {
-    private static ProcessEngineProvider provider(ProcessModelType type) {
-        return provider(type, null, true);
-    }
-
-    private static ProcessEngineProvider provider(ProcessModelType type, ProcessEngine engine) {
-        return provider(type, engine, false);
-    }
-
-    private static ProcessEngineProvider provider(ProcessModelType type, ProcessEngine engine, boolean selectionOnly) {
-        return new ProcessEngineProvider() {
-            @Override
-            public ProcessModelType getModelType() {
-                return type;
-            }
-
-            @Override
-            public ProcessEngine createEngine(ProcessEngineConfig config) {
-                if (selectionOnly) {
-                    throw new UnsupportedOperationException("selection test only");
-                }
-                return engine;
-            }
+    private static ProcessEngineProvider provider() {
+        return config -> {
+            throw new UnsupportedOperationException("selection test only");
         };
     }
 
     @Test
-    void selectsTheOnlyMatchingProvider() {
-        ProcessEngineProvider tbbpm = provider(ProcessModelType.TBBPM);
-        ProcessEngineProvider bpmn = provider(ProcessModelType.BPMN);
-
-        assertThat(ProcessEngineFactory.selectProvider(ProcessModelType.TBBPM, List.of(bpmn, tbbpm))).isSameAs(tbbpm);
+    void selectsTheSingleBootstrapProvider() {
+        ProcessEngineProvider provider = provider();
+        assertThat(ProcessEngineFactory.selectProvider(List.of(provider))).isSameAs(provider);
     }
 
     @Test
     void rejectsMissingAndAmbiguousProviders() {
-        assertThatThrownBy(() -> ProcessEngineFactory.selectProvider(ProcessModelType.TBBPM,
-                List.of(provider(ProcessModelType.BPMN))))
+        assertThatThrownBy(() -> ProcessEngineFactory.selectProvider(List.of()))
             .isInstanceOf(CompileFlowException.ConfigurationException.class)
-            .hasMessageContaining("No provider found");
+            .hasMessageContaining("No ProcessEngineProvider found");
 
-        assertThatThrownBy(() -> ProcessEngineFactory.selectProvider(ProcessModelType.TBBPM,
-                List.of(provider(ProcessModelType.TBBPM), provider(ProcessModelType.TBBPM))))
+        assertThatThrownBy(() -> ProcessEngineFactory.selectProvider(List.of(provider(), provider())))
             .isInstanceOf(CompileFlowException.ConfigurationException.class)
-            .hasMessageContaining("Multiple providers found");
+            .hasMessageContaining("Multiple ProcessEngineProvider implementations");
     }
 
     @Test
     void rejectsMalformedProviderContractsAtTheFactoryBoundary() {
-        ProcessEngineConfig config = ProcessEngineConfig.tbbpmBuilder().discoverPlugins(false).build();
+        ProcessEngineConfig config = ProcessEngineConfig.builder().discoverPlugins(false).build();
 
-        assertThatThrownBy(() -> ProcessEngineFactory.selectProvider(ProcessModelType.TBBPM, List.of(provider(null))))
-            .isInstanceOf(CompileFlowException.ConfigurationException.class)
-            .hasMessageContaining("returned null model type");
-
-        ProcessEngineProvider nullEngineProvider = provider(ProcessModelType.TBBPM, null);
+        ProcessEngineProvider nullEngineProvider = ignored -> null;
         assertThatThrownBy(() -> ProcessEngineFactory.createEngine(config, nullEngineProvider))
             .isInstanceOf(CompileFlowException.ConfigurationException.class)
             .hasMessageContaining("returned null");
@@ -96,7 +69,7 @@ class ProcessEngineFactoryTest {
         try (URLClassLoader classLoader =
                 new URLClassLoader(new java.net.URL[] {tempDir.toUri().toURL()}, getClass().getClassLoader())) {
             ProcessEngineConfig config =
-                    ProcessEngineConfig.tbbpmBuilder().classLoader(classLoader).discoverPlugins(false).build();
+                    ProcessEngineConfig.builder().classLoader(classLoader).discoverPlugins(false).build();
 
             assertThatThrownBy(() -> ProcessEngineFactory.create(config))
                 .isInstanceOf(CompileFlowException.ConfigurationException.class)

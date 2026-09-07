@@ -69,6 +69,20 @@ class AsyncInvocationControllerTest {
     }
 
     @Test
+    void oversizedPayloadIsRejectedAsClientInputBeforeAnyPersistence() {
+        AsyncInvocationRepository repository = mock(AsyncInvocationRepository.class);
+        AsyncInvocationService service = new AsyncInvocationService(repository, mock(AsyncInvocationStore.class),
+                mock(AsyncInvocationWorker.class), mock(PublishedProcessExecutionService.class));
+        AsyncInvocationController controller = new AsyncInvocationController(service);
+        AsyncInvocationSubmitRequest body = new AsyncInvocationSubmitRequest("inv-oversized",
+                Map.of("value", "x".repeat(4 * 1024 * 1024 + 1)), aliasRouting("production"), 1, 0L);
+
+        assertProblem(() -> controller.submitAsyncInvocation("payment.approve", body), HttpStatus.BAD_REQUEST,
+                "INVALID_REQUEST", "Async invocation payload exceeds the character limit");
+        org.mockito.Mockito.verifyNoInteractions(repository);
+    }
+
+    @Test
     void submitMapsAmbiguousRoutingValidationTo400() {
         AsyncInvocationService service = mock(AsyncInvocationService.class);
         when(service.submit(eq("payment.approve"), any(AsyncInvocationSubmitRequest.class)))

@@ -13,6 +13,7 @@
  */
 package com.alibaba.compileflow.engine.test.quality.boundary;
 
+import com.alibaba.compileflow.engine.ProcessModelType;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.alibaba.compileflow.engine.ProcessDefinition;
 import com.alibaba.compileflow.engine.ProcessEngine;
@@ -30,61 +31,168 @@ import java.util.function.Function;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 @Tag("integration")
 @DisplayName("Compiled and interpreted ProcessRuntime differential contract")
 class ProcessRuntimeModeDifferentialTest {
+    @ParameterizedTest
+    @ValueSource(strings = {"java.util.List", "java.util.ArrayList", "java.util.LinkedList"})
+    void concurrentBranchesValidateAndCommitLoopOutputsInBothModes(String outputType) {
+        ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.TBBPM, "test.runtime.loop-output",
+                """
+            <bpm code="test.runtime.loop-output">
+              <var name="items" dataType="java.util.List&lt;java.lang.Integer&gt;" inOutType="param"/>
+              <var name="value" dataType="java.lang.Integer" inOutType="inner"/>
+              <var name="results" dataType="%s&lt;java.lang.Integer&gt;" inOutType="return"/>
+              <start id="start"><transition to="fork"/></start>
+              <parallel id="fork"><transition to="loop"/><transition to="join"/></parallel>
+              <foreach id="loop" collection="items" item="DataTypes" itemType="java.lang.Integer">
+                <output source="value" target="results"/>
+                <transition to="join"/>
+                <start id="loopStart"><transition to="calculate"/></start>
+                <scriptTask id="calculate">
+                  <action type="script" language="java">
+                    <input target="input" dataType="java.lang.Integer" source="DataTypes"/>
+                    <output dataType="java.lang.Integer" target="value"/>
+                    <code>return input * 2;</code>
+                  </action>
+                  <transition to="loopEnd"/>
+                </scriptTask>
+                <end id="loopEnd"/>
+              </foreach>
+              <parallel id="join"><transition to="end"/></parallel>
+              <end id="end"/>
+            </bpm>
+            """
+                    .formatted(outputType));
+        for (List<Integer> items : List.of(List.of(2, 3), List.<Integer>of())) {
+            DifferentialResult result =
+                    executeBoth(ProcessEngineTestFactory::builder, engine -> engine.execute(definition,
+                    Map.of("items", items)));
+            if (outputType.equals("java.util.List")) {
+                List<Integer> expected = items.stream().map(value -> value * 2).toList();
+                assertThat(result.compiled().orElseThrow()).containsEntry("results", expected);
+                assertThat(result.interpreted().orElseThrow()).containsEntry("results", expected);
+            } else {
+                assertThat(result.compiled().isSuccess()).isFalse();
+                assertThat(result.interpreted().isSuccess()).isFalse();
+                assertThat(result.compiled().getError().getCode()).isEqualTo("CF_COMPILE_001");
+                assertThat(result.interpreted().getError().getCode()).isEqualTo("CF_COMPILE_001");
+            }
+        }
+    }
+
+    @Test
+    void defaultValueTypesCannotBeShadowedByProcessVariables() {
+        ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.TBBPM, "test.runtime.default-names",
+                """
+            <bpm code="test.runtime.default-names">
+              <var name="Boolean" dataType="java.lang.Boolean" defaultValue="true" inOutType="return"/>
+              <var name="LocalDate" dataType="java.time.LocalDate" defaultValue="2026-09-07" inOutType="return"/>
+              <var name="String" dataType="java.lang.String" defaultValue="String" inOutType="return"/>
+              <start id="start"><transition to="end"/></start>
+              <end id="end"/>
+            </bpm>
+            """);
+        DifferentialResult result =
+                executeBoth(ProcessEngineTestFactory::builder, engine -> engine.execute(definition, Map.of()));
+
+        Map<String, Object> expected =
+                Map.of("Boolean", true, "LocalDate", java.time.LocalDate.of(2026, 9, 7), "String", "String");
+        assertThat(result.compiled().orElseThrow()).isEqualTo(expected);
+        assertThat(result.interpreted().orElseThrow()).isEqualTo(expected);
+    }
+
+    @Test
+    void generatorNamesDoNotRestrictProcessOrScriptInputsInEitherMode() {
+        ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.TBBPM, "test.runtime.binding-names",
+                """
+            <bpm code="test.runtime.binding-names">
+              <var name="arguments" dataType="int" inOutType="param"/>
+              <var name="ConditionSemantics" dataType="java.lang.Boolean" inOutType="param"/>
+              <var name="result" dataType="int" inOutType="return"/>
+              <start id="start" g="0,0,32,32"><transition to="choose"/></start>
+              <exclusive id="choose" g="40,0,32,32">
+                <transition to="calculate" condition="ConditionSemantics"/>
+                <transition to="end"/>
+              </exclusive>
+              <scriptTask id="calculate" g="80,0,100,48">
+                <action type="script" language="java">
+                  <input target="input" dataType="int" source="arguments"/>
+                  <output dataType="int" target="result"/>
+                  <code>return input + 22;</code>
+                </action>
+                <transition to="end"/>
+              </scriptTask>
+              <end id="end" g="200,0,32,32"/>
+            </bpm>
+            """);
+        DifferentialResult result = executeBoth(ProcessEngineTestFactory::builder, engine -> engine.execute(definition,
+                Map.of("arguments", 20, "ConditionSemantics", true)));
+
+        assertThat(result.compiled().orElseThrow()).containsEntry("result", 42);
+        assertThat(result.interpreted().orElseThrow()).containsEntry("result", 42);
+    }
+
     @Test
     @DisplayName("BPMN Java actions and standard-loop limits have identical observable semantics")
     void bpmnActionsAndLoopLimitsAreEquivalent() {
-        ProcessDefinition service =
-                ProcessDefinition.classpath("bpmn20.compat.simple_service", "bpmn20/compat/simple_service.bpmn");
-        assertSuccessfulEquivalent(ProcessEngineTestFactory::bpmnBuilder, engine -> engine.execute(service,
+        ProcessDefinition service = ProcessDefinition.classpath(ProcessModelType.BPMN, "bpmn20.compat.simple_service",
+                "bpmn20/compat/simple_service.bpmn");
+        assertSuccessfulEquivalent(ProcessEngineTestFactory::builder, engine -> engine.execute(service,
                 Map.of("a", 5, "b", 3)));
 
-        ProcessDefinition loop =
-                ProcessDefinition.classpath("bpmn20.compat.standard_loop", "bpmn20/compat/standard_loop.bpmn");
-        assertSuccessfulEquivalent(ProcessEngineTestFactory::bpmnBuilder, engine -> engine.execute(loop,
+        ProcessDefinition loop = ProcessDefinition.classpath(ProcessModelType.BPMN, "bpmn20.compat.standard_loop",
+                "bpmn20/compat/standard_loop.bpmn");
+        assertSuccessfulEquivalent(ProcessEngineTestFactory::builder, engine -> engine.execute(loop,
                 Map.of("i", 0, "msg", "hello")));
 
-        ProcessDefinition afterLoop = ProcessDefinition.inline("test.runtime.bpmn-after-loop", bpmnAfterLoop());
-        assertSuccessfulEquivalent(ProcessEngineTestFactory::bpmnBuilder, engine -> engine.execute(afterLoop, Map.of()));
+        ProcessDefinition afterLoop =
+                ProcessDefinition.inline(ProcessModelType.BPMN, "test.runtime.bpmn-after-loop", bpmnAfterLoop());
+        assertSuccessfulEquivalent(ProcessEngineTestFactory::builder, engine -> engine.execute(afterLoop, Map.of()));
 
-        ProcessDefinition nested = ProcessDefinition.classpath("bpmn20.compat.nested_multi_instance",
-                "bpmn20/compat/nested_multi_instance.bpmn");
-        assertSuccessfulEquivalent(ProcessEngineTestFactory::bpmnBuilder, engine -> engine.execute(nested,
+        ProcessDefinition nested = ProcessDefinition.classpath(ProcessModelType.BPMN,
+                "bpmn20.compat.nested_multi_instance", "bpmn20/compat/nested_multi_instance.bpmn");
+        assertSuccessfulEquivalent(ProcessEngineTestFactory::builder, engine -> engine.execute(nested,
                 Map.of("pList", List.of("A", "B"), "subList", List.of(1, 2))));
     }
 
     @Test
     @DisplayName("TBBPM expressions, break control, and script actions have identical semantics")
     void tbbpmExpressionsBreakAndScriptsAreEquivalent() {
-        ProcessDefinition loop = ProcessDefinition.classpath("bpm.loop.loopWithBreak", "bpm/loop/loopWithBreak.bpm");
-        try (ProcessEngine engine = ProcessEngineTestFactory.createTbbpm()) {
+        ProcessDefinition loop =
+                ProcessDefinition.classpath(ProcessModelType.TBBPM, "bpm.loop.loopWithBreak",
+                        "bpm/loop/loopWithBreak.bpm");
+        try (ProcessEngine engine = ProcessEngineTestFactory.create()) {
             assertThat(engine.tooling().generateJavaCode(loop))
                 .contains("private int _cf$foreachLoopWithBreak()")
                 .contains("private void _cf$executeCheckAndSetIndex(String _cf$nodeId, int i)")
                 .contains("private Integer _cf$invokeCheckAndSetIndex(int i)")
                 .doesNotContain("_cf$invokeCheckAndSetIndex(Integer num");
         }
-        assertSuccessfulEquivalent(ProcessEngineTestFactory::tbbpmBuilder, engine -> engine.execute(loop,
+        assertSuccessfulEquivalent(ProcessEngineTestFactory::builder, engine -> engine.execute(loop,
                 Map.of("numbers", List.of(1, 2, 3, 4, 5, 6))));
     }
 
     @Test
     @DisplayName("TBBPM structured concurrent branches commit the same outputs")
     void tbbpmStructuredConcurrencyIsEquivalent() {
-        ProcessDefinition definition = ProcessDefinition.inline("test.runtime.parallel", parallelProcess());
-        assertSuccessfulEquivalent(ProcessEngineTestFactory::tbbpmBuilder, engine -> engine.execute(definition,
+        ProcessDefinition definition =
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "test.runtime.parallel", parallelProcess());
+        assertSuccessfulEquivalent(ProcessEngineTestFactory::builder, engine -> engine.execute(definition,
                 Map.of("a", 6, "b", 4)));
     }
 
     @Test
     @DisplayName("TBBPM embedded BPM scopes execute identically in both runtime modes")
     void tbbpmEmbeddedScopesAreEquivalent() {
-        ProcessDefinition definition = ProcessDefinition.inline("test.runtime.embedded-scope", embeddedSubBpm());
+        ProcessDefinition definition =
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "test.runtime.embedded-scope", embeddedSubBpm());
 
-        DifferentialResult result = executeBoth(ProcessEngineTestFactory::tbbpmBuilder, engine -> engine.execute(definition,
+        DifferentialResult result =
+                executeBoth(ProcessEngineTestFactory::builder, engine -> engine.execute(definition,
                 Map.of("a", 2, "b", 3)));
 
         assertThat(result.compiled().isSuccess()).as("Compiled execution failed: %s", result.compiled().getError()).isTrue();
@@ -98,10 +206,10 @@ class ProcessRuntimeModeDifferentialTest {
     @Test
     @DisplayName("Loop control propagates through embedded scopes in both runtime modes")
     void tbbpmEmbeddedLoopControlIsEquivalent() {
-        ProcessDefinition definition =
-                ProcessDefinition.inline("test.runtime.embedded-loop-control", embeddedLoopControl());
+        ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.TBBPM,
+                "test.runtime.embedded-loop-control", embeddedLoopControl());
 
-        DifferentialResult result = executeBoth(ProcessEngineTestFactory::tbbpmBuilder, engine -> engine.execute(definition,
+        DifferentialResult result = executeBoth(ProcessEngineTestFactory::builder, engine -> engine.execute(definition,
                 Map.of("items", List.of(1, 2, 3))));
 
         assertThat(result.compiled().isSuccess()).as("Compiled execution failed: %s", result.compiled().getError()).isTrue();
@@ -115,71 +223,78 @@ class ProcessRuntimeModeDifferentialTest {
     @Test
     @DisplayName("Decision ordering, defaults, and inclusive selection have identical semantics")
     void decisionAndInclusiveSelectionAreEquivalent() {
-        ProcessDefinition decision = ProcessDefinition.inline("test.runtime.decision", decisionProcess());
-        assertSuccessfulEquivalent(ProcessEngineTestFactory::tbbpmBuilder, engine -> engine.execute(decision,
+        ProcessDefinition decision =
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "test.runtime.decision", decisionProcess());
+        assertSuccessfulEquivalent(ProcessEngineTestFactory::builder, engine -> engine.execute(decision,
                 Map.of("value", 20)));
-        assertSuccessfulEquivalent(ProcessEngineTestFactory::tbbpmBuilder, engine -> engine.execute(decision,
+        assertSuccessfulEquivalent(ProcessEngineTestFactory::builder, engine -> engine.execute(decision,
                 Map.of("value", 0)));
 
-        ProcessDefinition inclusive = ProcessDefinition.inline("test.runtime.inclusive", inclusiveProcess());
-        assertSuccessfulEquivalent(ProcessEngineTestFactory::tbbpmBuilder, engine -> engine.execute(inclusive,
+        ProcessDefinition inclusive =
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "test.runtime.inclusive", inclusiveProcess());
+        assertSuccessfulEquivalent(ProcessEngineTestFactory::builder, engine -> engine.execute(inclusive,
                 Map.of("leftEnabled", true, "rightEnabled", true)));
-        assertSuccessfulEquivalent(ProcessEngineTestFactory::tbbpmBuilder, engine -> engine.execute(inclusive,
+        assertSuccessfulEquivalent(ProcessEngineTestFactory::builder, engine -> engine.execute(inclusive,
                 Map.of("leftEnabled", false, "rightEnabled", false)));
     }
 
     @Test
     @DisplayName("Child mappings and action policies have identical semantics")
     void childMappingsAndActionPoliciesAreEquivalent() {
-        ProcessDefinition child = ProcessDefinition.inline("test.runtime.child", childProcess());
-        assertSuccessfulEquivalent(ProcessEngineTestFactory::tbbpmBuilder, engine -> engine.execute(child, Map.of()));
+        ProcessDefinition child = ProcessDefinition.inline(ProcessModelType.TBBPM, "test.runtime.child", childProcess());
+        assertSuccessfulEquivalent(ProcessEngineTestFactory::builder, engine -> engine.execute(child, Map.of()));
 
-        ProcessDefinition defaultInput = ProcessDefinition.inline("test.runtime.child-default", processCallDefault());
+        ProcessDefinition defaultInput =
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "test.runtime.child-default", processCallDefault());
         DifferentialResult defaultResult =
-                executeBoth(ProcessEngineTestFactory::tbbpmBuilder, engine -> engine.execute(defaultInput, Map.of()));
+                executeBoth(ProcessEngineTestFactory::builder, engine -> engine.execute(defaultInput, Map.of()));
         assertThat(defaultResult.compiled().getOutput()).containsEntry("defaultWasNull", true);
         assertThat(defaultResult.interpreted().getOutput()).containsEntry("defaultWasNull", true);
 
-        ProcessDefinition policy = ProcessDefinition.classpath("bpm.invocation-policy.fullConfiguration",
-                "bpm/invocation-policy/fullConfiguration.bpm");
-        assertSuccessfulEquivalent(ProcessEngineTestFactory::tbbpmBuilder, engine -> engine.execute(policy, Map.of()));
+        ProcessDefinition policy = ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                "bpm.invocation-policy.fullConfiguration", "bpm/invocation-policy/fullConfiguration.bpm");
+        assertSuccessfulEquivalent(ProcessEngineTestFactory::builder, engine -> engine.execute(policy, Map.of()));
     }
 
     @Test
-    @DisplayName("Loop-limit failure and target rejection classifications are identical")
-    void loopFailureAndTargetRejectionAreEquivalent() {
-        ProcessDefinition failingLoop = ProcessDefinition.inline("test.runtime.failing-loop", failingLoop());
-        assertEquivalent(ProcessEngineTestFactory::tbbpmBuilder, engine -> engine.execute(failingLoop, Map.of()));
+    @DisplayName("Loop-limit failure classifications are identical")
+    void loopFailureIsEquivalent() {
+        ProcessDefinition failingLoop =
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "test.runtime.failing-loop", failingLoop());
+        assertFailedEquivalent(ProcessEngineTestFactory::builder, engine -> engine.execute(failingLoop, Map.of()));
+    }
 
-        ProcessDefinition effect = ProcessDefinition.inline("test.runtime.effect", effectProcess());
-        assertEquivalent(ProcessEngineTestFactory::tbbpmBuilder, engine -> engine.execute(effect, Map.of()));
+    @Test
+    @DisplayName("Effect actions execute in process in both runtime modes")
+    void effectActionIsSuccessfulInBothRuntimeModes() {
+        ProcessDefinition effect =
+                ProcessDefinition.inline(ProcessModelType.TBBPM, "test.runtime.effect", effectProcess());
+        assertSuccessfulEquivalent(ProcessEngineTestFactory::builder, engine -> engine.execute(effect, Map.of()));
     }
 
     @Test
     @DisplayName("TBBPM trigger entries have identical downstream semantics")
     void tbbpmTriggerIsEquivalent() {
-        assertSuccessfulEquivalent(ProcessEngineTestFactory::tbbpmBuilder, engine -> engine.trigger(ProcessDefinition.classpath("b"
-                        + "pm.stateful.waitTaskProcess", "bpm.stateful.waitTaskProcess".replace(".", "/") + ".bpm"),
+        assertSuccessfulEquivalent(ProcessEngineTestFactory::builder, engine -> engine.trigger(ProcessDefinition.classpath(ProcessModelType.TBBPM,
+                        "bpm.stateful.waitTaskProcess", "bpm/stateful/waitTaskProcess.bpm"),
                 ProcessTrigger.at("waitTask1"), Map.of("taskData", "task")));
     }
 
     @Test
     @DisplayName("BPMN message catches accept and reject the same event")
     void bpmnMessageCatchIsEquivalent() {
-        assertSuccessfulEquivalent(ProcessEngineTestFactory::bpmnBuilder, engine -> engine.trigger(ProcessDefinition.classpath("b"
-                        + "pmn20.stateful.stateful_receive_task",
-                        "bpmn20.stateful.stateful_receive_task".replace(".", "/") + ".bpmn"),
+        assertSuccessfulEquivalent(ProcessEngineTestFactory::builder, engine -> engine.trigger(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        "bpmn20.stateful.stateful_receive_task", "bpmn20/stateful/stateful_receive_task.bpmn"),
                 ProcessTrigger.on("receiveTask1", "approval.received"), Map.of("taskData", "task")));
-        assertEquivalent(ProcessEngineTestFactory::bpmnBuilder, engine -> engine.trigger(ProcessDefinition.classpath("b"
-                        + "pmn20.stateful.stateful_receive_task",
-                        "bpmn20.stateful.stateful_receive_task".replace(".", "/") + ".bpmn"),
+        assertFailedEquivalent(ProcessEngineTestFactory::builder, engine -> engine.trigger(ProcessDefinition.classpath(ProcessModelType.BPMN,
+                        "bpmn20.stateful.stateful_receive_task", "bpmn20/stateful/stateful_receive_task.bpmn"),
                 ProcessTrigger.on("receiveTask1", "approvalMessage"), Map.of("taskData", "task")));
     }
 
     @Test
     @DisplayName("Declared return order is identical and observable in both runtime modes")
     void declaredReturnOrderIsEquivalent() {
-        ProcessDefinition definition = ProcessDefinition.inline("test.runtime.return-order",
+        ProcessDefinition definition = ProcessDefinition.inline(ProcessModelType.TBBPM, "test.runtime.return-order",
                 """
             <bpm code="test.runtime.return-order">
               <var name="second" dataType="java.lang.String" defaultValue="B" inOutType="return"/>
@@ -190,7 +305,7 @@ class ProcessRuntimeModeDifferentialTest {
             """);
 
         DifferentialResult result =
-                executeBoth(ProcessEngineTestFactory::tbbpmBuilder, engine -> engine.execute(definition, Map.of()));
+                executeBoth(ProcessEngineTestFactory::builder, engine -> engine.execute(definition, Map.of()));
 
         assertThat(result.compiled().isSuccess()).isTrue();
         assertThat(result.interpreted().isSuccess()).isTrue();
@@ -201,9 +316,9 @@ class ProcessRuntimeModeDifferentialTest {
     @Test
     @DisplayName("Interpreter executes compiled Java Code through the same semantic contract")
     void interpretedRuntimeExecutesCompiledJavaCode() {
-        ProcessDefinition definition =
-                ProcessDefinition.classpath("bpm.java-code.javaCodeSum", "bpm/java-code/javaCodeSum.bpm");
-        try (ProcessEngine engine = engine(ProcessEngineTestFactory.tbbpmBuilder(), ProcessRuntimeMode.INTERPRETED)) {
+        ProcessDefinition definition = ProcessDefinition.classpath(ProcessModelType.TBBPM, "bpm.java-code.javaCodeSum",
+                "bpm/java-code/javaCodeSum.bpm");
+        try (ProcessEngine engine = engine(ProcessEngineTestFactory.builder(), ProcessRuntimeMode.INTERPRETED)) {
             ProcessResult<Map<String, Object>> result = engine.execute(definition, Map.of("inputA", 1, "inputB", 2));
 
             assertThat(result.isSuccess()).isTrue();
@@ -221,18 +336,25 @@ class ProcessRuntimeModeDifferentialTest {
         assertThat(result.interpreted().getOutput()).containsExactlyInAnyOrderEntriesOf(result.compiled().getOutput());
     }
 
-    private static void assertEquivalent(BuilderSupplier builderSupplier,
+    @Test
+    void failureEquivalenceRejectsTwoSuccessfulExecutions() {
+        ProcessDefinition definition = ProcessDefinition.classpath(ProcessModelType.TBBPM, "bpm.java-code.javaCodeSum",
+                "bpm/java-code/javaCodeSum.bpm");
+        org.assertj.core.api.Assertions
+            .assertThatThrownBy(() -> assertFailedEquivalent(ProcessEngineTestFactory::builder, engine -> engine.execute(definition,
+                    Map.of("inputA", 1, "inputB", 2))))
+            .isInstanceOf(AssertionError.class);
+    }
+
+    private static void assertFailedEquivalent(BuilderSupplier builderSupplier,
             Function<ProcessEngine, ProcessResult<Map<String, Object>>> invocation) {
         DifferentialResult result = executeBoth(builderSupplier, invocation);
         ProcessResult<Map<String, Object>> compiled = result.compiled();
         ProcessResult<Map<String, Object>> interpreted = result.interpreted();
 
-        assertThat(interpreted.isSuccess()).isEqualTo(compiled.isSuccess());
-        if (compiled.isSuccess()) {
-            assertThat(interpreted.getOutput()).containsExactlyInAnyOrderEntriesOf(compiled.getOutput());
-        } else {
-            assertThat(interpreted.getError().getCode()).isEqualTo(compiled.getError().getCode());
-        }
+        assertThat(compiled.isFailure()).as("Compiled execution must fail").isTrue();
+        assertThat(interpreted.isFailure()).as("Interpreted execution must fail").isTrue();
+        assertThat(interpreted.getError().getCode()).isEqualTo(compiled.getError().getCode());
     }
 
     private static DifferentialResult executeBoth(BuilderSupplier builderSupplier,
