@@ -15,7 +15,7 @@
     "clean": "node -e \"const fs=require('node:fs'); ['dist','coverage'].forEach(path=>fs.rmSync(path,{recursive:true,force:true}))\""
   },
   "dependencies": {
-    "dotenv": "^16.6.1",
+    "dotenv": "^17.4.2",
     "express": "^4.22.2"
   },
   "devDependencies": {
