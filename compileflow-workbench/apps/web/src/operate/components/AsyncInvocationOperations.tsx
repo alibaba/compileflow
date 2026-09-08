@@ -28,6 +28,7 @@ export function AsyncInvocationOperations({
   const detail = useAsyncInvocationDetail()
   const [requeueing, setRequeueing] = useState(false)
   const [requeueConfirmOpen, setRequeueConfirmOpen] = useState(false)
+  const requeueInFlight = useRef(false)
   const mounted = useRef(true)
 
   useEffect(() => {
@@ -39,9 +40,16 @@ export function AsyncInvocationOperations({
 
   const requeueSelected = useCallback(async () => {
     const selected = detail.selected
-    if (!mounted.current || !selected || selected.status !== 'dead_letter') return
+    if (
+      !mounted.current ||
+      requeueInFlight.current ||
+      !selected ||
+      selected.status !== 'dead_letter'
+    )
+      return
 
     const invocationId = selected.invocationId
+    requeueInFlight.current = true
     setRequeueing(true)
     setRequeueConfirmOpen(false)
     try {
@@ -66,6 +74,7 @@ export function AsyncInvocationOperations({
       logger.error('Failed to requeue async invocation', toError(error), { invocationId })
       message.error(t('monitoring.opsActionFailed'))
     } finally {
+      requeueInFlight.current = false
       if (mounted.current) setRequeueing(false)
     }
   }, [detail, ledger, message, onQueueChanged, t])

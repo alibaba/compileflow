@@ -31,7 +31,6 @@ const BPMN_NODE_PROPERTIES: Record<BpmnNodeType, readonly string[]> = {
     'scriptFormat',
     'script',
     'execution',
-    'concurrency',
     'mappings',
     'invocationPolicy',
     'effectPolicy',

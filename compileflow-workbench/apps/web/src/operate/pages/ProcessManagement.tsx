@@ -40,7 +40,7 @@ import { createUniqueId } from '@/shared/identifiers'
 import { createLogger } from '@/shared/logging/logger'
 import { DEFAULT_BPMN_WITH_EVENTS_XML } from '@/shared/processes/bpmnTemplates'
 import { withProcessXmlIdentity } from '@/shared/processes/processXmlIdentity'
-import { DEFAULT_TBBPM_WITH_NODES_XML } from '@/shared/processes/tbbpmTemplates'
+import { DEFAULT_TBBPM_XML } from '@/shared/processes/tbbpmTemplates'
 import {
   getOperateProcessDesignerCapability,
   openDesignerFromOperateProcessCode,
@@ -196,15 +196,61 @@ function useProcessListData(filters: ReturnType<typeof useProcessFilters>) {
   return { processes, loading, loadError, total, loadProcesses, activeReload }
 }
 
+function useProcessMutationLock(activeReload: { current: (() => Promise<void>) | null }) {
+  const [mutating, setMutating] = useState(false)
+  const activeMutation = useRef(false)
+  const beginMutation = useCallback(() => {
+    if (activeMutation.current) return false
+    activeMutation.current = true
+    setMutating(true)
+    return true
+  }, [])
+  const endMutation = useCallback(() => {
+    activeMutation.current = false
+    if (activeReload.current) setMutating(false)
+  }, [activeReload])
+  return { beginMutation, endMutation, mutating }
+}
+
+function useProcessImport(
+  beginMutation: () => boolean,
+  endMutation: () => void,
+  activeReload: { current: (() => Promise<void>) | null },
+  message: ReturnType<typeof App.useApp>['message'],
+  t: TFunction
+) {
+  return useCallback(
+    async (file: File) => {
+      if (!beginMutation()) return false
+      try {
+        await importProcessXml(file)
+        if (!activeReload.current) return false
+        message.success(t('process.importSuccess'))
+        void activeReload.current()
+      } catch (error) {
+        if (!activeReload.current) return false
+        logger.error('Failed to import process XML', toError(error), { fileName: file.name })
+        message.error(t('process.importError'))
+      } finally {
+        endMutation()
+      }
+      return false
+    },
+    [activeReload, beginMutation, endMutation, message, t]
+  )
+}
+
 export function useProcessManagementData(t: TFunction, navigate: Navigate): ProcessManagementState {
   const { message } = App.useApp()
   const filters = useProcessFilters()
   const { processes, loading, loadError, total, loadProcesses, activeReload } =
     useProcessListData(filters)
   const publicationIntents = useRef(new Map<string, string>())
-
+  const { beginMutation, endMutation, mutating } = useProcessMutationLock(activeReload)
+  const handleImportXml = useProcessImport(beginMutation, endMutation, activeReload, message, t)
   const handleDelete = useCallback(
     async (code: string, revision: number) => {
+      if (!beginMutation()) return
       try {
         await deleteProcess(code, revision)
         if (!activeReload.current) return
@@ -214,13 +260,15 @@ export function useProcessManagementData(t: TFunction, navigate: Navigate): Proc
         if (!activeReload.current) return
         logger.error('Failed to delete process', toError(error), { code })
         message.error(t('process.deleteError'))
+      } finally {
+        endMutation()
       }
     },
-    [message, t]
+    [beginMutation, endMutation, message, t]
   )
-
   const handleDuplicate = useCallback(
     async (code: string, name: string) => {
+      if (!beginMutation()) return
       try {
         await duplicateProcess(
           code,
@@ -234,18 +282,19 @@ export function useProcessManagementData(t: TFunction, navigate: Navigate): Proc
         if (!activeReload.current) return
         logger.error('Failed to duplicate process', toError(error), { code })
         message.error(t('process.duplicateError'))
+      } finally {
+        endMutation()
       }
     },
-    [message, t]
+    [beginMutation, endMutation, message, t]
   )
-
   const handleCreateProcess = useCallback(
     async (type: ProcessModelType) => {
       if (isOperateMockMode()) {
         openNewDesigner(navigate, { modelType: type.toLowerCase() })
         return
       }
-
+      if (!beginMutation()) return
       const code = `process-${Date.now()}`
       try {
         const name = t('process.newProcessDefaultName')
@@ -254,7 +303,7 @@ export function useProcessManagementData(t: TFunction, navigate: Navigate): Proc
           name,
           type,
           xml: withProcessXmlIdentity(
-            type === 'TBBPM' ? DEFAULT_TBBPM_WITH_NODES_XML : DEFAULT_BPMN_WITH_EVENTS_XML,
+            type === 'TBBPM' ? DEFAULT_TBBPM_XML : DEFAULT_BPMN_WITH_EVENTS_XML,
             type,
             code,
             name
@@ -270,14 +319,17 @@ export function useProcessManagementData(t: TFunction, navigate: Navigate): Proc
         if (!activeReload.current) return
         logger.error('Failed to create process', toError(error), { code, type })
         message.error(t('process.createError'))
+      } finally {
+        endMutation()
       }
     },
-    [navigate, t]
+    [beginMutation, endMutation, navigate, t]
   )
 
   const handlePublish = useCallback(
     async (code: string, revision: number) => {
       const intent = `${code}\u0000${revision}`
+      if (!beginMutation()) return
       const idempotencyKey = publicationIntents.current.get(intent) ?? createUniqueId()
       publicationIntents.current.set(intent, idempotencyKey)
       try {
@@ -290,26 +342,11 @@ export function useProcessManagementData(t: TFunction, navigate: Navigate): Proc
         if (!activeReload.current) return
         logger.error('Failed to publish process', toError(error), { code })
         message.error(t('process.publishError'))
+      } finally {
+        endMutation()
       }
     },
-    [message, t]
-  )
-
-  const handleImportXml = useCallback(
-    async (file: File) => {
-      try {
-        await importProcessXml(file)
-        if (!activeReload.current) return false
-        message.success(t('process.importSuccess'))
-        void activeReload.current()
-      } catch (error) {
-        if (!activeReload.current) return false
-        logger.error('Failed to import process XML', toError(error), { fileName: file.name })
-        message.error(t('process.importError'))
-      }
-      return false
-    },
-    [message, t]
+    [beginMutation, endMutation, message, t]
   )
 
   return {
@@ -324,7 +361,7 @@ export function useProcessManagementData(t: TFunction, navigate: Navigate): Proc
     handlePublish,
     keywordInput: filters.keywordInput,
     loadError,
-    loading,
+    loading: loading || mutating,
     page: filters.page,
     removeFilter: filters.removeFilter,
     reload: () => void loadProcesses(),

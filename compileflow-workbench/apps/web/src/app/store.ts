@@ -12,6 +12,7 @@ import editorReducer, {
   deleteGraph,
   deleteNode,
   moveNode,
+  replaceImportedProcess,
   replaceContainerChildren,
   setBpmnDefaultConnection,
   updateConnection,
@@ -51,6 +52,7 @@ const editorHistory = undoable(editorReducer, {
       replaceContainerChildren.type,
       setBpmnDefaultConnection.type,
       updateProcessInfo.type,
+      replaceImportedProcess.type,
       moveNode.type,
       deleteNode.type,
       deleteGraph.type,
@@ -62,8 +64,12 @@ const editorHistory = undoable(editorReducer, {
   },
   groupBy: (action) => {
     if (action.type === 'editor/moveNode') {
-      const moveAction = action as PayloadAction<{ id: string; x: number; y: number }>
-      return `moveNode-${moveAction.payload.id}`
+      const moveAction = action as PayloadAction<
+        { id: string; x: number; y: number },
+        string,
+        { historyGroup?: string }
+      >
+      return moveAction.meta.historyGroup ?? null
     }
     return null
   },

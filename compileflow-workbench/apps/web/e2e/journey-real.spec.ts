@@ -768,6 +768,10 @@ test.describe('Real-mode Operate UI tour', () => {
         new URL(response.url()).pathname === '/api/async-invocations/dead-letters/requeue'
     )
     await batchRequeue.first().click()
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /确\s*认|Confirm/i })
+      .click()
     const batchBody = await batchResponse
     expect(batchBody.ok(), await batchBody.text()).toBeTruthy()
     const batchJson = (await batchBody.json()) as { requeued?: number }
@@ -957,6 +961,10 @@ test.describe('Real-mode Operate UI tour', () => {
         new URL(response.url()).pathname === '/api/deployment-control/dead-letters/requeue'
     )
     await requeueDeploy.first().click()
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /确\s*认|Confirm/i })
+      .click()
     const body = await requeueResponse
     expect(body.ok(), await body.text()).toBeTruthy()
     const json = (await body.json()) as { requeued?: number }
@@ -2367,6 +2375,58 @@ test.describe('Real-mode Operate UI tour', () => {
     await expect(page.locator('.x6-node').filter({ hasText: /^Marker$/ })).toHaveCount(0)
     await expect(page.locator('.x6-node').filter({ hasText: '自动任务' })).toHaveCount(0)
     await shot(page, '284-real-import-xml')
+
+    // Replacing the whole document is one edit: users can recover the exact pre-import graph.
+    await undoBtn.click()
+    await expect(
+      page
+        .locator('.x6-node')
+        .filter({ hasText: /^Marker$/ })
+        .first()
+    ).toBeVisible({
+      timeout: TIMEOUT,
+    })
+    await expect(page.locator('.x6-node').filter({ hasText: '自动任务' }).first()).toBeVisible({
+      timeout: TIMEOUT,
+    })
+    await expect(page.locator('.x6-node').filter({ hasText: importedName })).toHaveCount(0)
+    await redoBtn.click()
+    await expect(page.locator('.x6-node').filter({ hasText: importedName }).first()).toBeVisible({
+      timeout: TIMEOUT,
+    })
+
+    // A parse failure must not consume an undo step or alter the visible document.
+    const [invalidChooser] = await Promise.all([
+      page.waitForEvent('filechooser', { timeout: TIMEOUT }),
+      (async () => {
+        await page.locator('.header-more-btn').click()
+        await page.getByText(/导入 XML|Import XML/i).click()
+      })(),
+    ])
+    await invalidChooser.setFiles({
+      name: 'invalid.bpm',
+      mimeType: 'application/xml',
+      buffer: Buffer.from('<bpm><broken></bpm>', 'utf8'),
+    })
+    await expect(
+      page.locator('.ant-message-notice').filter({ hasText: /导入失败|Import failed/i })
+    ).toBeVisible({ timeout: TIMEOUT })
+    await expect(page.locator('.x6-node').filter({ hasText: importedName }).first()).toBeVisible({
+      timeout: TIMEOUT,
+    })
+    await undoBtn.click()
+    await expect(
+      page
+        .locator('.x6-node')
+        .filter({ hasText: /^Marker$/ })
+        .first()
+    ).toBeVisible({
+      timeout: TIMEOUT,
+    })
+    await redoBtn.click()
+    await expect(page.locator('.x6-node').filter({ hasText: importedName }).first()).toBeVisible({
+      timeout: TIMEOUT,
+    })
 
     const saveResponse = page.waitForResponse(
       (response) =>

@@ -11,12 +11,30 @@ export interface UseCanvasSyncOptions<
   nodes: DesignerNode[]
   connections: DesignerConnection[]
   selectedNodeId: string | null
+  selectedEdgeId: string | null
   nodeToX6Cell: (node: DesignerNode) => Record<string, unknown>
   connectionToX6Edge: (connection: DesignerConnection) => Record<string, unknown>
   checkNodeChanged: (cell: Node, node: DesignerNode) => boolean
   syncNodeToCell: (cell: Node, node: DesignerNode) => void
   checkEdgeChanged: (edge: Edge, connection: DesignerConnection) => boolean
   syncEdgeToCell: (edge: Edge, connection: DesignerConnection) => void
+}
+
+export function syncGraphSelection(
+  graph: Graph,
+  isSyncingRef: MutableRefObject<boolean>,
+  selectedCellId: string | null
+): void {
+  if (!selectedCellId || isSyncingRef.current) return
+  const cell = graph.getCellById(selectedCellId)
+  if (!cell || graph.getSelectedCells().some((selected) => selected.id === selectedCellId)) return
+
+  isSyncingRef.current = true
+  try {
+    graph.resetSelection(cell)
+  } finally {
+    isSyncingRef.current = false
+  }
 }
 
 export function useCanvasSync<
@@ -27,7 +45,7 @@ export function useCanvasSync<
   isSyncingRef: MutableRefObject<boolean>,
   options: UseCanvasSyncOptions<DesignerNode, DesignerConnection>
 ): void {
-  const { nodes, connections, selectedNodeId } = options
+  const { nodes, connections, selectedNodeId, selectedEdgeId } = options
 
   const optionsRef = useRef(options)
   optionsRef.current = options
@@ -118,9 +136,9 @@ export function useCanvasSync<
       isSyncingRef.current = false
     }
 
-    if (nodes.length > 0 && !hasFittedInitialContentRef.current) {
+    if (!hasFittedInitialContentRef.current) {
       hasFittedInitialContentRef.current = true
-      cancelScheduledFit = scheduleInitialGraphFit(graph)
+      if (nodes.length > 0) cancelScheduledFit = scheduleInitialGraphFit(graph)
     }
 
     return () => cancelScheduledFit?.()
@@ -128,6 +146,21 @@ export function useCanvasSync<
 
   // Handle selected node highlighting separately with optimized performance
   const prevSelectedIdRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    const graph = graphRef.current
+    if (!graph) return
+    syncGraphSelection(graph, isSyncingRef, selectedNodeId ?? selectedEdgeId)
+  }, [graphRef, isSyncingRef, selectedEdgeId, selectedNodeId])
+
+  useEffect(() => {
+    const edge = selectedEdgeId ? graphRef.current?.getCellById(selectedEdgeId) : null
+    if (!edge?.isEdge()) return
+    edge.addTools(['source-arrowhead', 'target-arrowhead'])
+    return () => {
+      edge.removeTools()
+    }
+  }, [selectedEdgeId, graphRef])
 
   useEffect(() => {
     const graph = graphRef.current

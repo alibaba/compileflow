@@ -1,0 +1,39 @@
+.action-mapping-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.action-mapping-card {
+  padding: var(--spacing-3);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: var(--color-fill-secondary);
+}
+
+.action-mapping-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+  margin-bottom: var(--spacing-2);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.action-mapping-card .ant-form-item {
+  margin-bottom: var(--spacing-3);
+}
+
+.action-mapping-card .action-mapping-card-last-field {
+  margin-bottom: 0;
+}
+
+.action-mapping-empty {
+  padding: var(--spacing-5) var(--spacing-3);
+  border: 1px dashed var(--color-border-light);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  text-align: center;
+}

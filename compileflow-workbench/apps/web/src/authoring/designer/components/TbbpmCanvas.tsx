@@ -1,12 +1,14 @@
 import { Edge, Graph, Node } from '@antv/x6'
 import { memo, useEffect, useRef } from 'react'
 
+import { canConnectNodes } from '../canvas/connectionRules'
 import {
   type ConnectionsRef,
   registerContextMenuEvents,
   registerSelectionEvents,
   registerSelectionSync,
   runGraphMutation,
+  selectionMoveTargets,
   type SyncingRef,
   useLatestRef,
 } from '../canvas/graphEvents'
@@ -23,7 +25,12 @@ import {
   selectTbbpmNodes,
   updateConnection,
 } from '../store/editorSlice'
-import { selectNode, selectSelectedNodeId, selectShowGridlines } from '../store/uiSlice'
+import {
+  selectNode,
+  selectSelectedNodeId,
+  selectSelectedEdgeId,
+  selectShowGridlines,
+} from '../store/uiSlice'
 import type { TbbpmConnection, TbbpmNode } from '../types/tbbpm'
 
 import { getNodeConfig, getNodeTypeByShape, registerTbbpmNodes } from './nodes/registerNodes'
@@ -138,13 +145,23 @@ function registerTbbpmMutationEvents(
     })
   })
 
-  graph.on('node:moved', ({ node }: { node: Node }) => {
-    if (shouldSkipMutation()) return
-    runGraphMutation(isSyncingRef, () => {
-      const position = node.position()
-      dispatch(moveNode({ id: node.id, x: position.x, y: position.y }))
-    })
-  })
+  graph.on(
+    'node:moved',
+    ({ node, e, historyGroup }: { node: Node; e?: MouseEvent; historyGroup?: string }) => {
+      if (shouldSkipMutation()) return
+      const targets = selectionMoveTargets(graph, node, PARENT_ID_DATA_KEY)
+      const moveHistoryGroup =
+        targets.length > 1
+          ? (historyGroup ?? `selection-drag-${e?.timeStamp ?? Date.now()}`)
+          : historyGroup
+      runGraphMutation(isSyncingRef, () => {
+        targets.forEach((target) => {
+          const position = target.position()
+          dispatch(moveNode({ id: target.id, x: position.x, y: position.y }, moveHistoryGroup))
+        })
+      })
+    }
+  )
 
   graph.on('node:added', ({ node }: { node: Node }) => {
     if (shouldSkipMutation()) return
@@ -157,6 +174,7 @@ function registerTbbpmMutationEvents(
       }
     })
     if (wasAdded) {
+      graph.cleanSelection()
       graph.select(node)
       dispatch(selectNode(node.id))
     }
@@ -207,20 +225,23 @@ const TbbpmCanvas = memo(function TbbpmCanvas({ onGraphReady }: TbbpmCanvasProps
   const nodes = useAppSelector(selectTbbpmNodes)
   const connections = useAppSelector(selectTbbpmConnections)
   const selectedNodeId = useAppSelector(selectSelectedNodeId)
+  const selectedEdgeId = useAppSelector(selectSelectedEdgeId)
   const showGridlines = useAppSelector(selectShowGridlines)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const isSyncingRef = useRef(false)
   const connectionsRef = useLatestRef(connections)
+  const nodesRef = useLatestRef(nodes)
 
   const localGraphRef = useX6Graph(containerRef, {
     showGridlines,
-    validateConnection: ({ sourceView, targetView }) => {
-      if (targetView?.cell.shape === 'tbbpm-start') return false
-      if (['tbbpm-end', 'tbbpm-break', 'tbbpm-continue'].includes(sourceView?.cell.shape ?? '')) {
-        return false
-      }
-      return true
+    validateConnection: ({ edge, sourceView, targetView }) => {
+      return canConnectNodes(
+        { type: 'TBBPM', nodes: nodesRef.current, connections: connectionsRef.current },
+        sourceView?.cell.id,
+        targetView?.cell.id,
+        edge?.id
+      )
     },
     onReady: (graph) => {
       graphRef.current = graph
@@ -244,6 +265,7 @@ const TbbpmCanvas = memo(function TbbpmCanvas({ onGraphReady }: TbbpmCanvasProps
     nodes,
     connections,
     selectedNodeId,
+    selectedEdgeId,
     nodeToX6Cell: tbbpmNodeToX6Cell,
     connectionToX6Edge: tbbpmConnectionToX6Edge,
     checkNodeChanged: (cell, node) => {

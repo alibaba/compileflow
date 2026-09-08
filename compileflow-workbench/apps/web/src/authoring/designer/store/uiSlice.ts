@@ -1,11 +1,10 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 import type { DesignerViewMode } from '../types'
-import type { ProcessConnection } from '../types/flowDefinition'
 
 export interface UiState {
   selectedNodeId: string | null
-  selectedEdge: ProcessConnection | null
+  selectedEdgeId: string | null
 
   rightPanelTab: 'properties' | 'edge' | 'validation' | 'debug' | 'none'
   leftPanelCollapsed: boolean
@@ -32,7 +31,7 @@ interface UiRootState {
 
 const initialState: UiState = {
   selectedNodeId: null,
-  selectedEdge: null,
+  selectedEdgeId: null,
   rightPanelTab: 'none',
   leftPanelCollapsed: false,
   rightPanelCollapsed: false,
@@ -54,7 +53,7 @@ const uiSlice = createSlice({
   reducers: {
     selectNode(state, action: PayloadAction<string | null>) {
       state.selectedNodeId = action.payload
-      state.selectedEdge = null
+      state.selectedEdgeId = null
       if (action.payload) {
         state.rightPanelTab = 'properties'
       } else if (state.rightPanelTab === 'properties' || state.rightPanelTab === 'edge') {
@@ -62,8 +61,8 @@ const uiSlice = createSlice({
       }
     },
 
-    selectEdge(state, action: PayloadAction<ProcessConnection | null>) {
-      state.selectedEdge = action.payload
+    selectEdge(state, action: PayloadAction<string | null>) {
+      state.selectedEdgeId = action.payload
       state.selectedNodeId = null
       if (action.payload) {
         state.rightPanelTab = 'edge'
@@ -99,7 +98,7 @@ const uiSlice = createSlice({
     openRightPanelTab(
       state,
       action: PayloadAction<{
-        tab: 'validation' | 'debug'
+        tab: 'properties' | 'edge' | 'validation' | 'debug'
         collapseLeft: boolean
       }>
     ) {
@@ -162,7 +161,7 @@ export const {
 export default uiSlice.reducer
 
 export const selectSelectedNodeId = (state: UiRootState) => state.ui.selectedNodeId
-export const selectSelectedEdge = (state: UiRootState) => state.ui.selectedEdge
+export const selectSelectedEdgeId = (state: UiRootState) => state.ui.selectedEdgeId
 export const selectRightPanelTab = (state: UiRootState) => state.ui.rightPanelTab
 export const selectShowShortcuts = (state: UiRootState) => state.ui.showShortcuts
 export const selectShowHelpDocs = (state: UiRootState) => state.ui.showHelpDocs

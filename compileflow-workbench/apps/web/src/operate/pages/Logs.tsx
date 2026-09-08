@@ -15,6 +15,7 @@ import { LocalizedModal as Modal } from '@/shared/components/LocalizedModal'
 import { DataPageShell, FilterBar, SemanticTag, statusToTagKind } from '@/shared/components/page'
 import type { ExecutionLog, ExecutionStatus } from '@/shared/contracts'
 import { toError } from '@/shared/errors'
+import { useDebounce } from '@/shared/hooks/useDebounce'
 import {
   type FilterParsers,
   type FilterUpdater,
@@ -213,6 +214,15 @@ export function useLogsPageState(t: TFunction): LogPageState {
   const [detailVisible, setDetailVisible] = useState(false)
   const [selectedLog, setSelectedLog] = useState<ExecutionLog | null>(null)
   const [filterState, , , updateFilters] = useFilterState(LOG_FILTER_DEFAULTS, LOG_FILTER_PARSERS)
+  const textFilters = useMemo(
+    () => ({
+      keyword: filterState.keyword,
+      traceId: filterState.traceId,
+      parentInvocationId: filterState.parentInvocationId,
+    }),
+    [filterState.keyword, filterState.parentInvocationId, filterState.traceId]
+  )
+  const debouncedTextFilters = useDebounce(textFilters, 300)
   const listGeneration = useRef(0)
   const detailGeneration = useRef(0)
 
@@ -225,9 +235,9 @@ export function useLogsPageState(t: TFunction): LogPageState {
       const response = await getLogs({
         page: filterState.page,
         pageSize: PAGE_SIZE,
-        keyword: filterState.keyword || undefined,
-        traceId: filterState.traceId || undefined,
-        parentInvocationId: filterState.parentInvocationId || undefined,
+        keyword: debouncedTextFilters.keyword || undefined,
+        traceId: debouncedTextFilters.traceId || undefined,
+        parentInvocationId: debouncedTextFilters.parentInvocationId || undefined,
         status: filterState.status || undefined,
         startTime: hasCompleteDateRange ? filterState.startTime : undefined,
         endTime: hasCompleteDateRange ? filterState.endTime : undefined,
@@ -245,12 +255,10 @@ export function useLogsPageState(t: TFunction): LogPageState {
     }
   }, [
     filterState.endTime,
-    filterState.keyword,
-    filterState.parentInvocationId,
     filterState.page,
     filterState.startTime,
     filterState.status,
-    filterState.traceId,
+    debouncedTextFilters,
   ])
   const maintenance = useLogMaintenance(filterState, loadLogs, message, t)
 

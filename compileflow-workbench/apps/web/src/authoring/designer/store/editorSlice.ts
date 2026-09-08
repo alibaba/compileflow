@@ -35,7 +35,12 @@ import { getProcessByCode, updateProcess as updateOperateProcess } from '@/share
 import type { ProcessModelType, ValidationResult } from '@/shared/contracts'
 
 const IMPORTED_FLOW_NAME_FALLBACK = 'Imported flow'
-type ImportXmlPayload = { xml: string; type: ProcessModelType; preferXmlName?: boolean }
+type ReplaceImportedProcessInput = {
+  xml: string
+  type: ProcessModelType
+  documentRequestId: string | null
+  preferXmlName?: boolean
+}
 type NodeUpdates = Partial<Omit<BaseNode, 'id' | 'type'>>
 type ConnectionUpdates = Partial<Omit<BaseConnection, 'id'>>
 type ProcessInfoUpdates = Partial<
@@ -84,16 +89,18 @@ function resolveImportedProcessIdentity({
   currentProcess,
   parsedProcess,
   preferXmlName,
+  updatedAt,
 }: {
   currentProcess: UnifiedProcessDefinition | null
   parsedProcess: UnifiedProcessDefinition
   preferXmlName?: boolean
+  updatedAt: number
 }): Pick<UnifiedProcessDefinition, 'code' | 'id' | 'name' | 'updatedAt'> {
   return {
     id: currentProcess?.id || parsedProcess.id || generateId(),
     code: currentProcess?.code || parsedProcess.code || generateCode(),
     name: resolveImportedProcessName({ currentProcess, parsedProcess, preferXmlName }),
-    updatedAt: Date.now(),
+    updatedAt,
   }
 }
 
@@ -113,10 +120,12 @@ function mergeImportedProcess<Definition extends UnifiedProcessDefinition>({
   currentProcess,
   parsedProcess,
   preferXmlName,
+  updatedAt,
 }: {
   currentProcess: UnifiedProcessDefinition | null
   parsedProcess: Definition
   preferXmlName?: boolean
+  updatedAt: number
 }): Definition {
   return {
     ...parsedProcess,
@@ -125,6 +134,7 @@ function mergeImportedProcess<Definition extends UnifiedProcessDefinition>({
       currentProcess,
       parsedProcess,
       preferXmlName,
+      updatedAt,
     }),
   }
 }
@@ -176,6 +186,7 @@ const initialState: EditorState = {
 
 interface ChangeTokenMeta {
   changeToken: string
+  historyGroup?: string
 }
 
 type ChangeAction<T> = PayloadAction<T, string, ChangeTokenMeta>
@@ -443,24 +454,6 @@ export const deleteProcess = createAsyncThunk('editor/deleteProcess', async (id:
   return id
 })
 
-export const importXml = createAsyncThunk(
-  'editor/importXml',
-  async ({ xml, type, preferXmlName }: ImportXmlPayload, { getState }) => {
-    const parseResult = parseProcessXml(xml, type)
-    const state = getState() as EditorRootState
-    const currentProcess = getEditorState(state).currentProcess
-
-    return {
-      flow: mergeImportedProcess({
-        currentProcess,
-        parsedProcess: parseResult.data,
-        preferXmlName,
-      }),
-      warnings: parseResult.warnings,
-    }
-  }
-)
-
 const editorSlice = createSlice({
   name: 'editor',
   initialState,
@@ -556,8 +549,8 @@ const editorSlice = createSlice({
         if (node) {
           const dx = x - node.position.x
           const dy = y - node.position.y
-          node.position = { x, y }
           if (dx !== 0 || dy !== 0) {
+            node.position = { x, y }
             const movedIds = new Set([id])
             let foundDescendant = true
             while (foundDescendant) {
@@ -577,11 +570,17 @@ const editorSlice = createSlice({
                 }
               })
             }
+            markChanged(state, action.meta.changeToken)
           }
-          markChanged(state, action.meta.changeToken)
         }
       },
-      prepare: prepareChange,
+      prepare(payload: { id: string; x: number; y: number }, historyGroup?: string) {
+        const prepared = prepareChange(payload)
+        return {
+          ...prepared,
+          meta: { ...prepared.meta, ...(historyGroup ? { historyGroup } : {}) },
+        }
+      },
     },
 
     deleteNode: {
@@ -687,6 +686,51 @@ const editorSlice = createSlice({
         }
       },
       prepare: prepareChange,
+    },
+
+    replaceImportedProcess: {
+      reducer(
+        state,
+        action: ChangeAction<{
+          documentRequestId: string | null
+          parsedProcess: UnifiedProcessDefinition
+          preferXmlName?: boolean
+          updatedAt: number
+          warnings: ParseWarning[]
+        }>
+      ) {
+        if (!state.currentProcess || state.documentRequestId !== action.payload.documentRequestId) {
+          return
+        }
+        if (state.currentProcess.type !== action.payload.parsedProcess.type) {
+          throw new Error(
+            `Cannot import ${action.payload.parsedProcess.type} XML into a ${state.currentProcess.type} process`
+          )
+        }
+        state.currentProcess = mergeImportedProcess({
+          currentProcess: state.currentProcess,
+          parsedProcess: action.payload.parsedProcess,
+          preferXmlName: action.payload.preferXmlName,
+          updatedAt: action.payload.updatedAt,
+        })
+        state.warnings = action.payload.warnings
+        state.validationResult = null
+        state.error = null
+        markChanged(state, action.meta.changeToken)
+      },
+      prepare({ xml, type, documentRequestId, preferXmlName }: ReplaceImportedProcessInput) {
+        const parsed = parseProcessXml(xml, type)
+        return {
+          payload: {
+            documentRequestId,
+            parsedProcess: parsed.data,
+            preferXmlName,
+            updatedAt: Date.now(),
+            warnings: parsed.warnings,
+          },
+          meta: { changeToken: nanoid() },
+        }
+      },
     },
 
     clearWarnings(state) {
@@ -812,27 +856,6 @@ const editorSlice = createSlice({
       state.activeContentRequestId = null
       state.error = action.error.message || 'Failed to load operate flow'
     })
-
-    builder.addCase(importXml.pending, (state, action) => {
-      state.isLoading = true
-      state.error = null
-      state.activeContentRequestId = action.meta.requestId
-    })
-    builder.addCase(importXml.fulfilled, (state, action) => {
-      if (state.activeContentRequestId !== action.meta.requestId) return
-      state.activeContentRequestId = null
-      state.isLoading = false
-      state.currentProcess = action.payload.flow
-      state.warnings = action.payload.warnings
-      state.isModified = true
-      state.changeToken = action.meta.requestId
-    })
-    builder.addCase(importXml.rejected, (state, action) => {
-      if (state.activeContentRequestId !== action.meta.requestId) return
-      state.activeContentRequestId = null
-      state.isLoading = false
-      state.error = action.error.message || 'Failed to import XML'
-    })
   },
 })
 
@@ -849,6 +872,7 @@ export const {
   setBpmnDefaultConnection,
   deleteConnection,
   updateProcessInfo,
+  replaceImportedProcess,
   clearWarnings,
 } = editorSlice.actions
 

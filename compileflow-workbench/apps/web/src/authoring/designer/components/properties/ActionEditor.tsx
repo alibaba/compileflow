@@ -1,6 +1,5 @@
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
-import { AutoComplete, Button, Form, Input, Select, Space, Table } from 'antd'
-import type { ColumnsType } from 'antd/es/table'
+import { AutoComplete, Button, Form, Input, Select, Space } from 'antd'
 import { useCallback, useMemo } from 'react'
 
 import { usePropertyLabels } from '../../hooks/usePropertyLabels'
@@ -24,6 +23,8 @@ import { MappedVariableTargetEditor } from './MappedVariableTargetEditor'
 import { ScriptSourceEditor } from './ScriptSourceEditor'
 
 import { useAppSelector } from '@/app/hooks'
+
+import './ActionEditor.css'
 
 type ActionUpdate = Partial<ActionDefinition>
 type ActionInvocationUpdate = Partial<ActionInvocationDefinition>
@@ -220,147 +221,93 @@ function createDefaultVariableMapping(processCall: boolean): VariableMapping {
     : { target: '', dataType: 'java.lang.String', direction: 'input' }
 }
 
-function indexMappings(
-  mappings: VariableMapping[]
-): Array<VariableMapping & { _idx: number; key: number }> {
-  return mappings.map((variable, index) => ({
-    ...variable,
-    _idx: index,
-    key: index,
-  }))
-}
-
-interface VariableMappingColumnsOptions {
-  mappings: VariableMapping[]
-  processVariableNames: string[]
-  processCall: boolean
-  updateVar: (index: number, updates: VariableMappingUpdate) => void
-  handleDirectionChange: (index: number, direction: VariableMapping['direction']) => void
-  onChange: (mappings: VariableMapping[]) => void
-}
-
-function useVariableMappingColumns({
-  mappings,
+function MappingCard({
+  variable,
+  index,
   processVariableNames,
   processCall,
-  updateVar,
-  handleDirectionChange,
-  onChange,
-}: VariableMappingColumnsOptions) {
+  onUpdate,
+  onDirectionChange,
+  onDelete,
+}: {
+  variable: VariableMapping
+  index: number
+  processVariableNames: string[]
+  processCall: boolean
+  onUpdate: (updates: VariableMappingUpdate) => void
+  onDirectionChange: (direction: VariableMapping['direction']) => void
+  onDelete: () => void
+}) {
   const labels = usePropertyLabels()
-  const columns: ColumnsType<VariableMapping & { _idx: number }> = useMemo(() => {
-    const definitions: ColumnsType<VariableMapping & { _idx: number }> = [
-      {
-        title: labels.colLocalVarName,
-        dataIndex: 'binding',
-        width: 180,
-        render: (_, record) => (
+  const groupLabel = `${labels.varParams} ${index + 1}`
+
+  return (
+    <div className="action-mapping-card" role="group" aria-label={groupLabel}>
+      <div className="action-mapping-card-header">
+        <span>{groupLabel}</span>
+        <Button
+          type="text"
+          danger
+          size="small"
+          icon={<DeleteOutlined />}
+          aria-label={`${labels.delete} ${index + 1}`}
+          onClick={onDelete}
+        />
+      </div>
+      <Form.Item label={labels.colDirection}>
+        <Select
+          size="small"
+          value={variable.direction}
+          onChange={onDirectionChange}
+          aria-label={labels.colDirection}
+          options={[
+            { value: 'input', label: 'input' },
+            { value: 'output', label: 'output' },
+          ]}
+        />
+      </Form.Item>
+      <Form.Item label={labels.colLocalVarName}>
+        <Input
+          size="small"
+          value={variable.direction === 'input' ? variable.target : variable.source || ''}
+          disabled={!processCall && variable.direction === 'output'}
+          onChange={(event) =>
+            onUpdate(
+              variable.direction === 'input'
+                ? { target: event.target.value }
+                : { source: event.target.value }
+            )
+          }
+          placeholder={labels.phVarName}
+          aria-label={labels.colLocalVarName}
+        />
+      </Form.Item>
+      {!processCall && (
+        <Form.Item label={labels.colJavaType}>
           <Input
             size="small"
-            value={record.direction === 'input' ? record.target : record.source || ''}
-            disabled={!processCall && record.direction === 'output'}
-            onChange={(event) =>
-              updateVar(
-                record._idx,
-                record.direction === 'input'
-                  ? { target: event.target.value }
-                  : { source: event.target.value }
-              )
-            }
-            placeholder={labels.phVarName}
-            aria-label={labels.colLocalVarName}
-          />
-        ),
-      },
-      {
-        title: labels.colDirection,
-        dataIndex: 'direction',
-        width: 120,
-        render: (value, record) => (
-          <Select
-            size="small"
-            value={value}
-            onChange={(nextValue) => handleDirectionChange(record._idx, nextValue)}
-            aria-label={labels.colDirection}
-            style={{ width: '100%' }}
-          >
-            <Select.Option value="input">input</Select.Option>
-            <Select.Option value="output">output</Select.Option>
-          </Select>
-        ),
-      },
-      {
-        title: labels.colMappingReference,
-        dataIndex: 'reference',
-        width: 220,
-        render: (_, record) => (
-          <MappedVariableTargetEditor
-            variable={record}
-            processVariableNames={processVariableNames}
-            onChange={(reference) =>
-              updateVar(record._idx, mappingReferenceUpdate(record, reference))
-            }
-          />
-        ),
-      },
-      {
-        title: labels.colDefaultValue,
-        dataIndex: 'defaultValue',
-        width: 220,
-        render: (_, record) => (
-          <MappedVariableDefaultEditor
-            variable={record}
-            onChange={(defaultValue) =>
-              updateVar(record._idx, mappingDefaultUpdate(record, defaultValue))
-            }
-          />
-        ),
-      },
-      {
-        title: '',
-        key: 'delete',
-        width: 64,
-        render: (_, record) => (
-          <Button
-            type="text"
-            danger
-            size="small"
-            icon={<DeleteOutlined />}
-            aria-label={labels.delete}
-            onClick={() =>
-              onChange(mappings.filter((_, currentIndex) => currentIndex !== record._idx))
-            }
-          />
-        ),
-      },
-    ]
-    if (!processCall) {
-      definitions.splice(1, 0, {
-        title: labels.colJavaType,
-        dataIndex: 'dataType',
-        width: 220,
-        render: (value, record) => (
-          <Input
-            size="small"
-            value={value || ''}
-            onChange={(event) => updateVar(record._idx, { dataType: event.target.value })}
+            value={variable.dataType || ''}
+            onChange={(event) => onUpdate({ dataType: event.target.value })}
             placeholder={labels.phJavaType}
             aria-label={labels.colJavaType}
           />
-        ),
-      })
-    }
-    return definitions
-  }, [
-    mappings,
-    handleDirectionChange,
-    labels,
-    onChange,
-    processVariableNames,
-    processCall,
-    updateVar,
-  ])
-  return { columns, labels }
+        </Form.Item>
+      )}
+      <Form.Item label={labels.colMappingReference}>
+        <MappedVariableTargetEditor
+          variable={variable}
+          processVariableNames={processVariableNames}
+          onChange={(reference) => onUpdate(mappingReferenceUpdate(variable, reference))}
+        />
+      </Form.Item>
+      <Form.Item label={labels.colDefaultValue} className="action-mapping-card-last-field">
+        <MappedVariableDefaultEditor
+          variable={variable}
+          onChange={(defaultValue) => onUpdate(mappingDefaultUpdate(variable, defaultValue))}
+        />
+      </Form.Item>
+    </div>
+  )
 }
 
 function MappingTable({
@@ -397,14 +344,7 @@ function MappingTable({
     [mappings, processCall, processVariableNames, updateVar]
   )
 
-  const { columns, labels } = useVariableMappingColumns({
-    mappings,
-    processVariableNames,
-    processCall,
-    updateVar,
-    handleDirectionChange,
-    onChange,
-  })
+  const labels = usePropertyLabels()
 
   return (
     <>
@@ -419,14 +359,28 @@ function MappingTable({
           {labels.add}
         </Button>
       </Space>
-      <Table
-        columns={columns}
-        dataSource={indexMappings(mappings)}
-        size="small"
-        pagination={false}
-        scroll={{ x: processCall ? 1024 : 1244 }}
-        locale={{ emptyText: processCall ? labels.tableEmptySubVars : labels.tableEmptyParams }}
-      />
+      {mappings.length === 0 ? (
+        <div className="action-mapping-empty" role="status">
+          {processCall ? labels.tableEmptySubVars : labels.tableEmptyParams}
+        </div>
+      ) : (
+        <div className="action-mapping-list">
+          {mappings.map((variable, index) => (
+            <MappingCard
+              key={index}
+              variable={variable}
+              index={index}
+              processVariableNames={processVariableNames}
+              processCall={processCall}
+              onUpdate={(updates) => updateVar(index, updates)}
+              onDirectionChange={(direction) => handleDirectionChange(index, direction)}
+              onDelete={() =>
+                onChange(mappings.filter((_, currentIndex) => currentIndex !== index))
+              }
+            />
+          ))}
+        </div>
+      )}
     </>
   )
 }
@@ -526,76 +480,12 @@ export function ReconcileActionEditor({
     (changes: Partial<ReconcileActionDefinition>) => onChange({ ...value, ...changes }),
     [onChange, value]
   )
-  const indexedInputs = (value.inputs ?? []).map((input, index) => ({
-    ...input,
-    key: index,
-    index,
-  }))
   const updateInput = (index: number, changes: Partial<ReconcileInputMapping>) =>
     update({
       inputs: (value.inputs ?? []).map((input, current) =>
         current === index ? { ...input, ...changes } : input
       ),
     })
-  const columns: ColumnsType<ReconcileInputMapping & { index: number }> = [
-    {
-      title: labels.colMappingReference,
-      dataIndex: 'source',
-      width: 220,
-      render: (source, input) => (
-        <Input
-          size="small"
-          value={source}
-          onChange={(event) => updateInput(input.index, { source: event.target.value })}
-          aria-label={labels.colMappingReference}
-        />
-      ),
-    },
-    {
-      title: labels.colLocalVarName,
-      dataIndex: 'target',
-      width: 180,
-      render: (target, input) => (
-        <Input
-          size="small"
-          value={target}
-          onChange={(event) => updateInput(input.index, { target: event.target.value })}
-          aria-label={labels.colLocalVarName}
-        />
-      ),
-    },
-    {
-      title: labels.colJavaType,
-      dataIndex: 'dataType',
-      width: 220,
-      render: (dataType, input) => (
-        <Input
-          size="small"
-          value={dataType}
-          onChange={(event) => updateInput(input.index, { dataType: event.target.value })}
-          aria-label={labels.colJavaType}
-        />
-      ),
-    },
-    {
-      title: '',
-      key: 'delete',
-      width: 64,
-      render: (_, input) => (
-        <Button
-          type="text"
-          danger
-          size="small"
-          icon={<DeleteOutlined />}
-          aria-label={labels.delete}
-          onClick={() =>
-            update({ inputs: (value.inputs ?? []).filter((_, index) => index !== input.index) })
-          }
-        />
-      ),
-    },
-  ]
-
   return (
     <>
       <ActionTypeSelect
@@ -621,14 +511,64 @@ export function ReconcileActionEditor({
           {labels.add}
         </Button>
       </Space>
-      <Table
-        columns={columns}
-        dataSource={indexedInputs}
-        size="small"
-        pagination={false}
-        scroll={{ x: 684 }}
-        locale={{ emptyText: labels.tableEmptyParams }}
-      />
+      {(value.inputs ?? []).length === 0 ? (
+        <div className="action-mapping-empty" role="status">
+          {labels.tableEmptyParams}
+        </div>
+      ) : (
+        <div className="action-mapping-list">
+          {(value.inputs ?? []).map((input, index) => (
+            <div
+              className="action-mapping-card"
+              role="group"
+              aria-label={`${labels.varParams} ${index + 1}`}
+              key={index}
+            >
+              <div className="action-mapping-card-header">
+                <span>{`${labels.varParams} ${index + 1}`}</span>
+                <Button
+                  type="text"
+                  danger
+                  size="small"
+                  icon={<DeleteOutlined />}
+                  aria-label={`${labels.delete} ${index + 1}`}
+                  onClick={() =>
+                    update({
+                      inputs: (value.inputs ?? []).filter(
+                        (_, currentIndex) => currentIndex !== index
+                      ),
+                    })
+                  }
+                />
+              </div>
+              <Form.Item label={labels.colMappingReference}>
+                <Input
+                  size="small"
+                  value={input.source}
+                  onChange={(event) => updateInput(index, { source: event.target.value })}
+                  aria-label={labels.colMappingReference}
+                />
+              </Form.Item>
+              <Form.Item label={labels.colLocalVarName}>
+                <Input
+                  size="small"
+                  value={input.target}
+                  onChange={(event) => updateInput(index, { target: event.target.value })}
+                  aria-label={labels.colLocalVarName}
+                />
+              </Form.Item>
+              <Form.Item label={labels.colJavaType} className="action-mapping-card-last-field">
+                <Input
+                  size="small"
+                  value={input.dataType}
+                  onChange={(event) => updateInput(index, { dataType: event.target.value })}
+                  aria-label={labels.colJavaType}
+                />
+              </Form.Item>
+            </div>
+          ))}
+        </div>
+      )}
     </>
   )
 }

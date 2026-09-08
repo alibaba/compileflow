@@ -65,9 +65,11 @@ function EmptyEdgeProperties() {
 
 function EdgeFormFields({
   expressionEnabled,
+  onCommit,
   onOpenExpressionEditor,
 }: {
   expressionEnabled: boolean
+  onCommit: () => void
   onOpenExpressionEditor: () => void
 }) {
   const { t } = useTranslation()
@@ -81,6 +83,7 @@ function EdgeFormFields({
         <Input
           aria-label={t('designer.edge.name')}
           placeholder={t('designer.edge.namePlaceholder')}
+          onBlur={onCommit}
         />
       </Form.Item>
 
@@ -109,6 +112,7 @@ function EdgeFormFields({
             rows={3}
             placeholder={t('designer.edge.expressionPlaceholder')}
             style={{ fontFamily: 'Monaco, Consolas, monospace', fontSize: 12 }}
+            onBlur={onCommit}
           />
         </Form.Item>
       )}
@@ -153,14 +157,17 @@ const EdgePropertiesPanel = React.memo(function EdgePropertiesPanel({
     }
   }, [edge, expressionEnabled, form])
 
-  const handleValuesChange = (_: unknown, allValues: { name?: string; condition?: string }) => {
+  const handleCommit = () => {
     if (!edge) return
+    const allValues = form.getFieldsValue() as { name?: string; condition?: string }
     const condition = expressionEnabled ? allValues.condition?.trim() || undefined : undefined
+    const name = allValues.name?.trim() || undefined
+    if (name === edge.name && condition === edge.condition) return
     dispatch(
       updateConnection({
         id: edge.id,
         updates: {
-          name: allValues.name || undefined,
+          name,
           condition,
         },
       })
@@ -193,9 +200,10 @@ const EdgePropertiesPanel = React.memo(function EdgePropertiesPanel({
       }
       styles={{ body: { padding: 16 } }}
     >
-      <Form form={form} layout="vertical" onValuesChange={handleValuesChange} autoComplete="off">
+      <Form form={form} layout="vertical" autoComplete="off">
         <EdgeFormFields
           expressionEnabled={expressionEnabled}
+          onCommit={handleCommit}
           onOpenExpressionEditor={() => setExprEditorOpen(true)}
         />
         <EdgeInfo edge={edge} />

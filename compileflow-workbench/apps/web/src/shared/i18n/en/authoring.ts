@@ -112,7 +112,8 @@ const enAuthoring = {
 
   'workspace.exportFailed': 'Export failed',
 
-  'workspace.importSuccess': 'Imported {{count}} flows',
+  'workspace.importSummary':
+    'Import finished: {{success}} imported, {{skipped}} skipped, {{failed}} failed.',
 
   'workspace.importFailed': 'Import failed. Check the file format.',
 
@@ -250,6 +251,8 @@ const enAuthoring = {
 
   'designer.toolbar.copySelected': 'Duplicate selection (Ctrl+D)',
 
+  'designer.toolbar.createConnection': 'Connect nodes (no drag required)',
+
   'designer.toolbar.deleteSelected': 'Delete selection (Delete)',
 
   'designer.toolbar.selectAll': 'Select all (Ctrl+A)',
@@ -261,14 +264,6 @@ const enAuthoring = {
   'designer.toolbar.zoomFit': 'Fit to canvas',
 
   'designer.toolbar.zoomReset': 'Reset view',
-
-  'designer.toolbar.loadExample': 'Load example',
-
-  'designer.toolbar.loadExampleHint': 'Load an example flow',
-
-  'designer.toolbar.loadExampleSuccess': 'Example flow loaded',
-
-  'designer.toolbar.loadExampleFailed': 'Could not load example: {{message}}',
 
   'designer.layout.tabProperties': 'Properties',
 
@@ -727,6 +722,8 @@ const enAuthoring = {
   'designer.props.common.maxAttempts': 'Maximum attempts',
 
   'designer.props.common.maxAttemptsHelp': 'Total attempts including the first, from 1 to 100',
+
+  'designer.props.common.effectMaxAttempts': 'Maximum recovery attempts',
 
   'designer.props.common.initialBackoff': 'Initial backoff',
 
@@ -1861,6 +1858,28 @@ const enAuthoring = {
   'designer.edge.sourceNode': 'Source node',
 
   'designer.edge.targetNode': 'Target node',
+
+  'designer.connection.createTitle': 'Create connection',
+
+  'designer.connection.create': 'Create',
+
+  'designer.connection.createHint':
+    'Choose a source and target. This alternative requires no precise port dragging and works with the keyboard.',
+
+  'designer.connection.source': 'Source node',
+
+  'designer.connection.target': 'Target node',
+
+  'designer.connection.sourcePlaceholder': 'Search and choose a source node',
+
+  'designer.connection.targetPlaceholder': 'Search and choose a target node',
+
+  'designer.connection.sourceRequired': 'Choose a source node',
+
+  'designer.connection.targetRequired': 'Choose a target node',
+
+  'designer.connection.invalid':
+    'Choose connectable nodes in the same process scope without duplicating an existing connection',
 
   'designer.variableManager.title': 'Process variables',
 

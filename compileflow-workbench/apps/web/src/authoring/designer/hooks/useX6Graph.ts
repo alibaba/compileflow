@@ -13,8 +13,9 @@ export interface UseX6GraphOptions {
   allowMultiEdge?: boolean
   /** Optional domain-specific connection validation. */
   validateConnection?: (args: {
-    sourceView?: { cell: { shape: string } } | null
-    targetView?: { cell: { shape: string } } | null
+    edge?: { id: string } | null
+    sourceView?: { cell: { id: string; shape: string } } | null
+    targetView?: { cell: { id: string; shape: string } } | null
   }) => boolean
 }
 
@@ -126,6 +127,7 @@ export function useX6Graph(
       },
       panning: false,
       connecting: {
+        highlight: true,
         router: { name: 'orth', args: { padding: 20 } },
         connector: { name: 'rounded', args: { radius: 10 } },
         snap: { radius: 20 },
@@ -168,6 +170,14 @@ export function useX6Graph(
       pannable: true,
       pageVisible: false,
       pageBreak: false,
+      autoResizeOptions: (instance) => {
+        const { width, height } = instance.getClientSize()
+        const scale = instance.graph.zoom()
+        return {
+          minWidth: width / scale,
+          minHeight: height / scale,
+        }
+      },
     })
     graphInstance.use(scroller)
     graphInstance.use(
@@ -175,12 +185,13 @@ export function useX6Graph(
         enabled: true,
         multiple: true,
         rubberband: true,
-        movable: true,
+        movable: false,
         showNodeSelectionBox: true,
+        // Keep selection outlines visual: node bodies and ports must receive pointer input.
+        pointerEvents: 'none',
         modifiers: 'shift',
         strict: false,
-        selectNodeOnMoved: true,
-        selectCellOnMoved: true,
+        selectCellOnMoved: false,
       })
     )
     graphInstance.use(new Snapline({ enabled: true, sharp: true }))
@@ -196,7 +207,8 @@ export function useX6Graph(
     const handleResize = () => {
       if (containerRef.current) {
         // Scroller reparents the graph container into its virtual content element. Keep measuring
-        // the original layout host or every resize feeds the virtual canvas size back into itself.
+        // the original layout host. The scroller's dynamic minimum size above keeps its SVG
+        // interaction surface at least as large as the viewport while still allowing content growth.
         const { width, height } = measureGraphLayout(containerRef.current, initialLayout.host)
         scroller.resize(width, height)
       }

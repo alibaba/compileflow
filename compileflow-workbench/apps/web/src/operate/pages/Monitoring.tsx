@@ -1,7 +1,7 @@
 import { Alert, App, Button, Col, Empty, Row, Select, Space, Spin } from 'antd'
 import type { TFunction } from 'i18next'
 import type { ReactNode } from 'react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Bar,
@@ -74,6 +74,15 @@ interface RuntimeStatProps {
   label: string
   value: ReactNode
 }
+
+type OpsAction = () => Promise<unknown>
+type ConfirmOpsAction = (
+  key: string,
+  action: OpsAction,
+  success: string,
+  title: string,
+  content: string
+) => void
 
 interface ChartProps {
   colors: ChartColors
@@ -212,13 +221,28 @@ function OpsControlPlanePanel({
   t: TFunction
 }) {
   const [opsAction, setOpsAction] = useState<string | null>(null)
-  const { message } = App.useApp()
+  const { message, modal } = App.useApp()
+  const actionInFlight = useRef(false)
+  const confirmationOpen = useRef(false)
+  const confirmationDestroy = useRef<(() => void) | undefined>(undefined)
+  const mounted = useRef(true)
+
+  useEffect(
+    () => () => {
+      mounted.current = false
+      confirmationDestroy.current?.()
+    },
+    []
+  )
 
   const runOpsAction = useCallback(
-    async (key: string, action: () => Promise<unknown>, success: string) => {
+    async (key: string, action: OpsAction, success: string) => {
+      if (!mounted.current || actionInFlight.current) return
+      actionInFlight.current = true
       try {
         setOpsAction(key)
         await action()
+        if (!mounted.current) return
         message.success(success)
         try {
           await reloadOpsData()
@@ -230,13 +254,43 @@ function OpsControlPlanePanel({
           message.warning(t('monitoring.opsRefreshFailed'))
         }
       } catch (err) {
+        if (!mounted.current) return
         logger.error('Operation control action failed', toError(err), { action: key })
         message.error(t('monitoring.opsActionFailed'))
       } finally {
-        setOpsAction(null)
+        actionInFlight.current = false
+        if (mounted.current) setOpsAction(null)
       }
     },
     [message, reloadOpsData, t]
+  )
+
+  const confirmOpsAction: ConfirmOpsAction = useCallback(
+    (key, action, success, title, content) => {
+      if (!mounted.current || confirmationOpen.current || actionInFlight.current) return
+      confirmationOpen.current = true
+      const confirmation = modal.confirm({
+        title,
+        content,
+        okText: t('common.confirm'),
+        cancelText: t('common.cancel'),
+        okButtonProps: { danger: true },
+        onCancel: () => {
+          confirmationOpen.current = false
+          confirmationDestroy.current = undefined
+        },
+        onOk: async () => {
+          try {
+            await runOpsAction(key, action, success)
+          } finally {
+            confirmationOpen.current = false
+            confirmationDestroy.current = undefined
+          }
+        },
+      })
+      confirmationDestroy.current = confirmation.destroy
+    },
+    [modal, runOpsAction, t]
   )
 
   return (
@@ -247,7 +301,7 @@ function OpsControlPlanePanel({
             routingOutboxControl={routingOutboxControl}
             stale={staleSources.includes('routingOutboxControl')}
             opsAction={opsAction}
-            runOpsAction={runOpsAction}
+            confirmOpsAction={confirmOpsAction}
             t={t}
           />
         </Col>
@@ -256,7 +310,7 @@ function OpsControlPlanePanel({
             asyncHealth={asyncHealth}
             stale={staleSources.includes('asyncHealth')}
             opsAction={opsAction}
-            runOpsAction={runOpsAction}
+            confirmOpsAction={confirmOpsAction}
             onAsyncQueueChanged={onAsyncQueueChanged}
             t={t}
           />
@@ -270,13 +324,13 @@ function DeploymentOutboxCard({
   routingOutboxControl,
   stale,
   opsAction,
-  runOpsAction,
+  confirmOpsAction,
   t,
 }: {
   routingOutboxControl: DeploymentControlHealth | null
   stale: boolean
   opsAction: string | null
-  runOpsAction: (key: string, action: () => Promise<unknown>, success: string) => void
+  confirmOpsAction: ConfirmOpsAction
   t: TFunction
 }) {
   if (!routingOutboxControl) {
@@ -325,11 +379,14 @@ function DeploymentOutboxCard({
       <Space wrap>
         <Button
           loading={opsAction === 'deployment-requeue'}
+          disabled={opsAction !== null}
           onClick={() =>
-            runOpsAction(
+            confirmOpsAction(
               'deployment-requeue',
               () => requeueDeploymentDeadLetters(),
-              t('monitoring.deploymentDeadLettersRequeued')
+              t('monitoring.deploymentDeadLettersRequeued'),
+              t('monitoring.requeueDeploymentDeadLettersConfirm'),
+              t('monitoring.requeueDeploymentDeadLettersWarning')
             )
           }
         >
@@ -344,14 +401,14 @@ function AsyncQueueCard({
   asyncHealth,
   stale,
   opsAction,
-  runOpsAction,
+  confirmOpsAction,
   onAsyncQueueChanged,
   t,
 }: {
   asyncHealth: AsyncInvocationHealth | null
   stale: boolean
   opsAction: string | null
-  runOpsAction: (key: string, action: () => Promise<unknown>, success: string) => void
+  confirmOpsAction: ConfirmOpsAction
   onAsyncQueueChanged: () => void
   t: TFunction
 }) {
@@ -398,15 +455,18 @@ function AsyncQueueCard({
       <Space wrap>
         <Button
           loading={opsAction === 'async-requeue'}
+          disabled={opsAction !== null}
           onClick={() =>
-            runOpsAction(
+            confirmOpsAction(
               'async-requeue',
               async () => {
                 const result = await requeueAsyncInvocationDeadLetters({ limit: 100 })
                 onAsyncQueueChanged()
                 return result
               },
-              t('monitoring.asyncDeadLettersRequeued')
+              t('monitoring.asyncDeadLettersRequeued'),
+              t('monitoring.requeueAsyncDeadLettersConfirm'),
+              t('monitoring.requeueAsyncDeadLettersWarning')
             )
           }
         >

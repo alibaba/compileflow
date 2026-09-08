@@ -538,7 +538,6 @@ function ViewToolControls({
 }
 
 function InfoControls({
-  currentProcess,
   onShowHelp,
   onShowShortcuts,
   onShowVariables,
@@ -546,7 +545,6 @@ function InfoControls({
   operateProcessCode,
 }: Pick<
   DesignerHeaderProps,
-  | 'currentProcess'
   | 'onShowHelp'
   | 'onShowShortcuts'
   | 'onShowVariables'
@@ -556,14 +554,12 @@ function InfoControls({
   const { t } = useTranslation()
   return (
     <div className="toolbar-strip">
-      {currentProcess.type === 'TBBPM' && (
-        <HeaderToolButton
-          title={t('designer.header.variables')}
-          ariaLabel={t('designer.header.variables')}
-          icon={<SettingOutlined />}
-          onClick={onShowVariables}
-        />
-      )}
+      <HeaderToolButton
+        title={t('designer.header.variables')}
+        ariaLabel={t('designer.header.variables')}
+        icon={<SettingOutlined />}
+        onClick={onShowVariables}
+      />
       <HeaderToolButton
         title={t('designer.header.shortcuts')}
         ariaLabel={t('designer.header.shortcuts')}
@@ -682,7 +678,6 @@ function HeaderRight({
           />
           <HeaderDivider />
           <InfoControls
-            currentProcess={props.currentProcess}
             onShowVariables={props.onShowVariables}
             onShowShortcuts={props.onShowShortcuts}
             onShowHelp={props.onShowHelp}

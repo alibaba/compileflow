@@ -7,6 +7,7 @@ import NodePalette from '../NodePalette'
 
 // Wraps children in Ant Design's <App> so App.useApp() works in tests.
 const renderWithApp = (ui: React.ReactElement) => render(<App>{ui}</App>)
+const { dndDispose } = vi.hoisted(() => ({ dndDispose: vi.fn() }))
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -17,9 +18,10 @@ vi.mock('react-i18next', () => ({
 
 vi.mock('@antv/x6', () => ({
   Graph: vi.fn(),
-  Dnd: vi.fn().mockImplementation(() => ({
-    start: vi.fn(),
-  })),
+  Dnd: class {
+    dispose = dndDispose
+    start = vi.fn()
+  },
 }))
 
 vi.mock('@/shared/styles/design-tokens', () => ({
@@ -156,6 +158,15 @@ describe('NodePalette', () => {
       const startNode = screen.getByText('designer.palette.tbbpm.node.start')
 
       fireEvent.mouseDown(startNode)
+    })
+
+    it('disposes the Dnd instance when the palette unmounts', () => {
+      const mockGraph = { createNode: vi.fn().mockReturnValue({}) }
+      const { unmount } = renderWithApp(<NodePalette graph={mockGraph as unknown as Graph} />)
+
+      unmount()
+
+      expect(dndDispose).toHaveBeenCalledOnce()
     })
   })
 })

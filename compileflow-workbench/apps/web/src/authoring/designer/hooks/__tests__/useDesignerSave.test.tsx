@@ -10,6 +10,7 @@ import type { UnifiedProcessDefinition } from '@/authoring/designer/types/flowDe
 
 const mocks = vi.hoisted(() => ({
   update: vi.fn(),
+  exportBoth: vi.fn(),
   success: vi.fn(),
   error: vi.fn(),
   warning: vi.fn(),
@@ -19,7 +20,7 @@ vi.mock('@/shared/api/processes', () => ({
   updateProcess: mocks.update,
   getProcessByCode: vi.fn(),
 }))
-vi.mock('@/authoring/designer/canvas/canvasExport', () => ({ exportBoth: vi.fn() }))
+vi.mock('@/authoring/designer/canvas/canvasExport', () => ({ exportBoth: mocks.exportBoth }))
 
 const flow: UnifiedProcessDefinition = {
   id: 'draft',
@@ -102,35 +103,53 @@ describe('designer save navigation result', () => {
     expect(mocks.warning).toHaveBeenCalledOnce()
   })
 
-  it.each(['edit', 'close', 'unmount'] as const)(
-    'suppresses obsolete modal apply feedback after %s',
-    async (invalidate) => {
-      const { result, unmount } = renderHook(() =>
-        useDesignerPageActions({
-          currentProcess: store.getState().editor.present.currentProcess,
-          dispatch: store.dispatch,
-          navigate: vi.fn(),
-          graph: null,
-          copyNodes: vi.fn(),
-          pasteNodes: vi.fn(),
-          selectedNodeId: null,
-        })
-      )
-      act(() => result.current.actions.onShowXmlEditor())
-      act(() => result.current.xmlEditorState.onChange('<invalid'))
-      let applying!: Promise<void>
-      act(() => {
-        applying = result.current.xmlEditorState.onApply()
-        if (invalidate === 'edit') result.current.xmlEditorState.onChange('<newer')
-        if (invalidate === 'close') result.current.xmlEditorState.onClose()
-        if (invalidate === 'unmount') unmount()
+  it('resolves the active theme background before exporting the canvas', async () => {
+    document.documentElement.style.setProperty('--color-bg-base', '#141414')
+    const graph = {} as Graph
+    const { result } = renderHook(() =>
+      useDesignerPageActions({
+        currentProcess: store.getState().editor.present.currentProcess,
+        dispatch: store.dispatch,
+        navigate: vi.fn(),
+        graph,
+        copyNodes: vi.fn(),
+        pasteNodes: vi.fn(),
+        selectedNodeId: null,
       })
-      await act(async () => applying)
-      expect(mocks.success).not.toHaveBeenCalled()
-      expect(mocks.error).not.toHaveBeenCalled()
-      if (invalidate === 'edit') expect(result.current.xmlEditorState.value).toBe('<newer')
+    )
+
+    try {
+      await act(async () => result.current.actions.onExportImage())
+      expect(mocks.exportBoth).toHaveBeenCalledWith(graph, {
+        filename: 'Draft',
+        backgroundColor: '#141414',
+      })
+    } finally {
+      document.documentElement.style.removeProperty('--color-bg-base')
     }
-  )
+  })
+
+  it('keeps the modal XML editor open after a synchronous parse failure', () => {
+    const { result } = renderHook(() =>
+      useDesignerPageActions({
+        currentProcess: store.getState().editor.present.currentProcess,
+        dispatch: store.dispatch,
+        navigate: vi.fn(),
+        graph: null,
+        copyNodes: vi.fn(),
+        pasteNodes: vi.fn(),
+        selectedNodeId: null,
+      })
+    )
+    act(() => result.current.actions.onShowXmlEditor())
+    act(() => result.current.xmlEditorState.onChange('<invalid'))
+    act(() => result.current.xmlEditorState.onApply())
+
+    expect(result.current.xmlEditorState.open).toBe(true)
+    expect(result.current.xmlEditorState.value).toBe('<invalid')
+    expect(mocks.success).not.toHaveBeenCalled()
+    expect(mocks.error).toHaveBeenCalledTimes(1)
+  })
 
   it('ignores a late file read error after document reload', async () => {
     let input!: HTMLInputElement

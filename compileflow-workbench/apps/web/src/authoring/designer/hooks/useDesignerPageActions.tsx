@@ -17,7 +17,7 @@ import type { NavigateFunction } from 'react-router-dom'
 import {
   createProcess,
   deleteProcess,
-  importXml,
+  replaceImportedProcess,
   saveProcess,
   updateProcessInfo,
 } from '../store/editorSlice'
@@ -77,6 +77,13 @@ function downloadTextFile(content: string, filename: string, mimeType: string) {
   anchor.click()
   document.body.removeChild(anchor)
   URL.revokeObjectURL(url)
+}
+
+function resolveCanvasExportBackground(): string {
+  return (
+    getComputedStyle(document.documentElement).getPropertyValue('--color-bg-base').trim() ||
+    '#ffffff'
+  )
 }
 
 async function saveCurrentProcess(
@@ -250,9 +257,14 @@ function useFileActions({
       try {
         const xmlText = await file.text()
         if (!ownsDocument()) return
-        await dispatch(
-          importXml({ xml: xmlText, type: currentProcess.type, preferXmlName: true })
-        ).unwrap()
+        dispatch(
+          replaceImportedProcess({
+            xml: xmlText,
+            type: currentProcess.type,
+            documentRequestId: documentId,
+            preferXmlName: true,
+          })
+        )
         if (!ownsDocument()) return
         message.success(t('designer.actions.importXmlSuccess'))
       } catch (error) {
@@ -278,7 +290,9 @@ function useFileActions({
     try {
       await exportBoth(graph, {
         filename: currentProcess?.name || `flow_${Date.now()}`,
-        backgroundColor: 'var(--color-bg-base, #ffffff)',
+        // Canvas fillStyle does not resolve CSS custom-property expressions. Pass the computed
+        // color so PNG and standalone SVG exports match the active light/dark theme.
+        backgroundColor: resolveCanvasExportBackground(),
       })
       message.success(t('designer.actions.exportImageSuccess'))
     } catch (error) {
@@ -445,71 +459,53 @@ function useXmlEditorState({
   const [value, setValue] = useState('')
   const [baselineValue, setBaselineValue] = useState('')
   const documentId = dispatch((_dispatch, getState) => getState().editor.present.documentRequestId)
-  const generation = useRef(0)
-  const pending = useRef<{ abort: () => void } | null>(null)
-  const cancelApply = useCallback(() => {
-    generation.current += 1
-    pending.current?.abort()
-    pending.current = null
-  }, [])
 
   useLayoutEffect(() => {
-    cancelApply()
     setOpen(false)
     setValue('')
     setBaselineValue('')
-    return cancelApply
-  }, [documentId, cancelApply])
+  }, [documentId])
 
   const handleClose = useCallback(() => {
-    cancelApply()
     setOpen(false)
     setBaselineValue('')
-  }, [cancelApply])
+  }, [])
 
-  const handleChange = useCallback(
-    (next: string) => {
-      cancelApply()
-      setValue(next)
-    },
-    [cancelApply]
-  )
+  const handleChange = useCallback((next: string) => setValue(next), [])
 
   const handleShow = useCallback(() => {
     if (!currentProcess) return
-    cancelApply()
     const xml = generateProcessXml(currentProcess)
     setBaselineValue(xml)
     setValue(xml)
     setOpen(true)
-  }, [currentProcess, cancelApply])
+  }, [currentProcess])
 
-  const handleApply = useCallback(async () => {
-    if (!currentProcess || !open || pending.current) return
+  const handleApply = useCallback(() => {
+    if (!currentProcess || !open) return
     const ownsDocument = () =>
       dispatch((_dispatch, getState) => {
         const editor = getState().editor.present
         return editor.documentRequestId === documentId
       })
     if (!ownsDocument()) return
-    const request = ++generation.current
     try {
-      const applying = dispatch(importXml({ xml: value, type: currentProcess.type }))
-      pending.current = applying
-      await applying.unwrap()
-      if (request !== generation.current || !ownsDocument()) return
+      dispatch(
+        replaceImportedProcess({
+          xml: value,
+          type: currentProcess.type,
+          documentRequestId: documentId,
+        })
+      )
       setOpen(false)
       message.success(t('designer.xmlEditor.applySuccess'))
     } catch (error) {
-      if (request !== generation.current || !ownsDocument()) return
       logger.error('Failed to apply XML editor content', toError(error))
       message.error(
         t('designer.actions.xmlFormatError', {
           message: toError(error, t('designer.actions.xmlParseFailed')).message,
         })
       )
-    } finally {
-      if (request === generation.current) pending.current = null
     }
   }, [currentProcess, dispatch, documentId, message, open, t, value])
 

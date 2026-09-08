@@ -19,6 +19,7 @@
   color: inherit;
   font: inherit;
   text-align: left;
+  touch-action: pan-y;
   transition:
     transform var(--transition-base),
     box-shadow var(--transition-base),

@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { ConfigProvider } from 'antd'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -111,12 +112,29 @@ const queuedRedrive: AsyncInvocationResponse = {
 
 function renderMonitoring() {
   return render(
-    <MemoryRouter>
-      <ThemeProvider>
-        <Monitoring />
-      </ThemeProvider>
-    </MemoryRouter>
+    <ConfigProvider theme={{ token: { motion: false } }}>
+      <MemoryRouter>
+        <ThemeProvider>
+          <Monitoring />
+        </ThemeProvider>
+      </MemoryRouter>
+    </ConfigProvider>
   )
+}
+
+async function confirmOperation(title: string) {
+  expect((await screen.findAllByText(title)).length).toBeGreaterThan(0)
+  await act(async () => {
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /确\s*认/ }))
+  })
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((accept) => {
+    resolve = accept
+  })
+  return { promise, resolve }
 }
 
 describe('Monitoring operations control plane', () => {
@@ -221,7 +239,12 @@ describe('Monitoring operations control plane', () => {
       })
 
     renderMonitoring()
-    fireEvent.click(await screen.findByRole('button', { name: '重新入队部署死信任务' }))
+    const requeue = await screen.findByRole('button', { name: '重新入队部署死信任务' })
+    fireEvent.click(requeue)
+    fireEvent.click(requeue)
+    expect(requeueDeploymentDeadLetters).not.toHaveBeenCalled()
+    expect(await screen.findAllByRole('dialog')).toHaveLength(1)
+    await confirmOperation('确认重新入队全部部署死信任务？')
 
     await waitFor(() => expect(requeueDeploymentDeadLetters).toHaveBeenCalledOnce())
     await waitFor(() => expect(getDeploymentControlHealth).toHaveBeenCalledTimes(2))
@@ -272,6 +295,8 @@ describe('Monitoring operations control plane', () => {
     expect(await screen.findByText('order.fulfill')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '重新入队异步调用死信' }))
+    expect(requeueAsyncInvocationDeadLetters).not.toHaveBeenCalled()
+    await confirmOperation('确认重新入队全部异步调用死信？')
 
     await waitFor(() => expect(requeueAsyncInvocationDeadLetters).toHaveBeenCalledOnce())
     await waitFor(() => expect(listAsyncInvocations).toHaveBeenCalledTimes(2))
@@ -285,10 +310,43 @@ describe('Monitoring operations control plane', () => {
     renderMonitoring()
     expect(await screen.findByText('部署任务投递中')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '重新入队部署死信任务' }))
+    await confirmOperation('确认重新入队全部部署死信任务？')
 
     expect(await screen.findByText('无法刷新，当前显示最近可用数据')).toBeInTheDocument()
     expect(screen.getByText('部署任务投递中')).toBeInTheDocument()
     expect(screen.getByText(/不可用的数据源：部署任务队列/)).toBeInTheDocument()
+  })
+
+  it('cancels a batch dead-letter requeue without changing server state', async () => {
+    renderMonitoring()
+    fireEvent.click(await screen.findByRole('button', { name: '重新入队异步调用死信' }))
+    expect((await screen.findAllByText('确认重新入队全部异步调用死信？')).length).toBeGreaterThan(0)
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /取\s*消/ }))
+
+    expect(requeueAsyncInvocationDeadLetters).not.toHaveBeenCalled()
+  })
+
+  it('does not refresh or notify after leaving during a batch requeue', async () => {
+    const request = deferred<Awaited<ReturnType<typeof requeueDeploymentDeadLetters>>>()
+    vi.mocked(requeueDeploymentDeadLetters).mockReturnValue(request.promise)
+    const { unmount } = renderMonitoring()
+    fireEvent.click(await screen.findByRole('button', { name: '重新入队部署死信任务' }))
+    await confirmOperation('确认重新入队全部部署死信任务？')
+    await waitFor(() => expect(requeueDeploymentDeadLetters).toHaveBeenCalledOnce())
+
+    unmount()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    request.resolve({
+      requeued: 2,
+      requeuedAt: '2026-08-02T00:00:01Z',
+      health: deploymentHealth,
+    })
+    await request.promise
+
+    expect(getDeploymentControlHealth).toHaveBeenCalledOnce()
+    expect(screen.queryByText('部署死信任务已重新入队')).not.toBeInTheDocument()
+    expect(screen.queryByText('操作失败')).not.toBeInTheDocument()
+    expect(screen.queryByText('操作已完成，但状态刷新失败')).not.toBeInTheDocument()
   })
 
   it('shows the physical attempt ledger even when an attempt produced no execution trace', async () => {
@@ -309,9 +367,12 @@ describe('Monitoring operations control plane', () => {
     fireEvent.click(await screen.findByRole('button', { name: /查看/ }))
     fireEvent.click(await screen.findByRole('button', { name: '重新入队' }))
     expect(await screen.findByText('是否重新入队这条死信调用？')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /确\s*认/ }))
+    const confirm = screen.getByRole('button', { name: /确\s*认/ })
+    fireEvent.click(confirm)
+    fireEvent.click(confirm)
 
     await waitFor(() => expect(requeueAsyncInvocation).toHaveBeenCalledWith('order-async-42'))
+    expect(requeueAsyncInvocation).toHaveBeenCalledOnce()
     await waitFor(() => expect(getAsyncInvocationHealth).toHaveBeenCalledTimes(2))
   })
 

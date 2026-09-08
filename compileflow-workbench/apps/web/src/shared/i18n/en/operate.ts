@@ -356,6 +356,11 @@ const enOperate = {
 
   'monitoring.requeueDeploymentDeadLetters': 'Requeue dead-lettered deployment tasks',
 
+  'monitoring.requeueDeploymentDeadLettersConfirm': 'Requeue all deployment dead letters?',
+
+  'monitoring.requeueDeploymentDeadLettersWarning':
+    'These deployment tasks will be attempted again.',
+
   'monitoring.asyncInvocationQueue': 'Async invocation queue',
 
   'monitoring.asyncInvocationQueueTitle': 'Persistent queue for async invocation retries',
@@ -381,6 +386,11 @@ const enOperate = {
   'monitoring.asyncDeadLettersRequeued': 'Dead-lettered async invocations requeued',
 
   'monitoring.requeueAsyncInvocationDeadLetters': 'Requeue dead-lettered async invocations',
+
+  'monitoring.requeueAsyncDeadLettersConfirm': 'Requeue all async invocation dead letters?',
+
+  'monitoring.requeueAsyncDeadLettersWarning':
+    'These invocations may execute business actions again.',
 
   'monitoring.invocationLedgerEyebrow': 'Persistent async execution',
 

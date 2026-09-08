@@ -10,6 +10,8 @@ import {
   deleteConnection as deleteConnectionAction,
   deleteGraph,
   deleteNode as deleteNodeAction,
+  addConnection,
+  selectCurrentProcess,
 } from '../store/editorSlice'
 import {
   selectContextMenu,
@@ -20,11 +22,13 @@ import {
 } from '../store/uiSlice'
 
 import CanvasToolbar from './CanvasToolbar'
+import CreateConnectionDialog from './CreateConnectionDialog'
 import { DesignerErrorBoundary } from './DesignerErrorBoundary'
 import { DesignerLayout } from './DesignerLayout'
 import { SuspenseFallback } from './LoadingFeedback'
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks'
+import { generateId } from '@/authoring/designer/identifiers'
 
 export interface BaseDesignerProps {
   onGraphReady?: (graph: Graph | null) => void
@@ -39,47 +43,29 @@ export interface BaseDesignerCoreProps extends BaseDesignerProps {
   renderPalette: (graph: Graph | null) => ReactNode
   renderCanvas: (onGraphReady: (graph: Graph) => void) => ReactNode
   renderPropertiesPanel: () => ReactNode
-  /** Optional callback wired to the "load example" button in CanvasToolbar (TBBPM only). */
-  onLoadExample?: () => void
 }
 
-export function BaseDesignerCore({
-  onGraphReady,
-  layoutClassName,
-  renderPalette,
-  renderCanvas,
-  renderPropertiesPanel,
-  processVariablesDialog,
-  onLoadExample,
-}: BaseDesignerCoreProps) {
-  const { t } = useTranslation()
+function useDesignerGraphActions(graph: Graph | null) {
   const dispatch = useAppDispatch()
   const { copyNodes, duplicateNodes, pasteNodes } = useClipboard()
-
   const selectedNodeId = useAppSelector(selectSelectedNodeId)
   const contextMenu = useAppSelector(selectContextMenu)
+  const [connectionDialog, setConnectionDialog] = useState({
+    open: false,
+    initialNodeIds: [] as string[],
+  })
 
-  const [graphInstance, setGraphInstance] = useState<Graph | null>(null)
-
-  const handleGraphReady = useCallback(
-    (graph: Graph) => {
-      setGraphInstance(graph)
-      onGraphReady?.(graph)
-    },
-    [onGraphReady]
-  )
-
-  const handleDuplicateSelection = useCallback(() => {
+  const duplicateSelection = useCallback(() => {
     duplicateNodes(
-      graphInstance
+      graph
         ?.getSelectedCells()
         .filter((cell) => cell.isNode())
         .map((cell) => cell.id) ?? []
     )
-  }, [duplicateNodes, graphInstance])
+  }, [duplicateNodes, graph])
 
-  const handleDeleteSelection = useCallback(() => {
-    const selectedCells = graphInstance?.getSelectedCells() ?? []
+  const deleteSelection = useCallback(() => {
+    const selectedCells = graph?.getSelectedCells() ?? []
     if (selectedCells.length === 0) {
       if (selectedNodeId) dispatch(deleteNodeAction(selectedNodeId))
       return
@@ -92,21 +78,87 @@ export function BaseDesignerCore({
     )
     dispatch(selectNode(null))
     dispatch(selectEdge(null))
-  }, [dispatch, graphInstance, selectedNodeId])
+  }, [dispatch, graph, selectedNodeId])
+
+  const openConnectionDialog = useCallback(() => {
+    const initialNodeIds =
+      graph
+        ?.getSelectedCells()
+        .filter((cell) => cell.isNode())
+        .map((cell) => cell.id) ?? []
+    setConnectionDialog({ open: true, initialNodeIds })
+  }, [graph])
+
+  const createConnection = useCallback(
+    (sourceId: string, targetId: string) => {
+      const connection = { id: generateId(), sourceId, targetId, name: '' }
+      dispatch(addConnection(connection))
+      graph?.cleanSelection()
+      dispatch(selectEdge(connection.id))
+      setConnectionDialog({ open: false, initialNodeIds: [] })
+    },
+    [dispatch, graph]
+  )
+
+  const copyContextTarget = useCallback(() => {
+    if (contextMenu.targetId) copyNodes([contextMenu.targetId])
+  }, [contextMenu.targetId, copyNodes])
+
+  const deleteContextTarget = useCallback(() => {
+    if (!contextMenu.targetId) return
+    if (contextMenu.type === 'node') dispatch(deleteNodeAction(contextMenu.targetId))
+    if (contextMenu.type === 'edge') dispatch(deleteConnectionAction(contextMenu.targetId))
+  }, [contextMenu.targetId, contextMenu.type, dispatch])
+
+  return {
+    closeConnectionDialog: () => setConnectionDialog({ open: false, initialNodeIds: [] }),
+    connectionDialog,
+    copyContextTarget,
+    createConnection,
+    deleteContextTarget,
+    deleteSelection,
+    duplicateSelection,
+    openConnectionDialog,
+    pasteNodes,
+  }
+}
+
+export function BaseDesignerCore({
+  onGraphReady,
+  layoutClassName,
+  renderPalette,
+  renderCanvas,
+  renderPropertiesPanel,
+  processVariablesDialog,
+}: BaseDesignerCoreProps) {
+  const { t } = useTranslation()
+  const dispatch = useAppDispatch()
+  const currentProcess = useAppSelector(selectCurrentProcess)
+
+  const [graphInstance, setGraphInstance] = useState<Graph | null>(null)
+  const actions = useDesignerGraphActions(graphInstance)
+
+  const handleGraphReady = useCallback(
+    (graph: Graph) => {
+      setGraphInstance(graph)
+      onGraphReady?.(graph)
+    },
+    [onGraphReady]
+  )
 
   // Copy/paste shortcuts are registered at UnifiedDesigner page level to avoid duplicate handlers.
   useKeyboardShortcuts([
     {
       id: 'delete',
       key: 'Delete',
-      handler: handleDeleteSelection,
+      handler: actions.deleteSelection,
       description: t('designer.shortcuts.deleteNode'),
     },
     {
       id: 'duplicate',
       key: 'd',
       ctrl: true,
-      handler: handleDuplicateSelection,
+      handler: actions.duplicateSelection,
       description: t('designer.toolbar.copySelected'),
     },
     {
@@ -163,42 +215,42 @@ export function BaseDesignerCore({
   ])
 
   return (
-    <DesignerLayout
-      layoutClassName={layoutClassName}
-      palette={renderPalette(graphInstance)}
-      canvas={
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-          <CanvasToolbar
-            graph={graphInstance}
-            onDuplicateSelection={handleDuplicateSelection}
-            onDeleteSelection={handleDeleteSelection}
-            onLoadExample={onLoadExample}
-          />
-          <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-            {renderCanvas(handleGraphReady)}
+    <>
+      <DesignerLayout
+        layoutClassName={layoutClassName}
+        palette={renderPalette(graphInstance)}
+        canvas={
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+            <CanvasToolbar
+              graph={graphInstance}
+              onCreateConnection={actions.openConnectionDialog}
+              onDuplicateSelection={actions.duplicateSelection}
+              onDeleteSelection={actions.deleteSelection}
+            />
+            <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+              {renderCanvas(handleGraphReady)}
+            </div>
           </div>
-        </div>
-      }
-      propertiesPanel={
-        <Suspense fallback={<SuspenseFallback text={t('designer.loading.propertiesPanel')} />}>
-          {renderPropertiesPanel()}
-        </Suspense>
-      }
-      onCopy={() => {
-        if (contextMenu.targetId) {
-          copyNodes([contextMenu.targetId])
         }
-      }}
-      onPaste={() => pasteNodes()}
-      onDelete={() => {
-        if (contextMenu.type === 'node' && contextMenu.targetId) {
-          dispatch(deleteNodeAction(contextMenu.targetId))
-        } else if (contextMenu.type === 'edge' && contextMenu.targetId) {
-          dispatch(deleteConnectionAction(contextMenu.targetId))
+        propertiesPanel={
+          <Suspense fallback={<SuspenseFallback text={t('designer.loading.propertiesPanel')} />}>
+            {renderPropertiesPanel()}
+          </Suspense>
         }
-      }}
-      processVariablesDialog={processVariablesDialog}
-    />
+        onCopy={actions.copyContextTarget}
+        onPaste={actions.pasteNodes}
+        onDelete={actions.deleteContextTarget}
+        processVariablesDialog={processVariablesDialog}
+      />
+      {currentProcess && actions.connectionDialog.open && (
+        <CreateConnectionDialog
+          process={currentProcess}
+          initialNodeIds={actions.connectionDialog.initialNodeIds}
+          onCancel={actions.closeConnectionDialog}
+          onCreate={actions.createConnection}
+        />
+      )}
+    </>
   )
 }
 

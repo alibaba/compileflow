@@ -46,14 +46,40 @@ describe.each(['BPMN', 'TBBPM'] as const)('%s canvas connection round-trip', (ty
     store.dispatch(
       loadOperateProcess.fulfilled(
         {
-          flow: {
-            type,
-            id: 'flow',
-            code: 'flow',
-            name: 'Flow',
-            nodes: [],
-            connections: [original],
-          },
+          flow:
+            type === 'TBBPM'
+              ? {
+                  type,
+                  id: 'flow',
+                  code: 'flow',
+                  name: 'Flow',
+                  nodes: [
+                    { id: 'start', type: 'start', position: { x: 0, y: 0 }, properties: {} },
+                    {
+                      id: 'task',
+                      type: 'autoTask',
+                      position: { x: 100, y: 0 },
+                      properties: {},
+                    },
+                    { id: 'end', type: 'end', position: { x: 200, y: 0 }, properties: {} },
+                    { id: 'break', type: 'break', position: { x: 300, y: 0 }, properties: {} },
+                    {
+                      id: 'continue',
+                      type: 'continue',
+                      position: { x: 400, y: 0 },
+                      properties: {},
+                    },
+                  ],
+                  connections: [original],
+                }
+              : {
+                  type,
+                  id: 'flow',
+                  code: 'flow',
+                  name: 'Flow',
+                  nodes: [],
+                  connections: [original],
+                },
           warnings: [],
           operateProcessCode: 'flow',
           revision: 1,
@@ -123,14 +149,28 @@ describe.each(['BPMN', 'TBBPM'] as const)('%s canvas connection round-trip', (ty
     const calls = vi.mocked(useX6Graph).mock.calls
     const validateConnection = calls[calls.length - 1][1]?.validateConnection
     expect(validateConnection).toBeTypeOf('function')
-    expect(validateConnection?.({ targetView: { cell: { shape: 'tbbpm-start' } } })).toBe(false)
-    for (const shape of ['tbbpm-end', 'tbbpm-break', 'tbbpm-continue']) {
-      expect(validateConnection?.({ sourceView: { cell: { shape } } })).toBe(false)
+    expect(
+      validateConnection?.({
+        sourceView: { cell: { id: 'task', shape: 'tbbpm-auto-task' } },
+        targetView: { cell: { id: 'start', shape: 'tbbpm-start' } },
+      })
+    ).toBe(false)
+    for (const [id, shape] of [
+      ['end', 'tbbpm-end'],
+      ['break', 'tbbpm-break'],
+      ['continue', 'tbbpm-continue'],
+    ]) {
+      expect(
+        validateConnection?.({
+          sourceView: { cell: { id, shape } },
+          targetView: { cell: { id: 'task', shape: 'tbbpm-auto-task' } },
+        })
+      ).toBe(false)
     }
     expect(
       validateConnection?.({
-        sourceView: { cell: { shape: 'tbbpm-start' } },
-        targetView: { cell: { shape: 'tbbpm-auto-task' } },
+        sourceView: { cell: { id: 'start', shape: 'tbbpm-start' } },
+        targetView: { cell: { id: 'task', shape: 'tbbpm-auto-task' } },
       })
     ).toBe(true)
   })

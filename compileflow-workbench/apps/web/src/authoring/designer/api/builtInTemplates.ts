@@ -2,7 +2,7 @@ import { processStorage } from './processStorage.indexeddb'
 import type { ProcessTemplate } from './processStorageTypes'
 
 import { DEFAULT_BPMN_WITH_EVENTS_XML, DEFAULT_BPMN_XML } from '@/shared/processes/bpmnTemplates'
-import { DEFAULT_TBBPM_WITH_NODES_XML, DEFAULT_TBBPM_XML } from '@/shared/processes/tbbpmTemplates'
+import { DEFAULT_TBBPM_WITH_NODES_XML, TBBPM_STARTER_XML } from '@/shared/processes/tbbpmTemplates'
 
 export const BUILT_IN_TEMPLATES: readonly ProcessTemplate[] = [
   {
@@ -19,7 +19,7 @@ export const BUILT_IN_TEMPLATES: readonly ProcessTemplate[] = [
     name: 'TBBPM Starter',
     type: 'TBBPM',
     description: 'Minimal executable TBBPM flow',
-    content: DEFAULT_TBBPM_XML,
+    content: TBBPM_STARTER_XML,
     category: 'Getting Started',
     tags: ['TBBPM'],
   },

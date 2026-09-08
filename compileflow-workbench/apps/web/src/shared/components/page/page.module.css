@@ -578,15 +578,32 @@
 }
 
 :global([data-hub-surface='true']) .metricLabel {
-  color: rgba(148, 163, 184, 0.78);
+  color: var(--hub-muted);
 }
 
 :global([data-hub-surface='true']) .metricValue {
-  color: #f8fafc;
+  color: var(--hub-ink);
 }
 
 :global([data-hub-surface='true']) .metricSuffix {
-  color: rgba(148, 163, 184, 0.65);
+  color: currentColor;
+  opacity: 0.72;
+}
+
+:global([data-hub-surface='true']) .metricValue.metricAccentSuccess {
+  color: var(--success-dark);
+}
+
+:global([data-hub-surface='true']) .metricValue.metricAccentWarning {
+  color: var(--warning-dark);
+}
+
+:global([data-hub-surface='true']) .metricValue.metricAccentError {
+  color: var(--error-dark);
+}
+
+:global([data-hub-surface='true']) .metricValue.metricAccentPrimary {
+  color: var(--primary-600);
 }
 
 :global([data-hub-surface='true']) .metricCard:not(:last-child)::after {

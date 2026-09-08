@@ -10,84 +10,60 @@ export function useXmlDraft({
 }: {
   sourceXml: string
   documentId: string | null
-  onApply: (xml: string, signal: AbortSignal) => Promise<void>
+  onApply: (xml: string) => void
 }) {
   const { t } = useTranslation()
   const [draft, setDraft] = useState(sourceXml)
   const [isDirty, setIsDirty] = useState(false)
-  const [isApplying, setIsApplying] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const buffer = useRef({ draft: sourceXml, dirty: false, version: 0 })
-  const applying = useRef<AbortController | null>(null)
   const identity = useRef(documentId)
-
-  const cancel = useCallback(() => {
-    applying.current?.abort()
-    applying.current = null
-    buffer.current.version += 1
-  }, [])
 
   useLayoutEffect(() => {
     if (identity.current !== documentId) {
-      cancel()
+      buffer.current.version += 1
       identity.current = documentId
       buffer.current.dirty = false
       setIsDirty(false)
-      setIsApplying(false)
       setError(null)
     }
     if (!buffer.current.dirty) {
       buffer.current.draft = sourceXml
       setDraft(sourceXml)
     }
-  }, [sourceXml, documentId, cancel])
-
-  useLayoutEffect(() => cancel, [cancel])
+  }, [sourceXml, documentId])
 
   const handleChange = useCallback(
     (value: string | undefined) => {
-      cancel()
+      buffer.current.version += 1
       const next = value ?? ''
       buffer.current.draft = next
       buffer.current.dirty = next !== sourceXml
       setDraft(next)
       setIsDirty(buffer.current.dirty)
-      setIsApplying(false)
       setError(null)
     },
-    [cancel, sourceXml]
+    [sourceXml]
   )
 
-  const handleApply = useCallback(async () => {
-    if (applying.current) return false
+  const handleApply = useCallback(() => {
     if (!buffer.current.dirty) return true
-    const controller = new AbortController()
-    applying.current = controller
-    setIsApplying(true)
     try {
-      await onApply(buffer.current.draft, controller.signal)
-      if (controller.signal.aborted) return false
+      onApply(buffer.current.draft)
       buffer.current.dirty = false
       setIsDirty(false)
       setError(null)
       return true
     } catch (err) {
-      if (!controller.signal.aborted) {
-        setError(toError(err, t('designer.xmlEditor.applyFailed')).message)
-      }
+      setError(toError(err, t('designer.xmlEditor.applyFailed')).message)
       return false
-    } finally {
-      if (applying.current === controller) {
-        applying.current = null
-        setIsApplying(false)
-      }
     }
   }, [onApply, t])
 
   const save = useCallback(
     async (persist: () => Promise<boolean>) => {
       const version = buffer.current.version
-      if (!(await handleApply()) || version !== buffer.current.version) return false
+      if (!handleApply() || version !== buffer.current.version) return false
       const saved = await persist()
       return saved && version === buffer.current.version && !buffer.current.dirty
     },
@@ -97,7 +73,6 @@ export function useXmlDraft({
   return {
     draft,
     isDirty,
-    isApplying,
     error,
     handleChange,
     handleApply,

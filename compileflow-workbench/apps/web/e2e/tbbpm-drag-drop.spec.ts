@@ -2,7 +2,7 @@ import fs from 'node:fs'
 
 import { expect, type Locator, type Page, test } from '@playwright/test'
 
-const DESIGNER_URL = '/build/designer?modelType=tbbpm&source=new'
+const DESIGNER_URL = '/build/designer?modelType=tbbpm&source=template&templateId=tpl-4'
 const TIMEOUT = 20_000
 
 const NODE_VISUALS: Record<string, { className: string; width: number; height: number }> = {

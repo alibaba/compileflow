@@ -54,6 +54,10 @@ test('bundled Workbench loads and operates through the trusted edge', async ({ p
       new URL(response.url()).pathname === '/api/deployment-control/dead-letters/requeue'
   )
   await page.getByRole('button', { name: '重新入队部署死信任务' }).click()
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /确\s*认/ })
+    .click()
   expect((await deploymentRequeue).ok()).toBeTruthy()
   await expect(page.getByText('部署死信任务已重新入队')).toBeVisible()
   await expect.poll(() => deploymentHealthResponses).toBeGreaterThan(initialHealthResponses)
@@ -68,6 +72,10 @@ test('bundled Workbench loads and operates through the trusted edge', async ({ p
       new URL(response.url()).pathname === '/api/async-invocations/dead-letters/requeue'
   )
   await page.getByRole('button', { name: '重新入队异步调用死信' }).click()
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /确\s*认/ })
+    .click()
   expect((await asyncRequeue).ok()).toBeTruthy()
   await expect(page.getByText('异步调用死信已重新入队')).toBeVisible()
   await expect

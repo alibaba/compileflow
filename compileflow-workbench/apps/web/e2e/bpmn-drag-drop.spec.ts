@@ -51,10 +51,9 @@ async function gotoBpmnDesigner(page: Page) {
 
 async function selectOption(page: Page, label: string, option: string) {
   await page.getByRole('combobox', { name: label }).click()
-  await page
-    .locator('.ant-select-dropdown:visible .ant-select-item-option-content')
-    .filter({ hasText: option })
-    .click()
+  const dropdown = page.locator('.ant-select-dropdown:visible')
+  await dropdown.locator('.ant-select-item-option').filter({ hasText: option }).click()
+  await expect(dropdown).toBeHidden()
 }
 
 async function fillScriptSource(page: Page, source: string) {

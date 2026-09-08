@@ -9,6 +9,12 @@
   cursor: not-allowed;
 }
 
+@media (max-width: 768px) {
+  .tbbpm-canvas {
+    touch-action: none;
+  }
+}
+
 .x6-graph {
   width: 100%;
   height: 100%;
@@ -18,19 +24,6 @@
   position: absolute;
   top: 0;
   left: 0;
-}
-
-.available-node {
-  stroke: var(--color-primary) !important;
-  stroke-width: 2px !important;
-}
-
-.available-magnet {
-  fill: var(--color-primary) !important;
-}
-
-.adsorbed-magnet {
-  fill: var(--color-success) !important;
 }
 
 .x6-widget-selection-box {

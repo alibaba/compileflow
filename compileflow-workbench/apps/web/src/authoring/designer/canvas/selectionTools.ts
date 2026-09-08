@@ -60,12 +60,19 @@ class SelectionTools {
   }
 }
 
+let historyGroupSequence = 0
+
+function nextHistoryGroup() {
+  historyGroupSequence += 1
+  return `selection-layout-${historyGroupSequence}`
+}
+
 /** Programmatic moves do not emit X6 `node:moved`; fire it so canvas Redux sync persists layout. */
-function moveNodeAndNotify(graph: Graph, node: Node, x: number, y: number) {
+function moveNodeAndNotify(graph: Graph, node: Node, x: number, y: number, historyGroup: string) {
   const current = node.position()
   if (current.x === x && current.y === y) return
   node.position(x, y)
-  void graph.trigger('node:moved', { node })
+  void graph.trigger('node:moved', { node, historyGroup })
 }
 
 class BatchOperationTools {
@@ -77,10 +84,11 @@ class BatchOperationTools {
 
   moveSelected(dx: number, dy: number) {
     const nodes = selectedNodes(this.graph)
+    const historyGroup = nextHistoryGroup()
 
     nodes.forEach((node) => {
       const position = node.position()
-      moveNodeAndNotify(this.graph, node, position.x + dx, position.y + dy)
+      moveNodeAndNotify(this.graph, node, position.x + dx, position.y + dy, historyGroup)
     })
   }
 
@@ -106,10 +114,11 @@ class AlignmentTools {
 
     const bounds = this.getNodesBounds(nodes)
     if (!bounds) return
+    const historyGroup = nextHistoryGroup()
 
     nodes.forEach((node) => {
       const position = node.position()
-      moveNodeAndNotify(this.graph, node, bounds.minX, position.y)
+      moveNodeAndNotify(this.graph, node, bounds.minX, position.y, historyGroup)
     })
   }
 
@@ -119,11 +128,12 @@ class AlignmentTools {
 
     const bounds = this.getNodesBounds(nodes)
     if (!bounds) return
+    const historyGroup = nextHistoryGroup()
 
     nodes.forEach((node) => {
       const position = node.position()
       const size = node.size()
-      moveNodeAndNotify(this.graph, node, bounds.maxX - size.width, position.y)
+      moveNodeAndNotify(this.graph, node, bounds.maxX - size.width, position.y, historyGroup)
     })
   }
 
@@ -133,10 +143,11 @@ class AlignmentTools {
 
     const bounds = this.getNodesBounds(nodes)
     if (!bounds) return
+    const historyGroup = nextHistoryGroup()
 
     nodes.forEach((node) => {
       const position = node.position()
-      moveNodeAndNotify(this.graph, node, position.x, bounds.minY)
+      moveNodeAndNotify(this.graph, node, position.x, bounds.minY, historyGroup)
     })
   }
 
@@ -146,11 +157,12 @@ class AlignmentTools {
 
     const bounds = this.getNodesBounds(nodes)
     if (!bounds) return
+    const historyGroup = nextHistoryGroup()
 
     nodes.forEach((node) => {
       const position = node.position()
       const size = node.size()
-      moveNodeAndNotify(this.graph, node, position.x, bounds.maxY - size.height)
+      moveNodeAndNotify(this.graph, node, position.x, bounds.maxY - size.height, historyGroup)
     })
   }
 
@@ -162,11 +174,12 @@ class AlignmentTools {
     if (!bounds) return
 
     const centerY = (bounds.minY + bounds.maxY) / 2
+    const historyGroup = nextHistoryGroup()
 
     nodes.forEach((node) => {
       const position = node.position()
       const size = node.size()
-      moveNodeAndNotify(this.graph, node, position.x, centerY - size.height / 2)
+      moveNodeAndNotify(this.graph, node, position.x, centerY - size.height / 2, historyGroup)
     })
   }
 
@@ -178,11 +191,12 @@ class AlignmentTools {
     if (!bounds) return
 
     const centerX = (bounds.minX + bounds.maxX) / 2
+    const historyGroup = nextHistoryGroup()
 
     nodes.forEach((node) => {
       const position = node.position()
       const size = node.size()
-      moveNodeAndNotify(this.graph, node, centerX - size.width / 2, position.y)
+      moveNodeAndNotify(this.graph, node, centerX - size.width / 2, position.y, historyGroup)
     })
   }
 
@@ -234,6 +248,7 @@ class DistributionTools {
 
     // Calculate spacing.
     const spacing = (totalWidth - nodesWidth) / (sortedNodes.length - 1)
+    const historyGroup = nextHistoryGroup()
 
     // Distribute nodes.
     let currentX = firstX + firstNode.size().width + spacing
@@ -241,7 +256,7 @@ class DistributionTools {
       if (index === 0 || index === sortedNodes.length - 1) return
 
       const position = node.position()
-      moveNodeAndNotify(this.graph, node, currentX, position.y)
+      moveNodeAndNotify(this.graph, node, currentX, position.y, historyGroup)
       currentX += node.size().width + spacing
     })
   }
@@ -267,6 +282,7 @@ class DistributionTools {
 
     // Calculate spacing.
     const spacing = (totalHeight - nodesHeight) / (sortedNodes.length - 1)
+    const historyGroup = nextHistoryGroup()
 
     // Distribute nodes.
     let currentY = firstY + firstNode.size().height + spacing
@@ -274,7 +290,7 @@ class DistributionTools {
       if (index === 0 || index === sortedNodes.length - 1) return
 
       const position = node.position()
-      moveNodeAndNotify(this.graph, node, position.x, currentY)
+      moveNodeAndNotify(this.graph, node, position.x, currentY, historyGroup)
       currentY += node.size().height + spacing
     })
   }

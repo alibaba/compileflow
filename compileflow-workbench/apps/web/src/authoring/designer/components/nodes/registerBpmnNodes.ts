@@ -167,7 +167,7 @@ export function registerBpmnNodes() {
         ports: {
           groups: {
             top: {
-              position: 'top',
+              position: { name: 'top', args: { dy: 6 } },
               attrs: {
                 circle: {
                   r: 4,
@@ -179,7 +179,7 @@ export function registerBpmnNodes() {
               },
             },
             bottom: {
-              position: 'bottom',
+              position: { name: 'bottom', args: { dy: -6 } },
               attrs: {
                 circle: {
                   r: 4,
@@ -191,7 +191,7 @@ export function registerBpmnNodes() {
               },
             },
             left: {
-              position: 'left',
+              position: { name: 'left', args: { dx: 6 } },
               attrs: {
                 circle: {
                   r: 4,
@@ -203,7 +203,7 @@ export function registerBpmnNodes() {
               },
             },
             right: {
-              position: 'right',
+              position: { name: 'right', args: { dx: -6 } },
               attrs: {
                 circle: {
                   r: 4,
@@ -215,7 +215,7 @@ export function registerBpmnNodes() {
               },
             },
             in: {
-              position: 'left',
+              position: { name: 'left', args: { dx: 6 } },
               attrs: {
                 circle: {
                   r: 4,
@@ -227,7 +227,7 @@ export function registerBpmnNodes() {
               },
             },
             out: {
-              position: 'right',
+              position: { name: 'right', args: { dx: -6 } },
               attrs: {
                 circle: {
                   r: 4,

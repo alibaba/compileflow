@@ -223,8 +223,20 @@ function useWorkspaceActions(navigate: NavigateFunction, reload: () => Promise<v
       try {
         const data: unknown = JSON.parse(await file.text())
         const result = await importData(data)
-        void message.success(t('workspace.importSuccess', { count: result.success }))
-        await reload()
+        const summary = t('workspace.importSummary', {
+          success: result.success,
+          skipped: result.skipped,
+          failed: result.failed,
+        })
+        if (result.failed > 0) {
+          if (result.success > 0 || result.skipped > 0) void message.warning(summary)
+          else void message.error(summary)
+        } else if (result.success > 0) {
+          void message.success(summary)
+        } else {
+          void message.info(summary)
+        }
+        if (result.success > 0) await reload()
       } catch (error) {
         logger.error('Workspace import failed', toError(error))
         void message.error(t('workspace.importFailed'))

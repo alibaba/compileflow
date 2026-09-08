@@ -65,4 +65,19 @@ describe('node property ownership', () => {
 
     expect(findInapplicableBpmnNodeProperties(gateway)).toEqual(['invocationPolicy'])
   })
+
+  test('rejects unmodeled script properties instead of silently dropping them from XML', () => {
+    const script: BpmnNode = {
+      id: 'script',
+      type: 'bpmn:ScriptTask',
+      position: { x: 0, y: 0 },
+      properties: {
+        scriptFormat: 'qlexpress',
+        script: 'return true',
+        concurrency: 4,
+      } as unknown as BpmnNode['properties'],
+    }
+
+    expect(findInapplicableBpmnNodeProperties(script)).toEqual(['concurrency'])
+  })
 })

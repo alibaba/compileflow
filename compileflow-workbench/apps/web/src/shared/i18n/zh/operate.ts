@@ -348,6 +348,10 @@ const zhOperate = {
 
   'monitoring.requeueDeploymentDeadLetters': '重新入队部署死信任务',
 
+  'monitoring.requeueDeploymentDeadLettersConfirm': '确认重新入队全部部署死信任务？',
+
+  'monitoring.requeueDeploymentDeadLettersWarning': '这些部署任务将再次尝试执行。',
+
   'monitoring.asyncInvocationQueue': '异步调用队列',
 
   'monitoring.asyncInvocationQueueTitle': '异步调用的持久化重试队列',
@@ -373,6 +377,10 @@ const zhOperate = {
   'monitoring.asyncDeadLettersRequeued': '异步调用死信已重新入队',
 
   'monitoring.requeueAsyncInvocationDeadLetters': '重新入队异步调用死信',
+
+  'monitoring.requeueAsyncDeadLettersConfirm': '确认重新入队全部异步调用死信？',
+
+  'monitoring.requeueAsyncDeadLettersWarning': '这些调用可能再次执行业务操作。',
 
   'monitoring.invocationLedgerEyebrow': '持久化异步执行',
 

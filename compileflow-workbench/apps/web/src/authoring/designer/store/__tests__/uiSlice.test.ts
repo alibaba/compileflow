@@ -24,14 +24,17 @@ describe('uiSlice', () => {
 
   it('opens a requested right-panel tab and only hides the palette on narrow layouts', () => {
     const collapsed = uiReducer(undefined, setSidePanelsCollapsed({ left: false, right: true }))
-    const desktop = uiReducer(collapsed, openRightPanelTab({ tab: 'debug', collapseLeft: false }))
+    const desktop = uiReducer(
+      collapsed,
+      openRightPanelTab({ tab: 'properties', collapseLeft: false })
+    )
 
-    expect(desktop.rightPanelTab).toBe('debug')
+    expect(desktop.rightPanelTab).toBe('properties')
     expect(desktop.rightPanelCollapsed).toBe(false)
     expect(desktop.leftPanelCollapsed).toBe(false)
 
-    const mobile = uiReducer(desktop, openRightPanelTab({ tab: 'validation', collapseLeft: true }))
-    expect(mobile.rightPanelTab).toBe('validation')
+    const mobile = uiReducer(desktop, openRightPanelTab({ tab: 'edge', collapseLeft: true }))
+    expect(mobile.rightPanelTab).toBe('edge')
     expect(mobile.rightPanelCollapsed).toBe(false)
     expect(mobile.leftPanelCollapsed).toBe(true)
   })

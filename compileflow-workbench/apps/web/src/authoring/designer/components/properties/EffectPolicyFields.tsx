@@ -104,14 +104,14 @@ function StaticEffectPolicyFields({ value, onChange, update }: PolicyFieldsProps
       </Form.Item>
       {recovery !== 'manual' && (
         <>
-          <Form.Item label={t('designer.props.common.maxAttempts')} required>
+          <Form.Item label={t('designer.props.common.effectMaxAttempts')} required>
             <InputNumber
               min={recovery === 'retry' ? 2 : 1}
               max={100}
               precision={0}
               value={value.maxAttempts}
               onChange={(count) => update({ maxAttempts: count ?? undefined })}
-              aria-label={t('designer.props.common.maxAttempts')}
+              aria-label={t('designer.props.common.effectMaxAttempts')}
               style={{ width: '100%' }}
             />
           </Form.Item>

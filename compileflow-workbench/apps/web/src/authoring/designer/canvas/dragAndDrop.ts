@@ -1,9 +1,10 @@
 import { Dnd, Graph } from '@antv/x6'
 
-export function createUnifiedDnd(graph: Graph): Dnd {
+export function createUnifiedDnd(graph: Graph, dndContainer: HTMLElement): Dnd {
   return new Dnd({
     target: graph,
-    scaled: false,
+    dndContainer,
+    scaled: true,
     validateNode: () => true,
     getDropNode: (node) => node.clone({ keepId: false, deep: true }),
   })

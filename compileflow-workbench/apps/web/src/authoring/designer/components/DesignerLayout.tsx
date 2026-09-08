@@ -27,13 +27,14 @@ import { selectCurrentProcess } from '../store/editorSlice'
 import type { UiState } from '../store/uiSlice'
 import {
   hideContextMenu,
+  openRightPanelTab,
   selectContextMenu,
   selectEdge,
   selectLeftPanelCollapsed,
   selectNode,
   selectRightPanelCollapsed,
   selectRightPanelTab,
-  selectSelectedEdge,
+  selectSelectedEdgeId,
   selectSelectedNodeId,
   selectShowHelpDocs,
   selectShowSearch,
@@ -210,13 +211,16 @@ const resolveSegmentedValue = (rightPanelTab: RightPanelTab): RightTab => {
 }
 
 function useLayoutState(): LayoutState {
+  const currentProcess = useAppSelector(selectCurrentProcess)
+  const selectedEdgeId = useAppSelector(selectSelectedEdgeId)
   return {
     contextMenu: useAppSelector(selectContextMenu),
-    currentProcess: useAppSelector(selectCurrentProcess),
+    currentProcess,
     leftPanelCollapsed: useAppSelector(selectLeftPanelCollapsed),
     rightPanelCollapsed: useAppSelector(selectRightPanelCollapsed),
     rightPanelTab: useAppSelector(selectRightPanelTab),
-    selectedEdge: useAppSelector(selectSelectedEdge),
+    selectedEdge:
+      currentProcess?.connections.find((connection) => connection.id === selectedEdgeId) ?? null,
     selectedNodeId: useAppSelector(selectSelectedNodeId),
     showHelpDocs: useAppSelector(selectShowHelpDocs),
     showSearch: useAppSelector(selectShowSearch),
@@ -372,6 +376,7 @@ function useGraphHighlights(
 }
 
 function useContextMenuActions({
+  collapseLeftWhenOpeningPanel,
   contextMenu,
   currentProcess,
   dispatch,
@@ -381,6 +386,7 @@ function useContextMenuActions({
   onPaste,
   simulationEngine,
 }: {
+  collapseLeftWhenOpeningPanel: boolean
   contextMenu: ContextMenuState
   currentProcess: UnifiedProcessDefinition
   dispatch: AppDispatch
@@ -396,6 +402,7 @@ function useContextMenuActions({
   const onEdit = useCallback(() => {
     if (contextMenu.type === 'node' && contextMenu.targetId) {
       dispatch(selectNode(contextMenu.targetId))
+      dispatch(openRightPanelTab({ tab: 'properties', collapseLeft: collapseLeftWhenOpeningPanel }))
       return
     }
 
@@ -405,17 +412,32 @@ function useContextMenuActions({
       )
       if (edge) {
         dispatch(selectNode(null))
-        dispatch(selectEdge(edge))
+        dispatch(selectEdge(edge.id))
+        dispatch(openRightPanelTab({ tab: 'edge', collapseLeft: collapseLeftWhenOpeningPanel }))
       }
     }
-  }, [contextMenu.targetId, contextMenu.type, currentProcess, dispatch])
+  }, [
+    collapseLeftWhenOpeningPanel,
+    contextMenu.targetId,
+    contextMenu.type,
+    currentProcess,
+    dispatch,
+  ])
 
   const onBreakpoint = useCallback(() => {
     if (contextMenu.type !== 'node' || !contextMenu.targetId) return
     simulationEngine.addBreakpoint(contextMenu.targetId)
     message.success(t('designer.layout.breakpointSet', { nodeId: contextMenu.targetId }))
-    dispatch(setRightPanelTab('debug'))
-  }, [contextMenu.targetId, contextMenu.type, dispatch, simulationEngine, t])
+    dispatch(openRightPanelTab({ tab: 'debug', collapseLeft: collapseLeftWhenOpeningPanel }))
+  }, [
+    collapseLeftWhenOpeningPanel,
+    contextMenu.targetId,
+    contextMenu.type,
+    dispatch,
+    message,
+    simulationEngine,
+    t,
+  ])
 
   const onSelectAll = useCallback(() => {
     const graph = graphRef.current
@@ -802,6 +824,7 @@ export function DesignerLayout({
   const dispatch = useAppDispatch()
   const isMobile = useMediaQuery('(max-width: 768px)')
   const wasMobileRef = useRef<boolean | null>(null)
+  const previousSelectionRef = useRef<string | null>(null)
   const { graphRef } = useDesignerContext()
   const layoutState = useLayoutState()
   const flowDefinition = requireCurrentProcess(layoutState.currentProcess)
@@ -814,6 +837,7 @@ export function DesignerLayout({
     layoutState.rightPanelTab !== 'validation' &&
     layoutState.rightPanelTab !== 'debug'
   const contextMenuActions = useContextMenuActions({
+    collapseLeftWhenOpeningPanel: isMobile,
     contextMenu: layoutState.contextMenu,
     currentProcess: flowDefinition,
     dispatch,
@@ -831,6 +855,35 @@ export function DesignerLayout({
     }
     wasMobileRef.current = isMobile
   }, [dispatch, isMobile])
+
+  useEffect(() => {
+    const selection = layoutState.selectedNodeId
+      ? `node:${layoutState.selectedNodeId}`
+      : layoutState.selectedEdge
+        ? `edge:${layoutState.selectedEdge.id}`
+        : null
+    const previousSelection = previousSelectionRef.current
+    previousSelectionRef.current = selection
+    if (!isMobile) return
+
+    if (selection !== null && selection !== previousSelection) {
+      dispatch(setSidePanelsCollapsed({ left: true, right: layoutState.rightPanelCollapsed }))
+    } else if (
+      selection === null &&
+      previousSelection !== null &&
+      layoutState.rightPanelTab === 'none'
+    ) {
+      dispatch(setSidePanelsCollapsed({ left: layoutState.leftPanelCollapsed, right: true }))
+    }
+  }, [
+    dispatch,
+    isMobile,
+    layoutState.leftPanelCollapsed,
+    layoutState.rightPanelCollapsed,
+    layoutState.rightPanelTab,
+    layoutState.selectedEdge?.id,
+    layoutState.selectedNodeId,
+  ])
 
   const handleToggleLeftPanel = useCallback(() => {
     if (isMobile && layoutState.leftPanelCollapsed) {

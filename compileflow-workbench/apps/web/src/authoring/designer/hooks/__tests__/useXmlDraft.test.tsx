@@ -2,10 +2,7 @@ import { act, fireEvent, render, renderHook, screen } from '@testing-library/rea
 import { describe, expect, it, vi } from 'vitest'
 
 import { XmlCodeEditorPanel } from '../../components/XmlCodeEditorPanel'
-import { importXml, loadOperateProcess } from '../../store/editorSlice'
 import { useXmlDraft } from '../useXmlDraft'
-
-import { store } from '@/app/store'
 
 vi.mock('@/shared/components/LazyMonacoEditor', () => ({
   MonacoEditor: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
@@ -19,7 +16,7 @@ describe('page-owned XML draft', () => {
       const editor = useXmlDraft({
         sourceXml: source,
         documentId: 'document',
-        onApply: async () => {},
+        onApply: () => {},
       })
       return visible ? <XmlCodeEditorPanel editor={editor} /> : null
     }
@@ -46,7 +43,7 @@ describe('page-owned XML draft', () => {
           useXmlDraft({
             sourceXml: 'original',
             documentId,
-            onApply: async (xml) => {
+            onApply: (xml) => {
               order.push(xml)
             },
           }),
@@ -76,7 +73,7 @@ describe('page-owned XML draft', () => {
       useXmlDraft({
         sourceXml: 'original',
         documentId: 'document',
-        onApply: async () => {
+        onApply: () => {
           throw new Error('invalid XML')
         },
       })
@@ -86,52 +83,4 @@ describe('page-owned XML draft', () => {
     expect(persist).not.toHaveBeenCalled()
     expect(result.current.isDirty).toBe(true)
   })
-
-  it.each(['edit', 'reload', 'unmount'] as const)(
-    'aborts the real parse thunk on %s before it can replace the model',
-    async (change) => {
-      store.dispatch(loadOperateProcess.pending('retained', 'draft'))
-      store.dispatch(
-        loadOperateProcess.fulfilled(
-          {
-            flow: {
-              id: 'draft',
-              code: 'draft',
-              name: 'Retained',
-              type: 'TBBPM',
-              nodes: [],
-              connections: [],
-            },
-            warnings: [],
-            operateProcessCode: 'draft',
-            revision: 1,
-          },
-          'retained',
-          'draft'
-        )
-      )
-      const { result, rerender, unmount } = renderHook(
-        ({ documentId }) =>
-          useXmlDraft({
-            sourceXml: 'original',
-            documentId,
-            onApply: async (xml, signal) => {
-              await store.dispatch(importXml({ xml, type: 'TBBPM' }, { signal })).unwrap()
-            },
-          }),
-        { initialProps: { documentId: 'retained' } }
-      )
-      act(() => result.current.handleChange('<bpm code="draft" name="Obsolete"/>'))
-      let applying!: Promise<boolean>
-      act(() => {
-        applying = result.current.handleApply()
-      })
-      if (change === 'edit') act(() => result.current.handleChange('newer'))
-      if (change === 'reload') rerender({ documentId: 'new-document' })
-      if (change === 'unmount') unmount()
-      await act(async () => expect(await applying).toBe(false))
-      expect(store.getState().editor.present.currentProcess?.name).toBe('Retained')
-      if (change === 'reload') expect(result.current.draft).toBe('original')
-    }
-  )
 })

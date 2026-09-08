@@ -6,8 +6,8 @@ import {
   ColumnWidthOutlined,
   CopyOutlined,
   DeleteOutlined,
-  FolderOpenOutlined,
   FullscreenOutlined,
+  LinkOutlined,
   ReloadOutlined,
   SelectOutlined,
   VerticalAlignBottomOutlined,
@@ -19,7 +19,7 @@ import {
 import type { Graph } from '@antv/x6'
 import { Button, Divider, Space, Tooltip } from 'antd'
 import type { TFunction } from 'i18next'
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { fitGraphContent, resetGraphView } from '@/authoring/designer/canvas/graphViewport'
@@ -29,15 +29,16 @@ import './CanvasToolbar.css'
 interface CanvasToolbarProps {
   /** Graph instance controlled by the toolbar. */
   graph: Graph | null
-  /** Optional example loader exposed by the TBBPM designer. */
-  onLoadExample?: () => void
   /** Duplicates the selected canonical model graph, including descendants and edges. */
   onDuplicateSelection?: () => void
   /** Deletes the selected canonical nodes and edges as one undoable graph mutation. */
   onDeleteSelection?: () => void
+  /** Opens the keyboard- and click-operable connection creator. */
+  onCreateConnection?: () => void
 }
 
 interface ToolbarAction {
+  disabled?: boolean
   icon: React.ReactNode
   key: string
   onClick: () => void
@@ -51,100 +52,8 @@ interface ToolbarActions {
   view: ToolbarAction[]
 }
 
-function useToolbarActions(
-  graph: Graph | null,
-  onDuplicateSelection: (() => void) | undefined,
-  onDeleteSelection: (() => void) | undefined,
-  t: TFunction,
-  tools: ReturnType<typeof createMultiSelectionTools> | null
-): ToolbarActions {
-  const align = useMemo(
-    () => [
-      {
-        key: 'align-left',
-        icon: <AlignLeftOutlined />,
-        tooltip: t('designer.toolbar.alignLeft'),
-        onClick: () => tools?.align.alignLeft(),
-      },
-      {
-        key: 'align-center-v',
-        icon: <AlignCenterOutlined />,
-        tooltip: t('designer.toolbar.alignCenterV'),
-        onClick: () => tools?.align.alignCenterVertical(),
-      },
-      {
-        key: 'align-right',
-        icon: <AlignRightOutlined />,
-        tooltip: t('designer.toolbar.alignRight'),
-        onClick: () => tools?.align.alignRight(),
-      },
-      {
-        key: 'align-top',
-        icon: <VerticalAlignTopOutlined />,
-        tooltip: t('designer.toolbar.alignTop'),
-        onClick: () => tools?.align.alignTop(),
-      },
-      {
-        key: 'align-center-h',
-        icon: <VerticalAlignMiddleOutlined />,
-        tooltip: t('designer.toolbar.alignCenterH'),
-        onClick: () => tools?.align.alignCenterHorizontal(),
-      },
-      {
-        key: 'align-bottom',
-        icon: <VerticalAlignBottomOutlined />,
-        tooltip: t('designer.toolbar.alignBottom'),
-        onClick: () => tools?.align.alignBottom(),
-      },
-    ],
-    [t, tools]
-  )
-
-  const distribute = useMemo(
-    () => [
-      {
-        key: 'distribute-h',
-        icon: <ColumnWidthOutlined />,
-        tooltip: t('designer.toolbar.distributeH'),
-        onClick: () => tools?.distribute.distributeHorizontal(),
-      },
-      {
-        key: 'distribute-v',
-        icon: <ColumnHeightOutlined />,
-        tooltip: t('designer.toolbar.distributeV'),
-        onClick: () => tools?.distribute.distributeVertical(),
-      },
-    ],
-    [t, tools]
-  )
-
-  const batch = useMemo(
-    () => [
-      {
-        key: 'copy',
-        icon: <CopyOutlined />,
-        tooltip: t('designer.toolbar.copySelected'),
-        onClick: () => {
-          onDuplicateSelection?.()
-        },
-      },
-      {
-        key: 'delete',
-        icon: <DeleteOutlined />,
-        tooltip: t('designer.toolbar.deleteSelected'),
-        onClick: () => onDeleteSelection?.(),
-      },
-      {
-        key: 'select-all',
-        icon: <SelectOutlined />,
-        tooltip: t('designer.toolbar.selectAll'),
-        onClick: () => tools?.selection.selectAll(),
-      },
-    ],
-    [onDeleteSelection, onDuplicateSelection, t, tools]
-  )
-
-  const view = useMemo(
+function useViewActions(graph: Graph | null, t: TFunction): ToolbarAction[] {
+  return useMemo(
     () => [
       {
         key: 'zoom-in',
@@ -177,6 +86,134 @@ function useToolbarActions(
     ],
     [graph, t]
   )
+}
+
+function useToolbarActions(
+  graph: Graph | null,
+  onDuplicateSelection: (() => void) | undefined,
+  onDeleteSelection: (() => void) | undefined,
+  onCreateConnection: (() => void) | undefined,
+  t: TFunction,
+  tools: ReturnType<typeof createMultiSelectionTools> | null,
+  selectedCellCount: number,
+  selectedNodeCount: number,
+  nodeCount: number,
+  cellCount: number
+): ToolbarActions {
+  const view = useViewActions(graph, t)
+  const align = useMemo(
+    () => [
+      {
+        key: 'align-left',
+        icon: <AlignLeftOutlined />,
+        tooltip: t('designer.toolbar.alignLeft'),
+        disabled: selectedNodeCount < 2,
+        onClick: () => tools?.align.alignLeft(),
+      },
+      {
+        key: 'align-center-v',
+        icon: <AlignCenterOutlined />,
+        tooltip: t('designer.toolbar.alignCenterV'),
+        disabled: selectedNodeCount < 2,
+        onClick: () => tools?.align.alignCenterVertical(),
+      },
+      {
+        key: 'align-right',
+        icon: <AlignRightOutlined />,
+        tooltip: t('designer.toolbar.alignRight'),
+        disabled: selectedNodeCount < 2,
+        onClick: () => tools?.align.alignRight(),
+      },
+      {
+        key: 'align-top',
+        icon: <VerticalAlignTopOutlined />,
+        tooltip: t('designer.toolbar.alignTop'),
+        disabled: selectedNodeCount < 2,
+        onClick: () => tools?.align.alignTop(),
+      },
+      {
+        key: 'align-center-h',
+        icon: <VerticalAlignMiddleOutlined />,
+        tooltip: t('designer.toolbar.alignCenterH'),
+        disabled: selectedNodeCount < 2,
+        onClick: () => tools?.align.alignCenterHorizontal(),
+      },
+      {
+        key: 'align-bottom',
+        icon: <VerticalAlignBottomOutlined />,
+        tooltip: t('designer.toolbar.alignBottom'),
+        disabled: selectedNodeCount < 2,
+        onClick: () => tools?.align.alignBottom(),
+      },
+    ],
+    [selectedNodeCount, t, tools]
+  )
+
+  const distribute = useMemo(
+    () => [
+      {
+        key: 'distribute-h',
+        icon: <ColumnWidthOutlined />,
+        tooltip: t('designer.toolbar.distributeH'),
+        disabled: selectedNodeCount < 3,
+        onClick: () => tools?.distribute.distributeHorizontal(),
+      },
+      {
+        key: 'distribute-v',
+        icon: <ColumnHeightOutlined />,
+        tooltip: t('designer.toolbar.distributeV'),
+        disabled: selectedNodeCount < 3,
+        onClick: () => tools?.distribute.distributeVertical(),
+      },
+    ],
+    [selectedNodeCount, t, tools]
+  )
+
+  const batch = useMemo(
+    () => [
+      {
+        key: 'connect',
+        icon: <LinkOutlined />,
+        tooltip: t('designer.toolbar.createConnection'),
+        disabled: nodeCount < 2,
+        onClick: () => onCreateConnection?.(),
+      },
+      {
+        key: 'copy',
+        icon: <CopyOutlined />,
+        tooltip: t('designer.toolbar.copySelected'),
+        disabled: selectedNodeCount < 1,
+        onClick: () => {
+          onDuplicateSelection?.()
+        },
+      },
+      {
+        key: 'delete',
+        icon: <DeleteOutlined />,
+        tooltip: t('designer.toolbar.deleteSelected'),
+        disabled: selectedCellCount < 1,
+        onClick: () => onDeleteSelection?.(),
+      },
+      {
+        key: 'select-all',
+        icon: <SelectOutlined />,
+        tooltip: t('designer.toolbar.selectAll'),
+        disabled: cellCount < 1,
+        onClick: () => tools?.selection.selectAll(),
+      },
+    ],
+    [
+      cellCount,
+      nodeCount,
+      onCreateConnection,
+      onDeleteSelection,
+      onDuplicateSelection,
+      selectedCellCount,
+      selectedNodeCount,
+      t,
+      tools,
+    ]
+  )
 
   return { align, batch, distribute, view }
 }
@@ -199,7 +236,7 @@ function ToolbarActionGroup({
             size="small"
             icon={action.icon}
             onClick={action.onClick}
-            disabled={disabled}
+            disabled={disabled || action.disabled}
             aria-label={action.tooltip}
           />
         </Tooltip>
@@ -212,14 +249,55 @@ const CanvasToolbar = React.memo(function CanvasToolbar({
   graph,
   onDeleteSelection,
   onDuplicateSelection,
-  onLoadExample,
+  onCreateConnection,
 }: CanvasToolbarProps) {
   const { t } = useTranslation()
   // Cache the tools object so its onClick references are stable across renders,
   // preserving React.memo effectiveness on downstream button components.
   const tools = useMemo(() => (graph ? createMultiSelectionTools(graph) : null), [graph])
+  const [selectionState, setSelectionState] = useState({
+    cellCount: 0,
+    nodeCount: 0,
+    selectedCellCount: 0,
+    selectedNodeCount: 0,
+  })
+  useEffect(() => {
+    if (!graph) {
+      setSelectionState({ cellCount: 0, nodeCount: 0, selectedCellCount: 0, selectedNodeCount: 0 })
+      return
+    }
+    const syncSelectionState = () => {
+      const selectedCells = graph.getSelectedCells()
+      setSelectionState({
+        cellCount: graph.getCells().length,
+        nodeCount: graph.getNodes().length,
+        selectedCellCount: selectedCells.length,
+        selectedNodeCount: selectedCells.filter((cell) => cell.isNode()).length,
+      })
+    }
+    syncSelectionState()
+    graph.on('selection:changed', syncSelectionState)
+    graph.on('cell:added', syncSelectionState)
+    graph.on('cell:removed', syncSelectionState)
+    return () => {
+      graph.off('selection:changed', syncSelectionState)
+      graph.off('cell:added', syncSelectionState)
+      graph.off('cell:removed', syncSelectionState)
+    }
+  }, [graph])
   const disabled = !graph
-  const actions = useToolbarActions(graph, onDuplicateSelection, onDeleteSelection, t, tools)
+  const actions = useToolbarActions(
+    graph,
+    onDuplicateSelection,
+    onDeleteSelection,
+    onCreateConnection,
+    t,
+    tools,
+    selectionState.selectedCellCount,
+    selectionState.selectedNodeCount,
+    selectionState.nodeCount,
+    selectionState.cellCount
+  )
 
   return (
     <div className="x6-canvas-toolbar" role="toolbar" aria-label={t('designer.toolbar.label')}>
@@ -245,22 +323,6 @@ const CanvasToolbar = React.memo(function CanvasToolbar({
           disabled={disabled}
           label={t('designer.toolbar.viewGroup')}
         />
-
-        {/* The load-example button is placed as a direct Space child so the Space
-            separator prop automatically inserts exactly ONE Divider before it. */}
-        {onLoadExample && (
-          <Tooltip title={t('designer.toolbar.loadExampleHint')}>
-            <Button
-              type="dashed"
-              size="small"
-              icon={<FolderOpenOutlined />}
-              onClick={onLoadExample}
-              aria-label={t('designer.toolbar.loadExample')}
-            >
-              {t('designer.toolbar.loadExample')}
-            </Button>
-          </Tooltip>
-        )}
       </Space>
     </div>
   )

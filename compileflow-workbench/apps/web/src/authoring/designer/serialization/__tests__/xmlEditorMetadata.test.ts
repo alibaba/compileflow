@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { importXml, loadOperateProcess } from '../../store/editorSlice'
+import { loadOperateProcess, replaceImportedProcess } from '../../store/editorSlice'
 
 import { store } from '@/app/store'
 
@@ -31,15 +31,14 @@ describe('XML editor metadata import', () => {
 
   it.each(['New description', undefined])(
     'applies XML description %s instead of restoring old document text',
-    async (description) => {
-      await store
-        .dispatch(
-          importXml({
-            type: 'TBBPM',
-            xml: `<bpm code="flow" name="Flow"${description ? ` description="${description}"` : ''}/>`,
-          })
-        )
-        .unwrap()
+    (description) => {
+      store.dispatch(
+        replaceImportedProcess({
+          type: 'TBBPM',
+          xml: `<bpm code="flow" name="Flow"${description ? ` description="${description}"` : ''}/>`,
+          documentRequestId: 'document',
+        })
+      )
       expect(store.getState().editor.present.currentProcess?.description).toBe(description)
     }
   )

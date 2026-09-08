@@ -222,6 +222,76 @@ describe('useDeploymentDetailData', () => {
     expect(message.success).not.toHaveBeenCalled()
   })
 
+  it('coalesces repeated deployment mutations while one request is pending', async () => {
+    const promotion = deferred<Deployment>()
+    vi.mocked(promoteCanary).mockReturnValue(promotion.promise)
+    const { result } = renderDetail()
+    await waitFor(() => expect(result.current.deployment).toEqual(canary))
+
+    let first!: Promise<Deployment | undefined>
+    let second!: Promise<Deployment | undefined>
+    act(() => {
+      first = result.current.promote()
+      second = result.current.promote()
+    })
+    expect(promoteCanary).toHaveBeenCalledOnce()
+
+    await act(async () => {
+      promotion.resolve({ ...canary, status: 'completed', revision: 2 })
+      await Promise.all([first, second])
+    })
+  })
+
+  it('keeps each deployment locked across A to B to A navigation', async () => {
+    const next = { ...canary, id: 'rollout-3', processCode: 'invoice.approve' }
+    const firstPromotion = deferred<Deployment>()
+    const nextPromotion = deferred<Deployment>()
+    vi.mocked(getDeployment).mockImplementation((id) =>
+      Promise.resolve(id === next.id ? next : canary)
+    )
+    vi.mocked(getDeploymentRoute).mockImplementation((processCode) =>
+      Promise.resolve({ ...route, processCode })
+    )
+    vi.mocked(promoteCanary).mockImplementation((id) =>
+      id === next.id ? nextPromotion.promise : firstPromotion.promise
+    )
+    const { result, rerender } = renderHook(
+      ({ id }: { id: string }) => useDeploymentDetailData(id, translate),
+      { initialProps: { id: canary.id } }
+    )
+    await waitFor(() => expect(result.current.deployment).toEqual(canary))
+
+    let pendingFirst!: Promise<Deployment | undefined>
+    act(() => {
+      pendingFirst = result.current.promote()
+    })
+    rerender({ id: next.id })
+    await waitFor(() => expect(result.current.deployment).toEqual(next))
+
+    let pendingNext!: Promise<Deployment | undefined>
+    act(() => {
+      pendingNext = result.current.promote()
+    })
+    await act(async () => {
+      nextPromotion.resolve({ ...next, status: 'completed', revision: 2 })
+      await pendingNext
+    })
+
+    rerender({ id: canary.id })
+    await waitFor(() => expect(result.current.deployment).toEqual(canary))
+    await act(async () => {
+      await result.current.promote()
+    })
+    expect(promoteCanary).toHaveBeenCalledTimes(2)
+    expect(promoteCanary).toHaveBeenNthCalledWith(1, canary.id, canary.revision)
+    expect(promoteCanary).toHaveBeenNthCalledWith(2, next.id, next.revision)
+
+    await act(async () => {
+      firstPromotion.resolve({ ...canary, status: 'completed', revision: 2 })
+      await pendingFirst
+    })
+  })
+
   it.each(['promote', 'restoreBaseline', 'updateCanary', 'evaluateHealth'] as const)(
     'does not dispatch a stale %s callback after selection changes or unmounts',
     async (action) => {

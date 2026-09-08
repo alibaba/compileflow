@@ -103,11 +103,11 @@ const buildMenuItems = (domain: SidebarDomain, t: TFunction): MenuItems => {
 
 const getSelectedKey = (domain: SidebarDomain, pathname: string, search: string): string => {
   if (domain === 'learn') {
-    const requestedPath = `${pathname}${search}`
-    const categoryPath = Object.values(LEARN_CATEGORIES)
-      .map((category) => createLearnExamplesPath({ category }))
-      .find((path) => path === requestedPath)
-    return categoryPath ?? ROUTES.LEARN_EXAMPLES
+    const requestedCategory = new URLSearchParams(search).get('category')
+    const category = Object.values(LEARN_CATEGORIES).find(
+      (candidate) => candidate === requestedCategory
+    )
+    return category ? createLearnExamplesPath({ category }) : ROUTES.LEARN_EXAMPLES
   }
 
   if (

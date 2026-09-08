@@ -245,14 +245,8 @@ test.describe('Workbench browser journey review', () => {
 
   test('05 Designer duplicate copies content (workspace flow)', async ({ page }) => {
     const errors = trackErrors(page)
-    await page.goto('/build/designer?modelType=tbbpm&source=new')
+    await page.goto('/build/designer?modelType=tbbpm&source=template&templateId=tpl-4')
     await page.waitForSelector('.x6-graph', { timeout: TIMEOUT })
-    // Load example nodes so duplicate has non-default content.
-    const loadExample = page.getByRole('button', { name: '加载示例' })
-    if (await loadExample.count()) {
-      await loadExample.click()
-      await expect(page.locator('.ant-message-notice').first()).toBeVisible({ timeout: 8000 })
-    }
     await page.keyboard.press('Control+s')
     await expect(page.locator('.ant-message-notice').first()).toBeVisible({ timeout: 8000 })
 

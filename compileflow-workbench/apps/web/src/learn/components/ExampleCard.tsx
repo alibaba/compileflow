@@ -2,7 +2,7 @@ import { ClockCircleOutlined } from '@ant-design/icons'
 import { Col, Typography } from 'antd'
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 import {
   getExampleDuration,
@@ -31,14 +31,17 @@ const flowAccentClass: Record<string, string> = {
 
 const ExampleCard = memo<ExampleCardProps>(({ example }) => {
   const { t } = useTranslation()
+  const location = useLocation()
   const presentation = getExamplePresentation(example, t)
   const detailPath = createLearnExampleDetailPath(example.id)
+  const examplesPath = `${location.pathname}${location.search}`
 
   return (
     <Col xs={24} sm={12} lg={8} className={styles.cardCol}>
       <article className={`${styles.card} ${flowAccentClass[example.modelType] ?? ''}`}>
         <Link
           to={detailPath}
+          state={{ examplesPath }}
           className={styles.cardLink}
           aria-label={`${t('examples.viewDetail')}: ${presentation.name}`}
         />

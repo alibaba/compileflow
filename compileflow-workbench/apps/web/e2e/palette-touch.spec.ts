@@ -38,7 +38,7 @@ const BPMN_LABELS = [
 ] as const
 
 const TOUCH_CASES = [
-  ...TBBPM_LABELS.map((label) => ({ modelType: 'tbbpm' as const, label, initialCount: 2 })),
+  ...TBBPM_LABELS.map((label) => ({ modelType: 'tbbpm' as const, label, initialCount: 0 })),
   ...BPMN_LABELS.map((label) => ({ modelType: 'bpmn' as const, label, initialCount: 0 })),
 ]
 

@@ -238,6 +238,8 @@ const zhAuthoring = {
 
   'designer.toolbar.copySelected': '创建选中节点的副本（Ctrl+D）',
 
+  'designer.toolbar.createConnection': '连接节点（无需拖拽）',
+
   'designer.toolbar.deleteSelected': '删除选中节点（Delete）',
 
   'designer.toolbar.selectAll': '全选（Ctrl+A）',
@@ -249,14 +251,6 @@ const zhAuthoring = {
   'designer.toolbar.zoomFit': '适应画布',
 
   'designer.toolbar.zoomReset': '重置视图',
-
-  'designer.toolbar.loadExample': '加载示例',
-
-  'designer.toolbar.loadExampleHint': '加载示例流程',
-
-  'designer.toolbar.loadExampleSuccess': '示例流程已加载',
-
-  'designer.toolbar.loadExampleFailed': '加载示例失败：{{message}}',
 
   'designer.layout.tabProperties': '属性',
 
@@ -712,6 +706,8 @@ const zhAuthoring = {
   'designer.props.common.maxAttempts': '最大调用次数',
 
   'designer.props.common.maxAttemptsHelp': '包含首次尝试，范围 1 到 100',
+
+  'designer.props.common.effectMaxAttempts': '最大恢复尝试次数',
 
   'designer.props.common.initialBackoff': '初始退避',
 
@@ -1771,6 +1767,27 @@ const zhAuthoring = {
 
   'designer.edge.targetNode': '目标节点',
 
+  'designer.connection.createTitle': '创建连接',
+
+  'designer.connection.create': '创建',
+
+  'designer.connection.createHint':
+    '选择源节点和目标节点。此方式无需精确拖拽端口，也可使用键盘完成。',
+
+  'designer.connection.source': '源节点',
+
+  'designer.connection.target': '目标节点',
+
+  'designer.connection.sourcePlaceholder': '搜索并选择源节点',
+
+  'designer.connection.targetPlaceholder': '搜索并选择目标节点',
+
+  'designer.connection.sourceRequired': '请选择源节点',
+
+  'designer.connection.targetRequired': '请选择目标节点',
+
+  'designer.connection.invalid': '请选择同一流程层级中允许连接且尚未重复连接的节点',
+
   'designer.variableManager.title': '流程变量',
 
   'designer.variableManager.add': '添加变量',
@@ -2456,7 +2473,8 @@ const zhAuthoring = {
 
   'workspace.exportFailed': '导出失败',
 
-  'workspace.importSuccess': '已导入 {{count}} 个流程',
+  'workspace.importSummary':
+    '导入完成：成功 {{success}} 项，跳过 {{skipped}} 项，失败 {{failed}} 项。',
 
   'workspace.importFailed': '导入失败，请检查文件格式',
 } as const

@@ -6,65 +6,14 @@
   background-color: var(--color-bg-layout);
 }
 
-/* X6 highlight styles */
-
-.available-node {
-  stroke: var(--color-primary) !important;
-  stroke-width: 3 !important;
-}
-
-.available-magnet {
-  fill: var(--color-success) !important;
-  stroke: var(--color-success) !important;
-}
-
-.adsorbed-magnet {
-  fill: var(--color-primary) !important;
-  stroke: var(--color-primary) !important;
-  stroke-width: 3 !important;
-}
-
 /* Node selected state */
 
-.x6-cell-selected .bpmn-node svg rect,
-.x6-cell-selected .bpmn-node svg circle:first-child,
-.x6-cell-selected .bpmn-node svg path:first-child {
+.x6-node-selected .bpmn-node svg rect,
+.x6-node-selected .bpmn-node svg circle:first-child,
+.x6-node-selected .bpmn-node svg path:first-child {
   stroke: var(--color-primary) !important;
   stroke-width: 3 !important;
   filter: drop-shadow(0 0 8px rgba(24, 144, 255, 0.4));
-}
-
-/* Port (connection point) styles */
-
-.x6-port {
-  visibility: hidden;
-}
-
-.x6-node:hover .x6-port {
-  visibility: visible;
-}
-
-.x6-port circle {
-  fill: var(--color-bg-container);
-  stroke: var(--info-main);
-  stroke-width: 2;
-  r: 4;
-}
-
-.x6-port:hover circle {
-  r: 6;
-  stroke-width: 3;
-  fill: var(--info-main);
-}
-
-/* Dark mode port visibility boost */
-[data-theme='dark'] .x6-port circle {
-  fill: var(--color-bg-base);
-  stroke: var(--info-light);
-}
-
-[data-theme='dark'] .x6-port:hover circle {
-  fill: var(--info-light);
 }
 
 /* Edge styles */

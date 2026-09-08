@@ -189,11 +189,24 @@ test.describe('Deep Build coverage', () => {
     await page.getByRole('button', { name: /导入数据|导入|Import/i }).click()
     await fileInput.setInputFiles(exportPath)
     await expect(
-      page.locator('.ant-message-notice').filter({ hasText: /导入成功|已导入|imported/i })
+      page
+        .locator('.ant-message-notice')
+        .filter({ hasText: /成功.*跳过.*失败|imported.*skipped.*failed/i })
     ).toBeVisible({
       timeout: TIMEOUT,
     })
     await shot(page, '41-workspace-import')
+
+    await page.getByRole('button', { name: /导入数据|导入|Import/i }).click()
+    await fileInput.setInputFiles({
+      name: 'invalid-workbench.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from('{"formatVersion":2,"processes":"invalid"}'),
+    })
+    await expect(
+      page.locator('.ant-message-notice').filter({ hasText: /导入失败|Import failed/i })
+    ).toBeVisible({ timeout: TIMEOUT })
+    await expect(fileInput).toHaveValue('')
 
     await assertNoPageErrors(errors)
   })
@@ -416,6 +429,10 @@ test.describe('Deep Operate flows / monitoring / logs', () => {
     })
     await expect(requeueDeploy.first()).toBeVisible({ timeout: TIMEOUT })
     await requeueDeploy.first().click()
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /确\s*认|Confirm/i })
+      .click()
     await expect(page.locator('.ant-message-notice').first()).toBeVisible({ timeout: 8000 })
     await shot(page, '59-monitoring-requeue-deploy')
 
@@ -424,6 +441,10 @@ test.describe('Deep Operate flows / monitoring / logs', () => {
     })
     await expect(requeueAsync.first()).toBeVisible({ timeout: TIMEOUT })
     await requeueAsync.first().click()
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /确\s*认|Confirm/i })
+      .click()
     await expect(page.locator('.ant-message-notice').first()).toBeVisible({ timeout: 8000 })
     await shot(page, '60-monitoring-requeue-async')
 
@@ -513,7 +534,7 @@ test.describe('Deep Operate flows / monitoring / logs', () => {
 })
 
 test.describe('Deep designer node authoring smoke', () => {
-  test('BPMN palette search + node count; TBBPM load example', async ({ page }) => {
+  test('BPMN palette search + node count; TBBPM starts blank', async ({ page }) => {
     const errors = trackErrors(page)
 
     await page.goto('/build/designer?modelType=bpmn')
@@ -535,14 +556,8 @@ test.describe('Deep designer node authoring smoke', () => {
 
     await page.goto('/build/designer?modelType=tbbpm&source=new')
     await page.waitForSelector('.x6-graph', { timeout: TIMEOUT })
-    const loadExample = page.getByRole('button', { name: '加载示例' })
-    if (await loadExample.count()) {
-      await loadExample.click()
-      await expect(page.locator('.ant-message-notice').first()).toBeVisible({ timeout: 8000 })
-    }
-    const nodes = await page.locator('.x6-node').count()
-    expect(nodes).toBeGreaterThan(0)
-    await shot(page, '66-tbbpm-loaded-example')
+    await expect(page.locator('.x6-node')).toHaveCount(0)
+    await shot(page, '66-tbbpm-blank-flow')
     await assertNoPageErrors(errors)
   })
 })

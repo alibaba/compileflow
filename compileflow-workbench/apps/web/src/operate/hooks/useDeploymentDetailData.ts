@@ -25,6 +25,10 @@ import { createLogger } from '@/shared/logging/logger'
 
 const logger = createLogger('DeploymentDetail')
 
+function releaseDeploymentMutation(lock: { current: Set<string> }, id: string): void {
+  lock.current.delete(id)
+}
+
 export type DeploymentAction = 'update-canary' | 'evaluate-health' | 'promote' | 'restore-baseline'
 
 function canRestoreBaseline(
@@ -194,12 +198,17 @@ export function useDeploymentDetailData(id: string | undefined, t: TFunction) {
   } = useDeploymentDetailState(id, message, t)
   const [action, setAction] = useState<DeploymentAction>()
   const rollbackIntents = useRef(new Map<string, string>())
+  const mutationInFlightFor = useRef(new Set<string>())
   const beginAction = useDeploymentActionLifetime(id, setAction)
 
   const updateCanary = useCallback(async () => {
-    if (!id || !deployment) return
+    if (!id || !deployment || mutationInFlightFor.current.has(id)) return
+    mutationInFlightFor.current.add(id)
     const isCurrent = beginAction('update-canary')
-    if (!isCurrent) return
+    if (!isCurrent) {
+      mutationInFlightFor.current.delete(id)
+      return
+    }
     try {
       const updated = await updateCanaryWeightBps(id, canaryValue, deployment.revision)
       if (!isCurrent()) return
@@ -212,6 +221,7 @@ export function useDeploymentDetailData(id: string | undefined, t: TFunction) {
       message.error(t('deployment.canaryUpdateError'))
       await loadDetail(false)
     } finally {
+      releaseDeploymentMutation(mutationInFlightFor, id)
       if (isCurrent()) setAction(undefined)
     }
   }, [applyMutation, beginAction, canaryValue, deployment, id, loadDetail, message, t])
@@ -234,9 +244,13 @@ export function useDeploymentDetailData(id: string | undefined, t: TFunction) {
   }, [beginAction, id, message, setHealth, t])
 
   const promote = useCallback(async (): Promise<Deployment | undefined> => {
-    if (!id || !deployment) return undefined
+    if (!id || !deployment || mutationInFlightFor.current.has(id)) return undefined
+    mutationInFlightFor.current.add(id)
     const isCurrent = beginAction('promote')
-    if (!isCurrent) return undefined
+    if (!isCurrent) {
+      mutationInFlightFor.current.delete(id)
+      return undefined
+    }
     try {
       const updated = await promoteCanary(id, deployment.revision)
       if (!isCurrent()) return undefined
@@ -251,16 +265,22 @@ export function useDeploymentDetailData(id: string | undefined, t: TFunction) {
       await loadDetail(false)
       return undefined
     } finally {
+      releaseDeploymentMutation(mutationInFlightFor, id)
       if (isCurrent()) setAction(undefined)
     }
   }, [applyMutation, beginAction, deployment, id, loadDetail, message, t])
 
   const restoreBaseline = useCallback(async (): Promise<Deployment | undefined> => {
-    if (!id || !deployment) return undefined
+    if (!id || !deployment || mutationInFlightFor.current.has(id)) return undefined
+    mutationInFlightFor.current.add(id)
     const isCanary = deployment.status === 'in_progress'
     const isCurrent = beginAction('restore-baseline')
-    if (!isCurrent) return undefined
+    if (!isCurrent) {
+      mutationInFlightFor.current.delete(id)
+      return undefined
+    }
     if (!canRestoreBaseline(deployment, route, message, t)) {
+      mutationInFlightFor.current.delete(id)
       setAction(undefined)
       return undefined
     }
@@ -287,6 +307,7 @@ export function useDeploymentDetailData(id: string | undefined, t: TFunction) {
       await loadDetail(false)
       return undefined
     } finally {
+      releaseDeploymentMutation(mutationInFlightFor, id)
       if (isCurrent()) setAction(undefined)
     }
   }, [applyMutation, beginAction, deployment, id, loadDetail, message, route?.revision, t])

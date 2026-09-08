@@ -26,6 +26,30 @@ export function runGraphMutation(isSyncingRef: SyncingRef, mutation: () => void)
   }
 }
 
+export function selectionMoveRoots(graph: Graph, nodes: Node[], parentDataKey: string): Node[] {
+  const selectedIds = new Set(nodes.map((node) => node.id))
+  return nodes.filter((node) => {
+    let parentId = (node.getData() as Record<string, unknown>)[parentDataKey]
+    const visited = new Set<string>()
+    while (typeof parentId === 'string' && !visited.has(parentId)) {
+      if (selectedIds.has(parentId)) return false
+      visited.add(parentId)
+      const parent = graph.getCellById(parentId)
+      if (!parent?.isNode()) break
+      parentId = (parent.getData() as Record<string, unknown>)[parentDataKey]
+    }
+    return true
+  })
+}
+
+export function selectionMoveTargets(graph: Graph, movedNode: Node, parentDataKey: string): Node[] {
+  const selectedNodes = graph.getSelectedCells().filter((cell): cell is Node => cell.isNode())
+  if (selectedNodes.length < 2 || !selectedNodes.some((node) => node.id === movedNode.id)) {
+    return [movedNode]
+  }
+  return selectionMoveRoots(graph, selectedNodes, parentDataKey)
+}
+
 function showGraphContextMenu(
   dispatch: AppDispatch,
   event: MouseEvent,
@@ -41,13 +65,19 @@ export function registerSelectionEvents<Connection extends ProcessConnection>(
   dispatch: AppDispatch,
   connectionsRef: ConnectionsRef<Connection>
 ): void {
+  graph.on('node:mousedown', ({ e, node }: { e: MouseEvent; node: Node }) => {
+    const additiveSelection = e.ctrlKey || e.metaKey
+    const alreadySelected = graph.getSelectedCells().some((cell) => cell.id === node.id)
+    if (!additiveSelection && !alreadySelected) graph.resetSelection(node)
+  })
+
   graph.on('node:click', ({ node }: { node: Node }) => {
     dispatch(selectNode(node.id))
   })
 
   graph.on('edge:click', ({ edge }: { edge: Edge }) => {
     const connection = connectionsRef.current.find((candidate) => candidate.id === edge.id)
-    dispatch(selectEdge(connection ?? null))
+    dispatch(selectEdge(connection?.id ?? null))
   })
 
   graph.on('blank:click', () => {
@@ -93,7 +123,7 @@ export function registerSelectionSync<Connection extends ProcessConnection>(
     }
     if (cell.isEdge()) {
       const connection = connectionsRef.current.find((candidate) => candidate.id === cell.id)
-      dispatch(selectEdge(connection ?? null))
+      dispatch(selectEdge(connection?.id ?? null))
     }
   })
 }

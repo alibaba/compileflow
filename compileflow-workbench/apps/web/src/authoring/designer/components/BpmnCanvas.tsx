@@ -1,12 +1,14 @@
 import { Edge, Graph, Node } from '@antv/x6'
 import { memo, useEffect, useRef } from 'react'
 
+import { canConnectNodes } from '../canvas/connectionRules'
 import {
   type ConnectionsRef,
   registerContextMenuEvents,
   registerSelectionEvents,
   registerSelectionSync,
   runGraphMutation,
+  selectionMoveTargets,
   type SyncingRef,
   useLatestRef,
 } from '../canvas/graphEvents'
@@ -23,7 +25,12 @@ import {
   selectBpmnNodes,
   updateConnection,
 } from '../store/editorSlice'
-import { selectNode, selectSelectedNodeId, selectShowGridlines } from '../store/uiSlice'
+import {
+  selectNode,
+  selectSelectedNodeId,
+  selectSelectedEdgeId,
+  selectShowGridlines,
+} from '../store/uiSlice'
 import type { ActionDefinition } from '../types/action'
 import type { BpmnConnection, BpmnNode } from '../types/flowDefinition'
 
@@ -117,11 +124,7 @@ function bpmnNodeFromX6Node(node: Node): BpmnNode | null {
   }
 
   const properties: BpmnNode['properties'] =
-    type === 'bpmn:ServiceTask'
-      ? { action: { actionType: 'java' } }
-      : type === 'bpmn:ScriptTask'
-        ? { scriptFormat: 'qlexpress', script: '' }
-        : {}
+    type === 'bpmn:ScriptTask' ? { scriptFormat: 'qlexpress', script: '' } : {}
 
   return {
     id: node.id,
@@ -171,13 +174,23 @@ function registerBpmnMutationEvents(
     })
   })
 
-  graph.on('node:moved', ({ node }: { node: Node }) => {
-    if (shouldSkipMutation()) return
-    runGraphMutation(isSyncingRef, () => {
-      const position = node.position()
-      dispatch(moveNode({ id: node.id, x: position.x, y: position.y }))
-    })
-  })
+  graph.on(
+    'node:moved',
+    ({ node, e, historyGroup }: { node: Node; e?: MouseEvent; historyGroup?: string }) => {
+      if (shouldSkipMutation()) return
+      const targets = selectionMoveTargets(graph, node, PARENT_ID_DATA_KEY)
+      const moveHistoryGroup =
+        targets.length > 1
+          ? (historyGroup ?? `selection-drag-${e?.timeStamp ?? Date.now()}`)
+          : historyGroup
+      runGraphMutation(isSyncingRef, () => {
+        targets.forEach((target) => {
+          const position = target.position()
+          dispatch(moveNode({ id: target.id, x: position.x, y: position.y }, moveHistoryGroup))
+        })
+      })
+    }
+  )
 
   graph.on('node:added', ({ node }: { node: Node }) => {
     if (shouldSkipMutation()) return
@@ -190,6 +203,7 @@ function registerBpmnMutationEvents(
       }
     })
     if (wasAdded) {
+      graph.cleanSelection()
       graph.select(node)
       dispatch(selectNode(node.id))
     }
@@ -264,19 +278,24 @@ const BpmnCanvas = memo(function BpmnCanvas({ onGraphReady }: BpmnCanvasProps) {
   const nodes = useAppSelector(selectBpmnNodes)
   const connections = useAppSelector(selectBpmnConnections)
   const selectedNodeId = useAppSelector(selectSelectedNodeId)
+  const selectedEdgeId = useAppSelector(selectSelectedEdgeId)
   const showGridlines = useAppSelector(selectShowGridlines)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const isSyncingRef = useRef(false)
   const connectionsRef = useLatestRef(connections)
+  const nodesRef = useLatestRef(nodes)
 
   const localGraphRef = useX6Graph(containerRef, {
     showGridlines,
     allowMultiEdge: false,
-    validateConnection: ({ sourceView, targetView }) => {
-      if (targetView?.cell.shape === 'bpmn-start-event') return false
-      if (sourceView?.cell.shape === 'bpmn-end-event') return false
-      return true
+    validateConnection: ({ edge, sourceView, targetView }) => {
+      return canConnectNodes(
+        { type: 'BPMN', nodes: nodesRef.current, connections: connectionsRef.current },
+        sourceView?.cell.id,
+        targetView?.cell.id,
+        edge?.id
+      )
     },
     onReady: (graph) => {
       graphRef.current = graph
@@ -298,6 +317,7 @@ const BpmnCanvas = memo(function BpmnCanvas({ onGraphReady }: BpmnCanvasProps) {
     nodes,
     connections,
     selectedNodeId,
+    selectedEdgeId,
     nodeToX6Cell: bpmnNodeToX6Cell,
     connectionToX6Edge: bpmnConnectionToX6Edge,
     checkNodeChanged: hasBpmnNodeChanged,

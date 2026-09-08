@@ -20,6 +20,7 @@ vi.mock('react-i18next', () => ({
 }))
 vi.mock('react-router-dom', () => ({
   useParams: () => ({ id: 'audit-one' }),
+  useLocation: () => ({ state: null }),
   useNavigate: () => vi.fn(),
 }))
 vi.mock('@/shared/api/examples', () => ({ getAllExamples: mocks.all, getExample: mocks.one }))
@@ -57,6 +58,7 @@ const example: Example = {
 }
 
 let resolveCatalog: (data: Example[]) => void
+let rejectCatalog: (error: Error) => void
 let scrolled: Element[]
 let originalScrollIntoView: PropertyDescriptor | undefined
 
@@ -66,8 +68,9 @@ beforeEach(() => {
   mocks.one.mockReset().mockResolvedValue(example)
   mocks.all.mockReset().mockImplementation(
     () =>
-      new Promise<Example[]>((resolve) => {
+      new Promise<Example[]>((resolve, reject) => {
         resolveCatalog = resolve
+        rejectCatalog = reject
       })
   )
   scrolled = []
@@ -143,6 +146,19 @@ describe('ExampleDetail learning progress ownership', () => {
     expect(readLearningProgress()?.totalExamples).toBe(2)
     expect(readLearningProgress()?.completedExamples).toEqual([example.id])
     expect(screen.getByText('1 / 2')).toBeInTheDocument()
+  })
+
+  it('keeps the last valid progress total when only the related-example catalog fails', async () => {
+    writeLearningProgress({ completedExamples: [], totalExamples: 4, lastAccessTime: 1 })
+    mountPage()
+    await screen.findByRole('heading', { name: 'Audit Example' })
+
+    await act(async () => {
+      rejectCatalog(new Error('catalog unavailable'))
+    })
+
+    expect(readLearningProgress()?.totalExamples).toBe(4)
+    expect(screen.getByText('0 / 4')).toBeInTheDocument()
   })
 })
 

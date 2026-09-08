@@ -17,13 +17,8 @@ const MINIMAL_BPMN = `<?xml version="1.0" encoding="UTF-8"?>
 </bpmn:definitions>`
 
 async function openDesignerTools(page: Page) {
-  await page.goto('/build/designer?modelType=tbbpm&source=new')
+  await page.goto('/build/designer?modelType=tbbpm&source=template&templateId=tpl-4')
   await page.waitForSelector('.x6-graph', { timeout: TIMEOUT })
-  const loadExample = page.getByRole('button', { name: '加载示例' })
-  if (await loadExample.count()) {
-    await loadExample.click()
-    await expect(page.locator('.ant-message-notice').first()).toBeVisible({ timeout: 8000 })
-  }
 }
 
 test.describe('Remaining details — Settings / mobile / designer tools', () => {
@@ -64,11 +59,27 @@ test.describe('Remaining details — Settings / mobile / designer tools', () => 
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: /打开导航菜单|Open navigation menu/i }).click()
     await shot(page, '82-mobile-drawer')
+    await page.setViewportSize({ width: 1024, height: 768 })
+    await expect(page.locator('.ant-drawer-content-wrapper')).toBeHidden()
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.getByRole('button', { name: /打开导航菜单|Open navigation menu/i }).click()
     await page
       .getByRole('menuitem', { name: /构建|Build|Workspace/i })
       .first()
       .click()
     await page.waitForURL(/\/build/, { timeout: TIMEOUT })
+    await expect(page.locator('.ant-drawer-content-wrapper')).toBeHidden()
+
+    await page.getByRole('button', { name: /打开导航菜单|Open navigation menu/i }).click()
+    await page.getByRole('button', { name: /应用菜单|Application menu/i }).click()
+    await page
+      .locator('.ant-dropdown:visible')
+      .getByRole('menuitem', { name: /设置|Settings/i })
+      .click()
+    await page.waitForURL(/\/settings/, { timeout: TIMEOUT })
+    await expect(page.locator('.ant-drawer-content-wrapper')).toBeHidden()
+    await expect(page.locator('.ant-dropdown:visible')).toHaveCount(0)
     await assertNoPageErrors(errors)
   })
 
@@ -126,6 +137,8 @@ test.describe('Remaining details — Settings / mobile / designer tools', () => 
     await page.keyboard.press('Enter')
     await expect(page.locator('.x6-node')).toHaveCount(nodeCount + 1)
 
+    await expect(page.locator('.tbbpm-designer-left-sider')).toHaveAttribute('aria-hidden', 'true')
+    await expect(page.locator('.tbbpm-designer-right-sider')).toHaveAttribute('aria-hidden', 'true')
     await page.getByRole('button', { name: /展开属性面板|Expand properties/i }).click()
     await expect(page.locator('.tbbpm-designer-left-sider')).toHaveAttribute('aria-hidden', 'true')
     await expect(page.locator('.tbbpm-designer-right-sider')).toHaveAttribute(
@@ -197,7 +210,7 @@ test.describe('Remaining details — Settings / mobile / designer tools', () => 
 
     const node = page.locator('.x6-node').first()
     if (await node.count()) {
-      await node.click({ force: true })
+      await node.click()
       await expect(page.locator('.ant-layout-sider').last()).toBeVisible()
       await shot(page, '90-designer-node-props')
     }

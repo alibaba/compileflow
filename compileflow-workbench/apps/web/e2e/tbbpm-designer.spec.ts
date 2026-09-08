@@ -60,24 +60,17 @@ test.describe('TBBPM designer smoke', () => {
   test('node search modal opens (Ctrl+F)', async ({ page }) => {
     await page.locator('.tbbpm-canvas').click()
     await page.keyboard.press('Control+F')
-    await expect(page.getByText('搜索节点')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByRole('dialog', { name: /搜索节点/ })).toBeVisible({ timeout: 5000 })
   })
 
   test('validate opens right panel tab', async ({ page }) => {
     await page.locator('.anticon-check-square').first().click()
-    await expect(page.getByText('流程验证')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('流程验证', { exact: true })).toBeVisible({ timeout: 5000 })
   })
 
   test('export XML via header more menu', async ({ page }) => {
     await page.locator('.header-more-btn').click()
     await page.getByText('导出 XML').click()
     await expect(page.locator('.ant-message-notice').first()).toBeVisible({ timeout: 5000 })
-  })
-
-  test('load example from canvas toolbar', async ({ page }) => {
-    await page.getByRole('button', { name: '加载示例' }).click()
-    await expect(page.locator('.ant-message-notice').first()).toBeVisible({ timeout: 5000 })
-    const nodeCount = await page.locator('.x6-node').count()
-    expect(nodeCount).toBeGreaterThan(2)
   })
 })

@@ -9,7 +9,14 @@ import { mockLogs } from '@/operate/api/mockLogData'
 import { useLogsPageState } from '@/operate/pages/Logs'
 import { useProcessManagementData } from '@/operate/pages/ProcessManagement'
 import { getMockProcesses } from '@/shared/api/mockProcessData'
-import { createProcess, deleteProcess, getProcesses } from '@/shared/api/processes'
+import {
+  createProcess,
+  deleteProcess,
+  duplicateProcess,
+  getProcesses,
+  importProcessXml,
+  publishProcess,
+} from '@/shared/api/processes'
 import type { ExecutionLog, LogListResponse, ProcessListResponse } from '@/shared/contracts'
 import i18n from '@/shared/i18n'
 
@@ -110,6 +117,48 @@ describe('latest request ordering', () => {
     expect(message.error).not.toHaveBeenCalled()
   })
 
+  it('allows only one process mutation at a time', async () => {
+    const source = getMockProcesses().data[0]
+    vi.mocked(getProcesses).mockResolvedValue(getMockProcesses())
+    const creation = deferred<Awaited<ReturnType<typeof createProcess>>>()
+    const deletion = deferred<void>()
+    vi.mocked(createProcess).mockReturnValue(creation.promise)
+    vi.mocked(deleteProcess).mockReturnValue(deletion.promise)
+    const { result } = renderHook(() => useProcessManagementData(translate, vi.fn()), {
+      wrapper: routerWrapper,
+    })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    let creationRequest!: Promise<void>
+    const file = new File(['<bpm/>'], 'process.bpm', { type: 'application/xml' })
+    act(() => {
+      creationRequest = result.current.handleCreateProcess('TBBPM')
+      void result.current.handleCreateProcess('BPMN')
+      void result.current.handleDelete(source.code, source.revision)
+      void result.current.handleDuplicate(source.code, source.name)
+      void result.current.handlePublish(source.code, source.revision)
+      void result.current.handleImportXml(file)
+    })
+
+    expect(createProcess).toHaveBeenCalledOnce()
+    expect(deleteProcess).not.toHaveBeenCalled()
+    expect(duplicateProcess).not.toHaveBeenCalled()
+    expect(publishProcess).not.toHaveBeenCalled()
+    expect(importProcessXml).not.toHaveBeenCalled()
+
+    await act(async () => {
+      creation.resolve({ ...source, xml: '<bpm/>' })
+      await creationRequest
+    })
+
+    await act(async () => {
+      const deletionRequest = result.current.handleDelete(source.code, source.revision)
+      deletion.resolve()
+      await deletionRequest
+    })
+    expect(deleteProcess).toHaveBeenCalledOnce()
+  })
+
   it.each(['page change', 'unmount'] as const)(
     'does not reload an obsolete query after a mutation and %s',
     async (change) => {
@@ -167,6 +216,25 @@ describe('latest request ordering', () => {
 
     expect(result.current.logs).toEqual([newLog])
     expect(result.current.loading).toBe(false)
+  })
+
+  it('debounces natural typing into one log query with the final text filters', async () => {
+    vi.mocked(getLogs).mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20 })
+    const { result } = renderHook(() => useLogsPageState(translate), {
+      wrapper: routerWrapper,
+    })
+    await waitFor(() => expect(getLogs).toHaveBeenCalledTimes(1))
+
+    for (const value of ['o', 'or', 'ord', 'orde', 'order']) {
+      await act(async () => {
+        result.current.updateFilter('keyword', value)
+        await Promise.resolve()
+      })
+    }
+
+    expect(getLogs).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(getLogs).toHaveBeenCalledTimes(2), { timeout: 1_000 })
+    expect(getLogs).toHaveBeenLastCalledWith(expect.objectContaining({ keyword: 'order' }))
   })
 
   it('keeps the newest log detail after rapid row selection', async () => {

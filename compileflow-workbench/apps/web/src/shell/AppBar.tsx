@@ -255,6 +255,10 @@ function AppBar({ loadExamples, loadProcesses }: AppBarProps) {
 
   useHeaderHeight(isMobile, hideBreadcrumb)
 
+  useEffect(() => {
+    setDrawerOpen(false)
+  }, [isMobile, location.pathname, location.search])
+
   const handleLanguageToggle = () => {
     setLanguage(language === 'zh' ? 'en' : 'zh')
   }

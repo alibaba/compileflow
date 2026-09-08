@@ -714,40 +714,26 @@ describe('designerSlice - 选择状态', () => {
 
     const state = store.getState().ui
     expect(state.selectedNodeId).toBe('node-1')
-    expect(state.selectedEdge).toBeNull()
+    expect(state.selectedEdgeId).toBeNull()
   })
 
   it('应该能选中连接', () => {
-    const connection = {
-      id: 'edge-1',
-      sourceId: 'start-1',
-      targetId: 'auto-1',
-      name: '',
-      condition: '',
-    }
-    store.dispatch(selectEdge(connection))
+    store.dispatch(selectEdge('edge-1'))
 
     const state = store.getState().ui
-    expect(state.selectedEdge).toEqual(connection)
+    expect(state.selectedEdgeId).toBe('edge-1')
     expect(state.selectedNodeId).toBeNull()
   })
 
   it('选中节点时应该清除连接选中', () => {
-    const connection = {
-      id: 'edge-1',
-      sourceId: 'start-1',
-      targetId: 'auto-1',
-      name: '',
-      condition: '',
-    }
-    store.dispatch(selectEdge(connection))
-    expect(store.getState().ui.selectedEdge).toEqual(connection)
+    store.dispatch(selectEdge('edge-1'))
+    expect(store.getState().ui.selectedEdgeId).toBe('edge-1')
 
     store.dispatch(selectNode('node-1'))
 
     const state = store.getState().ui
     expect(state.selectedNodeId).toBe('node-1')
-    expect(state.selectedEdge).toBeNull()
+    expect(state.selectedEdgeId).toBeNull()
   })
 })
 

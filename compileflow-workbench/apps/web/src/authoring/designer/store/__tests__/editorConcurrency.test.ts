@@ -6,9 +6,9 @@ import type { UnifiedProcessDefinition } from '../../types/flowDefinition'
 import editorReducer, {
   createProcess,
   deleteProcess,
-  importXml,
   loadOperateProcess,
   loadProcess,
+  replaceImportedProcess,
   saveProcess,
   updateProcessInfo,
 } from '../editorSlice'
@@ -28,7 +28,6 @@ function process(id: string, name: string): UnifiedProcessDefinition {
 
 describe('editor async correctness', () => {
   const createArg = { type: 'TBBPM' as const }
-  const importArg = { xml: '<bpm/>', type: 'TBBPM' as const }
   const transitions = [
     [
       createProcess.pending('old', createArg),
@@ -39,11 +38,6 @@ describe('editor async correctness', () => {
       deleteProcess.pending('old', 'old'),
       deleteProcess.fulfilled('old', 'old', 'old'),
       deleteProcess.rejected(new Error('old failure'), 'old', 'old'),
-    ],
-    [
-      importXml.pending('old', importArg),
-      importXml.fulfilled({ flow: process('old', 'Old'), warnings: [] }, 'old', importArg),
-      importXml.rejected(new Error('old failure'), 'old', importArg),
     ],
   ] as const
 
@@ -110,6 +104,26 @@ describe('editor async correctness', () => {
     expect(state.currentProcess?.id).toBe('process-b')
     expect(state.operateBinding).toEqual({ processCode: 'process-b', revision: 7 })
     expect(state.isLoading).toBe(false)
+  })
+
+  it('fences an imported replacement prepared for an obsolete document', () => {
+    let state = editorReducer(undefined, loadProcess.pending('old-document', 'old'))
+    state = editorReducer(
+      state,
+      loadProcess.fulfilled({ flow: process('old', 'Old'), warnings: [] }, 'old-document', 'old')
+    )
+    const obsoleteImport = replaceImportedProcess({
+      xml: '<bpm code="old" name="Obsolete"/>',
+      type: 'TBBPM',
+      documentRequestId: 'old-document',
+    })
+    state = editorReducer(state, loadProcess.pending('new-document', 'new'))
+    state = editorReducer(
+      state,
+      loadProcess.fulfilled({ flow: process('new', 'New'), warnings: [] }, 'new-document', 'new')
+    )
+
+    expect(editorReducer(state, obsoleteImport)).toBe(state)
   })
 
   it('preserves the retained document binding when a remote load fails', () => {

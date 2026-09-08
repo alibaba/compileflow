@@ -180,7 +180,7 @@ export function registerTbbpmNodes() {
       ports: {
         groups: {
           top: {
-            position: 'top',
+            position: { name: 'top', args: { dy: 6 } },
             attrs: {
               circle: {
                 r: 6,
@@ -192,7 +192,7 @@ export function registerTbbpmNodes() {
             },
           },
           bottom: {
-            position: 'bottom',
+            position: { name: 'bottom', args: { dy: -6 } },
             attrs: {
               circle: {
                 r: 6,
@@ -204,7 +204,7 @@ export function registerTbbpmNodes() {
             },
           },
           left: {
-            position: 'left',
+            position: { name: 'left', args: { dx: 6 } },
             attrs: {
               circle: {
                 r: 6,
@@ -216,7 +216,7 @@ export function registerTbbpmNodes() {
             },
           },
           right: {
-            position: 'right',
+            position: { name: 'right', args: { dx: -6 } },
             attrs: {
               circle: {
                 r: 6,

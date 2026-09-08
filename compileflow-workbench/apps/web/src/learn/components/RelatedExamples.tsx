@@ -22,6 +22,7 @@ interface RelatedExamplesProps {
   currentExample: Example
   allExamples: Example[]
   maxRecommendations?: number
+  examplesPath: string
 }
 
 const calculateSimilarity = (example1: Example, example2: Example): number => {
@@ -40,6 +41,7 @@ const RelatedExamples: React.FC<RelatedExamplesProps> = ({
   currentExample,
   allExamples,
   maxRecommendations = 3,
+  examplesPath,
 }) => {
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -67,7 +69,9 @@ const RelatedExamples: React.FC<RelatedExamplesProps> = ({
                 key={example.id}
                 type="button"
                 className={styles.item}
-                onClick={() => navigate(createLearnExampleDetailPath(example.id))}
+                onClick={() =>
+                  navigate(createLearnExampleDetailPath(example.id), { state: { examplesPath } })
+                }
               >
                 <div className={styles.itemHeader}>
                   <Text strong className={styles.itemName}>

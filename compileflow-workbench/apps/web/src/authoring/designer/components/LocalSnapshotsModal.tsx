@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { ProcessSnapshot } from '../api/processStorageTypes'
-import { importXml, selectCurrentProcess } from '../store/editorSlice'
+import { replaceImportedProcess, selectCurrentProcess } from '../store/editorSlice'
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks'
 import { LocalizedModal as Modal } from '@/shared/components/LocalizedModal'
@@ -23,9 +23,9 @@ function LocalSnapshotsModal({ open, onClose }: LocalSnapshotsModalProps) {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const currentProcess = useAppSelector(selectCurrentProcess)
+  const documentRequestId = useAppSelector((state) => state.editor.present.documentRequestId)
   const [loading, setLoading] = useState(false)
   const [snapshots, setSnapshots] = useState<ProcessSnapshot[]>([])
-  const [restoringId, setRestoringId] = useState<string | null>(null)
   const loadGeneration = useRef(0)
   useEscapeToClose(open, onClose)
 
@@ -55,16 +55,16 @@ function LocalSnapshotsModal({ open, onClose }: LocalSnapshotsModalProps) {
     }
   }, [open, loadSnapshots])
 
-  const handleRestore = async (snapshot: ProcessSnapshot) => {
+  const handleRestore = (snapshot: ProcessSnapshot) => {
     if (!currentProcess) return
-    setRestoringId(snapshot.id)
     try {
-      await dispatch(
-        importXml({
+      dispatch(
+        replaceImportedProcess({
           xml: snapshot.definition,
           type: currentProcess.type,
+          documentRequestId,
         })
-      ).unwrap()
+      )
       message.success(t('designer.localSnapshots.restored'))
       onClose()
     } catch (err) {
@@ -73,8 +73,6 @@ function LocalSnapshotsModal({ open, onClose }: LocalSnapshotsModalProps) {
           message: toError(err, t('designer.actions.xmlParseFailed')).message,
         })
       )
-    } finally {
-      setRestoringId(null)
     }
   }
 
@@ -108,8 +106,7 @@ function LocalSnapshotsModal({ open, onClose }: LocalSnapshotsModalProps) {
                   type="link"
                   size="small"
                   icon={<RollbackOutlined />}
-                  loading={restoringId === item.id}
-                  onClick={() => void handleRestore(item)}
+                  onClick={() => handleRestore(item)}
                   aria-label={t('designer.localSnapshots.restore')}
                 >
                   {t('designer.localSnapshots.restore')}

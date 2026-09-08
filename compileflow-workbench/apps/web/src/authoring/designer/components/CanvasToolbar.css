@@ -55,21 +55,61 @@
   line-height: 18px;
 }
 
-.x6-available-node {
-  outline: 2px dashed var(--color-success) !important;
-  outline-offset: 4px;
+.available-node {
+  filter: drop-shadow(0 0 4px var(--color-primary));
 }
 
-.x6-available-magnet circle {
+.available-magnet {
+  visibility: visible !important;
   fill: var(--color-success) !important;
   stroke: var(--color-success) !important;
   r: 8 !important;
 }
 
-.x6-adsorbed-magnet circle {
+.adsorbed-magnet {
+  visibility: visible !important;
   fill: var(--color-primary) !important;
   stroke: var(--color-primary) !important;
+  stroke-width: 3 !important;
   r: 10 !important;
+}
+
+.x6-port {
+  visibility: hidden;
+}
+
+.x6-node:hover .x6-port,
+.x6-node-selected .x6-port {
+  visibility: visible;
+}
+
+.x6-port circle {
+  fill: var(--color-bg-container);
+  stroke: var(--info-main);
+  stroke-width: 2;
+  r: 6;
+}
+
+.x6-port:hover circle {
+  fill: var(--info-main);
+  stroke-width: 3;
+  r: 8;
+}
+
+[data-theme='dark'] .x6-port circle {
+  fill: var(--color-bg-base);
+  stroke: var(--info-light);
+}
+
+[data-theme='dark'] .x6-port:hover circle {
+  fill: var(--info-light);
+}
+
+@media (hover: none), (pointer: coarse) {
+  .x6-node-selected .x6-port circle {
+    r: 12;
+    stroke-width: 3;
+  }
 }
 
 @media (max-width: 768px) {

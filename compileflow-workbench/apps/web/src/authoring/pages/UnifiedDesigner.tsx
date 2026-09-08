@@ -29,7 +29,7 @@ import { generateTbbpmXml } from '@/authoring/designer/serialization/tbbpmXmlCod
 import { translateParseWarning } from '@/authoring/designer/serialization/xmlParseWarningI18n'
 import {
   clearWarnings,
-  importXml,
+  replaceImportedProcess,
   selectCanRedo,
   selectCanUndo,
   selectCurrentProcess,
@@ -383,13 +383,18 @@ function UnifiedDesignerContent({ entryPayload }: { entryPayload: DesignerEntryD
 
   const { xml: currentXml, error: xmlGenerationError } = useCurrentXml(currentProcess)
   const handleApplyXmlFromEditor = useCallback(
-    async (xml: string, signal: AbortSignal) => {
+    (xml: string) => {
       if (!currentProcess) throw new Error('No flow to edit')
-      await dispatch(importXml({ xml, type: currentProcess.type }, { signal })).unwrap()
-      signal.throwIfAborted()
+      dispatch(
+        replaceImportedProcess({
+          xml,
+          type: currentProcess.type,
+          documentRequestId: documentId,
+        })
+      )
       message.success(t('designer.xmlEditor.applySuccess'))
     },
-    [currentProcess, dispatch, message, t]
+    [currentProcess, dispatch, documentId, message, t]
   )
   const xmlDraft = useXmlDraft({
     sourceXml: currentXml,
@@ -416,8 +421,7 @@ function UnifiedDesignerContent({ entryPayload }: { entryPayload: DesignerEntryD
   const { autoSavePending } = useAutoSave({
     isModified,
     isSaving,
-    canSave:
-      Boolean(currentProcess) && !xmlGenerationError && !xmlDraft.isDirty && !xmlDraft.isApplying,
+    canSave: Boolean(currentProcess) && !xmlGenerationError && !xmlDraft.isDirty,
     dispatch,
   })
 

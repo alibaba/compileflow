@@ -14,9 +14,14 @@ const { Text } = Typography
 interface ExampleNavigationProps {
   currentExample: Example
   allExamples: Example[]
+  examplesPath: string
 }
 
-const ExampleNavigation: React.FC<ExampleNavigationProps> = ({ currentExample, allExamples }) => {
+const ExampleNavigation: React.FC<ExampleNavigationProps> = ({
+  currentExample,
+  allExamples,
+  examplesPath,
+}) => {
   const navigate = useNavigate()
   const { t } = useTranslation()
 
@@ -40,16 +45,16 @@ const ExampleNavigation: React.FC<ExampleNavigationProps> = ({ currentExample, a
       }
 
       if (e.key === 'ArrowLeft' && prevExample) {
-        void navigate(createLearnExampleDetailPath(prevExample.id))
+        void navigate(createLearnExampleDetailPath(prevExample.id), { state: { examplesPath } })
       }
       if (e.key === 'ArrowRight' && nextExample) {
-        void navigate(createLearnExampleDetailPath(nextExample.id))
+        void navigate(createLearnExampleDetailPath(nextExample.id), { state: { examplesPath } })
       }
     }
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [prevExample, nextExample, navigate])
+  }, [examplesPath, prevExample, nextExample, navigate])
 
   return (
     <nav className={styles.navigationBar} aria-label={t('exampleNav.navigationLabel')}>
@@ -61,7 +66,11 @@ const ExampleNavigation: React.FC<ExampleNavigationProps> = ({ currentExample, a
               <Button
                 type="text"
                 icon={<LeftOutlined />}
-                onClick={() => navigate(createLearnExampleDetailPath(prevExample.id))}
+                onClick={() =>
+                  navigate(createLearnExampleDetailPath(prevExample.id), {
+                    state: { examplesPath },
+                  })
+                }
                 className={styles.navButton}
               >
                 <div className={styles.prevTextContainer}>
@@ -101,7 +110,11 @@ const ExampleNavigation: React.FC<ExampleNavigationProps> = ({ currentExample, a
               <Button
                 type="primary"
                 icon={<RightOutlined />}
-                onClick={() => navigate(createLearnExampleDetailPath(nextExample.id))}
+                onClick={() =>
+                  navigate(createLearnExampleDetailPath(nextExample.id), {
+                    state: { examplesPath },
+                  })
+                }
                 className={styles.navButtonNext}
               >
                 <div className={styles.nextTextContainer}>

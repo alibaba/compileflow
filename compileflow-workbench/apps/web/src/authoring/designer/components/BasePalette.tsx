@@ -35,6 +35,45 @@ interface NodeDragConfig {
   height: number
 }
 
+function findVisibleNodePosition(graph: Graph, config: NodeDragConfig) {
+  const surface = graph.container.closest('.x6-graph-scroller') ?? graph.container
+  const bounds = surface.getBoundingClientRect()
+  const topLeft = graph.clientToLocal({ x: bounds.left, y: bounds.top })
+  const bottomRight = graph.clientToLocal({ x: bounds.right, y: bounds.bottom })
+  const grid = graph.getGridSize()
+  const minX = Math.min(topLeft.x, bottomRight.x)
+  const minY = Math.min(topLeft.y, bottomRight.y)
+  const maxX = Math.max(minX, Math.max(topLeft.x, bottomRight.x) - config.width)
+  const maxY = Math.max(minY, Math.max(topLeft.y, bottomRight.y) - config.height)
+  const centerX = Math.round((minX + maxX) / 2 / grid) * grid
+  const centerY = Math.round((minY + maxY) / 2 / grid) * grid
+  const existingBoxes = graph.getNodes().map((node) => node.getBBox())
+  const stepX = config.width + grid
+  const stepY = config.height + grid
+  const maxRing = Math.ceil(Math.sqrt(existingBoxes.length + 1)) + 1
+
+  for (let ring = 0; ring <= maxRing; ring += 1) {
+    for (let row = -ring; row <= ring; row += 1) {
+      for (let column = -ring; column <= ring; column += 1) {
+        if (ring > 0 && Math.abs(row) !== ring && Math.abs(column) !== ring) continue
+        const x = centerX + column * stepX
+        const y = centerY + row * stepY
+        if (x < minX || x > maxX || y < minY || y > maxY) continue
+        const overlaps = existingBoxes.some(
+          (box) =>
+            x < box.x + box.width + grid &&
+            x + config.width + grid > box.x &&
+            y < box.y + box.height + grid &&
+            y + config.height + grid > box.y
+        )
+        if (!overlaps) return { x, y }
+      }
+    }
+  }
+
+  return { x: centerX, y: centerY }
+}
+
 export interface BasePaletteProps {
   graph: Graph | null
   title: string
@@ -102,6 +141,49 @@ const PaletteItem = React.memo(function PaletteItem({
 }) {
   const color = getNodeColor(type)
 
+  const addNode = (dropPoint?: { x: number; y: number }) => {
+    if (!graph) return
+    const config = getNodeDragConfig(type)
+    if (!config) return
+
+    let x: number
+    let y: number
+    if (dropPoint) {
+      const topLayer = graph.container.ownerDocument.elementFromPoint(dropPoint.x, dropPoint.y)
+      if (topLayer?.closest('.node-palette')) return
+      const surface = graph.container.closest('.x6-graph-scroller') ?? graph.container
+      const bounds = surface.getBoundingClientRect()
+      if (
+        dropPoint.x < bounds.left ||
+        dropPoint.x > bounds.right ||
+        dropPoint.y < bounds.top ||
+        dropPoint.y > bounds.bottom
+      ) {
+        return
+      }
+      const local = graph.clientToLocal(dropPoint)
+      const gridSize = graph.getGridSize()
+      x = Math.round((local.x - config.width / 2) / gridSize) * gridSize
+      y = Math.round((local.y - config.height / 2) / gridSize) * gridSize
+    } else {
+      const position = findVisibleNodePosition(graph, config)
+      x = position.x
+      y = position.y
+    }
+
+    const node = graph.createNode({
+      shape: config.shape,
+      width: config.width,
+      height: config.height,
+      x,
+      y,
+      data: getNodeData(type, label),
+    })
+    graph.addNode(node)
+    graph.cleanSelection()
+    graph.select(node)
+  }
+
   return (
     <DragPaletteItem
       accessibleLabel={label}
@@ -119,34 +201,8 @@ const PaletteItem = React.memo(function PaletteItem({
         return { shape: config.shape, width: config.width, height: config.height }
       }}
       getNodeData={() => getNodeData(type, label)}
-      onKeyAddNode={() => {
-        if (!graph) return
-        const config = getNodeDragConfig(type)
-        if (!config) return
-        const existingNodes = graph.getNodes()
-        let x = 100
-        let y = 100
-        if (existingNodes.length > 0) {
-          const bbox = graph.getContentBBox()
-          const viewH = graph.container?.clientHeight ?? 600
-          x = bbox.x + 80
-          y = bbox.y + bbox.height + 40
-          if (y + config.height > bbox.y + Math.max(viewH, bbox.height) + 60) {
-            x = bbox.x + bbox.width + 60
-            y = bbox.y + 80
-          }
-        }
-        const node = graph.createNode({
-          shape: config.shape,
-          width: config.width,
-          height: config.height,
-          x,
-          y,
-          data: getNodeData(type, label),
-        })
-        graph.addNode(node)
-        graph.select(node)
-      }}
+      onKeyAddNode={() => addNode()}
+      onTouchDrop={(clientX, clientY) => addNode({ x: clientX, y: clientY })}
     />
   )
 })
@@ -164,6 +220,7 @@ export const BasePalette = React.memo(function BasePalette({
   const { message } = App.useApp()
   const { t } = useTranslation()
   const logger = useMemo(() => createLogger(loggerName), [loggerName])
+  const paletteRef = React.useRef<HTMLDivElement>(null)
   const [searchText, setSearchText] = useState('')
   const [activeKeys, setActiveKeys] = useState<string[]>(
     defaultActiveKeys ?? categories.slice(0, 3).map((c) => c.key)
@@ -180,20 +237,25 @@ export const BasePalette = React.memo(function BasePalette({
   }, [debouncedSearch])
 
   useEffect(() => {
-    if (!graph) {
+    if (!graph || !paletteRef.current) {
       setDnd(null)
       return
     }
     logger.debug('Initializing Dnd plugin')
+    let dndInstance: Dnd
     try {
-      const dndInstance = createUnifiedDnd(graph)
+      dndInstance = createUnifiedDnd(graph, paletteRef.current)
       setDnd(dndInstance)
       logger.info('Dnd plugin initialized successfully')
     } catch (error) {
       logger.error('Dnd initialization failed', toError(error))
       message.error(t('designer.palette.dndFailed'))
+      return
     }
-    return () => setDnd(null)
+    return () => {
+      dndInstance.dispose()
+      setDnd(null)
+    }
   }, [graph, logger])
 
   const filteredCategories = useMemo(
@@ -217,7 +279,7 @@ export const BasePalette = React.memo(function BasePalette({
   }, [])
 
   return (
-    <div className="node-palette surface-panel">
+    <div ref={paletteRef} className="node-palette surface-panel">
       <Card
         title={
           <Space>

@@ -39,7 +39,14 @@ vi.mock('../TbbpmCanvas', () => ({
   default: ({ onGraphReady }: { onGraphReady?: (g: unknown) => void }) => {
     // Simulate graph-ready so the parent's onGraphReady callback fires.
     React.useEffect(() => {
-      onGraphReady?.({ fakeGraph: true })
+      onGraphReady?.({
+        fakeGraph: true,
+        getSelectedCells: vi.fn().mockReturnValue([]),
+        getCells: vi.fn().mockReturnValue([]),
+        getNodes: vi.fn().mockReturnValue([]),
+        on: vi.fn(),
+        off: vi.fn(),
+      })
     }, [])
     return <div data-testid="tbbpm-canvas-mock">Canvas Mock</div>
   },

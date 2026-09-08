@@ -236,6 +236,38 @@ test.describe('Workbench semantic and edge-state journeys', () => {
     await expect(page.getByText(/已完成|Completed/i).first()).toBeVisible()
   })
 
+  test('returning from an example preserves the exact filtered catalog context', async ({
+    page,
+  }) => {
+    const catalogPath =
+      '/learn/examples?category=basics&modelType=TBBPM&sortBy=duration&source=shared'
+    await page.goto(catalogPath)
+    const processType = page.getByRole('combobox', {
+      name: /流程类型|Process type/i,
+    })
+    const sortBy = page.getByRole('combobox', { name: /排序|Sort by/i })
+    await expect(processType.locator('..')).toContainText('TBBPM', { timeout: TIMEOUT })
+    await expect(sortBy.locator('..')).toContainText(/时长|Duration/i)
+
+    await page
+      .getByRole('link', { name: /查看详情.*TBBPM|View details.*TBBPM/i })
+      .first()
+      .click()
+    await expect(page).toHaveURL(/\/learn\/examples\/learn\.tbbpm\./, { timeout: TIMEOUT })
+    await page.getByRole('button', { name: /下一个|Next/i }).click()
+    await expect(page).toHaveURL(/\/learn\/examples\/learn\./, { timeout: TIMEOUT })
+    await page.getByRole('button', { name: /返回示例列表|Back to examples/i }).click()
+
+    await expect(page).toHaveURL(catalogPath)
+    await expect(processType.locator('..')).toContainText('TBBPM')
+    await expect(sortBy.locator('..')).toContainText(/时长|Duration/i)
+    const learnSidebar = page.locator('[data-domain="learn"]')
+    await learnSidebar.locator('.ant-menu-submenu-title').click()
+    await expect(learnSidebar.locator('.ant-menu-item-selected')).toContainText(
+      /入门|Getting started/i
+    )
+  })
+
   test('process filters survive reload and remain visible in the URL and controls', async ({
     page,
   }) => {

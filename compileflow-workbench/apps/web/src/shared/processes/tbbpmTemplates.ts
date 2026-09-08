@@ -1,7 +1,9 @@
 export const DEFAULT_TBBPM_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <bpm code="sample" name="New TBBPM Process">
-  <var name="inputData" description="Input data" dataType="java.lang.String" inOutType="param"/>
-  <var name="result" description="Result" dataType="java.lang.String" inOutType="return"/>
+</bpm>`
+
+export const TBBPM_STARTER_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<bpm code="sample" name="TBBPM Starter">
   <start id="start" name="Start" g="80,100,80,80">
     <transition to="end"/>
   </start>

@@ -112,15 +112,8 @@
   justify-content: center;
   background: linear-gradient(135deg, var(--color-error-bg) 0%, var(--color-error-border) 100%);
   border: 3px solid var(--color-node-end);
-  position: relative;
-}
-
-.tbbpm-node-end::before {
-  content: '';
-  position: absolute;
-  inset: -8px;
-  border-radius: var(--radius-full);
-  border: 2px solid var(--color-node-end);
+  outline: 2px solid var(--color-node-end);
+  outline-offset: 6px;
 }
 
 .tbbpm-node-end .node-icon {
@@ -343,10 +336,7 @@
 [data-theme='dark'] .tbbpm-node-end {
   background: linear-gradient(145deg, #3a1719 0%, var(--graph-node-fill-end) 100%);
   border-color: #f87171;
-}
-
-[data-theme='dark'] .tbbpm-node-end::before {
-  border-color: rgba(248, 113, 113, 0.45);
+  outline-color: rgba(248, 113, 113, 0.45);
 }
 
 [data-theme='dark'] .node-diamond {

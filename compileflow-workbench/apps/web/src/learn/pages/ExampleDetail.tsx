@@ -13,7 +13,7 @@ import type { TFunction } from 'i18next'
 import type { RefObject } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import DifficultyRating from '../components/DifficultyRating'
 import RelatedExamples from '../components/RelatedExamples'
@@ -98,6 +98,16 @@ function parseExecutionParams(value: string): Record<string, unknown> | null {
   return parsed as Record<string, unknown>
 }
 
+function getExamplesPath(state: unknown): string {
+  const defaultPath = createLearnExamplesPath()
+  if (!state || typeof state !== 'object') return defaultPath
+  const examplesPath = Reflect.get(state, 'examplesPath')
+  return typeof examplesPath === 'string' &&
+    (examplesPath === defaultPath || examplesPath.startsWith(`${defaultPath}?`))
+    ? examplesPath
+    : defaultPath
+}
+
 function useExampleData(
   exampleId: string | undefined,
   setTotalExamples: (total: number) => void
@@ -130,7 +140,6 @@ function useExampleData(
     } catch (error) {
       if (requestId !== catalogRequestRef.current) return
       setAllExamples([])
-      setTotalExamplesRef.current(0)
       logger.error('Failed to load example catalog', toError(error))
     }
   }, [])
@@ -572,6 +581,7 @@ function ExampleSidebar({
   contentRef,
   example,
   executing,
+  examplesPath,
   learningProgress,
   onDownload,
   onExecute,
@@ -581,6 +591,7 @@ function ExampleSidebar({
   contentRef: RefObject<HTMLDivElement | null>
   example: Example
   executing: boolean
+  examplesPath: string
   learningProgress: ReturnType<typeof useLearningProgress>
   onDownload: () => void
   onExecute: () => void
@@ -602,6 +613,7 @@ function ExampleSidebar({
           currentExample={example}
           allExamples={allExamples}
           maxRecommendations={3}
+          examplesPath={examplesPath}
         />
       </div>
     </aside>
@@ -611,6 +623,7 @@ function ExampleSidebar({
 function ExampleDetail() {
   const { message } = App.useApp()
   const { id } = useParams<{ id: string }>()
+  const location = useLocation()
   const navigate = useNavigate()
   const { i18n, t } = useTranslation()
   const contentRef = useRef<HTMLDivElement>(null)
@@ -628,16 +641,19 @@ function ExampleDetail() {
     () => allExamples.map((item) => localizeExample(item, t, language)),
     [allExamples, language, t]
   )
+  const availableExamples =
+    localizedExamples.length > 0 ? localizedExamples : example ? [example] : []
   usePageTitle('pageTitle.learn.detail', example?.name)
   const execution = useExampleExecution(example)
+  const examplesPath = getExamplesPath(location.state)
 
   useEffect(() => {
     setActiveTabKey('overview')
   }, [id])
 
   const handleBack = useCallback(() => {
-    void navigate(createLearnExamplesPath())
-  }, [navigate])
+    void navigate(examplesPath)
+  }, [examplesPath, navigate])
 
   const handleOpenInDesigner = useCallback(() => {
     if (!example) return
@@ -689,10 +705,11 @@ function ExampleDetail() {
         </div>
 
         <ExampleSidebar
-          allExamples={localizedExamples}
+          allExamples={availableExamples}
           contentRef={contentRef}
           example={example}
           executing={execution.executing}
+          examplesPath={examplesPath}
           learningProgress={learningProgress}
           onDownload={handleDownload}
           onExecute={() => {
@@ -703,7 +720,11 @@ function ExampleDetail() {
         />
       </div>
 
-      <ExampleNavigation currentExample={example} allExamples={localizedExamples} />
+      <ExampleNavigation
+        currentExample={example}
+        allExamples={availableExamples}
+        examplesPath={examplesPath}
+      />
     </div>
   )
 }

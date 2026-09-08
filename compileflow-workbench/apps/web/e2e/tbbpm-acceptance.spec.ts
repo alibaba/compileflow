@@ -1,6 +1,6 @@
 import { expect, type Page, test } from '@playwright/test'
 
-const DESIGNER_URL = '/build/designer?modelType=tbbpm'
+const DESIGNER_URL = '/build/designer?modelType=tbbpm&source=template&templateId=tpl-4'
 const TIMEOUT = 15000
 
 async function gotoDesigner(page: Page) {
@@ -59,14 +59,15 @@ test.describe('1. 页面加载与布局', () => {
     expect(count).toBeGreaterThan(0)
   })
 
-  test('1.7 画布初始化后 CanvasToolbar 按钮可用', async ({ page }) => {
+  test('1.7 画布初始化后工具栏按画布与选择状态启用', async ({ page }) => {
     await gotoDesigner(page)
     await waitForCanvas(page)
-    await page.waitForTimeout(500)
     const toolbar = page.locator('.x6-canvas-toolbar')
     await expect(toolbar).toBeVisible()
-    const firstBtn = toolbar.locator('button').first()
-    await expect(firstBtn).not.toBeDisabled()
+    await expect(toolbar.getByRole('button', { name: '左对齐' })).toBeDisabled()
+    await expect(toolbar.getByRole('button', { name: /创建选中节点的副本/ })).toBeDisabled()
+    await expect(toolbar.getByRole('button', { name: /全选/ })).toBeEnabled()
+    await expect(toolbar.getByRole('button', { name: /放大/ })).toBeEnabled()
   })
 
   test('1.8 画布背景网格显示', async ({ page }) => {
@@ -164,41 +165,74 @@ test.describe('3. 画布操作', () => {
   })
 
   test('3.1 Ctrl+滚轮缩放画布', async ({ page }) => {
+    const initial = parseInt(await page.locator('.status-bar-zoom-btn').innerText(), 10)
     const canvas = page.locator('.tbbpm-canvas-wrapper')
     await canvas.hover()
     await page.keyboard.down('Control')
     await page.mouse.wheel(0, -200)
     await page.keyboard.up('Control')
-    await page.waitForTimeout(300)
+    await expect
+      .poll(async () => parseInt(await page.locator('.status-bar-zoom-btn').innerText(), 10))
+      .toBeGreaterThan(initial)
   })
 
   test('3.2 工具栏放大按钮可点击', async ({ page }) => {
+    const initial = parseInt(await page.locator('.status-bar-zoom-btn').innerText(), 10)
     const zoomInBtn = page.locator('.x6-canvas-toolbar button[aria-label="放大（Ctrl+滚轮）"]')
     await expect(zoomInBtn).toBeVisible()
     await expect(zoomInBtn).not.toBeDisabled()
-    await zoomInBtn.click({ force: true })
-    await page.waitForTimeout(200)
+    await zoomInBtn.click()
+    await expect
+      .poll(async () => parseInt(await page.locator('.status-bar-zoom-btn').innerText(), 10))
+      .toBeGreaterThan(initial)
   })
 
   test('3.3 工具栏缩小按钮可点击', async ({ page }) => {
+    const initial = parseInt(await page.locator('.status-bar-zoom-btn').innerText(), 10)
     const zoomOutBtn = page.locator('.x6-canvas-toolbar button[aria-label="缩小（Ctrl+滚轮）"]')
     await expect(zoomOutBtn).toBeVisible()
-    await zoomOutBtn.click({ force: true })
-    await page.waitForTimeout(200)
+    await zoomOutBtn.click()
+    await expect
+      .poll(async () => parseInt(await page.locator('.status-bar-zoom-btn').innerText(), 10))
+      .toBeLessThan(initial)
   })
 
   test('3.4 工具栏适应画布按钮可点击', async ({ page }) => {
+    await page.locator('.drag-palette-item').filter({ hasText: '自动任务' }).first().click()
     const fitBtn = page.locator('.x6-canvas-toolbar button[aria-label="适应画布"]')
     await expect(fitBtn).toBeVisible()
-    await fitBtn.click({ force: true })
-    await page.waitForTimeout(200)
+    await fitBtn.click()
+    await expect
+      .poll(async () => {
+        const viewport = await page.locator('.x6-graph-scroller').boundingBox()
+        const nodes = await page.locator('.x6-node').all()
+        return (
+          Boolean(viewport) &&
+          (
+            await Promise.all(
+              nodes.map(async (node) => {
+                const box = await node.boundingBox()
+                return (
+                  box &&
+                  box.x >= viewport!.x - 1 &&
+                  box.y >= viewport!.y - 1 &&
+                  box.x + box.width <= viewport!.x + viewport!.width + 1 &&
+                  box.y + box.height <= viewport!.y + viewport!.height + 1
+                )
+              })
+            )
+          ).every(Boolean)
+        )
+      })
+      .toBe(true)
   })
 
   test('3.5 工具栏重置视图按钮可点击', async ({ page }) => {
+    await page.locator('.x6-canvas-toolbar button[aria-label="放大（Ctrl+滚轮）"]').click()
     const resetBtn = page.locator('.x6-canvas-toolbar button[aria-label="重置视图"]')
     await expect(resetBtn).toBeVisible()
-    await resetBtn.click({ force: true })
-    await page.waitForTimeout(200)
+    await resetBtn.click()
+    await expect(page.locator('.status-bar-zoom-btn')).toHaveText('100%')
   })
 
   test('3.6 右键画布显示上下文菜单', async ({ page }) => {
@@ -272,8 +306,7 @@ test.describe('5. 属性面板', () => {
 
   test('5.4 点击验证流程按钮切换到验证面板', async ({ page }) => {
     await page.getByRole('button', { name: '验证流程' }).click()
-    await page.waitForTimeout(500)
-    await expect(page.getByText('流程验证')).toBeVisible()
+    await expect(page.getByText('流程验证', { exact: true })).toBeVisible()
   })
 
   test('5.5 点击调试流程按钮切换到调试面板', async ({ page }) => {
@@ -478,7 +511,7 @@ test.describe('8. 验证面板', () => {
   test('8.1 切换到验证 Tab 显示流程验证面板', async ({ page }) => {
     await page.getByRole('button', { name: '验证流程' }).click()
     await page.waitForTimeout(500)
-    await expect(page.getByText('流程验证')).toBeVisible()
+    await expect(page.getByText('流程验证', { exact: true })).toBeVisible()
   })
 
   test('8.2 验证面板有重新验证按钮', async ({ page }) => {

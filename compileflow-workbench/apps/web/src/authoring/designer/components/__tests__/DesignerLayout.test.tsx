@@ -1,14 +1,21 @@
 import { act, render, waitFor } from '@testing-library/react'
+import { App } from 'antd'
 import { Provider } from 'react-redux'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { loadOperateProcess, updateProcessInfo } from '../../store/editorSlice'
-import { setRightPanelTab } from '../../store/uiSlice'
+import {
+  selectNode,
+  setRightPanelTab,
+  setSidePanelsCollapsed,
+  showContextMenu,
+} from '../../store/uiSlice'
 import { DesignerLayout } from '../DesignerLayout'
 
 import { store } from '@/app/store'
 
-const panels = vi.hoisted(() => ({ debug: vi.fn(), validation: vi.fn() }))
+const panels = vi.hoisted(() => ({ contextMenu: vi.fn(), debug: vi.fn(), validation: vi.fn() }))
+const viewport = vi.hoisted(() => ({ mobile: false }))
 const graph = vi.hoisted(() => ({
   node: { isNode: () => true, setAttrs: vi.fn() },
   startBatch: vi.fn(),
@@ -21,6 +28,13 @@ vi.mock('../../context', () => {
   return { useDesignerContext: () => ({ graphRef }) }
 })
 vi.mock('@/shared/contexts/ThemeContext', () => ({ useTheme: () => ({ theme: 'light' }) }))
+vi.mock('@/shared/hooks/useMediaQuery', () => ({ useMediaQuery: () => viewport.mobile }))
+vi.mock('../ContextMenu', () => ({
+  default: (props: unknown) => {
+    panels.contextMenu(props)
+    return null
+  },
+}))
 vi.mock('../ProcessDebuggerPanel', () => ({
   default: (props: unknown) => {
     panels.debug(props)
@@ -37,16 +51,18 @@ vi.mock('../ValidationResultPanel', () => ({
 function mount() {
   return render(
     <Provider store={store}>
-      <DesignerLayout
-        layoutClassName="test"
-        palette={null}
-        canvas={null}
-        propertiesPanel={null}
-        onCopy={vi.fn()}
-        onPaste={vi.fn()}
-        onDelete={vi.fn()}
-        processVariablesDialog={{ open: false, onClose: vi.fn() }}
-      />
+      <App>
+        <DesignerLayout
+          layoutClassName="test"
+          palette={null}
+          canvas={null}
+          propertiesPanel={null}
+          onCopy={vi.fn()}
+          onPaste={vi.fn()}
+          onDelete={vi.fn()}
+          processVariablesDialog={{ open: false, onClose: vi.fn() }}
+        />
+      </App>
     </Provider>
   )
 }
@@ -54,6 +70,7 @@ function mount() {
 describe('real designer layout ownership', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    viewport.mobile = false
     graph.getCellById.mockReturnValue(graph.node)
     store.dispatch(loadOperateProcess.pending('doc', 'flow'))
     store.dispatch(
@@ -75,6 +92,9 @@ describe('real designer layout ownership', () => {
         'flow'
       )
     )
+    store.dispatch(selectNode(null))
+    store.dispatch(setRightPanelTab('none'))
+    store.dispatch(setSidePanelsCollapsed({ left: false, right: false }))
   })
   it('recreates the simulation engine on same-id content edits but not UI-only updates', async () => {
     store.dispatch(setRightPanelTab('debug'))
@@ -116,5 +136,107 @@ describe('real designer layout ownership', () => {
         body: { stroke: 'var(--color-border-light, #d9d9d9)', strokeWidth: 1 },
       })
     )
+  })
+
+  it('keeps the properties panel collapsed when selecting on a narrow canvas', async () => {
+    viewport.mobile = true
+    mount()
+    await waitFor(() =>
+      expect(store.getState().ui).toMatchObject({
+        leftPanelCollapsed: true,
+        rightPanelCollapsed: true,
+      })
+    )
+
+    act(() => {
+      store.dispatch(setSidePanelsCollapsed({ left: false, right: true }))
+      store.dispatch(selectNode('existing-node'))
+    })
+
+    await waitFor(() =>
+      expect(store.getState().ui).toMatchObject({
+        leftPanelCollapsed: true,
+        rightPanelCollapsed: true,
+        selectedNodeId: 'existing-node',
+      })
+    )
+  })
+
+  it('collapses an empty properties panel after clearing a narrow-canvas selection', async () => {
+    viewport.mobile = true
+    mount()
+    await waitFor(() => expect(store.getState().ui.rightPanelCollapsed).toBe(true))
+
+    act(() => {
+      store.dispatch(setSidePanelsCollapsed({ left: true, right: false }))
+      store.dispatch(selectNode('existing-node'))
+    })
+    await waitFor(() => expect(store.getState().ui.rightPanelCollapsed).toBe(false))
+
+    act(() => {
+      store.dispatch(selectNode(null))
+    })
+    await waitFor(() => expect(store.getState().ui.rightPanelCollapsed).toBe(true))
+  })
+
+  it('keeps an explicitly opened validation panel visible after clearing a selection', async () => {
+    viewport.mobile = true
+    mount()
+    await waitFor(() => expect(store.getState().ui.rightPanelCollapsed).toBe(true))
+
+    act(() => {
+      store.dispatch(selectNode('existing-node'))
+      store.dispatch(setRightPanelTab('validation'))
+      store.dispatch(setSidePanelsCollapsed({ left: true, right: false }))
+    })
+    act(() => {
+      store.dispatch(selectNode(null))
+    })
+
+    await waitFor(() =>
+      expect(store.getState().ui).toMatchObject({
+        rightPanelCollapsed: false,
+        rightPanelTab: 'validation',
+      })
+    )
+  })
+
+  it('explicitly opens the requested panel for narrow-canvas context-menu commands', async () => {
+    viewport.mobile = true
+    mount()
+    await waitFor(() => expect(store.getState().ui.rightPanelCollapsed).toBe(true))
+
+    act(() => {
+      store.dispatch(
+        showContextMenu({
+          position: { x: 10, y: 10 },
+          type: 'node',
+          targetId: 'existing-node',
+        })
+      )
+    })
+    await waitFor(() => expect(panels.contextMenu).toHaveBeenCalled())
+    const contextMenuCalls = panels.contextMenu.mock.calls
+    const actions = contextMenuCalls[contextMenuCalls.length - 1]?.[0] as {
+      onBreakpoint: () => void
+      onEdit: () => void
+    }
+
+    act(() => actions.onEdit())
+    expect(store.getState().ui).toMatchObject({
+      leftPanelCollapsed: true,
+      rightPanelCollapsed: false,
+      rightPanelTab: 'properties',
+    })
+
+    act(() => {
+      store.dispatch(setSidePanelsCollapsed({ left: false, right: true }))
+      actions.onBreakpoint()
+    })
+    expect(store.getState().ui).toMatchObject({
+      leftPanelCollapsed: true,
+      rightPanelCollapsed: false,
+      rightPanelTab: 'debug',
+    })
   })
 })

@@ -2,16 +2,14 @@ import fs from 'node:fs'
 
 import { expect, type Page, test } from '@playwright/test'
 
-const DESIGNER_URL = '/build/designer?modelType=tbbpm'
+const DESIGNER_URL = '/build/designer?modelType=tbbpm&source=template&templateId=tpl-2'
 const TIMEOUT = 20000
 
 async function gotoDesignerWithExample(page: Page) {
   await page.goto(DESIGNER_URL)
   await page.waitForLoadState('networkidle')
   await page.waitForSelector('.x6-graph', { timeout: TIMEOUT })
-  await page.getByRole('button', { name: '加载示例' }).click()
-  await expect(page.locator('.ant-message-notice').first()).toBeVisible({ timeout: TIMEOUT })
-  await page.waitForTimeout(500)
+  await expect(page.locator('.x6-node')).toHaveCount(3, { timeout: TIMEOUT })
 }
 
 async function exportXmlText(page: Page): Promise<string> {
@@ -43,7 +41,7 @@ test.describe('TBBPM Action / XML', () => {
     expect(download.suggestedFilename()).toMatch(/\.(xml|bpm)$/i)
   })
 
-  test('split view shows buffered XML editor after example load', async ({ page }) => {
+  test('split view shows buffered XML editor for the example template', async ({ page }) => {
     await gotoDesignerWithExample(page)
     await page.getByTestId('designer-tab-split').click()
     await expect(page.locator('.unified-designer-body--split')).toBeVisible({ timeout: TIMEOUT })

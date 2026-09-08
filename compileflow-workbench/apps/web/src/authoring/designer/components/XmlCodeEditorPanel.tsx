@@ -18,7 +18,7 @@ export function XmlCodeEditorPanel({
   showCanvasStaleHint = false,
 }: XmlCodeEditorPanelProps) {
   const { t } = useTranslation()
-  const { draft, isDirty, isApplying, error, handleChange, handleApply, handleReset } = editor
+  const { draft, isDirty, error, handleChange, handleApply, handleReset } = editor
 
   return (
     <div className="xml-code-editor-panel">
@@ -71,7 +71,7 @@ export function XmlCodeEditorPanel({
           <Button
             size="small"
             onClick={handleReset}
-            disabled={!isDirty || isApplying}
+            disabled={!isDirty}
             aria-label={t('designer.xmlEditor.reset')}
           >
             {t('designer.xmlEditor.reset')}
@@ -79,8 +79,7 @@ export function XmlCodeEditorPanel({
           <Button
             type="primary"
             size="small"
-            onClick={() => void handleApply()}
-            loading={isApplying}
+            onClick={handleApply}
             disabled={!isDirty}
             aria-label={t('designer.xmlEditor.apply')}
           >

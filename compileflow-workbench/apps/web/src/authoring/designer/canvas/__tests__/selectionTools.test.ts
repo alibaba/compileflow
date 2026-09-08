@@ -36,7 +36,10 @@ describe('DistributionTools', () => {
     expect(nodes[0].position()).toEqual({ x: 0, y: 10 })
     expect(nodes[1].position()).toEqual({ x: 100, y: 20 })
     expect(nodes[2].position()).toEqual({ x: 200, y: 30 })
-    expect(graph.trigger).toHaveBeenCalledWith('node:moved', { node: nodes[1] })
+    expect(graph.trigger).toHaveBeenCalledWith('node:moved', {
+      node: nodes[1],
+      historyGroup: expect.stringMatching(/^selection-layout-/),
+    })
   })
 
   it('distributes middle nodes vertically without overlapping the first node', () => {
@@ -52,6 +55,9 @@ describe('DistributionTools', () => {
     expect(nodes[0].position()).toEqual({ x: 10, y: 0 })
     expect(nodes[1].position()).toEqual({ x: 20, y: 100 })
     expect(nodes[2].position()).toEqual({ x: 30, y: 200 })
-    expect(graph.trigger).toHaveBeenCalledWith('node:moved', { node: nodes[1] })
+    expect(graph.trigger).toHaveBeenCalledWith('node:moved', {
+      node: nodes[1],
+      historyGroup: expect.stringMatching(/^selection-layout-/),
+    })
   })
 })
