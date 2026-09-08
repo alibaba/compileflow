@@ -36,6 +36,9 @@ Automated security checks include CodeQL, SpotBugs, dependency review, OWASP Dep
 and OpenSSF Scorecard. They cover Java, JavaScript/TypeScript, GitHub Actions, container definitions, and the dependency
 lockfiles used to build release artifacts.
 
+OWASP Dependency-Check supports anonymous NVD access. Maintainers may configure the optional `NVD_API_KEY` repository
+secret to accelerate NVD updates; the scan and its release gate run with or without that credential.
+
 Release artifacts include a CycloneDX SBOM, checksums, and provenance. Security findings are evaluated against the
 source revision and dependency inventory that produced the affected artifacts.
 

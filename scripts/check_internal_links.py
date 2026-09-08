@@ -2256,7 +2256,7 @@ def find_java_security_release_gate_errors(root: Path) -> list[str]:
     for fragment, description in (
         ("workflow_call:", "reusable workflow entrypoint"),
         ("NVD_API_KEY:", "NVD credential contract"),
-        ("required: true", "required NVD credential"),
+        ("required: false", "optional NVD credential"),
         ("-Psecurity-scan", "OWASP Dependency-Check Maven profile"),
         ("actions/upload-artifact@", "dependency report evidence"),
     ):

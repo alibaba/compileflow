@@ -4,8 +4,8 @@ on:
   workflow_call:
     secrets:
       NVD_API_KEY:
-        description: NVD API key used by OWASP Dependency-Check
-        required: true
+        description: Optional NVD API key used to accelerate OWASP Dependency-Check updates
+        required: false
   workflow_dispatch: { }
 
 permissions:
@@ -29,13 +29,6 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
-
-      - name: Require NVD API key
-        run: |
-          if [ -z "$NVD_API_KEY" ]; then
-            echo "NVD_API_KEY is required for Java dependency security evidence." >&2
-            exit 1
-          fi
 
       - name: Scan Java runtime dependencies
         run: |

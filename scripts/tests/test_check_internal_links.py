@@ -198,7 +198,7 @@ class JavaSecurityReleaseGateTest(unittest.TestCase):
             (workflows / "java-security.yml").write_text(
                 "workflow_call:\n"
                 "  NVD_API_KEY:\n"
-                "    required: true\n"
+                "    required: false\n"
                 "run: ./mvnw verify -Psecurity-scan\n"
                 "uses: actions/upload-artifact@digest\n",
                 encoding="utf-8",
@@ -223,7 +223,7 @@ class JavaSecurityReleaseGateTest(unittest.TestCase):
             workflows = root / ".github" / "workflows"
             workflows.mkdir(parents=True)
             (workflows / "java-security.yml").write_text(
-                "workflow_call:\nNVD_API_KEY:\nrequired: true\n-Psecurity-scan\n"
+                "workflow_call:\nNVD_API_KEY:\nrequired: false\n-Psecurity-scan\n"
                 "actions/upload-artifact@digest\n",
                 encoding="utf-8",
             )
