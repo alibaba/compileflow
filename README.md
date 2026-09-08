@@ -22,8 +22,8 @@
 CompileFlow is a lightweight, high-performance, embeddable, and extensible process engine for Java. It supports TBBPM
 and the documented subset of BPMN 2.0.
 
-The CompileFlow Process engine focuses on in-memory, stateless execution. CompileFlow is used by core systems across
-Alibaba business platforms, including Taobao, Alibaba Cloud, and international businesses.
+The CompileFlow Process engine focuses on in-memory, stateless execution and is used by core systems across Alibaba
+business platforms, including Taobao, Alibaba Cloud, and international businesses.
 
 CompileFlow Durable persists long-running process state so execution can resume after waits, timers, external
 operations, or an application restart.
