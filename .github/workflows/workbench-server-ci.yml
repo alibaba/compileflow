@@ -113,7 +113,8 @@ jobs:
 
       - name: Run Spotless format check
         run: |
-          ./mvnw -Pexamples,benchmarks spotless:check \
+          ./mvnw -Pexamples,benchmarks -pl '!compileflow-bom' \
+            com.diffplug.spotless:spotless-maven-plugin:3.9.0:check \
             -B -V --no-transfer-progress
 
       - name: Run compileflow-workbench-server checkstyle
@@ -338,7 +339,7 @@ jobs:
           MYSQL_CONTAINER: ${{ job.services.mysql.id }}
         run: |
           docker exec "$MYSQL_CONTAINER" mysql -uroot -pcompileflow_root_password -e "
-            REVOKE ALL PRIVILEGES ON compileflow_test.* FROM 'compileflow'@'%';
+            REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'compileflow'@'%';
             GRANT SELECT, INSERT, UPDATE, DELETE ON compileflow_test.* TO 'compileflow'@'%';
           "
 

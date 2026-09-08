@@ -60,8 +60,8 @@ For Java changes:
 Apply or verify Java formatting with JDK 17 or newer:
 
 ```bash
-./mvnw -Pexamples,benchmarks spotless:apply
-./mvnw -Pexamples,benchmarks spotless:check
+./mvnw -Pexamples,benchmarks -pl '!compileflow-bom' com.diffplug.spotless:spotless-maven-plugin:3.9.0:apply
+./mvnw -Pexamples,benchmarks -pl '!compileflow-bom' com.diffplug.spotless:spotless-maven-plugin:3.9.0:check
 ```
 
 For documentation changes:

@@ -75,7 +75,8 @@ jobs:
       - name: Run Spotless format check
         if: matrix.java == '17'
         run: |
-          ./mvnw -Pexamples,benchmarks spotless:check \
+          ./mvnw -Pexamples,benchmarks -pl '!compileflow-bom' \
+            com.diffplug.spotless:spotless-maven-plugin:3.9.0:check \
             -B -V --no-transfer-progress
 
       - name: Run core checkstyle

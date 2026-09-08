@@ -520,7 +520,7 @@
 
             <!--
                 Spotless: Prince of Space (WIDE). Bound to the verify phase so CI and
-                local `mvn verify` enforce formatting; use `spotless:apply` to auto-fix.
+                local `mvn verify` enforce formatting; invoke the fully qualified plugin goal to auto-fix.
             -->
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
@@ -660,7 +660,7 @@
                 <!--
                     Spotless: compact WIDE 120-column Java formatting via Prince of Space.
                     Bound to the verify phase so `mvn verify` enforces formatting in CI
-                    and local builds; use `mvn spotless:apply` to auto-fix violations.
+                    and local builds; invoke the fully qualified plugin goal to auto-fix violations.
                 -->
                 <plugin>
                     <groupId>com.diffplug.spotless</groupId>
