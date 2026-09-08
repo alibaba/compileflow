@@ -43,6 +43,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.Objects;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -515,8 +516,8 @@ class PostgresRolloutStoreTest {
         ProcessRef.Alias alias = ProcessRef.alias(NAMESPACE, CODE, route);
         ProcessRef.Version version = ProcessRef.version(NAMESPACE, CODE, target);
         CreateRolloutCommand command = strategy == RolloutStrategy.CANARY
-                ? CreateRolloutCommand.canary(key, alias, version, expectedRouteRevision, weightBps, actor,
-                        "release notes")
+                ? CreateRolloutCommand.canary(key, alias, version, expectedRouteRevision,
+                        Objects.requireNonNull(weightBps, "weightBps"), actor, "release notes")
                 : CreateRolloutCommand.allAtOnce(key, alias, version, expectedRouteRevision, actor, "release notes");
         return RolloutCreateRequest.deploy(command);
     }

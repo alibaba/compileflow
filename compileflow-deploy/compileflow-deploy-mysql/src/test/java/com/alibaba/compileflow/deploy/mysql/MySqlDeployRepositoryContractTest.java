@@ -43,6 +43,7 @@ import java.sql.Statement;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -414,8 +415,8 @@ class MySqlDeployRepositoryContractTest {
         ProcessRef.Alias alias = ProcessRef.alias(NAMESPACE, CODE, ROUTE);
         ProcessRef.Version target = ProcessRef.version(NAMESPACE, CODE, targetVersion);
         CreateRolloutCommand command = strategy == RolloutStrategy.CANARY
-                ? CreateRolloutCommand.canary(idempotencyKey, alias, target, expectedRouteRevision, canaryWeightBps,
-                        "mysql-contract", null)
+                ? CreateRolloutCommand.canary(idempotencyKey, alias, target, expectedRouteRevision,
+                        Objects.requireNonNull(canaryWeightBps, "canaryWeightBps"), "mysql-contract", null)
                 : CreateRolloutCommand.allAtOnce(idempotencyKey, alias, target, expectedRouteRevision, "mysql-contract",
                         null);
         return RolloutCreateRequest.deploy(command);

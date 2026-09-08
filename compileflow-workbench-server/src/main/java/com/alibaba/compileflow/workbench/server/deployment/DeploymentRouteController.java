@@ -72,8 +72,7 @@ public class DeploymentRouteController {
         } catch (DeploymentException failure) {
             throw failure;
         } catch (Exception failure) {
-            LOGGER.error("Unexpected deployment route lookup failure: processCode={}, alias={}", normalizedProcessCode,
-                    normalizedAlias, RedactedFailure.forLogging(failure));
+            LOGGER.error("Unexpected deployment route lookup failure", RedactedFailure.forLogging(failure));
             throw ApiProblemException.internalError("Internal deployment route error");
         }
         return ResponseEntity.ok(

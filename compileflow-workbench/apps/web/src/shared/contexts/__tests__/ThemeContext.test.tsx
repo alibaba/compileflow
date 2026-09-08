@@ -26,7 +26,7 @@ describe('ThemeProvider', () => {
 
     act(() => {
       window.dispatchEvent(
-        new StorageEvent('storage', { key: 'compileflow:theme', newValue: 'dark' })
+        Object.assign(new Event('storage'), { key: 'compileflow:theme', newValue: 'dark' })
       )
     })
 

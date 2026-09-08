@@ -79,8 +79,7 @@ public class AsyncInvocationController {
         } catch (AsyncInvocationService.AsyncInvocationConflictException failure) {
             throw ApiProblemException.conflict(failure.getMessage());
         } catch (Exception failure) {
-            LOGGER.error("Unexpected persisted async submission failure: code={}", code,
-                    RedactedFailure.forLogging(failure));
+            LOGGER.error("Unexpected persisted async submission failure", RedactedFailure.forLogging(failure));
             throw ApiProblemException.internalError("Internal async invocation error");
         }
     }
@@ -163,8 +162,7 @@ public class AsyncInvocationController {
         } catch (AsyncInvocationService.AsyncInvocationConflictException failure) {
             throw ApiProblemException.conflict(failure.getMessage());
         } catch (Exception failure) {
-            LOGGER.error("Unexpected persisted async requeue failure: invocationId={}", normalizedInvocationId,
-                    RedactedFailure.forLogging(failure));
+            LOGGER.error("Unexpected persisted async requeue failure", RedactedFailure.forLogging(failure));
             throw ApiProblemException.internalError("Internal async invocation error");
         }
         return ResponseEntity.ok(invocation.orElseThrow(() -> ApiProblemException.notFound(

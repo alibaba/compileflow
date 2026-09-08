@@ -115,8 +115,7 @@ final class JdbcProcessVersionStore implements ProcessVersionStore {
             try {
                 ProcessVersionRecord stored = insertVersion(connection, candidate);
                 connection.commit();
-                LOGGER.info("Inserted process version: ns={} code={} version={}", candidate.getNamespace(),
-                        candidate.getCode(), candidate.getVersion());
+                LOGGER.info("Inserted process version");
                 return stored;
             } catch (SQLException failure) {
                 rollback(connection, failure);

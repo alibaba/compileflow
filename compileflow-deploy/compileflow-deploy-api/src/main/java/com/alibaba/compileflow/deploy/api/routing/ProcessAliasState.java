@@ -171,7 +171,8 @@ public final class ProcessAliasState {
             if (stableVersion.equals(candidateVersion)) {
                 throw new IllegalArgumentException("stableVersion and candidateVersion must differ");
             }
-            RolloutConstraints.requireActiveWeightBps(candidateWeightBps.intValue(), "candidateWeightBps");
+            int weightBps = Objects.requireNonNull(candidateWeightBps, "candidateWeightBps");
+            RolloutConstraints.requireActiveWeightBps(weightBps, "candidateWeightBps");
         }
         if (aliasRevision <= 0L) {
             throw new IllegalArgumentException("aliasRevision must be positive");

@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -37,11 +38,14 @@ class DatabaseMigrationTest {
                 Statement statement = connection.createStatement()) {
             statement.execute("RUNSCRIPT FROM 'classpath:db/compileflow-deploy-h2/schema.sql'");
             for (String version : new String[] {"v1", "v2"}) {
-                statement.executeUpdate(
+                try (PreparedStatement insert = connection.prepareStatement(
                         "INSERT INTO cf_process_version "
                         + "(namespace, code, version, model_type, content, digest, actor, created_at) VALUES "
-                        + "('default', 'checks.flow', '" + version + "', 'TBBPM', '<bpm/>', '" + "a".repeat(64)
-                        + "', 'test', 1)");
+                        + "('default', 'checks.flow', ?, 'TBBPM', '<bpm/>', ?, 'test', 1)")) {
+                    insert.setString(1, version);
+                    insert.setString(2, "a".repeat(64));
+                    insert.executeUpdate();
+                }
             }
             String alias =
                     """
@@ -126,14 +130,16 @@ class DatabaseMigrationTest {
     }
 
     private static void assertInvalidOutboxStateIsRejected(Connection connection) {
-        String sql = "INSERT INTO cf_routing_outbox "
+        String sql =
+                "INSERT INTO cf_routing_outbox "
                 + "(event_type, namespace, code, routing_key, payload, status, attempt_count, "
                 + "created_at, updated_at, delivery_key, alias) VALUES "
-                + "('ALIAS_STATE', 'default', 'order.flow', 'routing.key', '{}', " + "'PROCESSING', 0, 1, 1, '"
-                + "a".repeat(64) + "', 'production')";
+                + "('ALIAS_STATE', 'default', 'order.flow', 'routing.key', '{}', "
+                + "'PROCESSING', 0, 1, 1, ?, 'production')";
         assertThatThrownBy(() -> {
-            try (Statement statement = connection.createStatement()) {
-                statement.executeUpdate(sql);
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                statement.setString(1, "a".repeat(64));
+                statement.executeUpdate();
             }
         }).isInstanceOf(SQLException.class);
     }

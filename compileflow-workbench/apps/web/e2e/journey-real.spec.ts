@@ -1328,7 +1328,7 @@ test.describe('Real-mode Operate UI tour', () => {
 
     const github = page.locator('main').getByRole('link', { name: /GitHub 仓库|GitHub/i })
     await expect(github).toBeVisible()
-    await expect(github).toHaveAttribute('href', /github\.com\/alibaba\/compileflow/)
+    await expect(github).toHaveAttribute('href', /^https:\/\/github\.com\/alibaba\/compileflow\/?$/)
     await shot(page, '177-real-settings-done')
     await assertNoPageErrors(errors)
   })
@@ -2431,7 +2431,9 @@ test.describe('Real-mode Operate UI tour', () => {
     await page.locator('.header-more-btn').click()
     await expect(page.getByText(/导入 XML|Import XML/i)).toBeVisible({ timeout: TIMEOUT })
     await expect(
-      page.getByRole('menuitem', { name: /创建副本|复制流程|Duplicate flow|Duplicate$/i })
+      page.getByRole('menuitem', {
+        name: /^(?:创建副本|复制流程|Duplicate flow|Duplicate)$/i,
+      })
     ).toHaveCount(0)
     await page.keyboard.press('Escape')
     await shot(page, '292-real-no-workspace-duplicate')

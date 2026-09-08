@@ -17,6 +17,7 @@ import com.alibaba.compileflow.engine.ProcessRef;
 import com.alibaba.compileflow.deploy.api.release.DeploymentAudit;
 import com.alibaba.compileflow.deploy.api.rollout.RolloutConstraints;
 import com.alibaba.compileflow.engine.spi.routing.AliasTargeting;
+import java.util.Objects;
 
 /**
  * Immutable persistence model for one authoritative published-alias state.
@@ -104,7 +105,8 @@ public final class ProcessAliasRecord {
             if (stableVersion.equals(candidateVersion)) {
                 throw new IllegalArgumentException("Stable and candidate versions must differ");
             }
-            RolloutConstraints.requireActiveWeightBps(candidateWeightBps.intValue(), "candidateWeightBps");
+            int weightBps = Objects.requireNonNull(candidateWeightBps, "candidateWeightBps");
+            RolloutConstraints.requireActiveWeightBps(weightBps, "candidateWeightBps");
         }
         if (revision <= 0) {
             throw new IllegalArgumentException("Route revision must be greater than zero");

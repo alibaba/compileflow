@@ -204,7 +204,7 @@ export function useX6Graph(
     window.addEventListener('resize', handleResize)
 
     const resizeObserver =
-      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(handleResize) : null
+      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => handleResize()) : null
     if (resizeObserver) {
       resizeObserver.observe(initialLayout.host)
     }

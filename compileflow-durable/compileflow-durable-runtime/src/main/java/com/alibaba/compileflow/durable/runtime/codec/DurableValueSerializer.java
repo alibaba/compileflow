@@ -904,10 +904,8 @@ public final class DurableValueSerializer {
             throw invalid("Scope frame must be an object", null);
         }
         ObjectNode frame = source.asObject();
-        DurableMachinePlan.Iteration.ForEach sequential =
-                descriptor.kind() == FrameKind.FOR_EACH ? requireSequentialIteration(descriptor.loopId()) : null;
         Set<String> properties = switch (descriptor.kind()) {
-            case FOR_EACH -> sequential.outputSourceVariable() == null
+            case FOR_EACH -> requireSequentialIteration(descriptor.loopId()).outputSourceVariable() == null
                     ? Set.of("kind", "loopId", "position", "snapshot")
                     : Set.of("kind", "loopId", "position", "snapshot", "results");
             case PARALLEL_FOR_EACH -> Set.of("kind", "loopId", "position", "item");
@@ -933,6 +931,7 @@ public final class DurableValueSerializer {
             return new ParallelForEachFrame(descriptor.loopId(), position,
                     fromTree(frame.get("item"), itemType, "parallel foreach item " + descriptor.loopId()));
         }
+        DurableMachinePlan.Iteration.ForEach sequential = requireSequentialIteration(descriptor.loopId());
         JsonNode snapshot = frame.get("snapshot");
         if (!snapshot.isArray() || snapshot.size() > limits.maxCollectionEntries()) {
             throw invalid("Foreach snapshot is invalid", null);

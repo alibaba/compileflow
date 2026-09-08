@@ -82,7 +82,7 @@ public final class GeneratedClassCompiler {
         Objects.requireNonNull(debugMetadata, "debugMetadata must not be null");
         try {
             long startedAtNanos = System.nanoTime();
-            LOGGER.debug("Starting compilation: class={}", validatedClassName);
+            LOGGER.debug("Starting generated-source compilation");
 
             JavaSource javaSource = JavaSource.of(sourceCode, validatedClassName, debugMetadata);
             List<JavaSource> companions =
@@ -113,22 +113,21 @@ public final class GeneratedClassCompiler {
             CompiledClasses compiledClasses = classOutput.finish();
             debugArtifacts.exportBytecode(compiledClasses);
             if (debugArtifacts.getArtifactId() != null) {
-                LOGGER.info("Compilation debug artifacts exported: class={}, artifact={}", validatedClassName,
-                        debugArtifacts.getArtifactId());
+                LOGGER.info("Compilation debug artifacts exported");
             }
             ClassLoader finalClassLoader = new CompiledClassLoader(parentClassLoader, compiledClasses);
 
             Class<?> compiledClass = finalClassLoader.loadClass(validatedClassName);
             long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAtNanos);
-            LOGGER.info("Compilation successful: class={}, durationMs={}", validatedClassName, duration);
+            LOGGER.info("Compilation successful: durationMs={}", duration);
             return compiledClass;
         } catch (CompileFlowException failure) {
-            LOGGER.error("Compilation failed: class={}, errorCode={}, failureType={}", validatedClassName,
-                    failure.getErrorCode().getCode(), failureType(failure));
+            LOGGER.error("Compilation failed: errorCode={}, failureType={}", failure.getErrorCode().getCode(),
+                    failureType(failure));
             throw failure;
         } catch (Exception failure) {
-            LOGGER.error("Compilation failed: class={}, errorCode={}, failureType={}", validatedClassName,
-                    ErrorCode.CF_COMPILE_002.getCode(), failureType(failure));
+            LOGGER.error("Compilation failed: errorCode={}, failureType={}", ErrorCode.CF_COMPILE_002.getCode(),
+                    failureType(failure));
             throw new CompileFlowException(ErrorCode.CF_COMPILE_002,
                     "Failed to compile java code for class: " + validatedClassName, failure);
         }

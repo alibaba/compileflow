@@ -15,7 +15,6 @@ package com.alibaba.compileflow.engine.core.runtime.loading;
 
 import com.alibaba.compileflow.engine.CompileFlowException;
 import com.alibaba.compileflow.engine.ErrorCode;
-import com.alibaba.compileflow.engine.core.observability.LogContext;
 import com.alibaba.compileflow.engine.core.runtime.ProcessRuntime;
 import com.alibaba.compileflow.engine.core.runtime.ProcessRuntimeEntry;
 import com.alibaba.compileflow.engine.core.runtime.ProcessRuntimeFactory;
@@ -240,8 +239,7 @@ public final class DefaultProcessRuntimeLoader implements ProcessRuntimeLoader {
         return getOrStartRuntimeLoad(source, classLoader, runtimeIdentity).thenApply(entry -> {
             synchronized (cacheLifecycleMonitor) {
                 if (closed.get()) {
-                    LOGGER.debug("Built runtime was not installed because the runtime loader is closed: codeKey={}, "
-                            + "digest={}", codeKey, runtimeIdentity.getDigest());
+                    LOGGER.debug("Built runtime was not installed because the runtime loader is closed");
                     return entry;
                 }
                 InstallResult result = runtimeCache.install(codeKey, expectedEntry, entry);
@@ -268,8 +266,7 @@ public final class DefaultProcessRuntimeLoader implements ProcessRuntimeLoader {
         try {
             submittedTask = runtimeLoadExecutor.submit(runtimeLoadTask);
         } catch (RejectedExecutionException rejected) {
-            LOGGER.error("Runtime-load task rejected: code={}, version={}, digest={}, failureType={}", source.getCode(),
-                    source.getVersion(), runtimeIdentity.getDigest(), rejected.getClass().getName());
+            LOGGER.error("Runtime-load task rejected: failureType={}", rejected.getClass().getName());
             inflightRuntimeLoadRegistry.remove(runtimeIdentity, proposed);
             proposed.completeExceptionally(rejected);
             return proposed;
@@ -282,16 +279,13 @@ public final class DefaultProcessRuntimeLoader implements ProcessRuntimeLoader {
             if (failure != null) {
                 Throwable cause = unwrap(failure);
                 if (cause instanceof CancellationException) {
-                    LOGGER.debug("Runtime load cancelled: code={}, version={}, digest={}", source.getCode(),
-                            source.getVersion(), runtimeIdentity.getDigest());
+                    LOGGER.debug("Runtime load cancelled");
                 } else {
-                    LOGGER.warn("Runtime load finished with failure: code={}, version={}, digest={}, errorCode={}, "
-                            + "failureType={}", source.getCode(), source.getVersion(), runtimeIdentity.getDigest(),
-                            failureCode(cause), failureType(cause));
+                    LOGGER.warn("Runtime load finished with failure: errorCode={}, failureType={}", failureCode(cause),
+                            failureType(cause));
                 }
             } else {
-                LOGGER.debug("Runtime load finished successfully: code={}, version={}, digest={}", source.getCode(),
-                        source.getVersion(), runtimeIdentity.getDigest());
+                LOGGER.debug("Runtime load finished successfully");
             }
         });
         return proposed;
@@ -563,9 +557,7 @@ public final class DefaultProcessRuntimeLoader implements ProcessRuntimeLoader {
             ProcessRuntimeEntry entry = FutureTimeouts.getWithoutCancellation(future, waitTimeoutMillis);
             return requireMatchingRuntime(source, runtimeIdentity, entry);
         } catch (TimeoutException timeout) {
-            LOGGER.warn("Timed out waiting for runtime load: waitTimeoutMs={}, code={}, version={}, digest={}, "
-                    + "traceId={}", waitTimeoutMillis, source.getCode(), source.getVersion(),
-                    runtimeIdentity.getDigest(), LogContext.getTraceId());
+            LOGGER.warn("Timed out waiting for runtime load: waitTimeoutMs={}", waitTimeoutMillis);
             throw new CompileFlowException(ErrorCode.CF_RUNTIME_001,
                     "Timed out waiting for runtime load of code '" + source.getCode() + "'", timeout)
                 .withContext("operation", "LOAD")

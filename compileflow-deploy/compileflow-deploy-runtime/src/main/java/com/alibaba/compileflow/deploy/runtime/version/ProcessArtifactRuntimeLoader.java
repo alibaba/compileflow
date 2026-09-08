@@ -174,8 +174,7 @@ public final class ProcessArtifactRuntimeLoader {
                     case REMOVED -> ReleaseResult.REMOVED;
                 };
                 slot.installed = false;
-                LOGGER.info("Process runtime ownership released: ns={} code={} version={} result={}", ref.namespace(),
-                        ref.code(), ref.version(), result);
+                LOGGER.info("Process runtime ownership released: result={}", result);
                 return result;
             } finally {
                 slot.unlock();
@@ -191,8 +190,8 @@ public final class ProcessArtifactRuntimeLoader {
                 .version(ref.version())
                 .build();
             metrics.recordError(releaseFailure.getErrorCode());
-            LOGGER.error("Process runtime ownership release failed: ns={} code={} version={}", ref.namespace(),
-                    ref.code(), ref.version(), failure);
+            LOGGER.error("Process runtime ownership release failed: errorCode={}, failureType={}",
+                    releaseFailure.getErrorCode().name(), failure.getClass().getName());
             return ReleaseResult.FAILED;
         }
     }

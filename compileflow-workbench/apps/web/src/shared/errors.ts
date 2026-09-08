@@ -39,7 +39,7 @@ export function toError(error: unknown, fallbackMessage = 'Unknown error'): Erro
   if (error instanceof Error) {
     return error
   }
-  if (error == null) {
+  if (error === null || error === undefined) {
     return new Error(fallbackMessage)
   }
 

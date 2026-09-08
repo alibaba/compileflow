@@ -51,7 +51,7 @@ describe('LanguageProvider', () => {
     )
 
     window.dispatchEvent(
-      new StorageEvent('storage', { key: 'compileflow:language', newValue: 'en' })
+      Object.assign(new Event('storage'), { key: 'compileflow:language', newValue: 'en' })
     )
 
     await waitFor(() => expect(document.documentElement.lang).toBe('en'))

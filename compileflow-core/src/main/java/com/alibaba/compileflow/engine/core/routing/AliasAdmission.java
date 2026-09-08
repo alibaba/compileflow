@@ -114,10 +114,7 @@ public final class AliasAdmission {
                     + request.code() + " alias=" + request.alias() + " target=" + target, invalidTarget);
         }
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("alias-routing-selected ns={} code={} alias={} revision={} target={} selectedVersion={} "
-                    + "reason={} targetingPolicy={}", request.namespace(), request.code(), request.alias(),
-                    route.revision(), target, selectedVersion.version(), targetSelection.reason(),
-                    targetSelection.targetingPolicy());
+            LOGGER.debug("Alias route selected: revision={}, target={}", route.revision(), target);
         }
         return new AliasSelection(selectedVersion, target, route.revision());
     }

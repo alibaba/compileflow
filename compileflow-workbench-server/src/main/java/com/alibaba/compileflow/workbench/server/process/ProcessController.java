@@ -542,8 +542,7 @@ public class ProcessController {
         } catch (DeploymentException failure) {
             throw failure;
         } catch (Exception failure) {
-            LOGGER.error("Unexpected Process execution boundary failure: code={}", code,
-                    RedactedFailure.forLogging(failure));
+            LOGGER.error("Unexpected Process execution boundary failure", RedactedFailure.forLogging(failure));
             throw ApiProblemException.internalError("Internal execution error");
         }
     }

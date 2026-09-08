@@ -400,8 +400,8 @@ public final class DefaultProcessEngine
             ProcessExecution execution = executionContext.processExecution();
             if (failure instanceof ProcessExecutionException nestedFailure) {
                 ProcessError nestedError = nestedFailure.getError();
-                LOGGER.error("Nested process execution failed: code={}, durationMs={}, errorCode={}, failureType={}",
-                        processCode, durationMs, nestedError.getCode(), failureType(nestedFailure));
+                LOGGER.error("Nested process execution failed: durationMs={}, errorCode={}, failureType={}", durationMs,
+                        nestedError.getCode(), failureType(nestedFailure));
                 eventPublisher.publishExecutionFailed(execution, executionContext.executionAttribution(), durationMs,
                         nestedError);
                 return ProcessResult.failure(nestedError, execution);
@@ -411,8 +411,8 @@ public final class DefaultProcessEngine
                 .withContext("processCode", processCode)
                 .withContext("durationMs", durationMs)
                 .withContext("traceId", executionContext.traceId());
-            LOGGER.error("Process execution failed: code={}, durationMs={}, errorCode={}, failureType={}", processCode,
-                    durationMs, classifiedFailure.getErrorCode().getCode(), failureType(classifiedFailure));
+            LOGGER.error("Process execution failed: durationMs={}, errorCode={}, failureType={}", durationMs,
+                    classifiedFailure.getErrorCode().getCode(), failureType(classifiedFailure));
             ProcessError processError = ProcessFailureClassifier.toProcessError(classifiedFailure);
             eventPublisher.publishExecutionFailed(execution, executionContext.executionAttribution(), durationMs,
                     processError);

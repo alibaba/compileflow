@@ -285,7 +285,7 @@ public class DefaultProcessRuntimeCache implements ProcessRuntimeCache {
         }
     }
 
-    private int residentRuntimeCount() {
+    private long residentRuntimeCount() {
         Set<ProcessRuntimeIdentity> identities = new HashSet<>(runtimes.asMap().keySet());
         identities.addAll(retainedRuntimes.keySet());
         return identities.size();
