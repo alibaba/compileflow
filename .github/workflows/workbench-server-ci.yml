@@ -171,7 +171,7 @@ jobs:
 
       - name: Upload test reports
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: compileflow-workbench-server-surefire
           path: compileflow-workbench-server/target/surefire-reports/
@@ -278,7 +278,7 @@ jobs:
 
       - name: Upload PostgreSQL contract evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: compileflow-workbench-postgres-${{ matrix.postgres }}
           path: |
@@ -374,7 +374,7 @@ jobs:
 
       - name: Upload MySQL contract evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: compileflow-workbench-mysql-8.4.7
           path: |
@@ -433,7 +433,7 @@ jobs:
 
       - name: Upload test reports
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: compileflow-workbench-server-jdk-${{ matrix.java }}-surefire
           path: compileflow-workbench-server/target/surefire-reports/

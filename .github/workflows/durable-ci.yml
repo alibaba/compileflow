@@ -313,7 +313,7 @@ jobs:
 
       - name: Upload Durable test reports
         if: always() && matrix.java == '17'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: durable-kernel-jdk-${{ matrix.java }}
           path: |
@@ -454,7 +454,7 @@ jobs:
 
       - name: Upload PostgreSQL evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: durable-postgres-${{ matrix.postgres }}
           path: |
@@ -540,7 +540,7 @@ jobs:
 
       - name: Upload MySQL evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: durable-mysql-8.4.7
           path: |
@@ -608,7 +608,7 @@ jobs:
 
       - name: Upload example report
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: durable-postgres-example
           path: |
@@ -682,7 +682,7 @@ jobs:
 
       - name: Upload Durable release-profile evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: compileflow-durable-release-profile-${{ github.sha }}
           path: |
@@ -757,7 +757,7 @@ jobs:
 
       - name: Upload aggregate Durable release evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: durable-release-evidence-${{ github.sha }}
           path: |
