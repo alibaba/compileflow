@@ -8,7 +8,9 @@ on:
       - 'compileflow-deploy/**'
       - 'compileflow-workbench/**'
       - 'examples/**'
+      - 'scripts/**'
       - 'pom.xml'
+      - '.github/workflows/**'
       - '.github/workflows/codeql.yml'
   pull_request:
     branches: [ master ]
@@ -17,7 +19,9 @@ on:
       - 'compileflow-deploy/**'
       - 'compileflow-workbench/**'
       - 'examples/**'
+      - 'scripts/**'
       - 'pom.xml'
+      - '.github/workflows/**'
       - '.github/workflows/codeql.yml'
   schedule:
     - cron: '15 3 * * 2'
@@ -38,8 +42,10 @@ jobs:
       fail-fast: false
       matrix:
         language:
+          - actions
           - java-kotlin
           - javascript-typescript
+          - python
 
     steps:
       - name: Checkout repository

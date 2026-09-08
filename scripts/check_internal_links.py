@@ -914,8 +914,10 @@ SECURITY_SCORECARD_REQUIRED_GATES = [
     ("id-token: write", "Security Scorecard workflow must be able to publish Scorecard results"),
 ]
 CODEQL_REQUIRED_GATES = [
+    ("actions", "CodeQL must analyze GitHub Actions workflows"),
     ("java-kotlin", "CodeQL must analyze Java"),
     ("javascript-typescript", "CodeQL must analyze JavaScript and TypeScript"),
+    ("python", "CodeQL must analyze Python release tooling"),
     ("build-mode: none", "CodeQL must avoid a duplicate Java build"),
     ("queries: security-and-quality", "CodeQL must run security and quality queries"),
     ("security-events: write", "CodeQL analysis must be able to publish code-scanning results"),
@@ -2486,9 +2488,9 @@ def check_release_document_set() -> list[str]:
             if not workflow_fragment_present(text, fragment):
                 errors.append(f"release workflows: {description}")
         verify_skips_tests = re.search(
-            r"\./mvnw clean (?:verify|install)\s*\\\n"
-            r"(?:\s+[^\n]*\\\n)*"
-            r"\s+[^\n]*-DskipTests",
+            r"\./mvnw clean (?:verify|install)[^\n]*\\\n"
+            r"(?:[^\n]*\\\n)*"
+            r"[^\n]*-DskipTests",
             text,
         )
         if "-DperformRelease" in text or verify_skips_tests:

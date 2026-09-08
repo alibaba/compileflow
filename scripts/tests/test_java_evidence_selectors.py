@@ -11,13 +11,47 @@ from scripts.verify_durable_release_evidence import REQUIRED_TEST_CASES
 from scripts.verify_workbench_postgres_evidence import REQUIRED_METHODS
 
 
-JAVA_NON_CODE = re.compile(r'""".*?"""|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|/\*.*?\*/|//[^\n]*', re.DOTALL)
 ANNOTATED_METHOD = re.compile(
     r"((?:@[\w.]+(?:\([^;]*?\))?\s*)+)"
     r"(?:(?:public|protected|private|final|static)\s+)*"
     r"void\s+(\w+)\s*\([^)]*\)\s*(?:throws\s+[\w.,\s]+)?\{"
 )
 TEST_ANNOTATION = re.compile(r"@(?:[\w.]+\.)?(?:Test|ParameterizedTest|RepeatedTest|TestTemplate)\b")
+
+
+def strip_java_non_code(source: str) -> str:
+    """Replace Java comments and literals with spaces while preserving newlines."""
+    result = list(source)
+    index = 0
+    length = len(source)
+    while index < length:
+        if source.startswith("//", index):
+            end = source.find("\n", index + 2)
+            end = length if end < 0 else end
+        elif source.startswith("/*", index):
+            end = source.find("*/", index + 2)
+            end = length if end < 0 else end + 2
+        elif source.startswith('"""', index):
+            end = source.find('"""', index + 3)
+            end = length if end < 0 else end + 3
+        elif source[index] in {'"', "'"}:
+            quote = source[index]
+            end = index + 1
+            while end < length:
+                if source[end] == "\\":
+                    end += 2
+                    continue
+                end += 1
+                if source[end - 1] == quote:
+                    break
+        else:
+            index += 1
+            continue
+        for position in range(index, min(end, length)):
+            if result[position] != "\n":
+                result[position] = " "
+        index = end
+    return "".join(result)
 
 
 def source_index(root: Path) -> dict[str, Path]:
@@ -42,7 +76,7 @@ def test_methods(identity: str, index: dict[str, Path], seen: frozenset[str] = f
     if identity in seen:
         raise AssertionError(f"Cyclic test inheritance: {identity}")
     path = index[identity]
-    source = JAVA_NON_CODE.sub(" ", path.read_text(encoding="utf-8"))
+    source = strip_java_non_code(path.read_text(encoding="utf-8"))
     package = re.search(r"\bpackage\s+([\w.]+)\s*;", source)
     if package and identity.rsplit(".", 1)[0] != package.group(1):
         raise AssertionError(f"Package does not match source path: {path}")
@@ -96,7 +130,10 @@ class JavaEvidenceSelectorsTest(unittest.TestCase):
             child.write_text(
                 "package example; class Child extends Base {\n"
                 "// @Test void commentDecoy() {}\n"
+                "/* @Test void blockCommentDecoy() {} */\n"
                 'String text = "@Test void stringDecoy() {}";\n'
+                'String block = """@Test void textBlockDecoy() {}""";\n'
+                "char quote = '\\''; // @Test void characterDecoy() {}\n"
                 "void helper() {}\n"
                 "@ParameterizedTest @ValueSource(strings = {\"a\"}) void parameterized(String value) {}\n"
                 "}", encoding="utf-8",
