@@ -100,7 +100,7 @@ jobs:
           persist-credentials: false
 
       - name: Download raw Visibility evidence
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c906dfced5ed9
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           pattern: durable-visibility-postgres-*
           path: ${{ runner.temp }}/visibility-evidence-input

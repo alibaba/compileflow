@@ -71,13 +71,13 @@ jobs:
           persist-credentials: false
 
       - name: Download artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c906dfced5ed9
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: release-artifacts
           path: staging
 
       - name: Publish complete GitHub Release
-        uses: softprops/action-gh-release@da05d552573bd1a1dd1ff1d449b4221e5d1f5b4c
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64
         with:
           generate_release_notes: true
           files: staging/*
