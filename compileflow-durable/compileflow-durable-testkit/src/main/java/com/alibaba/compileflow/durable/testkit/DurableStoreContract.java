@@ -1111,15 +1111,16 @@ public abstract class DurableStoreContract {
 
     @Test
     void leasesCanBeRenewedAcrossLongApplicationWork() throws Exception {
-        Duration shortLease = Duration.ofMillis(100);
-        Duration renewedLease = Duration.ofSeconds(2);
+        Duration shortLease = Duration.ofSeconds(1);
+        Duration renewedLease = Duration.ofSeconds(5);
+        long workMillis = shortLease.plusMillis(200).toMillis();
 
         startRun();
         DurableStore.RunClaim run = store
             .claimRun(new DurableStore.RunClaimRequest("turn-worker", Set.of(PROCESS.processId()), shortLease))
             .orElseThrow();
         assertThat(store.renewRunLeases(Set.of(run.lease()), renewedLease)).containsExactly(run.lease());
-        Thread.sleep(200);
+        Thread.sleep(workMillis);
         assertThat(store.commitTurn(run.lease(), succeededTurn(envelope("done")))).isTrue();
 
         startRun();
@@ -1133,13 +1134,13 @@ public abstract class DurableStoreContract {
                             shortLease))
             .orElseThrow();
         assertThat(store.renewEffectLeases(Set.of(effect.lease()), renewedLease)).containsExactly(effect.lease());
-        Thread.sleep(200);
+        Thread.sleep(workMillis);
         assertThat(store.completeEffect(effect.lease(), envelope("result"))).isTrue();
 
         DurableStore.OutboxClaim outbox =
                 store.claimOutbox(new DurableStore.OutboxClaimRequest("outbox-worker", shortLease)).orElseThrow();
         assertThat(store.renewOutboxLeases(Set.of(outbox.lease()), renewedLease)).containsExactly(outbox.lease());
-        Thread.sleep(200);
+        Thread.sleep(workMillis);
         assertThat(store.completeOutbox(outbox.lease())).isTrue();
     }
 
