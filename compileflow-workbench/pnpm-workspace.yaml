@@ -5,6 +5,14 @@ engineStrict: true
 nodeVersion: 24.20.0
 autoInstallPeers: false
 strictPeerDependencies: true
+overrides:
+  browserslist: 4.28.7
+  dompurify: 3.4.13
+  nanoid: 3.3.18
+  picomatch: 4.0.7
+  postcss: 8.5.23
+  qs: 6.16.0
+  ws: 8.21.0
 peerDependencyRules:
   ignoreMissing:
     # Optional adapters and runtimes that Workbench does not use.
@@ -12,6 +20,7 @@ peerDependencyRules:
     - '@opentelemetry/api'
     - '@vitest/browser'
     - '@vitest/browser-*'
+    - '@vitest/coverage-istanbul'
     - '@vitest/ui'
     - 'bare-*'
     - bufferutil

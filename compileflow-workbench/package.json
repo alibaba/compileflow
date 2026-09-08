@@ -31,8 +31,8 @@
   },
   "devDependencies": {
     "openapi-typescript": "7.13.0",
-    "prettier": "^3.8.1",
-    "typescript": "^5.5.0"
+    "prettier": "3.8.1",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=24.0.0 <25.0.0",
