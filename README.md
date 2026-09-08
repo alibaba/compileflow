@@ -12,7 +12,7 @@
 [![Java](https://img.shields.io/badge/Java-17%20%7C%2021%20%7C%2025-green?logo=OpenJDK&logoColor=white)](docs/en/compatibility-policy.md)
 [![License](https://img.shields.io/badge/license-Apache%202-4D7A97.svg?logo=Apache&logoColor=white)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
-[![GitHub Stars](https://img.shields.io/github/stars/alibaba/compileflow?style=social)](https://github.com/alibaba/compileflow/stargazers)
+[![GitHub Stars](https://img.shields.io/github/stars/alibaba/compileflow?style=social)](https://github.com/alibaba/compileflow)
 [![GitHub Forks](https://img.shields.io/github/forks/alibaba/compileflow?style=social)](https://github.com/alibaba/compileflow/fork)
 
 [中文 README](README_CN.md)
@@ -20,50 +20,54 @@
 </div>
 
 CompileFlow is a lightweight, high-performance, embeddable, and extensible process engine for Java. It supports TBBPM
-and the documented BPMN 2.0 subset.
+and the documented subset of BPMN 2.0.
 
-The CompileFlow Process engine uses stateless, in-memory execution and supports both compiled and interpreted modes.
-CompileFlow has been adopted by core systems across Alibaba business platforms, Taobao, Alibaba Cloud, and
+`ProcessEngine` runs processes in memory without persisting execution state and supports both compiled and interpreted
+modes. CompileFlow is used by core systems across Alibaba business platforms, including Taobao, Alibaba Cloud, and
 international businesses.
 
-For processes that must retain state across application restarts, CompileFlow Durable provides persisted waits, timers,
-and reliable handling of external operations.
+CompileFlow Durable persists long-running process state so execution can resume after waits, timers, external
+operations, or an application restart.
 
-Developers can use the visual process editor to design workflows and express complex business logic clearly, helping
-business designers and software engineers work together more effectively.
+The visual editor turns complex business logic into workflows that business and engineering teams can understand and
+maintain together. Java Actions connect application services, rules, and Agent calls in the same process. CompileFlow
+Deploy and Durable add versioned rollout and persistent execution.
 
 ## Key capabilities
 
-- **⚡ High-performance execution** — Compile process definitions into reusable Java runtimes or execute them with the
-  interpreter.
-- **🧩 TBBPM and BPMN** — Use one engine API and runtime model for TBBPM and the documented BPMN 2.0 subset.
+- **⚡ High-performance execution** — Choose compiled or interpreted execution; compiled mode generates and reuses Java
+  runtimes.
+- **🧩 TBBPM and BPMN** — Use one engine API and runtime model for TBBPM and the documented subset of BPMN 2.0.
 - **✅ Java and Spring Boot integration** — Embed a thread-safe engine directly or through Spring Boot, with declared variables,
   preflight validation, typed results, and stable errors.
-- **🚦 Versioned deployment** — Publish immutable Versions, update Aliases with revision checks, and route deterministic
+- **🚦 Versioned deployment** — Publish immutable versions, update aliases with revision checks, and route deterministic
   canary traffic with CompileFlow Deploy.
 - **⏱️ Durable execution** — Persist waits, timers, and external-operation state, then resume execution after an
   application restart.
 - **🖥️ Visual Workbench** — Model and validate processes in the browser, then publish, monitor, and inspect execution
   through the Workbench Server.
+- **🤖 Agent workflow orchestration** — Compose Agent calls with service actions and business rules through Java Actions.
 
 ## Choose a product surface
 
 | Need                                                               | Use                                                            |
 | ------------------------------------------------------------------ | -------------------------------------------------------------- |
 | In-process, low-latency execution                                  | `ProcessEngine` with `compileflow-tbbpm` or `compileflow-bpmn` |
+| Immutable versions, aliases, and canary rollout                    | [CompileFlow Deploy](compileflow-deploy/README.md)             |
 | Persisted waits, timers, external operations, and restart recovery | [CompileFlow Durable](compileflow-durable/README.md)           |
 | Browser modeling, release management, and execution inspection     | [CompileFlow Workbench](compileflow-workbench/README.md)       |
 
-These surfaces are independent. Adding Workbench or Durable does not make `ProcessEngine.execute(...)` calls persistent.
+These surfaces are independent. Adding Deploy, Durable, or Workbench does not make `ProcessEngine.execute(...)` calls
+persistent; persistent execution uses the Durable API.
 
 ## Core API
 
-| Type                | Purpose                                                                                |
-| ------------------- | -------------------------------------------------------------------------------------- |
-| `ProcessEngine`     | Thread-safe execution engine for installed model frontends and immutable configuration |
-| `ProcessRef`        | Reference to an exact published Version or a published Alias                           |
-| `ProcessDefinition` | Explicit inline or classpath process content                                           |
-| `ProcessResult<T>`  | Typed success or failure with stable error information                                 |
+| Type                | Purpose                                                  |
+| ------------------- | -------------------------------------------------------- |
+| `ProcessEngine`     | Thread-safe process execution entry point                |
+| `ProcessRef`        | Reference to a published version or alias                |
+| `ProcessDefinition` | Process definition supplied inline or from the classpath |
+| `ProcessResult<T>`  | Typed result or failure with stable error information    |
 
 Keep one long-lived `ProcessEngine` for each distinct configuration. A single engine discovers every installed
 frontend, while each definition carries its model type. Close the engine with the application lifecycle; do not
@@ -120,8 +124,8 @@ public class OrderService {
 For a complete project, run
 [`examples/spring-boot-basic`](examples/spring-boot-basic/README.md). The
 [quick-start guide](docs/en/quick-start.md) also covers standalone composition, preflight, warm-up, and shutdown.
-For a production-shaped HTTP scenario with gateways, a process call, parallel work, iteration, retries, and controlled
-errors, run [`examples/spring-boot-order-fulfillment`](examples/spring-boot-order-fulfillment/README.md).
+For a fuller HTTP example with gateways, a process call, parallel work, iteration, retries, and controlled errors, run
+[`examples/spring-boot-order-fulfillment`](examples/spring-boot-order-fulfillment/README.md).
 
 ## Execution model
 
@@ -129,10 +133,10 @@ errors, run [`examples/spring-boot-order-fulfillment`](examples/spring-boot-orde
 flowchart LR
     definition["TBBPM or BPMN definition"]
     engine["ProcessEngine"]
-    semantic["Process Semantic Plan"]
-    compile["COMPILED: generate Java, compile"]
-    interpret["INTERPRETED: interpret plan, compile expressions"]
-    runtime["Loaded Process runtime"]
+    semantic["Validated process model"]
+    compile["COMPILED: generate and compile Java"]
+    interpret["INTERPRETED: execute the model directly"]
+    runtime["Process runtime"]
     result["ProcessResult"]
 
     definition --> engine --> semantic
@@ -142,9 +146,8 @@ flowchart LR
     runtime --> engine
 ```
 
-CompileFlow uses explicit source identity, immutable deployment versions, bounded extension points, and typed errors.
-The executable node subsets and public compatibility promises are listed in
-[Supported Surfaces](docs/en/architecture/supported-surfaces.md).
+See [Supported Surfaces](docs/en/architecture/supported-surfaces.md) for executable nodes, process formats, and public
+compatibility commitments.
 
 ## Documentation
 
@@ -154,7 +157,7 @@ The executable node subsets and public compatibility promises are listed in
 | Configure and size an application | [Configuration](docs/en/configuration.md)                        | [配置指南](docs/zh/configuration.md)                     |
 | Use persisted execution           | [Durable Process](docs/en/durable-process.md)                    | [Durable Process](docs/zh/durable-process.md)            |
 | Understand the architecture       | [Architecture](docs/en/architecture/README.md)                   | [架构文档](docs/zh/architecture/README.md)               |
-| Check supported contracts         | [Supported Surfaces](docs/en/architecture/supported-surfaces.md) | [支持面清单](docs/zh/architecture/supported-surfaces.md) |
+| Check supported surfaces          | [Supported Surfaces](docs/en/architecture/supported-surfaces.md) | [支持面清单](docs/zh/architecture/supported-surfaces.md) |
 | Operate a deployment              | [Operations](docs/en/operations-playbook.md)                     | [运维手册](docs/zh/operations-playbook.md)               |
 | Contribute                        | [Contributing](CONTRIBUTING.md)                                  | [贡献指南（英文）](CONTRIBUTING.md)                      |
 

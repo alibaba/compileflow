@@ -221,6 +221,20 @@ test.describe('TBBPM palette node creation', () => {
     await expect(graphNodes.last()).toContainText('自动任务')
   })
 
+  test('select-all copy and paste duplicates every copyable selected node', async ({ page }) => {
+    const autoTaskItem = page.locator('.drag-palette-item').filter({ hasText: '自动任务' }).first()
+    const graphNodes = page.locator('.x6-node')
+    await autoTaskItem.click()
+    await autoTaskItem.click()
+    await expect(graphNodes).toHaveCount(4, { timeout: TIMEOUT })
+
+    await page.keyboard.press('ControlOrMeta+A')
+    await page.keyboard.press('ControlOrMeta+C')
+    await page.keyboard.press('ControlOrMeta+V')
+
+    await expect(graphNodes).toHaveCount(6, { timeout: TIMEOUT })
+  })
+
   test('editing note content updates the canvas immediately', async ({ page }) => {
     await page
       .locator('.palette-category-title')

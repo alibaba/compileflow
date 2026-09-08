@@ -29,8 +29,6 @@ The embedded engine also performs no remote URL fetches for process definitions.
 the application or deployment resolver, where authentication, network allowlists, timeouts, size limits, and digest
 verification can be enforced before trusted content reaches the compiler.
 
-Repository regression tests cover these parser-hardening guarantees.
-
 ### Java Identifier Normalization
 
 Generated Java package, class, and engine-helper method names are normalized through `JavaIdentifiers` and
@@ -140,7 +138,7 @@ language and makes its security, timeout, cache, ClassLoader, and lifecycle poli
 application's responsibility. Production deployments should:
 
 - Allow only reviewed flow definitions.
-- Treat any definition containing built-in QL or Java script as executable input and admit only reviewed definitions.
+- Treat any definition containing QLExpress or Java Code as executable input and admit only reviewed definitions.
 - Keep `compileflow.engine.components.allowed-beans` empty unless a reviewed Spring action requires a bean.
 - Restrict which methods are reachable by exposing narrow Spring adapters or resolver-returned interfaces.
 - Prefer narrow service adapters over broad application service exposure.
@@ -190,13 +188,6 @@ Record who performed:
 - API key and production configuration changes.
 
 Store audit logs in append-only or centrally managed logging infrastructure.
-
-## Dependency And CI Hygiene
-
-- Run targeted Maven tests for changed modules.
-- Run `./mvnw checkstyle:check` before publishing a release.
-- Keep dependency scanning in CI or release preparation.
-- Review generated artifacts before publishing release assets.
 
 ## Reporting Vulnerabilities
 

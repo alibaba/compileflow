@@ -614,7 +614,16 @@ const editorSlice = createSlice({
         const { id, updates } = action.payload
         const connection = state.currentProcess.connections.find((candidate) => candidate.id === id)
         if (connection) {
+          const previousSourceId = connection.sourceId
           Object.assign(connection, updates)
+          if (state.currentProcess.type === 'BPMN' && previousSourceId !== connection.sourceId) {
+            const previousSource = state.currentProcess.nodes.find(
+              (node) => node.id === previousSourceId
+            )
+            if (previousSource?.properties.default === id) {
+              delete previousSource.properties.default
+            }
+          }
           markChanged(state, action.meta.changeToken)
         }
       },

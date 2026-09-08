@@ -462,6 +462,16 @@ const zhOperate = {
 
   'monitoring.unavailable': '不可用',
 
+  'monitoring.runtimeStatus.healthy': '健康',
+
+  'monitoring.runtimeStatus.degraded': '降级',
+
+  'monitoring.runtimeStatus.down': '中断',
+
+  'monitoring.runtimeStatus.stopped': '已停止',
+
+  'monitoring.runtimeStatus.unavailable': '不可用',
+
   'monitoring.deployRuntime': '部署运行时',
 
   'monitoring.deployRuntimeLocalNode': '当前节点诊断',
@@ -530,6 +540,12 @@ const zhOperate = {
   'logs.effectiveVersion': '实际版本',
 
   'logs.routingSource': '路由来源',
+
+  'logs.routingSource.alias': '别名路由',
+
+  'logs.routingSource.version': '指定版本',
+
+  'logs.routingSource.definition': '当前流程定义',
 
   'logs.routeAlias': '路由别名',
 
@@ -657,6 +673,10 @@ const zhOperate = {
   'operate.explore': '快捷入口',
 
   'monitoring.runtimeTopology': '运行时拓扑',
+
+  'monitoring.runtimeTopology.embedded': '内嵌',
+
+  'monitoring.runtimeTopology.distributed': '分布式',
 
   'operate.processMgmt': '流程管理',
 

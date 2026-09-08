@@ -3,6 +3,7 @@ import { act, render } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useCanvasSync } from '../../hooks/useCanvasSync'
+import { useX6Graph } from '../../hooks/useX6Graph'
 import { loadOperateProcess } from '../../store/editorSlice'
 import BpmnCanvas from '../BpmnCanvas'
 import TbbpmCanvas from '../TbbpmCanvas'
@@ -18,10 +19,10 @@ vi.mock('@/app/hooks', () => ({
 vi.mock('../../context', () => ({ useDesignerContext: () => ({ graphRef: { current: null } }) }))
 vi.mock('../../hooks/useCanvasSync', () => ({ useCanvasSync: vi.fn() }))
 vi.mock('../../hooks/useX6Graph', () => ({
-  useX6Graph: (_container: unknown, options: { onReady: (value: unknown) => void }) => {
+  useX6Graph: vi.fn((_container: unknown, options: { onReady: (value: unknown) => void }) => {
     options.onReady(graph)
     return { current: graph }
-  },
+  }),
 }))
 vi.mock('../nodes/registerBpmnNodes', () => ({ registerBpmnNodes: vi.fn() }))
 vi.mock('../nodes/registerNodes', () => ({
@@ -114,6 +115,24 @@ describe.each(['BPMN', 'TBBPM'] as const)('%s canvas connection round-trip', (ty
     const calls = vi.mocked(useCanvasSync).mock.calls
     const options = calls[calls.length - 1][2]
     expect(options.connectionToX6Edge(original)).toMatchObject({ vertices: original.waypoints })
+  })
+
+  it('enforces terminal and entry-only TBBPM port directions', () => {
+    if (type !== 'TBBPM') return
+    mount()
+    const calls = vi.mocked(useX6Graph).mock.calls
+    const validateConnection = calls[calls.length - 1][1]?.validateConnection
+    expect(validateConnection).toBeTypeOf('function')
+    expect(validateConnection?.({ targetView: { cell: { shape: 'tbbpm-start' } } })).toBe(false)
+    for (const shape of ['tbbpm-end', 'tbbpm-break', 'tbbpm-continue']) {
+      expect(validateConnection?.({ sourceView: { cell: { shape } } })).toBe(false)
+    }
+    expect(
+      validateConnection?.({
+        sourceView: { cell: { shape: 'tbbpm-start' } },
+        targetView: { cell: { shape: 'tbbpm-auto-task' } },
+      })
+    ).toBe(true)
   })
 
   it('restores endpoints and clears vertices when undo changes only geometry', () => {

@@ -53,8 +53,8 @@ The in-browser simulator stops when it reaches an embedded subprocess. Use Workb
 execution; simulation does not flatten or approximate nested control flow.
 
 Service tasks serialize CompileFlow `cf:action` extensions. Script tasks default to the built-in `qlexpress` executor
-while retaining explicit custom executor names. The XML
-codec also round-trips process variables, action and call-activity mappings, message definitions, plain-text
+while retaining explicit custom executor names. The XML codec also round-trips process variables, action and
+call-activity mappings, message definitions, plain-text
 documentation, BPMN DI geometry, and sequence-flow waypoints.
 
 The authoritative engine surface is documented in
@@ -63,7 +63,7 @@ designer must reject or warn about XML outside that surface instead of presentin
 
 ## State And XML
 
-Redux owns the normalized editing state and undo history. X6 is a rendering and interaction adapter, not a second domain
+Redux owns the normalized editing state and undo stack. X6 is a rendering and interaction adapter, not a second domain
 model. Parser and writer functions translate between XML and structured editor state.
 
 Keep these rules:

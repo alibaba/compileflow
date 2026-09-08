@@ -14,7 +14,7 @@ They are not TBBPM or BPMN definitions and are not parser, code-generation, or r
 Open a file in a Mermaid-capable Markdown viewer. To render an SVG from the repository root:
 
 ```bash
-pnpm dlx @mermaid-js/mermaid-cli \
+pnpm dlx @mermaid-js/mermaid-cli@11.17.0 \
   -i docs/examples/flow-diagrams/sampleBranchMerge.mermaid \
   -o sampleBranchMerge.svg
 ```

@@ -7,7 +7,7 @@ import { useProcessInitialization } from '../useProcessInitialization'
 
 import { store } from '@/app/store'
 import type { ProcessTemplate } from '@/authoring/designer/api/processStorageTypes'
-import { loadProcess } from '@/authoring/designer/store/editorSlice'
+import { deleteProcess, loadProcess } from '@/authoring/designer/store/editorSlice'
 import type { DesignerEntryDescriptor } from '@/shared/services/designerNavigation'
 
 const mocks = vi.hoisted(() => ({
@@ -166,5 +166,33 @@ describe('initialization cancellation', () => {
 
     await waitFor(() => expect(result.current.status).toBe('ready'))
     expect(mocks.loadProcess).toHaveBeenCalledWith('retained')
+  })
+
+  it('does not reload a workspace process after its successful deletion clears editor state', async () => {
+    const { result } = renderHook(
+      () =>
+        useProcessInitialization({
+          entryPayload: {
+            ...entry('workspaceProcess'),
+            processId: 'retained',
+          },
+        }),
+      { wrapper }
+    )
+
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+    mocks.loadProcess.mockClear()
+    mocks.error.mockClear()
+
+    act(() => {
+      store.dispatch(deleteProcess.pending('delete-request', 'retained'))
+      store.dispatch(deleteProcess.fulfilled('retained', 'delete-request', 'retained'))
+    })
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+
+    expect(mocks.loadProcess).not.toHaveBeenCalled()
+    expect(mocks.error).not.toHaveBeenCalled()
   })
 })

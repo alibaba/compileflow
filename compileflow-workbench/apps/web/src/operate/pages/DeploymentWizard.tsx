@@ -12,6 +12,7 @@ import {
   Space,
   Steps,
 } from 'antd'
+import { isAxiosError } from 'axios'
 import type { TFunction } from 'i18next'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -163,7 +164,8 @@ async function validatedStepValues(
 
 function useProcessOptions(
   initialProcessCode: string | undefined,
-  selectedProcessCode: string | undefined
+  selectedProcessCode: string | undefined,
+  onMissingSelection: (code: string) => void
 ) {
   const [processOptions, setProcessOptions] = useState<ProcessSummary[]>([])
   const [processesError, setProcessesError] = useState(false)
@@ -187,7 +189,17 @@ function useProcessOptions(
         if (generation === requestGeneration.current) setProcessOptions(response.data)
         return
       }
-      const selected = await getProcessByCode(pinnedCode)
+      let selected: ProcessSummary
+      try {
+        selected = await getProcessByCode(pinnedCode)
+      } catch (error) {
+        if (!isAxiosError(error) || error.response?.status !== 404) throw error
+        if (generation === requestGeneration.current) {
+          setProcessOptions(response.data)
+          onMissingSelection(pinnedCode)
+        }
+        return
+      }
       if (generation === requestGeneration.current) {
         setProcessOptions([selected, ...response.data])
       }
@@ -196,7 +208,7 @@ function useProcessOptions(
     } finally {
       if (generation === requestGeneration.current) setProcessesLoading(false)
     }
-  }, [initialProcessCode, processKeyword, selectedProcessCode])
+  }, [initialProcessCode, onMissingSelection, processKeyword, selectedProcessCode])
 
   useEffect(() => {
     void loadProcesses()
@@ -325,6 +337,7 @@ function useDeploymentSubmission(
 
 function useDeploymentWizardState(
   initialProcessCode: string | undefined,
+  onMissingInitialProcess: (code: string) => void,
   t: TFunction
 ): DeploymentWizardState {
   const [current, setCurrent] = useState(0)
@@ -335,7 +348,21 @@ function useDeploymentWizardState(
   const selectedStrategy = Form.useWatch('strategy', form) ?? formData.strategy ?? 'all_at_once'
   const selectedProcessCode = Form.useWatch('processCode', form) ?? formData.processCode
   const canAdvance = useCanAdvance(form, current, selectedProcessCode, selectedStrategy)
-  const processOptions = useProcessOptions(initialProcessCode, selectedProcessCode)
+  const clearMissingSelection = useCallback(
+    (code: string) => {
+      if (form.getFieldValue('processCode') === code) {
+        form.setFieldValue('processCode', undefined)
+        setFormData((previous) => ({ ...previous, processCode: undefined, version: undefined }))
+      }
+      onMissingInitialProcess(code)
+    },
+    [form, onMissingInitialProcess]
+  )
+  const processOptions = useProcessOptions(
+    initialProcessCode,
+    selectedProcessCode,
+    clearMissingSelection
+  )
   const processVersions = useProcessVersions(form, selectedProcessCode)
 
   useInitialProcessSelection(form, initialProcessCode)
@@ -734,8 +761,21 @@ function DeploymentWizard() {
   usePageTitle('pageTitle.operate.deployWizard')
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const [searchParams] = useSearchParams()
-  const state = useDeploymentWizardState(searchParams.get('processCode') ?? undefined, t)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const handleMissingInitialProcess = useCallback(
+    (code: string) => {
+      if (searchParams.get('processCode') !== code) return
+      const next = new URLSearchParams(searchParams)
+      next.delete('processCode')
+      setSearchParams(next, { replace: true })
+    },
+    [searchParams, setSearchParams]
+  )
+  const state = useDeploymentWizardState(
+    searchParams.get('processCode') ?? undefined,
+    handleMissingInitialProcess,
+    t
+  )
   const steps = useMemo(() => createSteps(t), [t])
 
   if (state.deployStatus === 'success') {

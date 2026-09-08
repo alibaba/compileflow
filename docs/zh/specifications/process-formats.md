@@ -72,7 +72,7 @@ CompileFlow 接受 TBBPM 和文档明确支持的 BPMN 2.0 子集。本页说明
 | 消息/信号   | 普通引擎不提供消息代理语义；Durable 的 `waitEventTask` 恢复令牌对应的精确 Wait | `receiveTask` 与中间消息捕获事件转换为精确 Durable Wait；拒绝信号节点 | 不提供通用的消息广播、信号广播或关联匹配            |
 | 部署身份    | 位于 XML 之外的 `ProcessRef` 和部署元数据                                      | 位于 XML 之外的 `ProcessRef` 和部署元数据                             | 共用引擎契约                                        |
 
-## 4. Action
+## 4. 动作
 
 TBBPM 将 Action 作为一级元素：
 

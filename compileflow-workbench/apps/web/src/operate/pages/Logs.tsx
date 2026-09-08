@@ -95,13 +95,20 @@ function downloadBlob(blob: Blob, fileName: string): void {
   window.URL.revokeObjectURL(url)
 }
 
-function formatDuration(durationMs: number): string {
+export function formatDuration(durationMs: number): string {
   if (durationMs < 1_000) return `${durationMs} ms`
   if (durationMs < 60_000) return `${(durationMs / 1_000).toFixed(durationMs < 10_000 ? 1 : 0)} s`
 
   const minutes = Math.floor(durationMs / 60_000)
   const seconds = Math.floor((durationMs % 60_000) / 1_000)
   return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`
+}
+
+function routingSourceLabel(source: string | undefined, t: TFunction): string {
+  if (source === 'alias' || source === 'version' || source === 'definition') {
+    return t(`logs.routingSource.${source}`)
+  }
+  return source ?? '-'
 }
 
 function DurationValue({ duration }: { duration?: number }) {
@@ -431,7 +438,7 @@ function LogDetailModal({ state, t }: { state: LogPageState; t: TFunction }) {
               {selectedLog.effectiveVersion ?? '-'}
             </Descriptions.Item>
             <Descriptions.Item label={t('logs.routingSource')}>
-              {selectedLog.routingSource ?? '-'}
+              {routingSourceLabel(selectedLog.routingSource, t)}
             </Descriptions.Item>
             <Descriptions.Item label={t('logs.routeAlias')}>
               {selectedLog.routeAlias ?? '-'}

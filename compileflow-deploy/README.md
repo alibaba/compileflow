@@ -1,12 +1,13 @@
 # CompileFlow Deploy
 
-`compileflow-deploy` provides immutable process publication, revision-checked Alias rollout, and runtime convergence.
-It is an embeddable control plane/runtime, not a standalone service. Applications that execute only direct Inline or
-Classpath definitions do not need it.
+`compileflow-deploy` provides immutable process publication, revision-checked Alias rollout, and runtime installation.
+It is embedded in an application rather than deployed as a standalone service. Applications that execute only Inline
+or Classpath definitions do not need it.
 
-PostgreSQL 16.15, 17.11, and 18.6 and MySQL 8.4.7 are built-in Deploy Store providers; H2 is test-only. Publishing a
-Version does not install code or change traffic. Read the [hot-deployment guide](../docs/en/hot-deploy.md) and
-[Supported Surfaces](../docs/en/architecture/supported-surfaces.md) before deployment.
+PostgreSQL and MySQL are built-in Deploy Store providers; H2 is test-only. Publishing a Version stores immutable
+content but does not install it or change traffic. Supported database versions and deployment requirements are listed
+in [Supported Surfaces](../docs/en/architecture/supported-surfaces.md) and the
+[hot-deployment guide](../docs/en/hot-deploy.md).
 
 ## Modules
 
@@ -43,7 +44,7 @@ PublishedProcessVersion published = deploymentService.publish(
         ProcessRef.version("default", "order.rule", "2026-09-05-001"),
         ProcessDefinition.inline(ProcessModelType.TBBPM, "order.rule", flowXml),
         "alice",
-        Map.of("releaseNote", "new fraud rule")));
+        Map.of("releaseNote", "fraud screening")));
 ```
 
 The first Alias route uses expected revision `0`. Every mutation uses the latest Alias or rollout revision and a stable
@@ -57,7 +58,7 @@ ProcessRollout rollout = deploymentService.createRollout(
         published.getRef(),
         0L,
         "alice",
-        "initial production route"));
+        "production route"));
 ```
 
 The exact command signatures are owned by `compileflow-deploy-api`; see the
@@ -70,10 +71,10 @@ The exact command signatures are owned by `compileflow-deploy-api`; see the
 - An Alias contains one stable Version and at most one candidate. Canary weight is `1..9999` basis points.
 - Alias revision is the only routing order. Stale mutations return a concurrency failure instead of overwriting newer
   intent.
-- Rollback creates a new rollout from a captured baseline; it never rewrites history.
+- Rollback creates a new rollout from a captured baseline and leaves earlier rollout records unchanged.
 - Runtime nodes retain every referenced exact runtime before publishing local-ready state.
-- Missing or unverifiable artifacts fail closed. There is no hidden previous-Version fallback.
-- Outbox delivery is at least once and separate from append-only rollout audit history.
+- Missing or unverifiable artifacts fail closed; execution does not fall back to another Version.
+- Outbox delivery is at least once and is recorded separately from the append-only rollout audit log.
 
 Detailed route, rollout, cohort, outbox, and projection semantics are defined in
 [PROTOCOL.md](docs/PROTOCOL.md). The user-facing publication workflow is documented in
@@ -81,19 +82,15 @@ Detailed route, rollout, cohort, outbox, and projection semantics are defined in
 
 ## Topology and Configuration
 
-`EMBEDDED` waits for process-local convergence before a successful route-changing command returns.
-`DISTRIBUTED` commits authority first and distributes desired Alias state through a `DeploymentProjectionStore`.
-Immutable artifacts are read from the version repository in `SOURCE` mode or projected through the same store in
-`PROJECTION_STORE` mode. The selected `DeployStore` remains authoritative in both topologies; remote and local-ready
-state are rebuildable projections.
+`EMBEDDED` waits until the local runtime is ready before a route-changing command succeeds. `DISTRIBUTED` first commits
+the authoritative change, then distributes the desired Alias state through a `DeploymentProjectionStore`. Immutable
+artifacts come from the version repository in `SOURCE` mode or from the projection store in `PROJECTION_STORE` mode.
+The selected `DeployStore` remains authoritative in both topologies.
 
-In `EMBEDDED`, `compileflow.deploy.runtime.convergence-timeout` bounds the caller's wait for alias lookup,
-artifact resolution, runtime loading, and local-ready publication. The runtime owns a bounded background executor;
-`runtime.installation-concurrency` limits admitted convergence operations, including work whose callers timed out.
-Admission fails immediately with `CONVERGENCE_FAILED` when capacity is exhausted. Timeout and interruption do not
-cancel shared convergence, which may still publish local-ready state later. This is a caller wait budget, not a
-deadline that forcibly stops provider I/O or compilation. A stuck provider retains capacity until it returns;
-configure provider I/O timeouts separately. Shutdown stops new admission and lets submitted work finish.
+In `EMBEDDED`, `compileflow.deploy.runtime.convergence-timeout` limits how long the caller waits for Alias lookup,
+artifact resolution, runtime loading, and ready-state publication. `runtime.installation-concurrency` limits concurrent
+installation work. Requests fail with `CONVERGENCE_FAILED` when capacity is exhausted. A caller timeout does not cancel
+shared installation work or provider I/O, so configure provider timeouts separately.
 
 Choose exactly one first-party starter, or provide one complete custom `DeployStore`. PostgreSQL migrations live at
 `db/compileflow-deploy/postgres/migration`; MySQL migrations live at

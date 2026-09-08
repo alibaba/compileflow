@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import Monitoring from '../Monitoring'
@@ -110,9 +111,11 @@ const queuedRedrive: AsyncInvocationResponse = {
 
 function renderMonitoring() {
   return render(
-    <ThemeProvider>
-      <Monitoring />
-    </ThemeProvider>
+    <MemoryRouter>
+      <ThemeProvider>
+        <Monitoring />
+      </ThemeProvider>
+    </MemoryRouter>
   )
 }
 
@@ -232,6 +235,36 @@ describe('Monitoring operations control plane', () => {
     expect(await screen.findByText('部署任务投递中')).toBeInTheDocument()
     expect(screen.getByText('是')).toBeInTheDocument()
     expect(screen.queryByText('on')).not.toBeInTheDocument()
+  })
+
+  it('localizes runtime status and topology values instead of exposing internal enums', async () => {
+    vi.mocked(getDeploymentRuntimeDiagnostics).mockResolvedValue({
+      available: true,
+      started: true,
+      topology: 'embedded',
+      inflightCount: 0,
+      inflightCapacity: 10,
+      inflightAvailablePermits: 10,
+      failureBackoffMs: 300_000,
+      retainedRuntimeCount: 0,
+      desiredAliasCount: 0,
+      localReadyAliasCount: 0,
+      pendingAliasCount: 0,
+      failedAliasCount: 0,
+      aliases: [],
+      demandedVersions: [],
+      backedOffVersions: [],
+      deployedVersions: [],
+      inflightVersions: [],
+      pendingReleaseVersions: [],
+      timestamp: '2026-08-02T00:00:00Z',
+    })
+
+    renderMonitoring()
+
+    expect(await screen.findByText('内嵌')).toBeInTheDocument()
+    expect(screen.getAllByText('健康').length).toBeGreaterThan(0)
+    expect(screen.queryByText('embedded')).not.toBeInTheDocument()
   })
 
   it('refreshes the invocation ledger after a bounded dead-letter redrive', async () => {

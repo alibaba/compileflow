@@ -35,7 +35,7 @@
 
 在 `ProcessEngine` 中，它们是 `trigger(...)` 新调用的顶层具名入口，不是持久化检查点，也不能位于循环内。在 `durable-strict@1` 中，它们是持久化 Wait 边界，可以位于有界循环内；恢复时必须提供对应流程实例的一次性 Wait 令牌。
 
-### Durable 边界与 Action 语义
+### Durable 边界与动作语义
 
 - `timerTask` - 持久化挂起，直到字面 duration、duration 表达式或绝对唤醒时间表达式到期。
 
@@ -191,7 +191,7 @@ durable.completeWait(waitToken, Map.of("approved", true));
 
 `waitToken` 是持有者凭证，必须按敏感凭据进行保护。CompileFlow 提供人在回路编排能力，但不内置 `humanTask` 节点或人工任务管理模块。
 
-### ProcessEngine Runtime 定时任务实现
+### 进程内定时任务
 
 ProcessEngine 流程由应用调度器发起。若要在同一个 Durable Run 中持久化延迟，请改用 `timerTask`：
 

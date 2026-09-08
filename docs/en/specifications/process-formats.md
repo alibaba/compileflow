@@ -102,7 +102,7 @@ BPMN 2.0 service tasks use the same action model under standard extension elemen
 </serviceTask>
 ```
 
-The Java and Spring bean invocation types, the built-in QL and Java Script languages, and explicitly registered custom
+The Java and Spring bean invocation types, the built-in QLExpress and Java Code languages, and explicitly registered custom
 Script providers are shared by both formats. The core-provided Java Code executor is trusted in-process and is not a
 sandbox.
 TBBPM uses direct elements; BPMN keeps CompileFlow extension data namespaced. BPMN `scriptTask` uses its standard

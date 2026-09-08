@@ -1,12 +1,12 @@
 # Workbench Web Architecture
 
-The following ownership and change map applies to `apps/web`.
+This document defines the ownership and integration boundaries for `apps/web`.
 
 ## Product Boundaries
 
-| Domain  | Responsibility                                                       | Durable data                                 |
+| Domain  | Responsibility                                                       | State owner                                  |
 | ------- | -------------------------------------------------------------------- | -------------------------------------------- |
-| Learn   | Examples, concepts, and explicit-definition preview                  | Server catalog or bundled mock catalog       |
+| Learn   | Examples, concepts, and definition preview                           | Server catalog or bundled mock catalog       |
 | Build   | BPMN/TBBPM authoring and local workspace management                  | Browser IndexedDB                            |
 | Operate | Draft persistence, publication, routing, execution, health, and logs | Workbench Server and its configured database |
 
@@ -54,7 +54,7 @@ Cross-domain navigation uses the route builders in
 ## State Ownership
 
 - Component state owns transient presentation state.
-- Redux owns shared designer editing state and undo history.
+- Redux owns shared designer editing state and the undo stack.
 - IndexedDB owns local processes, snapshots, and templates.
 - Workbench Server owns server drafts, published versions, routes, async invocations, and execution logs.
 - `VITE_COMPILEFLOW_*` values are parsed once as public build inputs.

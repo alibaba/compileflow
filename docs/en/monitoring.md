@@ -1,7 +1,7 @@
 # Monitoring and Observability
 
-CompileFlow has three separate observability surfaces. Keeping them separate avoids turning one boolean into an
-ambiguous global switch.
+CompileFlow exposes separate controls for engine events, JVM metrics, and server health. Enable and configure each
+surface independently.
 
 | Surface                       | Owner                          | Configuration                                                                |
 | ----------------------------- | ------------------------------ | ---------------------------------------------------------------------------- |

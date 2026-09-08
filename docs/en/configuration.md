@@ -1,17 +1,16 @@
 # CompileFlow Configuration
 
-CompileFlow parses external configuration once at an application boundary, validates it, and passes typed snapshots to
-the components that own it. Core execution does not read environment variables, JVM system properties, or a mutable
-global resolver.
+Each CompileFlow product reads and validates external configuration at its application boundary, then passes immutable,
+typed settings to its runtime components. Core execution does not read environment variables, JVM system properties,
+or a mutable global resolver.
 
 Java configuration snapshots borrow every supplied collaborator; the application retains those collaborators' lifecycle.
 An Engine closes only resources created by its factory. Reusing one configuration across Engines therefore requires its
 supplied collaborators to satisfy their documented thread-safety contracts.
 
-The settings below are the supported configuration surface. Names, types, units, enum values, ownership, semantics and
-accepted bounds are contracts. Semantic, security and activation defaults are stable; operational capacity and performance
-defaults may evolve with documented evidence, not as latency guarantees. Implementation fields and undocumented aliases
-are not supported configuration. See the [compatibility policy](compatibility-policy.md).
+The settings below form the supported configuration surface. Their names, types, units, enum values, semantics, and
+accepted bounds are contracts. Implementation fields and undocumented aliases are not supported. See the
+[compatibility policy](compatibility-policy.md).
 
 ## Boundaries And Precedence
 
@@ -107,7 +106,7 @@ Definitions explicitly own their model type. Executor and cache limits belong to
 formats. Select `compileflow-spring-boot-starter-tbbpm` or `compileflow-spring-boot-starter-bpmn` for a single-format
 application; compose the base starter with both frontend modules when both formats are required.
 `COMPILED` remains the default. `INTERPRETED` is a supported execution implementation, not a compiler-free host profile: the supported
-2.0 host still includes `jdk.compiler` for definition validation and preparation.
+host still includes `jdk.compiler` for definition validation and preparation.
 
 Parallel branches use one thread per orchestration task. Java 21 and newer use virtual threads. Java 17 uses a finite,
 unqueued platform-thread executor with the internal CPU-adaptive ceiling `max(8, min(64, CPUs * 4))`; at its ceiling,
@@ -466,7 +465,7 @@ immutable
 | `compileflow.workbench.server.async-invocation.lease-duration`          | `30s`                      | `COMPILEFLOW_WORKBENCH_SERVER_CONFIG_ASYNC_INVOCATION_LEASE_DURATION`; renewal runs at a derived one-third cadence.                                        |
 | `compileflow.workbench.server.async-invocation.lease-recovery-interval` | `5s`                       | `COMPILEFLOW_WORKBENCH_SERVER_CONFIG_ASYNC_INVOCATION_LEASE_RECOVERY_INTERVAL`                                                                             |
 
-Workbench 2.0 owns one product namespace, `default`. Published execution requests therefore accept a version or Alias but
+Workbench uses one product namespace, `default`. Published execution requests therefore accept a version or Alias but
 no caller-selected namespace; responses and logs retain the effective namespace as attribution. Supporting multiple
 namespaces requires namespace-aware draft identity, URLs, authorization, persistence, and UI selection together, not a
 standalone configuration switch.
@@ -543,8 +542,8 @@ instead of issuing an unbounded catch-up delete.
 
 Flyway is the only schema migration authority for the server application. The default
 `compileflow.workbench.server.database.migrate=false` keeps DDL outside the runtime identity. Production applies the
-committed Deploy V1 and Workbench V1 migrations through a separately authorized deployment identity. On MySQL with
-binary logging, use a DDL administrator authorized to create the V1 triggers; schema-scoped DDL grants alone may be
+packaged Deploy and Workbench migrations through a separately authorized deployment identity. On MySQL with binary
+logging, use a DDL administrator authorized to create the packaged triggers; schema-scoped DDL grants alone may be
 insufficient. Do not relax global `log_bin_trust_function_creators`. Local development
 and the bundled Compose topology explicitly opt in to `database.migrate=true`. The default mode still validates Flyway checksums and rejects every pending
 migration before the application becomes ready; `spring.flyway.enabled` must remain enabled. The runtime DML role

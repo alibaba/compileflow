@@ -12,8 +12,8 @@ The TBBPM designer is the Workbench editor for CompileFlow's TBBPM XML format. I
 - Local workspace persistence through IndexedDB.
 - Undo, redo, copy, paste, search, validation, and canvas zoom controls.
 
-The designer is part of the Build module and does not own an Engine. Draft preview uses the loopback development mock or
-`compileflow-workbench-server`; published execution remains an Operate concern.
+The designer is part of Build. Draft preview uses the loopback development mock or
+`compileflow-workbench-server`; Operate handles published execution.
 
 ## Code Entry Points
 

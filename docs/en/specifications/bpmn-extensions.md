@@ -139,10 +139,10 @@ A BPMN `scriptTask` uses standard BPMN fields for its implementation and Compile
 registered `ScriptExecutor`. Java and QL share this standard BPMN shape and the same semantic plan. Every script input
 and output is explicitly declared with `cf:input` or `cf:output`.
 
-Java Script source is a method body. The first-party executor creates a typed wrapper during Process runtime load and
+Java Code is a method body. The first-party executor creates a typed wrapper during Process runtime load and
 compiles it with `javac --release 17`; the `ScriptProgram` belongs to that exact disposable runtime and is never
 persisted process identity. Exact language, source, and declared signature stay bound to the immutable Process version
-so a runtime can prepare again from source. V1 accepts JDK platform input/output types only. Java Script is trusted
+so a runtime can prepare again from source. Java Code accepts JDK platform input/output types only and runs as trusted
 embedded computation, not a sandbox; Workbench deployments for untrusted authors require an isolated Code Runner.
 
 CompileFlow execution controls attach directly to the Script Task: `cf:execution` is a qualified task attribute, while

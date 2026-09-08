@@ -4,64 +4,64 @@ Durable 面向需要跨应用重启保存状态的流程。它是独立的执行
 
 ## 核心不变量
 
-Store 是 Run 的权威状态源。Worker 读取已提交的语义状态，执行一个有界 turn，并以原子事务提交下一段 continuation 和该 turn 产生的全部事实。提交前崩溃会重试；提交后崩溃从已提交边界恢复。
+存储是流程实例的权威状态源。工作节点读取已提交的语义状态，执行一个有界轮次，再以原子事务提交后续执行位置和本轮产生的全部事实。提交前崩溃会重新执行；提交后崩溃则从已提交的位置恢复。
 
-Kernel 不持久化生成的 Java source、class、bytecode、存活对象实例、executor 状态或内存路由。声明的应用值以类型化状态序列化。编译只是可丢弃的准备工作。恢复根据精确的流程定义和已提交的语义 checkpoint 重建可执行状态。
+Durable 内核不持久化生成的 Java 源码、类、字节码、内存对象、执行器状态或内存路由。应用值以类型化状态序列化；编译产物可以随时重新生成。恢复时根据确定的流程定义和已提交的语义检查点重建执行状态。
 
 ## 准入与执行
 
-Start admission 物化一个精确且不可变的已存储 Process，并将 Run 绑定到它的 `processId`。它把精确的 `ProcessRef.Version` 或已发布 Alias 解析为精确版本。Alias 是 Deploy control-plane 状态，不是恢复权威。Engine 在解析一次 Alias 之前先拒绝重复使用的 Run ID。Alias 变化只影响后续 admission，不会重定向已经准入的 Run。`DurableProcessEngine` 和 `ProcessEngine` 是并列执行面。
+启动流程实例时，Durable 会保存一份不可变的流程定义，并把流程实例绑定到对应的 `processId`。使用 `ProcessRef.Version` 或已发布别名启动时，系统先将其解析为确定版本。别名属于 Deploy 控制面状态，不参与恢复。引擎会先拒绝重复的流程实例 ID，再解析别名；后续别名变化不会改变已经启动的流程实例。`DurableProcessEngine` 与 `ProcessEngine` 是两个独立的执行入口。
 
-Durable 只支持文档化的 TBBPM 和 BPMN profile。Action 声明 `execution=replayable|effect`，它与同步 retry policy 相互独立。Durable API 提供 Run、Effect 和 Operator 契约；定义注册只是 start 准入准备，不是应用生命周期 API。Run 的恢复不要求 Deploy，其路由状态也不是恢复权威。
+Durable 只支持文档列出的 TBBPM 和 BPMN 能力。动作通过 `execution=replayable|effect` 声明执行语义，与同步调用的重试策略相互独立。Durable API 提供流程实例、外部操作和运维契约；注册流程定义只是启动前的准备，不属于应用生命周期 API。恢复流程实例不依赖 Deploy，也不读取当前路由状态。
 
-## Worker 生命周期
+## 工作节点生命周期
 
 `compileflow-durable-runtime` 中的 `DurableWorkerCoordinator` 负责轮询、有界执行容量、维护调度和
-Worker 健康状态，不依赖 Spring。`DurableWorkerLifecycle` 只通过拥有它的 `DurableProcessEngine` 适配 Spring 启停时序；
-禁用 Worker 时，既不创建 Worker 对象图，也不创建生命周期适配器。
+工作节点的健康状态，不依赖 Spring。`DurableWorkerLifecycle` 通过所属的 `DurableProcessEngine` 接入 Spring 启停时序；
+禁用工作节点时，不会创建相关对象或生命周期适配器。
 
 停止时不再安排新任务，等待已准入任务退出，不中断应用代码；完成回调只在这些任务退出后触发。
-组装宿主必须在等待期间保留 Store、续租和 Runtime 资源；停止调度不代表外部 Effect 已取消。
+宿主在等待期间必须保留存储、续租和运行时资源；停止调度不代表外部操作已经取消。
 应用 API 与运维 API 继续保持能力分离。
 
 ## 流程身份
 
-已存储流程定义由内容寻址的 `processId` 标识，process code、model type、精确字节与 digest 不可变。namespace 和可选 Version 属于 Run 准入归因，不属于已存储语义身份。同 code 的 Direct definition 可以产生不同 `processId`，无需 Version；已发布 Version 的内容仍不可变。每个 Run 保存精确 root `processId`，保留策略必须保证可恢复或保留 Run 引用的定义持续存在。
+已存储流程定义使用按内容生成的 `processId` 标识，流程编码、模型类型、原始字节和摘要均不可变。命名空间和可选版本只记录启动来源，不属于流程定义的语义身份。同一流程编码的直接定义可以生成不同的 `processId`，无需版本号；已发布版本的内容仍不可修改。每个流程实例都保存根流程的 `processId`，因此保留策略必须确保其引用的定义始终可用。
 
-## Run 与 invocation 边界
+## 流程实例与调用边界
 
-每次 Start 创建一个稳定 Run ID。Process Call 在同一 Run 中创建 invocation frame，不会创建另一个 Run。Invocation frame 携带所属 turn 所需的语义输入、输出、状态和 continuation。
+每次启动都会创建稳定的流程实例 ID。子流程调用在同一流程实例中创建调用帧，不会产生新的流程实例。调用帧保存当前执行轮次所需的输入、输出、状态和后续执行位置。
 
-Root input 是已声明 `param` 变量的封闭 partial map；`return` 和 `inner` 由 Process 自己拥有。未声明 key 在应用代码运行前失败。Wait completion 为已有 Run 提交类型化结果，不创建新的 invocation 或 Run。
+根流程输入只能包含已声明的 `param` 变量，可以省略部分参数；`return` 和 `inner` 由流程自身管理。未声明的字段会在应用代码运行前被拒绝。完成等待只向已有流程实例提交类型化结果，不会创建新的调用或流程实例。
 
 ## 恢复权威
 
-恢复使用已提交的语义 checkpoint、精确流程身份、类型化 invocation 状态、pending request、Wait/Timer 事实、Effect 事实和有界 ownership lease。数据库时间与 fencing token 保护 ownership；ownership 变化后，旧 Worker 的迟到完成会被拒绝。
+恢复依据包括已提交的语义检查点、确定的流程身份、类型化调用状态、待处理请求、等待与定时器状态、外部操作状态以及有界所有权租约。数据库时间和隔离令牌共同保护所有权；所有权变化后，旧工作节点迟到的提交会被拒绝。
 
-准备阶段可以编译可丢弃 Runtime。Runtime 必须准备完成后才能执行；准备失败不能推进 Run。Worker 在拥有 turn 时续租，完成或失败时释放 ownership。
+准备阶段可以生成可丢弃的运行时。运行时准备完成后才能执行；准备失败不会推进流程实例。工作节点持有执行轮次时会续租，完成或失败后释放所有权。
 
-缺少应用 class、component、script executor 或 serializer 是 application/runtime capability 问题。它应在当前部署中修复，不得改写已存储语义或引入历史 build 路由。
+缺少应用类、组件、脚本执行器或序列化器，说明当前部署不具备恢复所需能力。应修复部署环境，不能改写已存储的流程语义，也不能通过旧构建产物绕过问题。
 
-## Action 与 Effect
+## 动作与外部操作
 
-Action 可以是确定性的流程逻辑，也可以是受治理的外部边界。可 replay 的 Action 可以用相同语义输入再次运行。外部 Effect request 在 dispatch 前以稳定 occurrence identity 提交，结果再独立解决。该身份便于应用实现去重，但不能证明应用已幂等；Kernel 不会把中断的外部调用假设成自动可逆。
+动作既可以执行确定性的流程逻辑，也可以调用外部系统。可重放动作能够使用相同输入再次运行。外部操作请求会在发送前以稳定的执行实例标识提交，结果随后单独确认。该标识便于应用去重，但不能保证外部系统已经实现幂等；Durable 内核也不会假定中断的外部调用能够自动撤销。
 
-Durable 拒绝非默认 `invocationPolicy`；同步 retry 与 timeout policy 属于 `ProcessEngine` invocation。Durable Effect recovery 使用已提交的 `effectPolicy` 与带 fencing 的 Store transition。外部调用失败或中断可能留下未知结果，不能据此证明外部操作没有发生。
+Durable 不接受非默认的 `invocationPolicy`；同步重试和超时策略只适用于 `ProcessEngine` 调用。外部操作恢复使用已提交的 `effectPolicy`，并通过带隔离令牌的存储状态转换提交。外部调用失败或中断后，结果可能仍然未知，不能据此认定操作没有发生。
 
-## Wait 完成与查询
+## 等待完成与查询
 
-`WaitToken` 是一个已物化 Wait occurrence 的不透明、一次性 bearer capability。Store 只把它的 digest 保存为权威，并根据该 digest 找到所属 Run；调用方不能提供恢复坐标。Kernel 不要求应用建立 token 表；外部系统只暴露自身 job ID 时，integration 可以保留映射。Raw token 是凭据，不得进入日志、URL、metric 或 operator view。
+`WaitToken` 是一次等待实例使用的不透明、一次性凭据。存储只保存令牌摘要，并据此找到所属流程实例；调用方不能自行提供恢复位置。Durable 内核不要求应用建立令牌表；如果外部系统只提供自己的任务 ID，集成层可以保存两者的映射。原始令牌属于敏感凭据，不能写入日志、URL、指标或运维视图。
 
-Run、timeline 和 Outbox 查询使用类型化精确过滤与 keyset cursor。Durable 不提供模糊搜索；adapter 可以建立独立的非权威搜索 projection。
+流程实例、时间线和 Outbox 查询使用类型化精确条件与键集游标。Durable 不提供模糊搜索；适配器可以另建不参与执行决策的搜索视图。
 
-## 状态、事务与 Store
+## 状态、事务与存储
 
-Run、invocation、request、lease 以及 Effect/Outbox 事实都使用显式状态转换。Store Provider 必须保持转换原子性、锁顺序、compare-and-set、数据库时间语义和 token fencing。PostgreSQL 和 MySQL 是带独立 migration 的一方 Provider；H2 仅用于测试。
+流程实例、调用、请求、租约以及外部操作和 Outbox 记录都使用显式状态转换。存储实现必须保证转换的原子性、锁顺序、比较并设置、数据库时间语义和令牌隔离。PostgreSQL 与 MySQL 是自带数据库变更脚本的官方实现；H2 仅用于测试。
 
-物理表结构由 Provider 负责。Kernel 契约是事务和恢复语义，不是固定表数量。与 Provider 无关的 testkit 是受支持 Store 实现的验证依据。
+物理表结构由存储实现负责。Durable 内核约束事务和恢复语义，不限定表的数量。所有受支持的存储实现都必须通过通用测试套件。
 
 ## 保留与可观测性
 
-只有在没有保留 Run 引用某个流程定义，且备份和回滚窗口允许时，才能删除该定义。生成 Runtime 可以更早释放。Retention 按引用决定；只保留最近 N 个版本并不充分。
+只有在没有保留的流程实例引用某个流程定义，且备份与回滚窗口允许时，才能删除该定义。生成的运行时可以更早释放。保留策略必须根据引用关系判断，不能只保留最近若干版本。
 
-Run view 和 metric 暴露受控状态和结果，不得暴露 payload 变量、凭据、路由 key、lease token 或其他秘密。参见[Durable Process](../durable-process.md)、[Durable 运维](../durable-operations-runbook.md)和[支持面清单](supported-surfaces.md)。
+流程实例视图和指标只展示必要的状态与结果，不得暴露载荷变量、凭据、路由键、租约令牌或其他敏感信息。参见 [Durable Process](../durable-process.md)、[Durable 运维](../durable-operations-runbook.md)和[支持面清单](supported-surfaces.md)。

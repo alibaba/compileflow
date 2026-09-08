@@ -25,7 +25,7 @@ PostgreSQL and MySQL 8.4 are supported Deploy databases. Use exactly one matchin
 Apply the exact packaged migration before enabling command ingress or background delivery. Provider starters default to
 `compileflow.deploy.database.migrate=false`: they validate externally applied migrations and reject pending or inconsistent
 schemas. Explicit `true` applies migrations using the configured DataSource identity. For MySQL with binary logging,
-the V1 triggers require a DDL administrator with the server-required trigger-creation privileges; schema-scoped DDL
+the packaged triggers require a DDL administrator with the required trigger-creation privileges; schema-scoped DDL
 grants alone may be insufficient. Run migrations separately, then use a DML-only application identity with migration
 disabled. Do not enable global `log_bin_trust_function_creators` to bypass that ownership boundary.
 

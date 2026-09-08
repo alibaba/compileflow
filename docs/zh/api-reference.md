@@ -148,7 +148,7 @@ Map<String, Object> output = result.orElseThrow(() ->
 `ProcessExecution` 只公开跟踪 ID、调用 ID、逻辑命名空间、流程编码、可选的精确发布版本和起止时间。
 根选择器、Alias 路由细节、路由输入、模型或来源诊断、变量和异常对象都保留在各自的职责边界内。
 
-## 6. Trigger 入口
+## 6. 触发入口
 
 `ProcessTrigger` 通过全局唯一 ID 选择触发入口节点，并可指定事件：
 
@@ -240,7 +240,7 @@ Map<String, Object> toVariables(Object input);
 
 线协议载荷、解析器、规范 JSON 编解码器和投影键由 `compileflow-deploy-protocol` 单独发布；领域 API 不依赖该表示模块。
 
-## 11. Durable Process API
+## 11. Durable API
 
 Durable 执行是 `compileflow-durable-api` 中的独立产品边界。它不会扩展同步
 `ProcessEngine`，加入 Durable Starter 也不会让普通 `execute(...)` 自动持久化。与存储无关的应用门面为：
@@ -267,7 +267,7 @@ public interface DurableProcessEngine {
 准入遵循以下规则：
 
 - 显式流程定义经安全加载后冻结为不可变快照。
-- Exact Version 不会回退到其他来源。
+- 确定版本不会回退到其他来源。
 - Alias 只解析一次，Run 永久绑定所选的精确已存储 Process。
 - `AliasRoutingOptions` 只适用于通过 Alias 启动 Run 时的准入过程。
 - 恢复时按 `processId` 读取已存储 Process，不会重新解析 Alias，也不会读取当前类路径中的内容。
@@ -298,7 +298,7 @@ public interface DurableProcessEngine {
 
 捕获 `DurableProcessException` 后按 `DurableErrorCode` 分支，不要解析消息文本。Action 的
 `execution="replayable|effect"` 选择 Durable 执行语义。调用后结果为 `UNKNOWN` 的 Effect 先遵循配置的自动恢复策略；
-只有 `reviewRequired()` 为 `true` 时，才需要经过认证的运维人员裁决。准入、Wait 令牌、流程调用、运维与 Effect 恢复见
+只有 `reviewRequired()` 为 `true` 时，才需要经过认证的运维人员裁决。准入、等待令牌、流程调用、运维与外部操作恢复见
 [Durable Process 使用指南](durable-process.md)。
 
 ## 12. 失败边界

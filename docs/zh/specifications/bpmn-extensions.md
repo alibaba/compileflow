@@ -81,7 +81,7 @@ Action 输入读取 `source` 并写入 Action 的局部 `target`，且 `source` 
 输出的来源是 Action 返回值，因此只需显式声明 `target`。流程调用两端都显式声明：输入把调用方 `source` 映射到
 被调流程 `target`，输出把被调流程 `source` 映射到调用方 `target`。
 
-## 4. Action
+## 4. 动作
 
 `serviceTask` 使用统一结构：
 
@@ -140,7 +140,7 @@ CompileFlow 的执行控制直接声明在脚本任务上：`cf:execution` 是�
 `cf:invocationPolicy` 与 `cf:effectPolicy` 是 `extensionElements` 的直接子元素。`cf:execution` 默认为
 `replayable`；有副作用的脚本声明 `cf:execution="effect"`。`serviceTask` 不得包含脚本 Action。
 
-## 6. Invocation Policy
+## 6. 调用策略
 
 ```xml
 <cf:action type="java" class="com.example.OrderService" method="submit">
@@ -174,7 +174,7 @@ CompileFlow 的执行控制直接声明在脚本任务上：`cf:execution` 是�
 `replayable`，且实现能够承受重试和超时不确定性时，才能使用该策略。`effect` Action 禁止声明 `cf:invocationPolicy`；
 普通引擎只同步调用一次，Durable 则将其保存为已经提交的 Effect。
 
-## 7. Durable Effect Policy
+## 7. Durable 外部操作策略
 
 带 `execution="effect"` 的 Action 可以在 `cf:action` 内、映射元素之后声明一个 `cf:effectPolicy`。省略该策略时使用
 `manual` 模式：只尝试执行一次，结果无法确定时等待人工处理，并且不声明自动恢复参数。

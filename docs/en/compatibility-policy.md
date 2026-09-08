@@ -33,7 +33,12 @@ The Durable API is part of the Supported application API baseline. Its Store SPI
 version-coupled. Durable artifacts must preserve the meaning of exact process identity, committed facts, continuation,
 and fail-closed recovery.
 
-The following are MAJOR changes for a Supported surface: removing or renaming a type, method, or field; changing a method signature or checked exception; changing an assignability relationship; adding an abstract method that an application must implement; or changing the meaning of a deployment command, view, error, or protocol invariant.
+A change is MAJOR when it:
+
+- removes or renames a supported type, method, or field;
+- changes a method signature, checked exception, or assignability relationship;
+- adds an abstract method that applications must implement; or
+- changes the meaning of a deployment command, view, error, or protocol invariant.
 
 Adding a compatible type or optional capability is normally MINOR. Consumers must handle unknown error values and must not depend on enum ordering. `ProcessEvent` is a sealed lifecycle hierarchy and is closed for the 2.x line.
 
@@ -41,7 +46,10 @@ Adding a compatible type or optional capability is normally MINOR. Consumers mus
 
 TBBPM and the documented BPMN 2.0 subset are compatibility surfaces defined by their specifications and the [node support](node-support.md) page.
 
-MAJOR changes include deleting or renaming a supported element or attribute, changing the meaning of a valid definition, or making an existing required value mandatory in a new way. Adding an element that old runtimes reject during preflight is MINOR when existing definitions retain their meaning. General BPMN validity does not imply CompileFlow or Durable support.
+MAJOR changes include deleting or renaming a supported element or attribute, changing the meaning of a valid
+definition, or adding a requirement that invalidates a valid definition. Adding an optional element is MINOR when
+existing definitions retain their meaning. A runtime that does not recognize the element may reject it during
+preflight. General BPMN validity does not imply CompileFlow or Durable support.
 
 ### Spring Boot configuration
 
@@ -60,8 +68,8 @@ and Server must come from the same CompileFlow version; this surface does not de
 
 ### Persisted, wire, and telemetry facts
 
-The V1 Deploy and Workbench migrations establish their initial schema baselines. Every published Flyway migration is immutable;
-later schema changes add migrations and include startup, restart, and recovery coverage for the owning product.
+Deploy and Workbench schemas are managed by Flyway. Every published Flyway migration is immutable; schema changes add a new
+migration and include startup, restart, and recovery coverage for the owning product.
 
 Persisted discriminator strings, error codes, protocol field names, metric names, and metric tag keys are compatibility facts. CompileFlow metadata uses the `compileflow.` namespace; Deploy uses the `compileflow.deploy.*` metric namespace. Application metadata uses an application-owned namespace. Release metadata is descriptive and is not a routing or projection authority. Publication integrity uses the explicit `expectedArtifactDigest` command field.
 

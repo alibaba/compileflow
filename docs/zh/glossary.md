@@ -69,10 +69,10 @@ Run、Wait、Effect、Journal、Outbox、检查点和执行结果的定义见 [D
 
 ## 文档术语
 
-| 英文                | 中文     |
-| ------------------- | -------- |
-| Quick Start         | 快速开始 |
-| API Reference       | API 参考 |
-| Extension Guide     | 扩展指南 |
-| Supported Surfaces  | 支持范围 |
-| Operations Playbook | 运维手册 |
+| 英文                | 中文       |
+| ------------------- | ---------- |
+| Quick Start         | 快速开始   |
+| API Reference       | API 参考   |
+| Extension Guide     | 扩展指南   |
+| Supported Surfaces  | 支持面清单 |
+| Operations Playbook | 运维手册   |

@@ -1,38 +1,21 @@
 # CompileFlow documentation
 
-These pages cover CompileFlow's public APIs, integrations, and deployment boundaries. See
-[Supported surfaces](architecture/supported-surfaces.md) for the complete support matrix.
+Use these pages to embed CompileFlow, define and validate processes, operate the optional Deploy and Durable products,
+and understand the project's public contracts. For a product overview, installation example, and community links, see
+the [project README](../../README.md). [Supported surfaces](architecture/supported-surfaces.md) is the authoritative
+support matrix.
 
-CompileFlow is a lightweight, high-performance, embeddable, and extensible process engine for Java. It supports TBBPM
-and the documented BPMN 2.0 subset. `ProcessEngine` uses stateless, in-memory execution and supports both compiled and
-interpreted modes. CompileFlow has been adopted by core systems across Alibaba business platforms, Taobao,
-Alibaba Cloud, and international businesses.
+## Choose a path
 
-For processes that must retain state across application restarts, CompileFlow Durable provides persisted waits, timers,
-and reliable handling of external operations.
-
-Developers can use the visual process editor to design workflows and express complex business logic clearly, helping
-business designers and software engineers work together more effectively. CompileFlow Deploy and Workbench provide
-versioned deployment and visual modeling when required.
-
-## Key capabilities
-
-- **Compile or interpret** — Run processes in compiled or interpreted mode.
-- **TBBPM and BPMN** — Use one engine API and runtime model for TBBPM and the documented BPMN 2.0 subset.
-- **Typed Java integration** — Embed a thread-safe engine directly or through Spring Boot, with declared variables,
-  preflight validation, typed results, and stable errors.
-- **Versioned deployment** — Publish immutable Versions, update Aliases with revision checks, and route deterministic
-  canary traffic with CompileFlow Deploy.
-- **Durable execution** — Persist waits, timers, and external-operation state, then resume execution after an
-  application restart.
-- **Visual Workbench** — Model and validate processes in the browser, then publish, monitor, and inspect execution
-  through the Workbench Server.
-
-## Start
-
-- [When to use CompileFlow](when-to-use.md)
-- [Quick start](quick-start.md)
-- [Examples](../../examples/README.md)
+- **Evaluate CompileFlow:** [When to use CompileFlow](when-to-use.md) and
+  [Supported surfaces](architecture/supported-surfaces.md).
+- **Run a process:** [Quick start](quick-start.md), followed by the [examples](../../examples/README.md) and
+  [API reference](api-reference.md).
+- **Publish and route versions:** [Hot deployment](hot-deploy.md).
+- **Persist process state:** [Durable process](durable-process.md) and
+  [Durable operations](durable-operations-runbook.md).
+- **Model processes visually:** [CompileFlow Workbench](../../compileflow-workbench/README.md).
+- **Extend the engine:** [Extension guide](extension-guide.md).
 
 ## How-to guides
 
@@ -70,7 +53,6 @@ versioned deployment and visual modeling when required.
 
 - [Durable key rotation](durable-key-rotation.md)
 - [Durable operations runbook](durable-operations-runbook.md)
-- [Durable Provider testing](durable-testing.md)
 - [Monitoring](monitoring.md)
 - [Operations playbook](operations-playbook.md)
 - [Security](security.md)
@@ -79,14 +61,13 @@ versioned deployment and visual modeling when required.
 ## Contribute
 
 - [Testing](testing.md)
+- [Durable Provider testing](durable-testing.md)
 - [Architecture and API design](architecture/api-design.md)
 - [Contributing](../../CONTRIBUTING.md)
 - [Workbench contributor guide](../../compileflow-workbench/CONTRIBUTING.md)
 
-## Project reference
+## Project resources
 
-- [Architecture index](architecture/README.md)
-- [Supported surfaces](architecture/supported-surfaces.md)
 - [Flow diagram examples](examples/flow-diagrams.md)
 - [Documentation language index](../README.md)
 - [Support](../../SUPPORT.md)
@@ -94,5 +75,5 @@ versioned deployment and visual modeling when required.
 
 [简体中文](../zh/README.md)
 
-Guides describe supported procedures, specifications define process and HTTP contracts, and architecture pages explain
-component boundaries.
+Guides provide task-oriented instructions, reference pages define contracts, and architecture pages explain component
+boundaries and design decisions.

@@ -11,6 +11,12 @@ BPMN 流程定义，也不作为解析、代码生成或运行时测试证据。
 | [`nested4LevelGateway.mermaid`](../../examples/flow-diagrams/nested4LevelGateway.mermaid)             | 四层嵌套网关   |
 | [`ultraComplexStructureFlow.mermaid`](../../examples/flow-diagrams/ultraComplexStructureFlow.mermaid) | 组合控制流形态 |
 
-这些文件可在支持 Mermaid 的 Markdown 查看器中打开。
+这些文件可在支持 Mermaid 的 Markdown 查看器中打开。也可以从仓库根目录生成 SVG：
+
+```bash
+pnpm dlx @mermaid-js/mermaid-cli@11.17.0 \
+  -i docs/examples/flow-diagrams/sampleBranchMerge.mermaid \
+  -o sampleBranchMerge.svg
+```
 
 可执行语义以 TBBPM/BPMN 规范、Schema、实现和测试为准。流程图不代表 CompileFlow 支持其中出现的所有节点或转移。

@@ -1,7 +1,7 @@
 # CompileFlow Examples
 
-These runnable examples show how to embed CompileFlow in Spring Boot applications. Follow each example's README for
-its prerequisites, startup command, expected result, and verification steps.
+These runnable Spring Boot applications demonstrate CompileFlow integration and common execution patterns. Run commands
+from the repository root unless an example says otherwise.
 
 | Example                                                                    | What it covers                                                                                         |
 | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
@@ -12,5 +12,5 @@ its prerequisites, startup command, expected result, and verification steps.
 
 For the Workbench stack, use the [Workbench deployment guide](../compileflow-workbench/DEPLOYMENT.md).
 
-The [control-flow diagrams](../docs/en/examples/flow-diagrams.md) illustrate common patterns but are not runnable
+The [control-flow diagrams](../docs/en/examples/flow-diagrams.md) illustrate additional patterns; they are not runnable
 process definitions.

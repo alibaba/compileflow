@@ -330,6 +330,20 @@ test.describe('Workbench semantic and edge-state journeys', () => {
     ).toHaveCount(2)
   })
 
+  test('monitoring time range survives reload and invalid values normalize', async ({ page }) => {
+    await page.goto('/operate/monitoring?timeRange=7d&source=shared')
+    const range = page.getByRole('combobox', { name: /时间范围|Time range/i })
+    await expect(range.locator('..')).toContainText(/近 7 天|7d/, { timeout: TIMEOUT })
+    await page.reload()
+    await expect(range.locator('..')).toContainText(/近 7 天|7d/, { timeout: TIMEOUT })
+    await expect(page).toHaveURL(/timeRange=7d/)
+    await expect(page).toHaveURL(/source=shared/)
+
+    await page.goto('/operate/monitoring?timeRange=invalid&source=shared')
+    await expect(page).toHaveURL('/operate/monitoring?source=shared', { timeout: TIMEOUT })
+    await expect(range.locator('..')).toContainText(/近 24 小时|24h/)
+  })
+
   test('build offers TBBPM first and every quick template opens the correct canvas', async ({
     page,
   }) => {

@@ -38,14 +38,14 @@ XML and visual editing.
 - Configure conditions on outgoing gateway flows and identify the default path where needed.
 - Place subprocess children inside their container and keep all internal sequence flows within that boundary.
 - Use the visual, XML, or split view for the same underlying process.
-- Review validation findings before saving or exporting.
+- Resolve validation findings before saving or exporting.
 
 XML edits are parsed back into the structured model. If parsing fails, correct the reported error before switching back
 to visual editing.
 
-## Save, History, And Export
+## Save, Snapshots, And Export
 
-Saving a local workspace draft writes it to IndexedDB. Local history stores snapshots for that flow. Restoring a
+Saving a local workspace draft writes it to IndexedDB. Workbench stores local snapshots for that flow. Restoring a
 snapshot loads its XML back into the editor; save the flow to persist the restored draft. Saving a draft opened from
 Operate updates the Server draft with its expected revision, without creating local snapshots or publishing a Version.
 

@@ -43,28 +43,24 @@ source revision and dependency inventory that produced the affected artifacts.
 
 The following findings block merge or release until fixed or covered by an approved, time-bounded exception:
 
-- a high or critical runtime-dependency vulnerability reported by Dependency Review, or an OWASP Dependency-Check
-  runtime finding with CVSS 7.0 or higher;
+- a high or critical runtime-dependency vulnerability reported by Dependency Review;
+- an OWASP Dependency-Check runtime finding with CVSS 7.0 or higher;
 - a high-severity finding from the complete Workbench pnpm lockfile audit;
-- an unsuppressed CodeQL high or critical security alert, or a SpotBugs finding at Medium confidence/severity or higher;
-- a dependency license that has not been shown compatible with Apache-2.0 distribution.
+- an unsuppressed high or critical CodeQL alert, or a SpotBugs finding that fails the repository check;
+- a dependency license not shown to be compatible with Apache-2.0 distribution.
 
-Lower-severity findings are triaged for reachability, affected support surface, and compensating controls. A
-suppression or risk acceptance must name an owner, rationale, affected versions, mitigation, and
-expiry in a private advisory or reviewable issue. A dependency vulnerability judged non-exploitable must also be
-represented by a CycloneDX VEX statement tied to the affected SBOM; a comment or scanner ignore entry alone is not
-sufficient. Expired exceptions are release-blocking.
+Lower-severity findings are evaluated for reachability, affected surfaces, and available mitigations.
+
+Any temporary suppression or risk acceptance must identify its owner, rationale, scope, mitigation, and expiry. A
+dependency vulnerability determined to be non-exploitable must also be represented by a CycloneDX VEX statement tied
+to the affected SBOM.
 
 ## Repository Credential Policy
 
-Repository, registry, signing, and scanning credentials are stored only in the corresponding GitHub organization,
-repository, or protected-environment secret store. Workflows grant them only to the job that needs them, never expose
-them to untrusted pull-request code, and must not pass them in command-line arguments, artifacts, caches, or logs.
-Long-lived release signing keys do not enter the tag workflow.
+Repository, registry, signing, and scanning credentials belong only in the corresponding GitHub organization,
+repository, or protected-environment secret store. Workflows must not expose credentials to untrusted pull-request
+code or place them in command-line arguments, artifacts, caches, or logs.
 
-Maintainers review credential owners, consumers, and unused entries whenever access changes and during release
-preparation. Rotate a credential immediately after suspected disclosure, maintainer or service-account removal,
-unexpected use, or a provider-mandated event; otherwise follow the credential provider's rotation lifetime. Revoke
-unused credentials instead of retaining fallback access. Repository administration must require MFA, least privilege,
-and approval from an existing maintainer or organization owner other than the access candidate before collaborator
-permissions are elevated, as described in `MAINTAINERS.md`.
+Repository administration requires MFA and least privilege. Rotate credentials after suspected disclosure, unexpected
+use, or an ownership change, and revoke credentials that are no longer needed. Access rules are documented in
+[MAINTAINERS.md](MAINTAINERS.md).

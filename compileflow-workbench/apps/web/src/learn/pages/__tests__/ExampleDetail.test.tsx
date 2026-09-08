@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Provider } from 'react-redux'
 import { vi } from 'vitest'
@@ -155,6 +155,28 @@ describe('ExampleDetail execution integration', () => {
       })
     })
     expect(await screen.findByText(/"output": "done"/)).toBeInTheDocument()
+  })
+
+  it('coalesces rapid execute clicks into one server execution', async () => {
+    executePreviewMock.mockReturnValue(new Promise(() => undefined))
+
+    render(
+      renderWithApp(
+        <Provider store={store}>
+          <ExampleDetail />
+        </Provider>
+      )
+    )
+
+    await screen.findByText('Example Process')
+    const executeButton = screen.getAllByText('exec.execute')[0]?.closest('button')
+    expect(executeButton).toBeDefined()
+
+    fireEvent.click(executeButton!)
+    fireEvent.click(executeButton!)
+
+    expect(executePreviewMock).toHaveBeenCalledTimes(1)
+    expect(await screen.findAllByText('exec.executing')).toHaveLength(2)
   })
 
   it('shows a warning before running the draft on the server', async () => {

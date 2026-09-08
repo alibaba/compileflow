@@ -26,10 +26,10 @@ in [SECURITY.md](SECURITY.md).
 
 1. Search existing issues.
 2. Check the relevant documentation under [docs/](docs/README.md).
-3. Include the CompileFlow version, Java version, operating system, process format, and the smallest reproduction you
-   can provide.
-4. For Workbench or server issues, include browser console errors, server logs, API mode, and the exact command or
-   Docker profile used.
+3. Include the CompileFlow version or commit, Java version, operating system, process format, and the smallest
+   reproduction you can provide.
+4. For Workbench or server issues, include relevant browser errors, server logs, API mode, and the command or Docker
+   profile used.
 
 ## Response Expectations
 

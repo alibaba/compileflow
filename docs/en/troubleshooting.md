@@ -172,8 +172,8 @@ content requires a new explicit version.
 - Event capacity:
   `compileflow.engine.observability.events.max-concurrency` and `max-pending`.
 - Deploy installation capacity:
-  `compileflow.deploy.runtime.installation-concurrency` in a distributed runtime process; embedded
-  installation admission derives from the engine runtime-load capacity.
+  `compileflow.deploy.runtime.installation-concurrency` controls admission in both distributed and embedded topologies.
+  Compilation and runtime loading are also bounded by the Engine runtime-load capacity.
 
 Measure queue wait, service time, rejection rate, and upstream concurrency before increasing limits. Apply backpressure
 at the caller when offered load exceeds sustainable throughput.

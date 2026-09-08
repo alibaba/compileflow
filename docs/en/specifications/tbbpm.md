@@ -12,8 +12,8 @@ validated, and compiled to Java bytecode. The same model can target one of two e
 - `DurableProcessEngine`, which persists a Run at supported Wait, Timer, Effect, and terminal boundaries.
 
 TBBPM does not provide a built-in human-task product or arbitrary BPMN message correlation.
-`timerTask` is a Durable-only node and ProcessEngine execution rejects it. Effect is an execution semantic on an
-Process Action, not a separate node. A ProcessEngine
+`timerTask` is a Durable-only node and ProcessEngine execution rejects it. Effect is an execution semantic on a
+process action, not a separate node. A ProcessEngine
 `waitTask`/`waitEventTask` is a named entry for a later, independent
 `trigger(...)` invocation; under the Durable strict profile it is a persisted Run boundary with a one-time Wait token.
 Applications must choose the execution surface explicitly.
@@ -500,15 +500,15 @@ Supported built-in action types are:
 | `script`      | `language`, one `code`, optional mappings                                          | Evaluate workflow-owned code through a named Script executor. |
 
 `script` is the only protocol action type for dynamic code. Its `language` selects a registered `ScriptExecutor`.
-QLExpress and Java share the same XML and semantic plan; any additional language must use that contract. Exclusive,
+QLExpress and Java Code share the same XML and semantic plan; any additional language must use that contract. Exclusive,
 while, timer, and transition guards
 remain generated Java source and do not use a script executor.
 
-Every Script input and output is declared with `<input>` or `<output>`. A Java Script source is a method body, for example
+Every Script input and output is declared with `<input>` or `<output>`. Java Code is a method body, for example
 `return price.multiply(quantity);`. During Process runtime load, the first-party Java executor generates a typed wrapper
 and compiles it with `javac --release 17`; the resulting `ScriptProgram` belongs to that exact disposable runtime and is
 never persisted. The language, exact source, and declared signature remain immutable Process-version truth, so a runtime
-can always prepare it again from source. V1 accepts JDK platform input/output types only. Java Script is trusted embedded
+can always prepare it again from source. Java Code accepts JDK platform input/output types only and runs as trusted embedded
 computation, not a sandbox; an untrusted Workbench deployment requires an isolated Code Runner with network disabled by
 default.
 

@@ -10,8 +10,8 @@ Use one engine for each distinct **resource and immutable configuration boundary
 semantic frontends; TBBPM and BPMN definitions share its bounded cache, executors, and generated-class lifecycle.
 
 Do not construct an engine per request, flow, tenant, or version. Process identity and version routing are request data
-and do not by themselves require a separate engine. Create a separate engine only when the application genuinely needs different
-class-loader scopes, extension snapshots, or resource limits.
+and do not by themselves require a separate engine. Create another engine only when the application needs a different
+class-loader scope, extension configuration, or resource limit.
 
 Extension capabilities supplied through the builder or dependency-injection container are application-owned and may be
 shared when they are thread-safe. `ProcessEngine.close()` closes only engine-owned resources.

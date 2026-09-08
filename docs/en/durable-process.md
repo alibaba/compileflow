@@ -1,8 +1,8 @@
 # Durable Process
 
-Durable Process is an opt-in persisted execution runtime backed by one `DurableStore` authority. The first-party
-distributions provide PostgreSQL and MySQL stores. Durable does not turn `ProcessEngine` invocations into implicit
-workflows or make application compatibility part of persisted identity.
+CompileFlow Durable persists process state in a `DurableStore`, allowing supported processes to resume after an
+application restart. The provided distributions support PostgreSQL and MySQL. Durable is a separate execution surface;
+it does not change the behavior of `ProcessEngine` invocations.
 
 ## Add the starter
 

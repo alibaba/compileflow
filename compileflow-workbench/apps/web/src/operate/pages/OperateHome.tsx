@@ -5,7 +5,7 @@ import {
   RocketOutlined,
 } from '@ant-design/icons'
 import { Alert, Button, Empty, Spin } from 'antd'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { NavigateFunction } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
@@ -15,6 +15,7 @@ import styles from './OperateHome.module.css'
 import { getDeployments } from '@/operate/api/deployments'
 import { getMetrics } from '@/operate/api/monitoring'
 import { HeroBanner } from '@/shared/components/HeroBanner'
+import { LoadErrorAlert } from '@/shared/components/LoadErrorAlert'
 import {
   HubMetrics,
   HubPanel,
@@ -51,10 +52,12 @@ interface FeatureItem {
 }
 
 interface OperateDashboardState {
+  loadFailed: boolean
   loading: boolean
   metrics: MetricItem[]
   recentDeployments: Deployment[] | null
   recentDeploymentsFailed: boolean
+  retry: () => void
 }
 
 const logger = createLogger('OperateHome')
@@ -97,15 +100,20 @@ function unavailableMetrics(t: ReturnType<typeof useTranslation>['t']): MetricIt
   ]
 }
 
-function useOperateDashboardData(): OperateDashboardState {
+export function useOperateDashboardData(): OperateDashboardState {
   const { t } = useTranslation()
   const [recentDeployments, setRecentDeployments] = useState<Deployment[] | null>(null)
   const [recentDeploymentsFailed, setRecentDeploymentsFailed] = useState(false)
+  const [metricsFailed, setMetricsFailed] = useState(false)
   const [loading, setLoading] = useState(true)
   const [metrics, setMetrics] = useState<MetricItem[]>([])
+  const [refreshToken, setRefreshToken] = useState(0)
+  const retry = useCallback(() => setRefreshToken((token) => token + 1), [])
 
   useEffect(() => {
     let cancelled = false
+    setRecentDeployments(null)
+    setRecentDeploymentsFailed(false)
     getDeployments({ limit: 4 })
       .then((response) => {
         if (cancelled) return
@@ -122,11 +130,12 @@ function useOperateDashboardData(): OperateDashboardState {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [refreshToken])
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
+    setMetricsFailed(false)
 
     getMetrics()
       .then((dashboardMetrics) => {
@@ -174,6 +183,7 @@ function useOperateDashboardData(): OperateDashboardState {
       .catch((error) => {
         if (cancelled) return
         logger.warn('Failed to load operate home metrics', { error: toError(error).message })
+        setMetricsFailed(true)
         setMetrics(unavailableMetrics(t))
       })
       .finally(() => {
@@ -183,13 +193,15 @@ function useOperateDashboardData(): OperateDashboardState {
     return () => {
       cancelled = true
     }
-  }, [t])
+  }, [refreshToken, t])
 
   return {
+    loadFailed: metricsFailed || recentDeploymentsFailed,
     loading,
     metrics,
     recentDeployments,
     recentDeploymentsFailed,
+    retry,
   }
 }
 
@@ -311,11 +323,13 @@ function RecentDeploymentsPanel({
 function OperateHome() {
   usePageTitle('pageTitle.operate')
   const navigate = useNavigate()
-  const { loading, metrics, recentDeployments, recentDeploymentsFailed } = useOperateDashboardData()
+  const { loadFailed, loading, metrics, recentDeployments, recentDeploymentsFailed, retry } =
+    useOperateDashboardData()
 
   return (
     <HubSurface className={styles.page}>
       <OperateHero navigate={navigate} />
+      {loadFailed && <LoadErrorAlert onRetry={retry} />}
       <HubMetrics>
         <Spin spinning={loading}>
           <MetricGrid metrics={metrics} columns={4} />

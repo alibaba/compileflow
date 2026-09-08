@@ -61,9 +61,10 @@ java -jar compileflow-benchmarks/target/compileflow-benchmarks.jar \
 ```
 
 Use a dedicated database identity and database. Never point this benchmark at a shared or production database. The
-measured operations use real PostgreSQL, Flyway V1→latest, database-time fencing, transactional Run/Effect/Outbox
-authority, and synthetic Store envelope bytes, not runtime snapshot serialization/deserialization. Durable Kernel does not provide payload encryption or a
-KEK; deployments that require encryption must place that responsibility in their configured storage/security boundary.
+measured operations use real PostgreSQL, the complete Durable migration set, database-time fencing, transactional
+Run/Effect/Outbox authority, and synthetic Store envelope bytes rather than runtime snapshot serialization. Durable
+does not provide payload encryption or a KEK; deployments that require encryption must provide it at the storage or
+security boundary.
 Start and Wait-completion identities remain unique; claim/Wait/Effect setup and post-claim settlement are outside the
 corresponding measured boundary. Reused runnable claims consume their resolved occurrences in the next Turn commit.
 `snapshotBytes` defaults to a 16 KiB, 64 KiB, 256 KiB, and 1 MiB matrix. Pin one value
@@ -130,7 +131,6 @@ Do not publish a single-number speedup claim without the above context and the c
 
 Automated measurements on shared CI runners are regression signals, not publication-quality benchmarks. Compare runs
 only when the runner class, JDK, JVM flags, database image, parameters, and JMH settings match. Use repeated runs and
-score uncertainty rather than a single measurement. Capacity or release-gating claims require controlled, dedicated
-hardware.
+score uncertainty rather than a single measurement. Capacity claims require controlled, dedicated hardware.
 
 Benchmarks are not part of the default reactor. The `-Pbenchmarks` profile in the root `pom.xml` adds this module.

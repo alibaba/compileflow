@@ -1,4 +1,4 @@
-# Durable Process
+# Durable 流程
 
 Durable Process 为流程提供持久化执行能力，由一个 `DurableStore` 作为唯一状态源。内置实现支持 PostgreSQL 和 MySQL。Durable 与 `ProcessEngine` 相互独立，不会自动持久化普通流程调用，也不会将应用版本写入流程身份。
 
@@ -64,7 +64,7 @@ ProcessRun run = durable.start(
 
 普通 Java 应用通过 `DurableProcessEngineFactory.create(config)` 创建引擎，返回后即可调用应用 API。无参 `start()` 启动已配置的工作节点，`stop()` 等待工作节点停止，`close()` 等待已接收的操作完成并释放引擎持有的资源。存储和应用提供的能力仍由应用管理。Spring 使用同一个工厂，只负责适配生命周期；仅引入 Durable Starter 不会创建 `ProcessEngine`。
 
-## 使用 Version 或 Alias 启动
+## 使用版本或别名启动
 
 ```java
 ProcessRun exact = durable.start(
@@ -101,7 +101,7 @@ CompileFlow 负责解析器、语义编译器、恢复坐标和内部状态封�
 
 持久化流程要求应用、Durable 内核和存储使用匹配的协议版本；不支持不同协议版本混合运行。
 
-## Wait 与 Complete
+## 等待与完成
 
 `WAIT_COMMITTED` 事件用于将原始的 256 位 Wait 令牌可靠地交给授权调用方。Wait 权威记录只保存 SHA-256 摘要；活动 Outbox 记录会暂存原始令牌，直到投递成功或对应 Wait 被清理。必须按凭据存储保护 Outbox，并禁止记录原始令牌。
 
@@ -117,7 +117,7 @@ durable.completeWait(
 
 完成载荷是该流程定义中变量的类型化部分更新，在提交 Wait 结果前完成校验。同一令牌和同一规范化结果的重复提交不会产生写入；不同结果会冲突；已取消或不相关的 Wait 不接受该令牌。
 
-## Effect Action
+## 外部操作
 
 外部 observation 用 Action 的 `execution="effect"`：
 
@@ -147,7 +147,7 @@ Reconcile 输入只能来自原始 Effect 请求中已持久化的字段或预�
 
 人工处置必须携带当前 `reviewRevision`，并且只能选择确认成功、确认未执行后重试，或将流程实例标记为失败。重复确认成功时，只有规范化结果与已提交结果一致才不会产生写入。重复标记失败也只有在该 Effect 处置确实导致流程失败时才等价；因取消流程而取消的 Effect 不能视为相同结果。
 
-## Pause、Resume、Cancel 与 Outbox
+## 暂停、恢复、取消与 Outbox
 
 Pause 和 Resume 是受 `expectedControlRevision` 保护的控制状态变更。正在执行的任务会先进入 `PAUSE_REQUESTED` 并等待收敛。Resume 必须基于最新控制版本，并且只能在流程实例仍可继续时生效。应用通过 `cancel(runId)` 取消流程，首次取消意图生效。认证、操作者身份和请求审计由暴露这些操作的应用边界负责。Outbox 运维操作使用 `eventId + expectedRevision` 进行并发控制。
 

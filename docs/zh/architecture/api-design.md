@@ -76,5 +76,5 @@ CompileFlow 根据操作职责选择 API 形态。公开接口应尽量小而稳
 
 受支持的 API 应明确操作职责、无效状态处理、规范身份、时间类型、构造方式和支持等级。Durable 同样遵循这些 API 设计原则。
 
-另见[支持范围](supported-surfaces.md)、[版本路由](version-routing.md)和
+另见[支持面清单](supported-surfaces.md)、[版本路由](version-routing.md)和
 [Durable 架构](durable-architecture.md)。

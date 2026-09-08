@@ -563,6 +563,46 @@ describe('designerSlice - 连接操作', () => {
         : undefined
     ).toBeUndefined()
   })
+
+  it('reconnecting a BPMN default flow from another source clears the previous gateway', () => {
+    store = createTestStore({ ...bootstrapProcess, type: 'BPMN' })
+    for (const node of [
+      {
+        id: 'gateway',
+        type: 'bpmn:ExclusiveGateway' as const,
+        name: 'Gateway',
+        position: { x: 100, y: 100 },
+        properties: { default: 'fallback' },
+      },
+      {
+        id: 'new-source',
+        type: 'bpmn:ServiceTask' as const,
+        name: 'New source',
+        position: { x: 200, y: 100 },
+        properties: {},
+      },
+      {
+        id: 'target',
+        type: 'bpmn:ServiceTask' as const,
+        name: 'Target',
+        position: { x: 300, y: 100 },
+        properties: {},
+      },
+    ]) {
+      store.dispatch(addNode(node))
+    }
+    store.dispatch(addConnection({ id: 'fallback', sourceId: 'gateway', targetId: 'target' }))
+
+    store.dispatch(updateConnection({ id: 'fallback', updates: { sourceId: 'new-source' } }))
+
+    const flow = store.getState().editor.present.currentProcess
+    expect(flow?.connections[0]?.sourceId).toBe('new-source')
+    expect(
+      flow?.type === 'BPMN'
+        ? flow.nodes.find((node) => node.id === 'gateway')?.properties.default
+        : undefined
+    ).toBeUndefined()
+  })
 })
 
 describe('designerSlice - 选择状态', () => {

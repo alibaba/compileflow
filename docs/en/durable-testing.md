@@ -1,10 +1,9 @@
 # Durable Kernel Store Testing
 
-`compileflow-durable-testkit` contains the executable first-party contract for the atomic `DurableStore`
-provider protocol. It depends only on `compileflow-durable-spi`, preserving `runtime -> spi <- postgres|mysql`, but is not a generic
-persistence abstraction or a promise that third-party Stores are Supported. Runtime collaborators consume narrow
-semantic Store roles; each first-party Provider owns full transaction composition. Contract tests verify
-observable state transitions, while each Provider module separately locks its native V1 seven-table layout.
+`compileflow-durable-testkit` defines the executable contract for the first-party `DurableStore` implementations. It
+tests observable state transitions through `compileflow-durable-spi`; each database Provider separately verifies its
+schema, transactions, and concurrency behavior. Passing the testkit does not make an additional Store implementation a
+Supported product surface.
 
 The Provider SPI and Kernel form one strong contract. An authoritative persistence transition may require a Store method;
 missing capability must not be hidden behind a default method that throws `UnsupportedOperationException` at runtime. Every

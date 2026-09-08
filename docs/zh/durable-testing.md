@@ -1,12 +1,12 @@
 # Durable 存储测试
 
 `compileflow-durable-testkit` 提供针对 `DurableStore` 原子协议的第一方可执行契约。它只依赖
-`durable-spi`，保持 `runtime -> spi <- postgres|mysql` 的依赖方向。该协议不是通用的持久化抽象，第三方存储不会因此自动成为受支持实现。
+`compileflow-durable-spi`，保持 `runtime -> spi <- postgres|mysql` 的依赖方向。该协议不是通用的持久化抽象，第三方存储不会因此自动成为受支持实现。
 运行时只依赖职责明确的存储接口，每个第一方实现负责完整的事务组合。
 契约测试验证可观察的状态转换；各数据库实现分别约束自身的 V1 七表结构。
 
 存储 SPI 与 Durable 内核构成一个强契约。权威的持久化状态转换可以要求 Store 提供新的抽象方法，不能通过在默认方法中抛出
-`UnsupportedOperationException` 来隐藏缺失能力。每个存储实现都必须完整实现当前契约并通过测试工具包。构建或启动时直接失败优于运行中的部分支持。
+`UnsupportedOperationException` 来隐藏缺失能力。每个存储实现都必须完整实现当前契约并通过测试工具包；能力不完整时应在构建或启动阶段直接失败，不能留到运行时暴露。
 
 ## 契约覆盖
 
@@ -98,14 +98,14 @@ MySQL 8.4 契约由独立实现提供，并通过 Testcontainers 执行：
 
 ## 非目标
 
-Store Contract 不承诺：
+存储契约不承诺：
 
-- Application Build 或 Runtime/Provider Version 兼容；
-- Alias Resolve 或 Rollout；
-- Generated Program/Bytecode 持久化；
-- Custom Persisted Codec；
-- Exactly-Once Remote Effect；
-- Generic External Outbox 副作用 Exactly-Once。
+- 应用构建版本、运行时版本或存储实现版本之间的兼容性；
+- 别名解析或灰度发布；
+- 生成程序或字节码的持久化；
+- 自定义持久化编解码器；
+- 外部操作的恰好一次执行；
+- 通用外部 Outbox 操作的恰好一次执行。
 
 这些能力会扩大内核身份边界，但不会加强原子状态机契约。
 
@@ -123,6 +123,6 @@ Store Contract 不承诺：
 - PITR 演练结果；
 - Claim 与 Operator Index 的 Query Plan；
 - Stale Token 未修改任何 Row 的证明；
-- ACK-loss 进程级证据：重放前后 Outbox event ID、type 与 logical payload 不变。
+- 确认响应丢失的进程级证据：重放前后 Outbox 事件 ID、类型和逻辑载荷不变。
 
 参见 [Durable 架构](architecture/durable-architecture.md)。

@@ -1,8 +1,8 @@
 # CompileFlow Durable
 
-CompileFlow Durable adds persistent, recoverable process execution. It stores the process definition, continuation
-state, waits, timers, effects, audit records, and outbox events so a run can continue after an application restart.
-Durable has its own runtime and API; enabling it does not change the in-memory semantics of `ProcessEngine`.
+CompileFlow Durable adds persistent execution for long-running processes. It stores the process definition and runtime
+state required to continue after waits, timers, external operations, or an application restart. Durable has its own API
+and runtime; enabling it does not change the in-memory behavior of `ProcessEngine`.
 
 PostgreSQL and MySQL are first-party Store providers. See
 [Supported Surfaces](../docs/en/architecture/supported-surfaces.md) for supported database versions and the complete
@@ -65,7 +65,7 @@ ProcessRun updated = durable.completeWait(
 typed partial state update but does not synchronously advance the Run. The integration must protect the raw token as a
 credential and keep it out of logs, metric labels, browser URLs, and third-party metadata.
 
-External side effects use Action `execution="effect"`. Recovery is explicit: manual review, bounded retry, or a
+External side effects use Action `execution="effect"`. Recovery is explicit: operator review, bounded retry, or a
 declared reconcile action. An uncertain dispatch remains UNKNOWN until policy or an authorized operator resolves it; it
 is never reported as known success or failure.
 
@@ -81,8 +81,8 @@ is never reported as known success or failure.
 - Generated source and bytecode are disposable. Application implementation and provider identity are deployment
   responsibilities, not Run identity.
 
-The full state machines, transaction boundaries, concurrency rules, retention model, and security ownership are
-defined once in the [Durable Architecture](../docs/en/architecture/durable-architecture.md).
+See the [Durable Architecture](../docs/en/architecture/durable-architecture.md) for state machines, transaction
+boundaries, concurrency rules, retention, and security responsibilities.
 
 ## Operations
 

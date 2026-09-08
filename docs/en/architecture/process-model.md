@@ -55,10 +55,8 @@ rules; generated branch frames prevent concurrent branches from writing through 
 Durable persists the exact source bytes and model type so recovery can select the correct semantic frontend, but its
 machine, continuation, Turn, Wait, Timer, and Effect semantics depend only on the normalized plans. Production Durable
 code must not depend on TBBPM or BPMN implementation packages, and Durable lowering must not branch on model type.
-Conversely, a source frontend must not depend on Durable. Each source format is implemented as one frontend rather
-than one module for every execution surface and Store Provider. A second Durable execution algebra is justified only
-if a required semantic model cannot preserve the existing structured-machine invariants—not merely because its source
-syntax differs.
+Conversely, a source frontend must not depend on Durable. Each source format supplies one frontend to the shared
+semantic model, independent of the selected execution surface or Store Provider.
 
 Root execution accepts only a closed partial map of declared `param` variables. Process-owned `return` and `inner` variables are not caller input. A trigger entry starts a new downstream invocation from declared state; Durable continuation resumes the committed semantic checkpoint instead.
 

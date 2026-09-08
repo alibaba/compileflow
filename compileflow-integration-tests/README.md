@@ -34,7 +34,7 @@ Run commands from the repository root and keep the Maven scope explicit.
 ./mvnw verify -pl compileflow-integration-tests -am \
   -DexcludedGroups=slow
 
-# Nightly-equivalent suite, including slow functional scenarios
+# Complete suite, including slow functional scenarios
 ./mvnw verify -pl compileflow-integration-tests -am
 ```
 
@@ -59,7 +59,6 @@ executors; do not add
 - Require every deterministic execution to succeed; do not mask failures with percentage tolerances.
 - Do not use wall-clock thresholds as integration assertions. Performance measurements belong in
   the [JMH benchmark module](../compileflow-benchmarks/README.md).
-- Pull request CI excludes the slow tag; the nightly workflow includes it.
 
 See the root [contribution guide](../CONTRIBUTING.md) and
 [testing guide](../docs/en/testing.md) for repository-wide requirements.

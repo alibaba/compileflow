@@ -9,14 +9,14 @@ Documentation is organized by language. English and Simplified Chinese contain t
 
 ## Shared contract artifacts
 
-Language-neutral, machine-validated artifacts remain under [`docs/specs`](specs/):
+Machine-readable contracts shared by both language editions are stored under [`docs/specs`](specs/):
 
-- generated [Workbench Server OpenAPI](specs/openapi/compileflow-workbench-server.openapi.json);
-- Durable PostgreSQL production-drill JSON Schema;
-- Engine/Workbench protocol golden fixture.
+- [Workbench Server OpenAPI](specs/openapi/compileflow-workbench-server.openapi.json)
+- [Durable PostgreSQL production-drill schema](specs/compileflow-durable-production-drill-evidence-v1.schema.json)
+- [Engine–Workbench protocol fixture](specs/fixtures/engine-workbench-protocol-golden-v1.json)
 
-Human-readable architecture, specifications, guides, and policies live only under a locale root. Files in
-`docs/specs` are generated or test-owned contract inputs and must not be translated or edited as prose.
+Architecture, specifications, guides, and policies live under the English or Simplified Chinese directory. Contract
+artifacts are generated or verified by tests and are not translated.
 
 ## Repository documentation
 

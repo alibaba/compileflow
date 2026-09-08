@@ -8,7 +8,7 @@ The rules below cover only Workbench-specific development expectations.
 ## Prerequisites
 
 - Node.js 24 LTS (use the version pinned by `.node-version`)
-- pnpm 11.11.0 (pinned by the root `packageManager` field)
+- pnpm 11.11.0 (pinned by `compileflow-workbench/package.json`)
 - Run commands from `compileflow-workbench/`
 
 Use pnpm only. Do not add npm or yarn lockfiles.
@@ -44,7 +44,7 @@ The dev profile expects a local PostgreSQL database; see the
 
 ## Required Checks
 
-Run the narrowest check that proves your change, then use the delivery gate for cross-cutting changes.
+Run the checks relevant to your change. Use the delivery gate when a change crosses application or contract boundaries.
 
 ```bash
 pnpm --filter @compileflow/workbench-web type-check
@@ -82,3 +82,11 @@ behavior, or Workbench API contracts:
 - [apps/web/src/operate/API_SPEC.md](apps/web/src/operate/API_SPEC.md)
 - [docs/PRODUCT_SURFACES.md](docs/PRODUCT_SURFACES.md)
 - [docs/architecture/WEB_ARCHITECTURE.md](docs/architecture/WEB_ARCHITECTURE.md)
+
+When a Server endpoint changes, update its controller and transport types, regenerate the committed OpenAPI document
+and TypeScript projection, update validators and adapters, and run:
+
+```bash
+pnpm generate:workbench-server-contract
+pnpm check:workbench-server-contract
+```

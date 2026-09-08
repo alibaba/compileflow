@@ -7,13 +7,13 @@ selected explicitly.
 
 ## Choose the execution surface first
 
-| Requirement                                  | Use                               | Important boundary                                                       |
-| -------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------ |
-| Execute trusted definitions in process       | `ProcessEngine`                   | No crash-safe continuation                                               |
-| Publish immutable versions and route Aliases | CompileFlow Deploy                | Controls versions and traffic; does not persist Run continuation         |
-| Resume supported processes after restart     | CompileFlow Durable               | Requires PostgreSQL or MySQL, or a conforming custom Store               |
-| Persist and retry a whole Workbench request  | Workbench Server async invocation | Retries the complete Engine call; it is not Durable                      |
-| Model and inspect supported definitions      | Workbench                         | Authoring and operations UI; the Java engine remains execution authority |
+| Requirement                                  | Use                               | Important boundary                                                             |
+| -------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------ |
+| Execute trusted definitions in process       | `ProcessEngine`                   | No crash-safe continuation                                                     |
+| Publish immutable versions and route Aliases | CompileFlow Deploy                | Controls versions and traffic; does not persist Run continuation               |
+| Resume supported processes after restart     | CompileFlow Durable               | PostgreSQL and MySQL are supported; custom Stores use the Provider Preview SPI |
+| Persist and retry a whole Workbench request  | Workbench Server async invocation | Retries the complete Engine call; it is not Durable                            |
+| Model and inspect supported definitions      | Workbench                         | Authoring and operations UI; the Java engine remains execution authority       |
 
 ## Good fits
 
@@ -24,8 +24,8 @@ selected explicitly.
   rollout history.
 - Automation-focused TBBPM definitions, including `while`, `break`, `continue`, and Java, Spring bean, or script
   actions.
-- Supported TBBPM or BPMN flows that must persist Waits, Timers, governed Effects, nested calls, cancellation, and
-  recovery through CompileFlow Durable.
+- Supported TBBPM or BPMN flows that must persist waits, timers, nested calls, cancellation, and external operations
+  modeled as Effects.
 - Spring Boot applications that want an application-scoped engine and bounded observability.
 
 ## Poor fits

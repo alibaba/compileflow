@@ -60,6 +60,8 @@ Inspect `DeploymentRuntime.snapshot()` for the exact version and backoff reason.
 
 Verify schema admission, outbox dispatch, reconciliation, route convergence, expired lease recovery, and one Alias execution after restart. Confirm the effective version and route revision in secured logs or diagnostics; built-in metric labels do not carry these unbounded identities.
 
-## Routine review
+## Routine checks
 
-Review publication conflicts, route and rollout revisions, outbox backlog, runtime failures, async dead letters, expired leases, and convergence time. Retain versions according to an explicit reference and rollback policy; never delete a version still referenced by a route, retained Run, or required recovery window.
+Check publication conflicts, route and rollout revisions, outbox backlog, runtime failures, async dead letters, expired
+leases, and convergence time. Retain versions according to an explicit reference and rollback policy; never delete a
+version still referenced by a route, retained Run, or required recovery window.

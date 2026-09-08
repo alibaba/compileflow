@@ -302,8 +302,8 @@ last-write-wins。
 </subBpm>
 ```
 
-`subBpm` 表示当前 BPM 内部定义的嵌套作用域。它没有独立流程身份、资源定位、version、
-call-site binding 或参数映射，直接共享外层流程状态。它必须恰好包含一个直接 `start` 和一个直接
+`subBpm` 表示当前流程内部的嵌套作用域。它没有独立的流程身份、资源位置、版本、调用点绑定或参数映射，
+直接共享外层流程状态。它必须恰好包含一个直接 `start` 和一个直接
 `end`，所有直接可执行子节点都必须从该 start 可达；允许嵌套 `subBpm`、`while` 与 `foreach`。语义前端将它
 降低为与 BPMN `subProcess` 相同的作用域边界，不会创建子流程调用。位于循环内时，它也可以包含 `break` 与
 `continue`；这些控制节点绑定最近的外层循环，而不是 `subBpm` 本身。
@@ -317,26 +317,25 @@ call-site binding 或参数映射，直接共享外层流程状态。它必须�
 </bpmCall>
 ```
 
-`bpmCall` 调用另一个 BPM definition。`code` 必填，并遵循与根 definition 相同的规范流程 code 规则；
-`classpath` 与 `version` 必须且只能提供一个。`classpath` 是应用 classpath 中精确、规范化的资源路径，不是 URI，
-也不支持 scheme、父目录跳转、通配符或相对调用方解析。
+`bpmCall` 调用另一个流程定义。`code` 必填，并遵循与根流程定义相同的流程编码规则；
+`classpath` 与 `version` 必须且只能提供一个。`classpath` 是应用类路径中精确、规范化的资源路径，不是 URI，
+也不支持协议前缀、父目录跳转、通配符或相对于调用方解析。
 在 `ProcessEngine` 中，被调流程同步执行；
-被调流程变量负责调用方 context 的输入输出映射，因此只支持 `param` 与 `return`。若 ProcessEngine runtime 的调用方流程需要在调用结束后暂停，
+被调流程变量负责调用方上下文的输入输出映射，因此只支持 `param` 与 `return`。若 `ProcessEngine` 调用方需要在调用结束后暂停，
 应显式连接 `waitTask` 或 `waitEventTask`；流程调用与外部事件关联是两种独立语义。
 
 调用输入只声明 `source` 或 `defaultValue` 之一以及被调流程的 `target`；精确被调流程的 `param` 声明是其类型的唯一事实源。
 调用输出以 `source` 声明被调流程的 `return` 变量，以 `target` 声明调用方已定义的变量。Process Call 映射不声明
 `dataType`。
 
-Direct definition 可以调用 exact Classpath definition，也可以调用已加载的精确 Version。精确 Version definition 只能调用精确 Version，
-published artifact 同样强制 Version-only 依赖；Version target 继承 caller 的 namespace。Alias 只用于 root admission，
-不向嵌套调用继承。整个传递图必须在第一个业务 action 前解析并持有；运行时按精确 call-site binding 调用，不再按 code 解析。
+直接提供的流程定义可以调用确定的类路径定义，也可以调用已加载的确定版本。确定版本的流程定义只能调用确定版本，
+已发布制品同样只允许依赖确定版本；版本目标继承调用方的命名空间。别名只用于根流程准入，
+不向嵌套调用继承。整个传递调用图必须在第一个业务动作前解析并持有；运行时按确定的调用点绑定执行，不再按流程编码解析。
 
-在 `durable-strict@1` 中，流程调用会在同一个 Run 内压入精确的被调流程 invocation frame，不会创建可独立寻址的 Run。
-Continuation 持久化精确流程目标 identity 与 call-site binding，因此恢复时继续使用已持有的 binding，不会重新执行 Alias 路由。
-调用成功后应用已声明的 return mapping；调用失败会成为显式、Process-owned 的调用方流程失败。被调 Process 的写集合与 Effect
-无法证明为 branch-local，因此 `bpmCall` 仍禁止位于
-concurrent region。
+在 `durable-strict@1` 中，流程调用会在同一个流程实例内压入确定的被调流程调用帧，不会创建可独立寻址的新流程实例。
+`Continuation` 持久化确定的流程目标和调用点绑定，恢复时继续使用已经持有的绑定，不会重新进行别名路由。
+调用成功后应用已声明的返回值映射；调用失败会成为调用方流程的明确失败。由于无法证明被调流程的写入集合与外部操作只影响所在分支，
+`bpmCall` 仍禁止位于并发区域。
 
 ### 3.7 循环
 
@@ -412,49 +411,49 @@ TBBPM 用两个结构化节点表达两种不同意图：`while` 表示按条件
 `break` 与 `continue` 可以出现在顺序循环体内，并可带条件表达式。并行 `foreach` 中仍允许每个迭代独立 `continue`，但禁止
 `break`，因为单次迭代无法确定性地取消已发出的兄弟迭代。顺序循环可以嵌套；并行集合循环可以位于顺序循环内，但已处于并发作用域时
 不能再嵌套并行循环或并发网关。`break` 与 `continue` 也可以位于循环内嵌套的 `subBpm` 作用域中，并始终绑定最近的外层循环；
-因此嵌套循环拥有自己的控制节点。ProcessEngine runtime 的触发入口与 Parallel/Inclusive 并发 split 不能作为循环子节点。Durable 顺序循环
-可包含 Wait、Timer、Effect Action 和结构化 Parallel/Inclusive scope。所有并发作用域内仍禁止流程调用。循环及控制表达式继续使用
-generated-Java 表达式契约。
+因此嵌套循环拥有自己的控制节点。`ProcessEngine` 的触发入口与 Parallel/Inclusive 并发分支不能作为循环子节点。Durable 顺序循环
+可包含等待、定时器、外部操作以及结构化 Parallel/Inclusive 作用域。所有并发作用域内仍禁止流程调用。循环及控制表达式继续使用
+生成 Java 表达式的契约。
 
-Parallel issue 使用有界滚动窗口，由 `compileflow.durable.worker.max-active-iterations` 控制（`1..64`，默认 `32`）。
-它属于当前 Runtime scheduling policy，不持久化为 Process identity。Input 只冻结一次；兄弟 iteration 状态隔离；崩溃恢复后
-index identity 稳定；配置输出聚合时，output target 永远按 input index 而不是 completion order 汇聚。Continuation 只保存一份
-父状态和每个活动 iteration 的状态差量。空输入不创建 iteration work；配置输出时会产生空 output target。
+并行任务使用有界滚动窗口，由 `compileflow.durable.worker.max-active-iterations` 控制（`1..64`，默认 `32`）。
+该窗口属于运行时调度策略，不会持久化为流程身份。输入只冻结一次；各次迭代的状态彼此隔离；崩溃恢复后
+索引身份保持稳定；配置输出聚合时，目标变量始终按输入索引而不是完成顺序汇聚。`Continuation` 只保存一份
+父状态和每个活动迭代的状态差量。空输入不会创建迭代任务；配置输出时会生成空的目标集合。
 
 ### 3.8 注释
 
 `note` 是不可执行的图形元数据，不能参与转移：
 
 ```xml
-<note id="note1" name="Review" comment="Manual review happens externally"
+<note id="note1" name="Context" comment="Handled by the application"
       g="80,80,180,40"/>
 ```
 
-## 4. Action
+## 4. 动作
 
-所有 action 使用同一种规范 XML 形态：
+所有动作使用同一种规范 XML 形态：
 
 ```xml
 <action type="java" class="com.example.Handler" method="run"/>
 ```
 
-内置 action type 为：
+内置动作类型为：
 
-| `type`        | action 必需内容                                                    | 含义                                               |
-| ------------- | ------------------------------------------------------------------ | -------------------------------------------------- |
-| `java`        | `class`，可选 `method`（默认 `execute`）及 `input`/`output` 子元素 | 调用 application-owned、可复用的 Java capability。 |
-| `spring-bean` | `bean`、`class`，可选 `method`（默认 `execute`）及映射             | 调用 application-owned Spring capability。         |
-| `script`      | `language`、一个 `code`、可选映射                                  | 通过具名 Script executor 执行流程拥有的代码。      |
+| `type`        | 动作必需内容                                                       | 含义                                 |
+| ------------- | ------------------------------------------------------------------ | ------------------------------------ |
+| `java`        | `class`，可选 `method`（默认 `execute`）及 `input`/`output` 子元素 | 调用应用提供、可复用的 Java 能力。   |
+| `spring-bean` | `bean`、`class`，可选 `method`（默认 `execute`）及映射             | 调用应用提供的 Spring 能力。         |
+| `script`      | `language`、一个 `code`、可选映射                                  | 通过具名脚本执行器运行流程中的代码。 |
 
-`script` 是动态代码唯一的协议 action type。其 `language` 选择已注册的 `ScriptExecutor`。QL 与 Java 共用
-同一个 XML 和 semantic plan；新增语言也必须遵守该契约。Exclusive、while、timer 与 transition guard 仍是生成的 Java 源码，
-不通过 script executor。
+`script` 是动态代码唯一的协议动作类型。其 `language` 选择已注册的 `ScriptExecutor`。QL 与 Java 共用
+同一种 XML 结构和语义计划；新增语言也必须遵守该契约。Exclusive、while、timer 与转移守卫条件仍生成 Java 源码，
+不通过脚本执行器。
 
-每个 Script 输入和输出都用 `<input>` 或 `<output>` 显式声明。Java Script source 是 method body，例如
-`return price.multiply(quantity);`。Process runtime load 时，first-party Java executor 生成带类型的 wrapper，并以
-`javac --release 17` 编译；得到的 `ScriptProgram` 只属于该精确、可丢弃的 runtime，绝不持久化。language、精确 source 与声明签名
-仍是不可变 Process Version 的事实来源，因此 runtime 总能从 source 再次 prepare。V1 只接受 JDK platform input/output type。
-Java Script 是可信嵌入式计算，不是 sandbox；面向不可信用户的 Workbench 必须使用默认禁网的隔离 Code Runner。
+每个脚本输入和输出都用 `<input>` 或 `<output>` 显式声明。Java Script 源码是一段方法体，例如
+`return price.multiply(quantity);`。加载流程运行时时，内置 Java 执行器会生成带类型的包装代码，并以
+`javac --release 17` 编译；得到的 `ScriptProgram` 只属于该确定且可丢弃的运行时，绝不持久化。脚本语言、精确源码与声明签名
+仍是不可变流程版本的事实来源，因此运行时始终可以根据源码重新生成。当前规范只接受 JDK 平台的输入和输出类型。
+Java Script 是可信的嵌入式计算，不是安全沙箱；面向不可信用户的 Workbench 必须使用默认禁止联网的隔离代码运行器。
 
 脚本示例：
 
@@ -478,7 +477,7 @@ core 提供可信进程内 Java executor；QL 与 Java 默认均可用。
 </action>
 ```
 
-## 5. Action 映射
+## 5. 动作映射
 
 所有映射只使用一个方向代数：读取 `source`，写入 `target`。
 
@@ -492,7 +491,7 @@ Action 输出写作 `<output target="processVariable" dataType="java.lang.String
 流程调用沿用同一代数，但两端都显式声明：调用输入把调用方 `source` 映射到被调流程 `target`；调用输出把被调流程
 `source` 映射到调用方 `target`。调用映射不重复 `dataType`，被调流程的 `param` 与 `return` 声明是类型事实来源。
 
-## 6. Invocation Policy
+## 6. 调用策略
 
 ```xml
 <action type="java" class="com.example.OrderService" method="submit">
@@ -552,7 +551,7 @@ ProcessResult<Map<String, Object>> result = engine.trigger(
 - 仅使用 `foreach` 与 `while` 两种循环节点，不使用通用循环判别属性。
 - ProcessEngine trigger 入口只允许位于顶层；Durable Wait 可位于支持的作用域和循环中。
 - 以 Java 17 release 编译生成代码。
-- ProcessEngine invocation 不持久化 continuation；只有显式 Durable 执行面负责 Run 恢复。
+- `ProcessEngine` 调用不持久化后续执行状态；只有显式使用 Durable 执行面时才会恢复流程实例。
 - 不提供通用消息关联或 Engine 内建人工任务生命周期。
 
 ## 9. 相关文档

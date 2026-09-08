@@ -15,9 +15,9 @@ CompileFlow 遵循[语义化版本 2.0.0](https://semver.org/lang/zh-CN/)。本�
 受支持的 Java 与部署制品包括：
 
 - `compileflow-api`：引擎执行、配置、预检、错误和扩展 SPI；
-- `compileflow-deploy-api`：不可变发布、Rollout、路由、视图和错误契约；
+- `compileflow-deploy-api`：不可变发布、灰度、路由、视图和错误契约；
 - `compileflow-deploy-protocol`：版本化载荷、规范编解码器和投影键；
-- `compileflow-durable-api`：流程启动、Wait 完成、取消、查询和运维操作契约。
+- `compileflow-durable-api`：流程启动、等待完成、取消、查询和运维操作契约。
 
 `compileflow-durable-runtime` 中的 `DurableProcessEngineConfig` 和 `DurableProcessEngineFactory` 也是受支持的
 纯 Java 组合入口。其他运行时实现类型不属于应用 API。
@@ -50,7 +50,7 @@ TBBPM 和文档化的 BPMN 2.0 子集由各自规范及[节点支持](node-suppo
 
 ### Workbench 配套 REST
 
-仓库中的 [OpenAPI 描述](specifications/workbench-server-openapi.md)是 `compileflow-workbench-server` `/api/**` 端点在同一版本内的精确线协议契约。该接口属于 **Supported by deployment**，供匹配版本的 Workbench 前端与 Server 配套使用，不是稳定的第三方集成 API。
+仓库中的 [OpenAPI 描述](specifications/workbench-server-openapi.md)是 `compileflow-workbench-server` `/api/**` 端点在同一版本内的精确线协议契约。该接口属于“随部署提供支持”的能力，供匹配版本的 Workbench 前端与服务端配套使用，不是稳定的第三方集成 API。
 
 控制器记录类、OpenAPI、生成的 TypeScript、运行时校验和契约测试必须同步更新。前端和 Server 必须来自同一个 CompileFlow
 版本；此支持面不定义兼容窗口。

@@ -215,6 +215,13 @@ const TbbpmCanvas = memo(function TbbpmCanvas({ onGraphReady }: TbbpmCanvasProps
 
   const localGraphRef = useX6Graph(containerRef, {
     showGridlines,
+    validateConnection: ({ sourceView, targetView }) => {
+      if (targetView?.cell.shape === 'tbbpm-start') return false
+      if (['tbbpm-end', 'tbbpm-break', 'tbbpm-continue'].includes(sourceView?.cell.shape ?? '')) {
+        return false
+      }
+      return true
+    },
     onReady: (graph) => {
       graphRef.current = graph
       onGraphReady?.(graph)

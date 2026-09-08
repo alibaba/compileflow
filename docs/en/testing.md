@@ -17,7 +17,8 @@ Tests must be deterministic. Do not depend on execution order, a developer home 
 
 ## Java tests
 
-Keep tests next to the production module and use the public contract when the behavior is public. Name a test after the rule it proves. A regression test should contain the smallest input that previously failed.
+Keep tests next to the production module and use the public contract when the behavior is public. Name each test after
+the rule it proves, and use the smallest input that demonstrates the behavior.
 
 For concurrency and lifecycle code:
 

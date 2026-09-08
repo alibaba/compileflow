@@ -52,13 +52,13 @@ Deploy 通过 `ProcessRuntimeOwnership`、`ProcessCallInspector` 和 `ProcessExe
 
 ## 源码定位
 
-| 需求                    | 起点                                                                                  |
-| ----------------------- | ------------------------------------------------------------------------------------- |
-| 公共执行                | `compileflow-api` 的 `ProcessEngine`                                                  |
-| 运行时解析              | `compileflow-core` 的 `ProcessRuntimeResolver`                                        |
-| Spring 组合             | `CompileFlowEngineAutoConfiguration`                                                  |
-| Alias 路由              | `AliasAdmission`、`DeterministicAliasSelector`                                        |
-| 部署数据面              | `compileflow-deploy-runtime` 的 `DeploymentRuntime`                                   |
-| Durable runtime         | `DurableProcessRuntimeManager` 和 Durable runtime 模块                                |
-| 浏览器草稿存储          | `compileflow-workbench/apps/web/src/authoring/designer/api`                           |
-| Workbench Server 持久化 | `compileflow-workbench-server/src/main/java/com/alibaba/compileflow/workbench/server` |
+| 需求                   | 起点                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------- |
+| 公共执行               | `compileflow-api` 的 `ProcessEngine`                                                  |
+| 运行时解析             | `compileflow-core` 的 `ProcessRuntimeResolver`                                        |
+| Spring 组合            | `CompileFlowEngineAutoConfiguration`                                                  |
+| 别名路由               | `AliasAdmission`、`DeterministicAliasSelector`                                        |
+| 部署数据面             | `compileflow-deploy-runtime` 的 `DeploymentRuntime`                                   |
+| Durable 运行时         | `DurableProcessRuntimeManager` 和 Durable 运行时模块                                  |
+| 浏览器草稿存储         | `compileflow-workbench/apps/web/src/authoring/designer/api`                           |
+| Workbench 服务端持久化 | `compileflow-workbench-server/src/main/java/com/alibaba/compileflow/workbench/server` |

@@ -4,34 +4,26 @@ CompileFlow is maintained by the project maintainers listed in this file and ref
 
 ## Primary Maintainer
 
-| GitHub    | Affiliation | Scope                                          |
-| --------- | ----------- | ---------------------------------------------- |
-| @yusu1210 | Alibaba     | Repository-wide maintenance and release review |
+| GitHub    | Affiliation | Scope                       |
+| --------- | ----------- | --------------------------- |
+| @yusu1210 | Alibaba     | Repository-wide maintenance |
 
 ## Responsibilities
 
 Maintainers are responsible for:
 
-- reviewing code, documentation, CI, dependency, and release changes;
-- keeping architecture decisions and public API documentation consistent with the implementation;
-- triaging issues and security reports through the channels in
-  `SUPPORT.md` and `SECURITY.md`;
-- protecting the control-plane/data-plane boundary, fail-fast deploy behavior, public API contracts, and
-  Workbench/server contract alignment.
+- reviewing contributions and maintaining repository quality;
+- keeping public APIs, documentation, architecture, and implementation consistent;
+- triaging issues and security reports through [SUPPORT.md](SUPPORT.md) and [SECURITY.md](SECURITY.md);
+- maintaining release integrity and the documented boundaries between the engine, Deploy, Durable, and Workbench.
 
 ## Updating Maintainers
 
-Maintainer changes require a pull request that updates both `MAINTAINERS.md`
-and `.github/CODEOWNERS`. The pull request should explain the ownership change, the affected scope, and the review
-expectations for future changes.
+Maintainer changes require a pull request that updates this file and `.github/CODEOWNERS`. Describe the ownership
+change and the affected scope.
 
 ## Access Management
 
-Granting or expanding access to repository settings, CI credentials, package publication, signing keys, or other
-sensitive resources requires review by an existing maintainer or organization owner other than the candidate. Assign
-the narrowest repository and environment role that covers the documented responsibility; contributor activity alone
-does not imply administrative access.
-
-Review sensitive access when a role changes and during release preparation. Remove access promptly when the documented
-responsibility ends, and update this file and `.github/CODEOWNERS` when ownership changes. Credential storage and
-rotation follow `SECURITY.md`; the public maintainer list must not disclose secret values or private recovery material.
+Access to repository settings, CI credentials, package publication, and signing keys follows least privilege and
+requires approval from an existing maintainer or organization owner other than the candidate. Remove access when the
+responsibility ends. Credential storage and rotation follow [SECURITY.md](SECURITY.md).

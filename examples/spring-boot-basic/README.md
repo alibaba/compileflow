@@ -1,7 +1,7 @@
 # CompileFlow Spring Boot Basic Example
 
-This example starts a minimal Spring Boot application and runs a TBBPM process from the classpath. The process adds
-two to an input value with a QL script action and does not call any Spring bean.
+This minimal Spring Boot application runs a classpath TBBPM process. A QLExpress script task adds two to an input value
+without invoking a Spring bean.
 
 ## Prerequisites
 

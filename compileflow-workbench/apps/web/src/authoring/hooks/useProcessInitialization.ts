@@ -1,7 +1,7 @@
 import { App } from 'antd'
 import type { MessageInstance } from 'antd/es/message/interface'
 import type { TFunction } from 'i18next'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { NavigateFunction } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
@@ -303,10 +303,6 @@ export const useProcessInitialization = ({
   const { source, processId, modelType, templateId, exampleId, processCode } = entryPayload
   const dispatch = useAppDispatch()
   const currentProcess = useAppSelector(selectCurrentProcess)
-  const workspaceProcessIsCurrent =
-    source === 'workspaceProcess' &&
-    processId === currentProcess?.id &&
-    modelType === currentProcess.type.toLowerCase()
   const navigate = useNavigate()
   const { message: messageApi } = App.useApp()
 
@@ -329,8 +325,16 @@ export const useProcessInitialization = ({
     setExitRoute(navigateTo ?? null)
   }, [])
 
+  const latestRuntime = useRef({ entryPayload, currentProcess, messageApi, navigate, t })
+  latestRuntime.current = { entryPayload, currentProcess, messageApi, navigate, t }
+
   useEffect(() => {
     const cancelled: CancellationToken = { value: false, abortCurrentLoad: null }
+    const runtime = latestRuntime.current
+    const workspaceProcessIsCurrent =
+      runtime.entryPayload.source === 'workspaceProcess' &&
+      runtime.entryPayload.processId === runtime.currentProcess?.id &&
+      runtime.entryPayload.modelType === runtime.currentProcess.type.toLowerCase()
 
     if (workspaceProcessIsCurrent) {
       dispatch(UndoActionCreators.clearHistory())
@@ -350,17 +354,17 @@ export const useProcessInitialization = ({
         await runProcessInitialization({
           cancelled,
           dispatch,
-          entryPayload,
+          entryPayload: runtime.entryPayload,
           markFailed,
-          messageApi,
-          navigate,
+          messageApi: runtime.messageApi,
+          navigate: runtime.navigate,
           setReady: () => setStatus('ready'),
-          t,
+          t: runtime.t,
         })
       } catch {
         if (!cancelled.value) {
-          const message = t('designer.flowInit.errorGeneric')
-          messageApi.error(message)
+          const message = runtime.t('designer.flowInit.errorGeneric')
+          runtime.messageApi.error(message)
           markFailed(message, ROUTES.BUILD)
         }
       }
@@ -380,13 +384,9 @@ export const useProcessInitialization = ({
     templateId,
     exampleId,
     processCode,
-    workspaceProcessIsCurrent,
     retryToken,
     dispatch,
     markFailed,
-    navigate,
-    messageApi,
-    t,
   ])
 
   return { status, errorMessage, exitRoute, retry }

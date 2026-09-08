@@ -12,49 +12,53 @@
 [![Java](https://img.shields.io/badge/Java-17%20%7C%2021%20%7C%2025-green?logo=OpenJDK&logoColor=white)](docs/zh/compatibility-policy.md)
 [![License](https://img.shields.io/badge/license-Apache%202-4D7A97.svg?logo=Apache&logoColor=white)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
-[![GitHub Stars](https://img.shields.io/github/stars/alibaba/compileflow?style=social)](https://github.com/alibaba/compileflow/stargazers)
+[![GitHub Stars](https://img.shields.io/github/stars/alibaba/compileflow?style=social)](https://github.com/alibaba/compileflow)
 [![GitHub Forks](https://img.shields.io/github/forks/alibaba/compileflow?style=social)](https://github.com/alibaba/compileflow/fork)
 
 [English README](README.md)
 
 </div>
 
-CompileFlow 是一款轻量、高性能、可集成、可扩展的 Java 流程引擎，支持 TBBPM 和文档列出的 BPMN 2.0 子集。
+CompileFlow 是一款轻量、高性能、可集成、可扩展的 Java 流程引擎，支持 TBBPM 和文档明确支持的 BPMN 2.0 子集。
 
-CompileFlow Process 引擎采用纯内存、无状态的执行方式，支持编译执行和解释执行两种模式。
+`ProcessEngine` 在进程内执行流程，不持久化执行状态，并支持编译执行和解释执行两种模式。
 CompileFlow 已应用于阿里业务中台、淘宝、阿里云、国际化等业务的多个核心系统。
 
-对于需要跨应用重启保存流程状态的场景，可以使用 CompileFlow Durable，支持流程等待、定时触发和外部操作的可靠处理。
+CompileFlow Durable 为长时间运行的流程提供持久化能力，可在流程等待、定时触发或外部操作后继续执行，并支持应用重启后的恢复。
 
-开发人员可以通过流程编辑器设计业务流程，将复杂的业务逻辑可视化，在业务设计人员与开发工程师之间建立清晰、高效的协作方式。
+可视化编辑器将复杂的业务逻辑呈现为清晰的流程图，便于业务与研发共同理解和维护。Java Action 将业务服务、规则和 Agent 调用
+编排到同一流程中；CompileFlow Deploy 和 Durable 分别提供版本化发布与持久化执行。
 
 ## 核心能力
 
-- **⚡ 高性能执行** —— 将流程文件转换为 Java 代码并编译执行，同时提供解释执行模式。
-- **🧩 TBBPM 与 BPMN** —— 使用统一的引擎 API 处理 TBBPM 和文档列出的 BPMN 2.0 子集。
-- **✅ Java 与 Spring Boot 集成** —— 提供线程安全的引擎、流程预检、类型化结果和稳定错误码。
-- **🚦 版本化部署** —— 使用 CompileFlow Deploy 发布不可变 Version，通过 revision 检查更新 Alias，并进行确定性灰度路由。
+- **⚡ 高性能执行** —— 支持编译执行和解释执行两种模式；编译模式生成并复用 Java 运行时。
+- **🧩 TBBPM 与 BPMN** —— 使用统一的引擎 API 处理 TBBPM 和文档明确支持的 BPMN 2.0 子集。
+- **✅ Java 与 Spring Boot 集成** —— 提供线程安全的引擎、流程预检、类型安全的结果和稳定错误码。
+- **🚦 版本化部署** —— 使用 CompileFlow Deploy 发布不可变版本，通过修订号检查更新别名，并按稳定规则进行灰度路由。
 - **⏱️ 持久化执行** —— 保存流程等待、定时任务和外部操作状态，并在应用重启后恢复执行。
 - **🖥️ 可视化 Workbench** —— 在浏览器中建模和校验流程，并通过 Workbench Server 发布、监控和查看执行。
+- **🤖 Agent 工作流编排** —— 通过 Java Action 将 Agent 调用、服务操作和业务规则编排到同一流程中。
 
-## 选择功能
+## 按需选择
 
 | 需求                             | 使用                                                            |
 | -------------------------------- | --------------------------------------------------------------- |
 | 进程内低延迟执行                 | `ProcessEngine`，配合 `compileflow-tbbpm` 或 `compileflow-bpmn` |
+| 不可变版本、别名和灰度发布       | [CompileFlow Deploy](compileflow-deploy/README.md)              |
 | 跨应用重启保存流程状态并恢复执行 | [CompileFlow Durable](compileflow-durable/README.md)            |
-| 浏览器建模、发布管理和执行检查   | [CompileFlow Workbench](compileflow-workbench/README.md)        |
+| 可视化建模、发布管理和执行记录   | [CompileFlow Workbench](compileflow-workbench/README.md)        |
 
-这些功能彼此独立。引入 Workbench 或 Durable 后，`ProcessEngine.execute(...)` 仍然只在进程内执行，不会自动保存运行状态。
+这些功能彼此独立。引入 Deploy、Durable 或 Workbench 不会改变 `ProcessEngine.execute(...)` 的进程内执行方式；持久化执行使用
+Durable API。
 
 ## 核心 API
 
-| 类型                | 用途                                   |
-| ------------------- | -------------------------------------- |
-| `ProcessEngine`     | 线程安全的流程执行入口                 |
-| `ProcessRef`        | 指向已发布版本或别名                   |
-| `ProcessDefinition` | 通过内嵌内容或类路径提供流程定义       |
-| `ProcessResult<T>`  | 返回类型化结果或带稳定错误码的失败信息 |
+| 类型                | 用途                                       |
+| ------------------- | ------------------------------------------ |
+| `ProcessEngine`     | 线程安全的流程执行入口                     |
+| `ProcessRef`        | 指向已发布版本或别名                       |
+| `ProcessDefinition` | 通过内嵌内容或类路径提供流程定义           |
+| `ProcessResult<T>`  | 返回类型安全的结果或带稳定错误码的失败信息 |
 
 通常每种配置只需创建一个长生命周期的 `ProcessEngine`。同一个引擎可以执行所有已安装的流程格式，每个流程定义明确指定自身格式。
 应用关闭时再关闭引擎，不要为每个请求重复创建。
@@ -116,10 +120,10 @@ public class OrderService {
 flowchart LR
     definition["TBBPM 或 BPMN 定义"]
     engine["ProcessEngine"]
-    semantic["流程语义计划"]
+    semantic["已校验的流程模型"]
     compile["COMPILED：生成并编译 Java"]
-    interpret["INTERPRETED：解释计划并编译表达式"]
-    runtime["已加载流程运行时"]
+    interpret["INTERPRETED：直接执行流程模型"]
+    runtime["流程运行时"]
     result["ProcessResult"]
 
     definition --> engine --> semantic
@@ -129,8 +133,7 @@ flowchart LR
     runtime --> engine
 ```
 
-CompileFlow 使用明确的流程来源、不可变部署版本、有界扩展点和类型化错误。可执行节点范围与公共兼容性承诺见
-[支持面清单](docs/zh/architecture/supported-surfaces.md)。
+可执行节点、流程格式和公共兼容性承诺见[支持面清单](docs/zh/architecture/supported-surfaces.md)。
 
 ## 文档
 
@@ -140,7 +143,7 @@ CompileFlow 使用明确的流程来源、不可变部署版本、有界扩展�
 | 配置和容量规划 | [配置指南](docs/zh/configuration.md)                     | [Configuration](docs/en/configuration.md)                        |
 | 使用持久化执行 | [Durable Process](docs/zh/durable-process.md)            | [Durable Process](docs/en/durable-process.md)                    |
 | 理解系统架构   | [架构文档](docs/zh/architecture/README.md)               | [Architecture](docs/en/architecture/README.md)                   |
-| 查看受支持契约 | [支持面清单](docs/zh/architecture/supported-surfaces.md) | [Supported Surfaces](docs/en/architecture/supported-surfaces.md) |
+| 查看支持范围   | [支持面清单](docs/zh/architecture/supported-surfaces.md) | [Supported Surfaces](docs/en/architecture/supported-surfaces.md) |
 | 运维部署       | [运维手册](docs/zh/operations-playbook.md)               | [Operations](docs/en/operations-playbook.md)                     |
 | 参与贡献       | [贡献指南（英文）](CONTRIBUTING.md)                      | [Contributing](CONTRIBUTING.md)                                  |
 

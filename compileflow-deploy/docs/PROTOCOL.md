@@ -11,12 +11,12 @@ alias stream: mutable complete desired state for one alias
 Publishing an artifact never changes traffic. Changing an alias never retransmits process content. This separation is
 part of the protocol contract.
 
-## Protocol Compatibility
+## Protocol Generation
 
-The current protocol supports coordinated homogeneous upgrades only. Control-plane writers, projection contents, and
-runtime readers must use the same generation. Alias-state and artifact parsers accept exactly schema `1` and reject
-unknown fields. Mixed protocol generations are not supported. The protocol uses explicit versioned payload codecs
-rather than a generic codec registry.
+Control-plane writers, projection payloads, and runtime readers in one deployment must use the same protocol generation.
+Deploy supports coordinated homogeneous upgrades only; it does not support mixed-version rolling operation.
+Alias-state and artifact parsers accept exactly schema `1` and reject unknown fields. The protocol uses explicit
+versioned payload codecs rather than a generic codec registry.
 
 In artifact mode `PROJECTION_STORE`, publication stores the immutable database fact before projecting it. A failed
 projection makes the publish command fail but does not discard or rewrite that fact; an exact retry is idempotent.
@@ -60,7 +60,7 @@ backing service:
 2. CAS is atomic for both existing values and `expectedContent == null` create-if-absent.
 3. A successful update after subscription establishment is eventually observable by the subscriber.
 4. Integration tests exercise competing creates, competing updates, delayed writers, subscription-establishment races,
-   reconnects, history loss or compaction, and backend failures or partitions.
+   reconnects, missed updates after backend compaction, and backend failures or partitions.
 
 Stores whose publish operation is create-or-update, whose absent-key condition is not an atomic create-if-absent, or
 whose reads may return local failover or snapshot content do not satisfy this contract. A client-side read/write
@@ -69,7 +69,7 @@ sequence cannot replace server-side CAS.
 The two streams have separate key spaces:
 
 | Stream           | Default key shape                               | Example                                  |
-|------------------|-------------------------------------------------|------------------------------------------|
+| ---------------- | ----------------------------------------------- | ---------------------------------------- |
 | Alias state      | `compileflow.deployment.alias.{identityDigest}` | `compileflow.deployment.alias.5ec738...` |
 | Process artifact | `compileflow.process.version.{identityDigest}`  | `compileflow.process.version.14546f...`  |
 
@@ -92,40 +92,40 @@ one candidate:
 
 ```json
 {
-  "schemaVersion": 1,
-  "kind": "aliasState",
-  "namespace": "default",
-  "code": "order.process",
-  "alias": "production",
-  "stableVersion": "1",
-  "candidateVersion": "2",
-  "candidateWeightBps": 1000,
-  "targetingPolicy": "enterprise-cohort",
-  "targetingParameters": {
-    "region": "cn"
-  },
-  "revision": 44,
-  "actor": "alice",
-  "updatedAt": 1760000002000
+    "schemaVersion": 1,
+    "kind": "aliasState",
+    "namespace": "default",
+    "code": "order.process",
+    "alias": "production",
+    "stableVersion": "1",
+    "candidateVersion": "2",
+    "candidateWeightBps": 1000,
+    "targetingPolicy": "enterprise-cohort",
+    "targetingParameters": {
+        "region": "cn"
+    },
+    "revision": 44,
+    "actor": "alice",
+    "updatedAt": 1760000002000
 }
 ```
 
-| Field                | Type    | Required       | Contract                                                        |
-|----------------------|---------|----------------|-----------------------------------------------------------------|
-| `schemaVersion`      | integer | yes            | Exactly `1`; strings and floating-point values are invalid      |
-| `kind`               | string  | yes            | Exactly `aliasState`                                            |
-| `namespace`          | string  | yes            | Explicit, validated namespace                                   |
-| `code`               | string  | yes            | Validated process code                                          |
-| `alias`              | string  | yes            | Validated alias name                                            |
-| `stableVersion`      | string  | unless deleted | Stable published version                                        |
-| `candidateVersion`   | string  | no             | Candidate published version, different from stable              |
-| `candidateWeightBps` | integer | with candidate | Candidate weight in `1..9999` basis points                      |
+| Field                 | Type    | Required       | Contract                                                        |
+| --------------------- | ------- | -------------- | --------------------------------------------------------------- |
+| `schemaVersion`       | integer | yes            | Exactly `1`; strings and floating-point values are invalid      |
+| `kind`                | string  | yes            | Exactly `aliasState`                                            |
+| `namespace`           | string  | yes            | Explicit, validated namespace                                   |
+| `code`                | string  | yes            | Validated process code                                          |
+| `alias`               | string  | yes            | Validated alias name                                            |
+| `stableVersion`       | string  | unless deleted | Stable published version                                        |
+| `candidateVersion`    | string  | no             | Candidate published version, different from stable              |
+| `candidateWeightBps`  | integer | with candidate | Candidate weight in `1..9999` basis points                      |
 | `targetingPolicy`     | string  | no             | Named targeting policy; allowed only with a candidate           |
 | `targetingParameters` | object  | no             | String parameters for `targetingPolicy`                         |
-| `deleted`            | boolean | no             | Exactly `true` for a tombstone; omitted for a live route        |
-| `revision`           | integer | yes            | Positive authoritative per-alias ordering value                 |
-| `actor`              | string  | yes            | Human or service principal that caused the route mutation       |
-| `updatedAt`          | integer | yes            | Positive mutation timestamp used only for audit and diagnostics |
+| `deleted`             | boolean | no             | Exactly `true` for a tombstone; omitted for a live route        |
+| `revision`            | integer | yes            | Positive authoritative per-alias ordering value                 |
+| `actor`               | string  | yes            | Human or service principal that caused the route mutation       |
+| `updatedAt`           | integer | yes            | Positive mutation timestamp used only for audit and diagnostics |
 
 The stable share is the residual `10000 - candidateWeightBps`. A stable-only route omits `candidateVersion`,
 `candidateWeightBps`, `targetingPolicy`, and `targetingParameters`. `targetingParameters` is allowed only with
@@ -136,15 +136,15 @@ Deletion uses the same resource kind:
 
 ```json
 {
-  "schemaVersion": 1,
-  "kind": "aliasState",
-  "namespace": "default",
-  "code": "order.process",
-  "alias": "production",
-  "deleted": true,
-  "revision": 45,
-  "actor": "alice",
-  "updatedAt": 1760000003000
+    "schemaVersion": 1,
+    "kind": "aliasState",
+    "namespace": "default",
+    "code": "order.process",
+    "alias": "production",
+    "deleted": true,
+    "revision": 45,
+    "actor": "alice",
+    "updatedAt": 1760000003000
 }
 ```
 
@@ -168,34 +168,34 @@ The artifact stream carries the exact immutable source for one `(namespace, code
 
 ```json
 {
-  "schemaVersion": 1,
-  "namespace": "default",
-  "code": "order.process",
-  "version": "2",
-  "modelType": "TBBPM",
-  "content": "<bpm code=\"order.process\">...</bpm>",
-  "artifactDigest": "f74b220b3c08f51d8790800aa8f79a916bec6e60285b074613779928b9f35d18",
-  "callBindings": [
-    {
-      "callSiteId": "charge",
-      "code": "payment",
-      "namespace": "default",
-      "version": "3"
-    }
-  ]
+    "schemaVersion": 1,
+    "namespace": "default",
+    "code": "order.process",
+    "version": "2",
+    "modelType": "TBBPM",
+    "content": "<bpm code=\"order.process\">...</bpm>",
+    "artifactDigest": "f74b220b3c08f51d8790800aa8f79a916bec6e60285b074613779928b9f35d18",
+    "callBindings": [
+        {
+            "callSiteId": "charge",
+            "code": "payment",
+            "namespace": "default",
+            "version": "3"
+        }
+    ]
 }
 ```
 
-| Field            | Type                  | Required | Contract                                                                                  |
-|------------------|-----------------------|----------|-------------------------------------------------------------------------------------------|
-| `schemaVersion`  | integer               | yes      | Exactly `1`                                                                               |
-| `namespace`      | string                | yes      | Explicit, validated namespace                                                             |
-| `code`           | string                | yes      | Validated process code                                                                    |
-| `version`        | string                | yes      | Validated immutable version identifier                                                    |
-| `modelType`      | string                | yes      | Exact supported model type                                                                |
-| `content`        | string                | yes      | Non-blank exact process-definition content; never normalized in transit                   |
-| `artifactDigest` | string                | yes      | Lowercase SHA-256 computed by `ProcessArtifactDigest` over the domain-separated definition digest and sorted direct call bindings |
-| `callBindings`   | array                 | yes      | Source-derived direct `callSiteId -> exact Version` bindings; call IDs are unique             |
+| Field            | Type    | Required | Contract                                                                                                                          |
+| ---------------- | ------- | -------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `schemaVersion`  | integer | yes      | Exactly `1`                                                                                                                       |
+| `namespace`      | string  | yes      | Explicit, validated namespace                                                                                                     |
+| `code`           | string  | yes      | Validated process code                                                                                                            |
+| `version`        | string  | yes      | Validated immutable version identifier                                                                                            |
+| `modelType`      | string  | yes      | Exact supported model type                                                                                                        |
+| `content`        | string  | yes      | Non-blank exact process-definition content; never normalized in transit                                                           |
+| `artifactDigest` | string  | yes      | Lowercase SHA-256 computed by `ProcessArtifactDigest` over the domain-separated definition digest and sorted direct call bindings |
+| `callBindings`   | array   | yes      | Source-derived direct `callSiteId -> exact Version` bindings; call IDs are unique                                                 |
 
 Each call binding contains `callSiteId`, `code`, `namespace`, and `version`. Its namespace must equal the parent artifact
 namespace, and its code must equal the exact target code. Bindings freeze publication-time direct linkage; transitive

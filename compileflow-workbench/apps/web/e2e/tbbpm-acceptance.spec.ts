@@ -363,7 +363,22 @@ test.describe('6. Header 功能', () => {
     await page.keyboard.press('Escape')
   })
 
-  test('6.9 返回按钮正常工作（无未保存更改时直接返回）', async ({ page }) => {
+  test('6.9 删除当前流程后只显示成功反馈，不触发已删除流程的二次加载', async ({ page }) => {
+    await page.locator('.header-more-btn').click()
+    await page.locator('.ant-dropdown-menu-item-danger').click()
+    await page
+      .locator('.ant-modal-confirm')
+      .getByRole('button', { name: /删\s*除/ })
+      .click()
+
+    await expect(page).toHaveURL('/build')
+    await expect(page.getByText('流程已删除')).toBeVisible()
+    await page.waitForTimeout(800)
+    await expect(page.locator('.ant-message')).not.toContainText('Process not found')
+    await expect(page.locator('.ant-message')).not.toContainText('editorSlice.ts')
+  })
+
+  test('6.10 返回按钮正常工作（无未保存更改时直接返回）', async ({ page }) => {
     const backBtn = page.getByRole('button', { name: '返回构建' })
     await backBtn.click()
     await page.waitForTimeout(500)

@@ -26,7 +26,7 @@ only on the protected upstream hop. That key identifies the gateway service prin
 ## Common Rules
 
 - Page-number pagination is 1-based. Version and deployment list cursors are opaque and must not be parsed or
-  constructed by clients. Attempt history uses the numeric `afterSequence` cursor described below.
+  constructed by clients. Attempt records use the numeric `afterSequence` cursor described below.
 - JSON fields documented as integers must be JSON integers; the Server rejects fractional values instead of truncating
   them.
 - Process resources use `code`; deployment, execution, log, and metric references use `processCode`.
@@ -73,12 +73,12 @@ optional candidate Version and candidate weight, plus the revision used for comp
 - `all_at_once` selects only the new stable Version. `canary` requires an existing stable route and an integer candidate
   weight from 1 through 9,999 basis points.
 - Promotion makes the candidate the sole stable Version. Abort restores the baseline captured when the active canary
-  began. Rollback creates a new all-at-once deployment from a completed deployment's baseline; it never rewrites
-  history.
+  began. Rollback creates a new all-at-once deployment from a completed deployment's baseline without altering earlier
+  deployment records.
 - Canary evaluation is read-only. Its response identifies `metricsScope=workbench_server` and
   `metricsSource=execution_logs`; these samples come from the shared Workbench execution-log database, including other
   Server instances writing to that database. They do not include external engine executions that never enter those logs.
-- Deployment events are an ordered, append-only control-plane history. They are not application logs.
+- Deployment events form an ordered, append-only control-plane event stream. They are not application logs.
 - Deployment dead-letter requeue accepts no request fields. A non-empty body is invalid.
 
 ## Synchronous and Persisted Execution
@@ -96,13 +96,13 @@ admission request. The Server evaluates Alias routing before persistence, stores
 attribution, and uses the invocation ID as the cohort key when the caller did not supply a key. Retries remain pinned to
 that Version even after the Alias moves.
 
-Async invocation list pagination defaults to `page=1` and `pageSize=20`. Attempt history uses a `sequence` that increases
+Async invocation list pagination defaults to `page=1` and `pageSize=20`. Attempt records use a `sequence` that increases
 throughout the invocation lifetime and an `afterSequence` cursor. The first request omits the cursor; subsequent requests
 use the previous response's `nextAfterSequence`.
 
 An accepted `invocationId` is permanently reserved. Repeating the same ID with the same process, parameters, original
 route, and retry policy returns the existing invocation; using it for a different request returns `409 Conflict`.
-Invocation records and attempt history are retained; the API does not provide a compaction endpoint.
+Invocation and attempt records are retained; the API does not provide a compaction endpoint.
 
 Workers persist retry deadlines and never sleep between attempts. Claim, completion, retry, dead-letter transition, and
 expired-lease recovery update the logical invocation and physical attempt record transactionally. Completion and lease
@@ -121,7 +121,8 @@ actions must deduplicate with stable business keys from process parameters.
 Execution aggregates use one of `1h`, `6h`, `24h`, `7d`, or `30d`; the default is `24h`. They include only published
 execution routed by exact Version or Alias. Preview execution is excluded. The response scope is
 `workbench_server`: aggregates cover retained records in the shared execution-log database, so log retention and purge
-operations determine the available history. Nodes that do not write to this database are outside the metrics scope.
+operations determine the available reporting window. Nodes that do not write to this database are outside the metrics
+scope.
 
 Deploy runtime diagnostics returns `available=false` when neither an embedded local-ready pipeline nor a distributed
 runtime is configured. When available, diagnostics describe the current Server node, not an aggregate cluster view.
@@ -136,17 +137,3 @@ not synthesized as an execution-log status.
 CSV export is UTF-8 and applies RFC 4180 quoting. String cells that spreadsheet software could interpret as formulas
 are prefixed with an apostrophe. Purge requires an ISO-8601 `before` timestamp, deletes one size-limited batch, and returns
 `hasMore`; callers repeat it while more eligible rows remain.
-
-## Changing the Contract
-
-Change the Server controllers and typed transport records first, then regenerate the committed OpenAPI projection with
-the scoped command in the
-[`compileflow-workbench-server` README](../../../../../compileflow-workbench-server/README.md). From
-[`compileflow-workbench`](../../../..), run:
-
-```bash
-pnpm generate:workbench-server-contract
-pnpm check:workbench-server-contract
-```
-
-Update this file when a behavioral rule above changes. Keep endpoint and schema inventories in OpenAPI.

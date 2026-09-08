@@ -1,3 +1,4 @@
+import type { Graph } from '@antv/x6'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -7,7 +8,12 @@ import { store, UndoActionCreators } from '@/app/store'
 import { loadOperateProcess, updateProcessInfo } from '@/authoring/designer/store/editorSlice'
 import type { UnifiedProcessDefinition } from '@/authoring/designer/types/flowDefinition'
 
-const mocks = vi.hoisted(() => ({ update: vi.fn(), success: vi.fn(), error: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  update: vi.fn(),
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+}))
 vi.mock('antd', () => ({ App: { useApp: () => ({ message: mocks }) } }))
 vi.mock('@/shared/api/processes', () => ({
   updateProcess: mocks.update,
@@ -45,6 +51,55 @@ describe('designer save navigation result', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     load('initial')
+  })
+
+  it('copies every selected canvas node after select-all', () => {
+    const copyNodes = vi.fn()
+    const graph = {
+      getSelectedCells: () => [
+        { id: 'first', isNode: () => true },
+        { id: 'edge', isNode: () => false },
+        { id: 'second', isNode: () => true },
+      ],
+    } as unknown as Graph
+    const { result } = renderHook(() =>
+      useDesignerPageActions({
+        currentProcess: store.getState().editor.present.currentProcess,
+        dispatch: store.dispatch,
+        navigate: vi.fn(),
+        graph,
+        copyNodes,
+        pasteNodes: vi.fn(),
+        selectedNodeId: 'stale-single-selection',
+      })
+    )
+
+    act(() => result.current.actions.onCopy())
+
+    expect(copyNodes).toHaveBeenCalledWith(['first', 'second'])
+  })
+
+  it('does not copy a stale single selection when the canvas contains only selected edges', () => {
+    const copyNodes = vi.fn()
+    const graph = {
+      getSelectedCells: () => [{ id: 'edge', isNode: () => false }],
+    } as unknown as Graph
+    const { result } = renderHook(() =>
+      useDesignerPageActions({
+        currentProcess: store.getState().editor.present.currentProcess,
+        dispatch: store.dispatch,
+        navigate: vi.fn(),
+        graph,
+        copyNodes,
+        pasteNodes: vi.fn(),
+        selectedNodeId: 'stale-single-selection',
+      })
+    )
+
+    act(() => result.current.actions.onCopy())
+
+    expect(copyNodes).not.toHaveBeenCalled()
+    expect(mocks.warning).toHaveBeenCalledOnce()
   })
 
   it.each(['edit', 'close', 'unmount'] as const)(

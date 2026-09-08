@@ -472,6 +472,16 @@ const enOperate = {
 
   'monitoring.unavailable': 'Unavailable',
 
+  'monitoring.runtimeStatus.healthy': 'Healthy',
+
+  'monitoring.runtimeStatus.degraded': 'Degraded',
+
+  'monitoring.runtimeStatus.down': 'Down',
+
+  'monitoring.runtimeStatus.stopped': 'Stopped',
+
+  'monitoring.runtimeStatus.unavailable': 'Unavailable',
+
   'monitoring.deployRuntime': 'Deployment runtime',
 
   'monitoring.deployRuntimeLocalNode': 'Local node diagnostics',
@@ -540,6 +550,12 @@ const enOperate = {
   'logs.effectiveVersion': 'Effective version',
 
   'logs.routingSource': 'Routing source',
+
+  'logs.routingSource.alias': 'Alias route',
+
+  'logs.routingSource.version': 'Explicit version',
+
+  'logs.routingSource.definition': 'Current definition',
 
   'logs.routeAlias': 'Route alias',
 
@@ -667,6 +683,10 @@ const enOperate = {
   'operate.explore': 'Quick access',
 
   'monitoring.runtimeTopology': 'Runtime topology',
+
+  'monitoring.runtimeTopology.embedded': 'Embedded',
+
+  'monitoring.runtimeTopology.distributed': 'Distributed',
 
   'operate.processMgmt': 'Processes',
 

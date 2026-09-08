@@ -37,6 +37,7 @@ import type {
   VersionDistributionStats,
 } from '@/shared/contracts'
 import { toError } from '@/shared/errors'
+import { type FilterParsers, useFilterState } from '@/shared/hooks/useFilterState'
 import { usePageTitle } from '@/shared/hooks/usePageTitle'
 import { formatDateTime } from '@/shared/i18n/dateTime'
 import { createLogger } from '@/shared/logging/logger'
@@ -58,6 +59,11 @@ const CHART_COLORS_LIGHT: ChartColors = {
 const CHART_COLORS_DARK: ChartColors = {
   grid: 'rgba(255,255,255,0.12)',
   axis: 'var(--text-tertiary)',
+}
+const MONITORING_FILTER_DEFAULTS = { timeRange: '24h' as MonitoringTimeRange }
+const MONITORING_FILTER_PARSERS: FilterParsers<typeof MONITORING_FILTER_DEFAULTS> = {
+  timeRange: (raw) =>
+    raw === '1h' || raw === '6h' || raw === '24h' || raw === '7d' || raw === '30d' ? raw : '24h',
 }
 interface ChartPanelProps {
   title: string
@@ -102,10 +108,19 @@ function RuntimeStat({ label, value }: RuntimeStatProps) {
   )
 }
 
-function StatusPill({ status, label }: { status: RuntimeStatus; label: string }) {
+function StatusPill({ status, t }: { status: RuntimeStatus; t: TFunction }) {
   return (
-    <span className={`${styles.runtimeStatus} ${styles[`runtimeStatus_${status}`]}`}>{label}</span>
+    <span className={`${styles.runtimeStatus} ${styles[`runtimeStatus_${status}`]}`}>
+      {t(`monitoring.runtimeStatus.${status}`)}
+    </span>
   )
+}
+
+function runtimeTopologyLabel(
+  topology: DeploymentRuntimeAvailableDiagnostics['topology'],
+  t: TFunction
+): string {
+  return t(`monitoring.runtimeTopology.${topology}`)
 }
 
 function StaleDataAlert({ t }: { t: TFunction }) {
@@ -279,10 +294,7 @@ function DeploymentOutboxCard({
               : t('monitoring.deploymentStopped')}
           </div>
         </div>
-        <StatusPill
-          status={deploymentControlStatus(routingOutboxControl)}
-          label={routingOutboxControl.status}
-        />
+        <StatusPill status={deploymentControlStatus(routingOutboxControl)} t={t} />
       </div>
 
       <div className={styles.runtimeStats}>
@@ -354,7 +366,7 @@ function AsyncQueueCard({
           <div className={styles.runtimeEyebrow}>{t('monitoring.asyncInvocationQueue')}</div>
           <div className={styles.runtimeTitle}>{t('monitoring.asyncInvocationQueueTitle')}</div>
         </div>
-        <StatusPill status={asyncQueueStatus(asyncHealth)} label={asyncHealth.status} />
+        <StatusPill status={asyncQueueStatus(asyncHealth)} t={t} />
       </div>
 
       <div className={styles.runtimeStats}>
@@ -413,7 +425,7 @@ function UnavailableOpsCard({ eyebrow, t }: { eyebrow: string; t: TFunction }) {
           <div className={styles.runtimeEyebrow}>{eyebrow}</div>
           <div className={styles.runtimeTitle}>{t('monitoring.statusUnavailable')}</div>
         </div>
-        <StatusPill status="unavailable" label={t('monitoring.unavailable')} />
+        <StatusPill status="unavailable" t={t} />
       </div>
       <Empty description={t('monitoring.noData')} />
     </div>
@@ -447,7 +459,7 @@ function DeploymentRuntimePanel({
               <div className={styles.runtimeEyebrow}>{t('monitoring.deployRuntimeLocalNode')}</div>
               <div className={styles.runtimeTitle}>{t('monitoring.deployRuntimeUnavailable')}</div>
             </div>
-            <StatusPill status="unavailable" label={t('monitoring.unavailable')} />
+            <StatusPill status="unavailable" t={t} />
           </div>
           <Alert
             type="info"
@@ -472,7 +484,7 @@ function DeploymentRuntimePanel({
                 : t('monitoring.deployRuntimeUnavailable')}
             </div>
           </div>
-          <StatusPill status={status} label={status} />
+          <StatusPill status={status} t={t} />
         </div>
 
         <div className={styles.runtimeStats}>
@@ -480,7 +492,10 @@ function DeploymentRuntimePanel({
             label={t('monitoring.runtimeStarted')}
             value={deployRuntime.started ? t('common.yes') : t('common.no')}
           />
-          <RuntimeStat label={t('monitoring.runtimeTopology')} value={deployRuntime.topology} />
+          <RuntimeStat
+            label={t('monitoring.runtimeTopology')}
+            value={runtimeTopologyLabel(deployRuntime.topology, t)}
+          />
           <RuntimeStat
             label={t('monitoring.runtimeInflight')}
             value={`${deployRuntime.inflightCount}/${deployRuntime.inflightCapacity}`}
@@ -775,7 +790,11 @@ const Monitoring: React.FC = () => {
   usePageTitle('pageTitle.operate.monitoring')
   const { t } = useTranslation()
   const { theme } = useTheme()
-  const [timeRange, setTimeRange] = useState<MonitoringTimeRange>('24h')
+  const [filters, updateFilter] = useFilterState(
+    MONITORING_FILTER_DEFAULTS,
+    MONITORING_FILTER_PARSERS
+  )
+  const timeRange = filters.timeRange
   const [asyncLedgerRevision, setAsyncLedgerRevision] = useState(0)
   const { data, failedSources, loading, reloadAllData, reloadOpsData } =
     useMonitoringData(timeRange)
@@ -817,7 +836,7 @@ const Monitoring: React.FC = () => {
       <FilterBar>
         <Select<MonitoringTimeRange>
           value={timeRange}
-          onChange={setTimeRange}
+          onChange={(value) => updateFilter('timeRange', value)}
           style={{ minWidth: 140 }}
           aria-label={t('monitoring.timeRangeLabel')}
         >

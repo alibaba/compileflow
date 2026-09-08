@@ -1,8 +1,8 @@
 # Workbench Deployment
 
 This guide covers local evaluation and production deployment of the Workbench web app with
-`compileflow-workbench-server`. Workbench Web and Server are released and deployed together. For incident procedures,
-see the repository [operations playbook](../docs/en/operations-playbook.md). For all configuration properties, see the
+`compileflow-workbench-server`. For incident procedures, see the repository
+[operations playbook](../docs/en/operations-playbook.md). For all configuration properties, see the
 [configuration guide](../docs/en/configuration.md).
 
 ## Components
@@ -48,7 +48,8 @@ Build the matching Java Server artifact from the repository root, apply the pack
 database, and start it with the `dev` profile. Server startup fails if the schema, data source, or required authentication
 configuration is unavailable.
 
-The local Compose setup is useful for evaluating the full product. It must not be copied into production without replacing development credentials, network exposure, and storage settings.
+The local Compose setup is useful for evaluating the full product. Before using an equivalent topology in production,
+replace its development credentials, network exposure, and storage settings.
 
 ### PostgreSQL Compose storage
 
@@ -87,7 +88,9 @@ local storage, or source control. A trusted gateway authenticates users, strips 
 `Authorization`, and forwarded identity headers, and injects the private Server credential only on the upstream request.
 Use TLS and rotate the credential through secret management.
 
-Do not trust an actor, user, or role supplied only by a browser header. Per-user authorization requires a trusted authenticated gateway or an application-specific integration that establishes the identity before the request reaches the Server.
+Do not trust an actor, user, or role supplied only by a browser header. Per-user authorization requires a trusted
+authenticated gateway or an application-specific integration that establishes identity before the request reaches the
+Server.
 
 Browser requests use relative, same-origin paths; there is no public API base URL build variable. Configure production
 upstream routing at the trusted gateway. `VITE_COMPILEFLOW_DEBUG` controls browser debug logging and should remain
@@ -110,29 +113,17 @@ After a publish or rollout, verify both the control-plane revision and the effec
 
 Keep configuration in the layer that owns it:
 
-| Concern                         | Reference                                                                          |
-| ------------------------------- | ---------------------------------------------------------------------------------- |
-| Engine and Deploy properties    | [Configuration guide](../docs/en/configuration.md)                                 |
-| Server properties and auth mode | `compileflow-workbench-server` configuration metadata and root configuration guide |
-| Web build-time inputs           | `apps/web/.env.example` and the root configuration guide                           |
-| Gateway development inputs      | `apps/dev-gateway/.env.example`                                                    |
-| HTTP fields                     | committed OpenAPI description under `docs/specs/openapi`                           |
+| Concern                         | Reference                                                                         |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| Engine and Deploy properties    | [Configuration guide](../docs/en/configuration.md)                                |
+| Server properties and auth mode | [Server guide](../compileflow-workbench-server/README.md) and configuration guide |
+| Web build-time inputs           | `apps/web/.env.example` and the configuration guide                               |
+| Gateway development inputs      | `apps/dev-gateway/.env.example`                                                   |
+| HTTP fields                     | committed OpenAPI description under `docs/specs/openapi`                          |
 
-Keep deployment manifests aligned with these configuration sources. Regenerate the OpenAPI and TypeScript artifacts
-together when an endpoint changes.
-
-## Updating the OpenAPI contract
-
-When a Server endpoint changes:
-
-1. update the controller and response/request types;
-2. regenerate the committed OpenAPI description;
-3. regenerate Workbench TypeScript contract types;
-4. update runtime validation, adapters, mocks, and tests;
-5. run the Server contract tests and the relevant Workbench checks.
-
-The generated document defines the wire contract between Workbench Web and Server. The Workbench HTTP API is intended
-for that product integration rather than as a general-purpose engine API.
+Keep deployment manifests aligned with these configuration sources. The generated OpenAPI document defines the wire
+contract between Workbench Web and Server; the Workbench HTTP API is intended for this product integration rather than
+as a general-purpose engine API.
 
 ## Operational boundaries
 
@@ -142,4 +133,5 @@ for that product integration rather than as a general-purpose engine API.
 - Schema validation is fail-closed; the Server does not become ready with pending or inconsistent migrations.
 - Database backups and retention are owned by the database operations policy.
 
-For canary, promotion, abort, rollback, outbox, and async invocation procedures, use [Operations playbook](../docs/en/operations-playbook.md) and [Hot deployment](../docs/en/hot-deploy.md).
+For canary, promotion, abort, rollback, outbox, and asynchronous invocation procedures, use the
+[operations playbook](../docs/en/operations-playbook.md) and [hot-deployment guide](../docs/en/hot-deploy.md).

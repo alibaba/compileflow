@@ -27,7 +27,7 @@ Java 会在运行时擦除泛型参数。CompileFlow 在声明和生成源码层
 `List<T>` 或 `Map<K,V>` 内容仍由应用负责。
 
 这些 Java 类型声明规则不代表 Durable 持久化支持。Durable Run 状态还必须满足 Kernel 固定的可移植 value schema 与编码契约；
-仅在 JVM ClassLoader 中可见并不足够，也没有应用 payload-codec SPI。
+仅在 JVM 类加载器中可见并不足够，也没有应用载荷编解码 SPI。
 
 ## 运行时转换
 

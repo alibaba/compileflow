@@ -1,12 +1,12 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { MessageInstance } from 'antd/es/message/interface'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createDeployment, getDeploymentRoute } from '@/operate/api/deployments'
 import DeploymentWizard from '@/operate/pages/DeploymentWizard'
 import { getMockProcesses } from '@/shared/api/mockProcessData'
-import { getProcesses, getProcessVersions } from '@/shared/api/processes'
+import { getProcessByCode, getProcesses, getProcessVersions } from '@/shared/api/processes'
 import i18n from '@/shared/i18n'
 
 vi.mock('@/operate/api/deployments', () => ({
@@ -36,9 +36,15 @@ vi.mock('antd', async (importOriginal) => {
 const processes = getMockProcesses({ page: 1, pageSize: 20 })
 
 function renderWizard(initialEntry = '/operate/deploy-wizard') {
+  function LocationProbe() {
+    const location = useLocation()
+    return <output data-testid="location">{`${location.pathname}${location.search}`}</output>
+  }
+
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <DeploymentWizard />
+      <LocationProbe />
     </MemoryRouter>
   )
 }
@@ -179,5 +185,27 @@ describe('DeploymentWizard recovery', () => {
 
     await waitFor(() => expect(alert).not.toBeInTheDocument())
     expect(getProcessVersions).toHaveBeenCalledTimes(2)
+  })
+
+  it('removes a missing process deep link and keeps the process picker usable', async () => {
+    vi.mocked(getProcesses).mockResolvedValue(processes)
+    vi.mocked(getProcessByCode).mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 404 },
+    })
+
+    renderWizard('/operate/deploy-wizard?processCode=missing-process&source=shared')
+
+    const processInput = screen.getByRole('combobox', {
+      name: i18n.t('deployment.wizard.selectProcessLabel'),
+    })
+    await waitFor(() => expect(processInput).toHaveValue(''))
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        '/operate/deploy-wizard?source=shared'
+      )
+    )
+    expect(screen.queryByText(/加载失败/i)).not.toBeInTheDocument()
+    expect(processInput).toBeEnabled()
   })
 })

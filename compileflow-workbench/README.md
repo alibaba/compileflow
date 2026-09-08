@@ -1,11 +1,13 @@
 # CompileFlow Workbench
 
-CompileFlow Workbench provides browser-based tools for learning, designing, publishing, and operating CompileFlow
-processes:
+CompileFlow Workbench provides browser-based tools for learning, visual process design, validation, publication, and
+operations. It includes three areas:
 
 - **Learn**: runnable TBBPM and BPMN examples;
 - **Build**: visual authoring, validation, simulation, and draft preview;
-- **Operate**: flow persistence, publication, version routing, execution logs, and deployment operations.
+- **Operate**: draft storage, publication, version routing, execution logs, and deployment operations.
+
+Implement Agent calls as Java Actions to compose them with service operations and business rules in the same process.
 
 The deployable product combines the React application in this pnpm workspace with the sibling
 [`compileflow-workbench-server`](../compileflow-workbench-server/) Spring Boot service.
@@ -17,14 +19,15 @@ authentication or API boundary.
 
 ```text
 Production:
-Browser -> authentication gateway -> Web + Workbench Server -> PostgreSQL or MySQL
+Browser -> trusted authentication gateway -> Web + Workbench Server -> PostgreSQL or MySQL
 
 Frontend development:
 Vite -> loopback dev-gateway preview mock
 ```
 
-The Node development gateway is not a production BFF. Production browser calls use same-origin `/api/**` routes directly
-to Workbench Server through the deployment gateway. See [Product Surfaces](docs/PRODUCT_SURFACES.md) and
+The Node development gateway is not a production backend-for-frontend (BFF). Production browser calls use same-origin
+`/api/**` routes to Workbench Server through the deployment gateway. See
+[Product Surfaces](docs/PRODUCT_SURFACES.md) and
 [`DEPLOYMENT.md`](DEPLOYMENT.md).
 
 Workbench distributions include both the split `compileflow-workbench-server-<version>.jar` and the single-process
@@ -96,17 +99,17 @@ pnpm check:workbench-server-contract
 pnpm verify:delivery
 ```
 
-Use pnpm only.
+Use pnpm for all workspace commands.
 
 ## Execution Semantics
 
-Learn and Designer preview the current XML through
+Learn and Build preview the current XML through
 `POST /api/executions/preview`. Preview does not persist, publish, or route a definition.
 
 Operate executes immutable published versions selected explicitly by version or alias. The UI does not choose a
 fallback alias.
 
-## Authoring Boundary
+## BPMN Authoring Boundary
 
 The BPMN designer preserves embedded subprocess hierarchy, including container-local nodes and sequence flows. It rejects
 event subprocesses, cross-container edges, and trigger entries inside a subprocess. Browser simulation stops at an

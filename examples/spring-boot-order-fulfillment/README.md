@@ -13,7 +13,7 @@ authentication or authorization, so do not expose it on a shared network.
 | Strict preflight                 | Validates the main process and pricing subprocess at startup                                          |
 | Structured business data         | Passes `OrderRequest` and `OrderItem` as typed process variables                                      |
 | Process call                     | Invokes a separately defined pricing process through `bpmCall`                                        |
-| Java script                      | Calculates the member discount, payable amount, and business status                                   |
+| Java-language script             | Calculates the member discount, payable amount, and business status                                   |
 | Exclusive gateway                | Routes low-, medium-, and high-risk orders                                                            |
 | Parallel gateway                 | Reserves inventory and authorizes payment concurrently, then joins                                    |
 | Invocation policy                | Retries simulated failures that occur before payment acceptance; the adapter deduplicates by order ID |

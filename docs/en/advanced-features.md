@@ -1,8 +1,7 @@
 # Advanced Engine Usage
 
-Engine-local warm-up, tooling, class-loader scope, typed results, and exact version execution are covered below. Durable
-publication and routing are documented separately in
-[Hot Deployment](hot-deploy.md).
+Use these APIs to warm up definitions, inspect generated source, control class loading, map typed data, handle results,
+and execute published versions. For publication and routing, see [Hot deployment](hot-deploy.md).
 
 ## Warm Up Known Definitions
 

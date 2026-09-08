@@ -1,31 +1,26 @@
 # Contributing to CompileFlow
 
-Thank you for contributing. This guide is the repository-wide contribution contract. Workbench changes also follow the
-[Workbench addendum](compileflow-workbench/CONTRIBUTING.md).
+Thank you for contributing to CompileFlow. This guide applies across the repository. Workbench changes also follow the
+[Workbench contribution guide](compileflow-workbench/CONTRIBUTING.md).
 
-By participating, you agree to the [Code of Conduct](CODE_OF_CONDUCT.md). Report suspected vulnerabilities privately
-through the process in
-[SECURITY.md](SECURITY.md), not through a public issue.
+By participating, you agree to the [Code of Conduct](CODE_OF_CONDUCT.md). Report suspected vulnerabilities privately as
+described in [SECURITY.md](SECURITY.md).
 
-## Choose the Right Channel
+## Before You Start
 
-- Use the bug report form for reproducible defects.
-- Use the feature request form for a concrete problem or capability proposal.
-- Use the dedicated Durable Kernel Change form before changing Durable public API/SPI, state-machine semantics,
-  persisted schema, security boundaries, or module surface. Complete all applicable sections in the form before
-  implementation begins.
-- For usage questions, search the documentation and existing issues first. The project does not provide a
-  dedicated Q&A channel.
+- Search the documentation and existing issues before opening a new issue.
+- Use the bug report form for reproducible defects and the feature request form for capability proposals.
 - Open a pull request directly for a small, self-contained fix.
-- Discuss changes to public APIs, persisted data, protocols, security, or module boundaries before investing in a large
-  implementation.
+- Discuss changes to public APIs, persisted data, protocols, security boundaries, or module boundaries before writing a
+  large implementation.
+- Use the Durable Kernel Change form for changes to Durable APIs, SPIs, state-machine semantics, persisted schema, or
+  security boundaries.
 
-See [SUPPORT.md](SUPPORT.md) for links and support expectations.
+See [SUPPORT.md](SUPPORT.md) for support channels and response expectations.
 
-## Development Baseline
+## Development Environment
 
-Java artifacts target Java 17. CI builds on Java 17, 21, and 25; the full suite runs once on Java 17, while newer JDKs
-run focused compatibility checks. Use the checked-in Maven Wrapper instead of a system Maven installation.
+Java artifacts target Java 17. Use the checked-in Maven Wrapper so local builds use the repository's Maven version.
 
 ```bash
 git clone https://github.com/alibaba/compileflow.git
@@ -33,95 +28,56 @@ cd compileflow
 ./mvnw compile -pl compileflow-core -am
 ```
 
-Workbench development requires the Node.js and pnpm versions pinned under
-`compileflow-workbench/`. Use pnpm only.
-
-## Build And Delivery Baseline
-
-Repository delivery contracts are maintained here rather than in the application configuration reference:
-
-- Java source, published bytecode, and generated-flow bytecode target Java 17. CI verifies the same artifacts on Java
-  17, 21, and 25 LTS; runtime images include the standard `jdk.compiler` module.
-- The Maven Wrapper pins Maven 3.9.16 and verifies its distribution and wrapper JAR checksums.
-- `.node-version`, `release-baselines.json`, package `engines`, CI, and Docker builds must agree on the pinned Node.js 24
-  LTS patch. The root `packageManager` field pins pnpm 11.11.0.
-- pnpm uses strict engine and peer checks, a one-day `minimumReleaseAge`, and reviewed `allowBuilds` entries for dependency
-  lifecycle scripts.
-- Compose and CI use the supported PostgreSQL and MySQL baselines; database and API-key secrets are supplied externally.
-
-These are repository contracts, not application settings. Update the authoritative source and its consistency checks
-together.
+Workbench development requires the Node.js and pnpm versions pinned in `compileflow-workbench/`. Use pnpm for all
+workspace commands.
 
 ## Repository Boundaries
 
-- `compileflow-api` contains the supported engine API and SPI.
-- Implementation packages in core, parser, deployment, Spring, server, and Workbench modules are not public merely
-  because a type is Java `public`.
+- `compileflow-api` contains the supported engine API and SPI. Public implementation classes in other modules are not
+  automatically supported application APIs.
 - Keep deployment control-plane state separate from node-local runtime state.
 - Keep browser credentials out of `VITE_*` variables and browser storage.
-- Keep external configuration parsing at module boundaries; pass immutable values into runtime code.
-- Update the relevant architecture, supported-surface, or specification document when changing an invariant.
-- Keep Durable changes inside the documented product boundary unless an accepted design proposal establishes an
-  independently useful responsibility and dependency lifecycle. Do not make platform adapters a prerequisite for
-  kernel correctness.
+- Parse external configuration at module boundaries and pass immutable values into runtime code.
+- Keep Durable kernel behavior independent of database and platform adapters.
+- Update the relevant specification, architecture page, or Supported Surfaces entry when a public contract changes.
 
-The detailed module and supported-surface maps are in
-[docs/en/architecture/module-map.md](docs/en/architecture/module-map.md) and
-[docs/en/architecture/supported-surfaces.md](docs/en/architecture/supported-surfaces.md).
+See the [module map](docs/en/architecture/module-map.md) and
+[Supported Surfaces](docs/en/architecture/supported-surfaces.md) for the complete boundaries.
 
-## Implement the Change
+## Code and Documentation
 
-Prefer the existing module boundary and local design patterns. Keep the change focused, remove code and documentation
-made obsolete by it, and follow the compatibility policy for every change to a Supported contract.
+Keep each change focused and include tests for changed behavior.
 
-For Java:
+For Java changes:
 
-- write English Javadoc for supported public API and SPI;
-- write comments only when they explain a non-obvious invariant;
-- add no unresolved `TODO` or `FIXME` without a linked issue;
-- format sources with Spotless + Prince of Space (4-space indentation, 120-column target, WIDE wrapping);
-  extract well-named local variables or methods when an expression remains deeply nested after formatting;
-- use natural camel-case acronym segments in owned identifiers (`Jdbc`, `Hmac`, `Bpmn`, `Tbbpm`, `Xml`, `Ui`,
-  `Url`); preserve uppercase spellings only for protocol constants, serialized values, and external API names;
-- name runtime types by stable facts and capabilities, not vague workflow phases: prefer `Resolved`, `Compiled`,
-  `Loaded`, `Bound`, `Executable`, `Plan`, `Graph`, `Program`, or `Cache` when those facts are exact; do not use
-  `Prepare`/`Prepared` as a catch-all for compilation, loading, resolution, validation, or binding;
-- use `Compiler` for representation transforms, `Lowerer` for lowering to a target IR, `Loader` for making an exact
-  runtime locally available, `Factory` for construction, `Resolver` for selecting an exact answer, `Executor` for
-  execution, and `Manager` only when the type owns a subordinate lifecycle;
-- use `Graph` only for explicit nodes and edges, `Scope` for enter/close lifetime, `View` for read models, and `Worker`
-  for autonomous bounded work loops;
-- avoid context-free suffixes such as `Support`, `Info`, and `Holder`, and adjectives such as `Managed`; name the
-  capability, represented fact, owned object, or lifecycle state instead;
-- use the repository Checkstyle rules for naming, imports, and related gates;
-- keep compiler warnings at zero instead of suppressing broad categories;
-- add deterministic concurrency tests with latches, barriers, or controlled executors rather than timing guesses.
+- write English Javadoc for supported public APIs and SPIs;
+- add comments only when they explain a non-obvious constraint;
+- do not add an unresolved `TODO` or `FIXME` without a linked issue;
+- use the repository Checkstyle and Spotless rules;
+- keep compiler warnings at zero rather than suppressing broad categories;
+- make concurrency tests deterministic with latches, barriers, or controlled executors instead of timing assumptions.
+
+Apply or verify Java formatting with JDK 17 or newer:
 
 ```bash
-# Apply or verify Java formatting (requires JDK 17+ to run Maven plugins)
 ./mvnw -Pexamples,benchmarks spotless:apply
 ./mvnw -Pexamples,benchmarks spotless:check
 ```
 
-For documentation:
+For documentation changes:
 
-- update English and Chinese user documentation together;
-- keep examples aligned with supported APIs;
-- use relative repository links;
+- update corresponding English and Chinese documentation together;
+- verify commands, configuration names, defaults, versions, API signatures, and links against the implementation;
 - distinguish supported behavior from unsupported behavior;
-- verify commands, configuration names, defaults, version claims, API signatures, and links against the current code;
-- write direct, task-oriented prose and remove duplicated explanations or unsupported claims;
-- keep public compatibility commitments in specifications, the compatibility policy, or Supported Surfaces.
+- keep examples aligned with supported APIs;
+- use direct, task-oriented language and relative repository links;
+- keep compatibility commitments in specifications, the compatibility policy, or Supported Surfaces.
 
-Keep the root README focused on project selection and the first successful run. Put localized guides, specifications,
-policies, and architecture under `docs/en` and `docs/zh`; reserve `docs/specs` for generated or machine-validated
-contract artifacts. Keep
-local research and planning notes, credentials, editor state, and local tool sessions
-outside the repository. Do not duplicate version, support, or maturity claims across pages.
+Keep credentials, editor state, generated build output, and local planning notes out of the repository.
 
-## Verify the Change
+## Verification
 
-Start with the narrowest test that proves the behavior, then expand to affected module boundaries.
+Run the narrowest test that proves the change, then expand to the affected modules.
 
 ```bash
 # One Java test class
@@ -129,18 +85,11 @@ Start with the narrowest test that proves the behavior, then expand to affected 
   -Dtest=ProcessEventPublisherTest \
   -Dsurefire.failIfNoSpecifiedTests=false
 
-# One affected Java reactor
+# Module checks
 ./mvnw checkstyle:check -pl compileflow-core -am
 ./mvnw spotbugs:check -pl compileflow-core -am
 
-# Supported API documentation
-./mvnw checkstyle:check \
-  -pl compileflow-api,compileflow-deploy/compileflow-deploy-api \
-  -Dcheckstyle.config.location=checkstyle-javadoc.xml
-./mvnw javadoc:javadoc \
-  -pl compileflow-api,compileflow-deploy/compileflow-deploy-api
-
-# Repository contracts and documentation
+# Documentation contracts
 python3 scripts/check_architecture_boundaries.py
 python3 scripts/check_bilingual_parity.py
 python3 scripts/check_internal_links.py
@@ -153,43 +102,39 @@ Build current reactor artifacts before running SpotBugs if local Maven artifacts
   -am -DskipTests
 ```
 
-Run Workbench commands from `compileflow-workbench/`:
+Run Workbench checks from `compileflow-workbench/`:
 
 ```bash
-pnpm --filter @compileflow/workbench-web type-check
-pnpm --filter @compileflow/workbench-web test
+pnpm type-check
+pnpm lint
+pnpm test:web
 pnpm --filter @compileflow/workbench-dev-gateway test
 pnpm verify:delivery
 ```
 
-CI is the authority for the complete matrix. Do not claim a coverage, performance, security, or compatibility guarantee
-that is not enforced by a repository gate.
+CI runs the complete test matrix. Do not claim coverage, performance, security, or compatibility guarantees that are
+not enforced by a repository check.
 
-## Submit a Pull Request
+## Pull Requests
 
-Use a clear, imperative commit and pull request title. Conventional Commit prefixes such as `fix(core):`, `feat(api):`,
-and `docs:` are recommended but are not a substitute for a useful description.
+Use a clear, imperative title. Conventional Commit prefixes such as `fix(core):`, `feat(api):`, and `docs:` are
+recommended but optional.
 
-The pull request should state:
+Describe:
 
-- the problem and why it matters;
-- the chosen behavior and important alternatives;
-- exact validation commands and results;
-- public API, configuration, persistence, security, or operational impact;
-- contract changes and their impact.
+- the problem and the chosen behavior;
+- the validation commands and results;
+- effects on public APIs, configuration, persistence, security, or operations;
+- any changed contracts and their user impact.
 
-Generated output, credentials, editor state, and unrelated formatting changes must not be included. A maintainer merges
-after the required CI checks and review are complete.
+Do not include credentials, generated build output, editor state, or unrelated formatting changes.
 
-## Developer Certificate Of Origin And License
+## Developer Certificate of Origin
 
-Every contribution commit must carry a `Signed-off-by` trailer matching its author. The trailer certifies the
-[Developer Certificate of Origin 1.1](https://developercertificate.org/): you created the contribution or otherwise
-have the right to submit it under this project's license. Create it with `git commit --signoff` (or `git commit -s`);
-amend an existing commit with `git commit --amend --signoff`.
+Every contribution commit must include a `Signed-off-by` trailer matching its author. The trailer certifies the
+[Developer Certificate of Origin 1.1](https://developercertificate.org/): you created the contribution or have the right
+to submit it under this project's license.
 
-The pull-request DCO gate checks every non-merge commit and rejects a trailer copied from a different email address.
-Signing off is a legal-origin assertion, not a statement that the change has passed technical review.
-
-Contributions are licensed under the repository's
+Create the trailer with `git commit --signoff` or `git commit -s`. Add it to an existing commit with
+`git commit --amend --signoff`. Contributions are licensed under the repository's
 [Apache License 2.0](LICENSE).

@@ -478,6 +478,10 @@ test.describe('Deep Operate flows / monitoring / logs', () => {
       await expect(dialog).toBeVisible({ timeout: 8000 })
       // duration 0 must not render as bare "-" for missing — look for duration label.
       await expect(dialog.getByText(/耗时|Duration/i)).toBeVisible()
+      await expect(dialog).toContainText(
+        /别名路由|指定版本|当前流程定义|Alias route|Explicit version|Current definition/
+      )
+      await expect(dialog.getByText(/^(alias|version|definition)$/)).toHaveCount(0)
       await shot(page, '64-logs-detail-duration')
       await page.keyboard.press('Escape')
     }

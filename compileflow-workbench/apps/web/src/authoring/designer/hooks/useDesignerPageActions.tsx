@@ -149,20 +149,27 @@ function useSaveNavigationActions({
 
 function useClipboardActions({
   copyNodes,
+  graph,
   pasteNodes,
   selectedNodeId,
   t,
-}: Pick<UseDesignerPageActionsOptions, 'copyNodes' | 'pasteNodes' | 'selectedNodeId'> & {
+}: Pick<UseDesignerPageActionsOptions, 'copyNodes' | 'graph' | 'pasteNodes' | 'selectedNodeId'> & {
   t: TFunction
 }) {
   const { message } = App.useApp()
   const handleCopy = useCallback(() => {
-    if (!selectedNodeId) {
+    const selectedNodeIds =
+      graph
+        ?.getSelectedCells()
+        .filter((cell) => cell.isNode())
+        .map((cell) => cell.id) ?? []
+    const nodeIds = graph ? selectedNodeIds : selectedNodeId ? [selectedNodeId] : []
+    if (nodeIds.length === 0) {
       message.warning(t('designer.actions.selectNodeToCopy'))
       return
     }
-    copyNodes([selectedNodeId])
-  }, [copyNodes, message, selectedNodeId, t])
+    copyNodes(nodeIds)
+  }, [copyNodes, graph, message, selectedNodeId, t])
 
   const handlePaste = useCallback(() => {
     pasteNodes()
@@ -568,6 +575,7 @@ export function useDesignerPageActions({
   })
   const { handleCopy, handlePaste } = useClipboardActions({
     copyNodes,
+    graph,
     pasteNodes,
     selectedNodeId,
     t,

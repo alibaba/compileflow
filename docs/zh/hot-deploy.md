@@ -1,6 +1,6 @@
 # 热部署
 
-CompileFlow 热部署用于发布不可变流程版本，并在不重启应用的情况下调整 Alias 路由。本文介绍版本发布、灰度和回滚操作；分布式部署、传输要求和恢复配置见[集成指南](hot-deploy-integration.md)。版本、路由、Rollout 记录、Outbox 投递和节点本地安装由不同组件分别管理。
+CompileFlow 热部署用于发布不可变流程版本，并在不重启应用的情况下调整别名路由。本文介绍版本发布、灰度和回滚操作；分布式部署、传输要求和恢复配置见[集成指南](hot-deploy-integration.md)。版本、路由、发布记录、Outbox 投递和节点本地安装由不同组件分别管理。
 
 ## 本地定义预热
 
@@ -40,7 +40,7 @@ compileflow:
             mode: SOURCE
 ```
 
-数据库保存不可变版本、Alias 路由、Rollout 记录和 Outbox 状态。路由事务提交后，命令重新读取最新 Alias，安装制品并发布本地就绪状态，然后返回；Outbox 使用同一 revision 提供持久恢复。内存只用于缓存，重启或缓存驱逐后仍以数据库为准。
+数据库保存不可变版本、别名路由、发布记录和 Outbox 状态。路由事务提交后，命令重新读取最新别名，安装制品并发布本地就绪状态，然后返回；Outbox 使用同一修订号提供持久恢复。内存只用于缓存，重启或缓存驱逐后仍以数据库为准。
 
 ### 分布式控制面
 
@@ -55,7 +55,7 @@ compileflow:
             mode: SOURCE
 ```
 
-控制面通过 `compileflow-deploy-spi` 中的 `DeploymentProjectionStore` 分发已经提交的 Outbox 记录，并将当前路由状态同步到投影存储。缺少必需组件时启动失败；应用必须提供经过审计的投影存储 Bean。
+控制面通过 `compileflow-deploy-spi` 中的 `DeploymentProjectionStore` 分发已经提交的 Outbox 记录，并将当前路由状态同步到投影存储。缺少必需组件时启动失败；应用必须提供符合安全要求的投影存储 Bean。
 
 ### 分布式运行时
 
@@ -93,9 +93,9 @@ PublishedProcessVersion published = deploymentService.publish(
 
 发布操作会校验版本身份、内容大小、摘要断言和操作者，再保存原始流程内容。发布不执行运行时编译，也不改变路由。运行时安装和本地就绪检查由后续步骤独立完成，失败时拒绝执行。
 
-## 通过 Rollout 调整流量
+## 调整发布流量
 
-使用刚从数据库读取的 Alias revision 创建灰度发布：
+使用刚从数据库读取的别名修订号创建灰度发布：
 
 ```java
 ProcessRollout rollout = deploymentService.createRollout(CreateRolloutCommand.canary(
@@ -114,30 +114,30 @@ rollout = deploymentService.promoteRollout(new PromoteRolloutCommand(
         rollout.getId(), rollout.getRevision(), "alice"));
 ```
 
-全量发布使用 `RolloutStrategy.ALL_AT_ONCE`，不设置灰度权重。进行中的灰度可通过 `AbortRolloutCommand` 中止，并恢复创建时记录的基线。回滚已经完成的发布时，应创建一个指向较早不可变版本的新全量 Rollout；已有记录保持不变。
+全量发布使用 `RolloutStrategy.ALL_AT_ONCE`，不设置灰度权重。进行中的灰度可通过 `AbortRolloutCommand` 中止，并恢复创建时记录的基线。回滚已经完成的发布时，应创建一个指向较早不可变版本的新全量发布；已有记录保持不变。
 
-每次创建 Rollout 都需要一个在 namespace、process、Alias 和操作类型范围内稳定的幂等键，以及预期的 Alias revision。在同一范围内使用不同请求参数或操作者复用幂等键会产生冲突。调整灰度时必须提供当前 Rollout revision，并校验 Alias 前置条件；过期请求直接失败，不会覆盖并发变更。
+每次创建发布都需要一个在命名空间、流程、别名和操作类型范围内稳定的幂等键，以及预期的别名修订号。在同一范围内使用不同请求参数或操作者复用幂等键会产生冲突。调整灰度时必须提供当前发布修订号，并校验别名前置条件；过期请求直接失败，不会覆盖并发变更。
 
 ## 交付契约
 
-- 路由、Rollout、审计事件和 Outbox 记录在同一个事务中提交。
-- 提交后始终根据当前 Alias 激活路由，不会使用可能已经过期的 Rollout 状态重建路由。
-- 在 `EMBEDDED` 拓扑中，Rollout 命令成功返回表示该 Alias 已在当前进程就绪。若事务提交后安装失败，命令返回收敛失败；幂等重试会激活最新提交的 revision，Outbox 继续保留恢复任务。
+- 路由、发布、审计事件和 Outbox 记录在同一个事务中提交。
+- 提交后始终根据当前别名激活路由，不会使用可能已经过期的发布状态重建路由。
+- 在 `EMBEDDED` 拓扑中，发布命令成功返回表示该别名已在当前进程就绪。若事务提交后安装失败，命令返回收敛失败；幂等重试会激活最新提交的修订号，Outbox 继续保留恢复任务。
 - 在 `DISTRIBUTED` 拓扑中，命令成功只表示控制面事务已经提交。路由激活会立即触发 Outbox 调度，各执行节点随后异步收敛，并可观测其就绪状态。
 - `RoutingOutboxDispatcher` 是两种拓扑的持久重放路径，也是控制面写入分布式投影存储的唯一入口。
-- Outbox 通过数据库唯一键合并相同投递任务；Rollout 事件作为只追加的审计记录保留。
-- Alias 状态载荷只使用一个正数 `revision` 排序；重复或更旧的消息会被忽略。
+- Outbox 通过数据库唯一键合并相同投递任务；发布事件作为只追加的审计记录保留。
+- 别名状态载荷只使用一个正数 `revision` 排序；重复或更旧的消息会被忽略。
 - 非法初始状态会阻止启动；运行中收到非法更新时，继续保留最后一个有效路由。
 - 安装运行时会校验制品摘要，所选版本不可用时拒绝执行。
 - 必须停发时停止整个控制面角色，让命令入口与交付共享同一生命周期。
 
-Alias route key：
+别名路由键：
 
 ```text
 compileflow.deployment.alias.{identityDigest}
 ```
 
-Projection store artifact key：
+投影存储制品键：
 
 ```text
 compileflow.process.version.{identityDigest}

@@ -20,7 +20,7 @@ and audit controls.
 | Promotion and abort      | Widens v2 from 10% to 50%, promotes it, then aborts a simulated v3 regression                       |
 | Rollback                 | Restores the original v1 target through an audited rollout                                          |
 | Exact-version execution  | Loads and executes v2 directly while the `production` alias points to v1                            |
-| Audit history            | Returns the audit-event count for each rollout operation                                            |
+| Audit events             | Returns the audit-event count for each rollout operation                                            |
 
 ## Prerequisites
 
@@ -52,7 +52,7 @@ curl -sS -X POST http://localhost:8080/api/release-lifecycle
 ```
 
 The JSON response identifies the generated process, the version selected at each stage, the canary routing keys, the
-rollout phases, and the audit-event counts. The expected final state is:
+rollout states, and the audit-event counts. The expected final state is:
 
 - the `production` alias points to v1 after rollback;
 - the exact v2 execution still returns the v2 marker;

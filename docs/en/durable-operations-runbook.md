@@ -1,7 +1,7 @@
 # Durable Operations Runbook
 
-Use this runbook to operate the CompileFlow 2.0 Durable Kernel with a first-party PostgreSQL or MySQL Store. Each
-Provider owns its V1 schema layout; the physical layout is an operational restore detail, not a Kernel invariant.
+Use this runbook to operate the Durable kernel with a first-party PostgreSQL or MySQL Store. Each Provider owns its
+schema layout; the physical layout is an operational restore detail, not a kernel invariant.
 
 ## 1. Safety rules
 

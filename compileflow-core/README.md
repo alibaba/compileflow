@@ -8,13 +8,13 @@ Spring Boot applications should use a format-specific starter or compose the bas
 Do not depend on `com.alibaba.compileflow.engine.core` types: they are implementation details and may change between
 releases.
 
-The built-in QL and Java script executors run inside the host JVM. Java scripts require trusted definitions and a full
-JDK; they are not a sandbox. See the [Security Guide](../docs/en/security.md).
+The built-in QLExpress and Java script executors run inside the host JVM. Java scripts require trusted definitions and
+a full JDK; they are not a sandbox. See the [Security Guide](../docs/en/security.md).
 
 ```bash
 ./mvnw compile -pl compileflow-core -am
 ./mvnw test -pl compileflow-core -am \
-  -Dtest=ClassName \
+  -Dtest=ProcessEventPublisherTest \
   -Dsurefire.failIfNoSpecifiedTests=false
 ```
 

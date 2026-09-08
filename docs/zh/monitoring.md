@@ -2,11 +2,11 @@
 
 CompileFlow 提供三类相互独立的观测能力，可按需分别配置。
 
-| 表面              | 所有者                         | 配置方式                                                       |
-| ----------------- | ------------------------------ | -------------------------------------------------------------- |
-| 引擎生命周期事件  | 每个 `ProcessEngine`           | `ProcessEngineConfig` 能力与 `ProcessObservabilityConfig` 行为 |
-| JVM 指标导出      | Spring 应用                    | Micrometer `MeterRegistry` 与标准指标过滤器                    |
-| Server 健康和诊断 | `compileflow-workbench-server` | Spring Actuator 与服务端接口                                   |
+| 表面             | 所有者                         | 配置方式                                                       |
+| ---------------- | ------------------------------ | -------------------------------------------------------------- |
+| 引擎生命周期事件 | 每个 `ProcessEngine`           | `ProcessEngineConfig` 能力与 `ProcessObservabilityConfig` 行为 |
+| JVM 指标导出     | Spring 应用                    | Micrometer `MeterRegistry` 与标准指标过滤器                    |
+| 服务端健康和诊断 | `compileflow-workbench-server` | Spring Actuator 与服务端接口                                   |
 
 ## 引擎事件
 
@@ -22,36 +22,36 @@ compileflow:
 ```
 
 - `events.async` 让全部生命周期事件通过有界的事件执行器分发；
-- `mdc-propagation-enabled` 只跨引擎拥有的 executor 复制 MDC，不会让任意应用线程池自动传播上下文；
+- `mdc-propagation-enabled` 只在引擎自有执行器之间复制 MDC，不会让应用线程池自动传播上下文；
 - 同步监听器位于执行调用路径，只适合耗时短且资源消耗有界的操作；
 - 监听器失败会被记录并隔离，不影响引擎行为或其他监听器；
 - 异步分发采用尽力而为语义：不同事件可能并发或乱序；有界执行器拒绝任务时会丢弃事件并记录告警。同一事件内的监听器顺序保持确定。
 
-生命周期事件不是正确性、审计、计费或可靠集成的权威。ProcessEngine 执行应使用应用拥有的事务或 Outbox；
-Durable 执行使用 Durable Journal/Outbox。
+生命周期事件不能作为正确性、审计、计费或可靠集成的依据。`ProcessEngine` 执行应使用应用管理的事务或 Outbox；
+Durable 执行使用自身的事件日志和 Outbox。
 
-`ProcessEvent` 是一组封闭且不可变的 record。普通执行开始事件包含 namespace、流程编码和调用 ID；触发执行开始事件还包含请求的 `ProcessTrigger`。完成和失败事件包含引擎返回的 `ProcessExecution` 以及独立的运维归因信息 `ExecutionAttribution`；失败事件还包含类型化的 `ProcessError`。公共事件只覆盖执行和触发执行的生命周期。
+`ProcessEvent` 是一组封闭且不可变的记录。普通执行开始事件包含命名空间、流程编码和调用 ID；触发执行开始事件还包含请求的 `ProcessTrigger`。完成和失败事件包含引擎返回的 `ProcessExecution`，以及独立的运维归因信息 `ExecutionAttribution`；失败事件还包含类型化的 `ProcessError`。公共事件只覆盖执行与触发执行的生命周期。
 
-trace ID 和事件时间是公共字段。事件不会携带路由键、流程变量、流程源码、任意元数据或原始异常对象。
+追踪 ID 和事件时间是公共字段。事件不会携带路由键、流程变量、流程源码、任意元数据或原始异常对象。
 
-`TraceIdProvider` 只负责提供关联标识，不定义完整的链路追踪或上下文传播机制。宿主应用可以从当前追踪上下文中读取 trace ID，而无需让 Core 依赖具体追踪 SDK。普通 Java 应用通过 `ProcessEngineConfig.Builder` 配置，Spring 应用可以声明唯一的 `TraceIdProvider` Bean。应用未提供时，Spring 会读取 MDC 中的 `traceId`；
+`TraceIdProvider` 只负责提供关联标识，不定义完整的链路追踪或上下文传播机制。宿主应用可以从当前追踪上下文中读取追踪 ID，而无需让核心模块依赖具体追踪 SDK。普通 Java 应用通过 `ProcessEngineConfig.Builder` 配置，Spring 应用可以声明唯一的 `TraceIdProvider` Bean。应用未提供时，Spring 会读取 MDC 中的 `traceId`；
 超过 128 字符的 ID 会被视为不可用而不会被截断。没有合法上游 ID 时引擎生成
-32 位十六进制本地 ID，provider 失败也不会中断执行。
+32 位十六进制本地 ID，提供方失败也不会中断执行。
 
 ## Micrometer
 
-使用标准 Spring starter 时，只有以下条件全部满足，`CompileFlowEngineMetricsAutoConfiguration` 才创建 binder：
+使用标准 Spring Starter 时，只有以下条件全部满足，`CompileFlowEngineMetricsAutoConfiguration` 才创建指标绑定器：
 
-1. classpath 中存在 Micrometer；
-2. 存在 `MeterRegistry` bean；
-3. 存在 `ProcessEngine` bean。
+1. 类路径中存在 Micrometer；
+2. 存在 `MeterRegistry` Bean；
+3. 存在 `ProcessEngine` Bean。
 
 容量仪表读取默认引擎实际使用的配置，包括应用自行创建的引擎。另行构造的引擎应为自身配置提供指标绑定；内置绑定器不会根据无关的 `ProcessEngineConfig` Bean 推测容量。JVM 级事件丢弃计数器始终可用。
 
-启用 Durable 且存在 Durable Engine 后，其 starter 在相同的两个 Micrometer 条件下注册独立 binder。
+启用 Durable 且存在 Durable 引擎后，其 Starter 会在相同的 Micrometer 条件下注册独立指标绑定器。
 
 Spring Boot 的 `management.metrics.enable.*` 配置是标准 meter filter。binder 注册 meter 时，filter 可以拒绝其中某项；它不决定
-binder bean 是否存在。
+指标绑定器 Bean 是否存在。
 
 内置绑定器导出计数器和节点级聚合仪表：
 
@@ -71,7 +71,7 @@ binder bean 是否存在。
 | `compileflow.engine.executor.<pool>.active`                  | 指定引擎线程池中正在执行的任务数；`<pool>` 可取 `runtime.load`、`action.timeout` 或 `event.delivery`                                                   |
 | `compileflow.engine.executor.<pool>.pending`                 | 指定引擎线程池中等待准入或执行的任务数                                                                                                                 |
 | `compileflow.engine.executor.<pool>.rejected`                | 指定引擎线程池因容量耗尽或关闭而拒绝的任务累计数                                                                                                       |
-| `compileflow.engine.events.dropped`                          | JVM 进程内所有 Engine 实例被有界事件 executor 拒绝的 best-effort 异步生命周期事件累计数                                                                |
+| `compileflow.engine.events.dropped`                          | JVM 进程内所有引擎实例被有界事件执行器拒绝的尽力投递异步生命周期事件累计数                                                                             |
 | `compileflow.deploy.runtime.install.attempts`                | 按终态 `outcome` 与有界 `reason` 标记的 runtime 安装尝试数                                                                                             |
 | `compileflow.deploy.alias.convergence`                       | 按终态 `outcome` 与有界 `reason` 标记的节点 alias 收敛尝试数                                                                                           |
 | `compileflow.deploy.alias.desired.count`                     | 当前节点已知的有效 desired alias 数                                                                                                                    |
@@ -93,7 +93,7 @@ binder bean 是否存在。
 
 不同指标后端可能按自身规则转换名称。上表使用的是通用 Java 指标名称。
 
-默认部署指标不使用 namespace、流程编码、Alias、Version、摘要、路由键、调用 ID 或节点 ID 作为标签。这些高基数信息应通过部署运行时诊断接口、结构化日志或 trace 按需查询。
+默认部署指标不使用命名空间、流程编码、别名、版本、摘要、路由键、调用 ID 或节点 ID 作为标签。这些高基数信息应通过部署运行时诊断接口、结构化日志或追踪信息按需查询。
 
 执行延迟、结果和业务指标应由应用监听器采集，因为标签和保留策略由应用决定。标签取值范围必须有界：模型类型和经过筛选的流程族通常适合；调用 ID、用户 ID、URL 和原始流程变量不适合作为指标标签。
 
@@ -114,7 +114,7 @@ Workbench Operate 的执行看板查询共享的持久化执行日志。指标�
 `24h`、`7d` 或 `30d` 窗口，默认 `24h`。共享同一数据库的 Server 实例因此会返回一致的已保留执行事实；日志保留策略和显式删除决定可查询历史的边界。Workbench
 Server 使用同步终态事件分发，避免事件队列饱和静默扭曲样本；持久化失败仍与流程结果隔离。这些运维记录不是 exactly-once 审计账本。
 
-部署运行时诊断接口采用节点作用域，报告当前 Server 节点的期望状态、本地就绪状态、运行时保留、重试和容量。
+部署运行时诊断接口以节点为单位，报告当前服务节点的期望状态、本地就绪状态、运行时保留、重试和容量。
 这些节点本地数据不能与数据库执行看板混合聚合，也不能替代共享状态。
 
 ## 生产规则

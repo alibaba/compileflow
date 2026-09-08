@@ -1,30 +1,15 @@
 # CompileFlow 文档
 
-本目录包含 CompileFlow 的中文文档。使用前请阅读[支持面清单](architecture/supported-surfaces.md)，了解各项能力的支持范围。
+通过这些文档，可以在应用中集成 CompileFlow、定义和校验流程、运维可选的 Deploy 与 Durable 产品，并了解项目的公共契约。项目简介、安装示例和社区入口见[中文 README](../../README_CN.md)；各项能力的权威支持范围见[支持面清单](architecture/supported-surfaces.md)。
 
-CompileFlow 是一款轻量、高性能、可集成、可扩展的 Java 流程引擎，支持 TBBPM 和文档列出的 BPMN 2.0 子集。
-CompileFlow Process 引擎采用纯内存、无状态的执行方式，支持编译执行和解释执行两种模式。
-CompileFlow 已应用于阿里业务中台、淘宝、阿里云、国际化等业务的多个核心系统。
+## 选择阅读路径
 
-对于需要跨应用重启保存流程状态的场景，可以使用 CompileFlow Durable，支持流程等待、定时触发和外部操作的可靠处理。
-
-开发人员可以通过流程编辑器设计业务流程，将复杂的业务逻辑可视化，在业务设计人员与开发工程师之间建立清晰、高效的协作方式。
-需要版本化部署或可视化建模时，可以分别使用 CompileFlow Deploy 和 Workbench。
-
-## 核心能力
-
-- **高性能执行** —— 将流程文件转换为 Java 代码并编译执行，同时提供解释执行模式。
-- **TBBPM 与 BPMN** —— 使用统一的引擎 API 处理 TBBPM 和文档列出的 BPMN 2.0 子集。
-- **Java 与 Spring Boot 集成** —— 提供线程安全的引擎、流程预检、类型化结果和稳定错误码。
-- **版本化部署** —— 使用 CompileFlow Deploy 发布不可变版本，通过修订号检查更新别名，并进行确定性灰度路由。
-- **持久化执行** —— 保存流程等待、定时任务和外部操作状态，并在应用重启后恢复执行。
-- **可视化工作台** —— 在浏览器中建模和校验流程，并通过 Workbench Server 发布、监控和查看执行情况。
-
-## 开始
-
-- [何时使用 CompileFlow](when-to-use.md)
-- [快速开始](quick-start.md)
-- [示例](../../examples/README.md)
+- **评估 CompileFlow：** 阅读[何时使用 CompileFlow](when-to-use.md)和[支持面清单](architecture/supported-surfaces.md)。
+- **运行流程：** 从[快速开始](quick-start.md)入门，然后查看[示例](../../examples/README.md)和 [API 参考](api-reference.md)。
+- **发布和路由版本：** 阅读[热部署](hot-deploy.md)。
+- **持久化流程状态：** 阅读 [Durable 流程](durable-process.md)和 [Durable 运维手册](durable-operations-runbook.md)。
+- **可视化设计流程：** 使用 [CompileFlow Workbench](../../compileflow-workbench/README.md)。
+- **扩展引擎：** 阅读[扩展指南](extension-guide.md)。
 
 ## 操作指南
 
@@ -61,8 +46,7 @@ CompileFlow 已应用于阿里业务中台、淘宝、阿里云、国际化等�
 ## 运维与安全
 
 - [Durable 密钥轮换](durable-key-rotation.md)
-- [Durable 值班与恢复手册](durable-operations-runbook.md)
-- [Durable 存储测试](durable-testing.md)
+- [Durable 运维手册](durable-operations-runbook.md)
 - [监控与可观测性](monitoring.md)
 - [运维手册](operations-playbook.md)
 - [安全指南](security.md)
@@ -71,17 +55,18 @@ CompileFlow 已应用于阿里业务中台、淘宝、阿里云、国际化等�
 ## 贡献
 
 - [测试指南](testing.md)
+- [Durable 存储测试](durable-testing.md)
 - [架构与 API 设计](architecture/api-design.md)
 - [参与贡献（英文）](../../CONTRIBUTING.md)
 - [Workbench 贡献指南（英文）](../../compileflow-workbench/CONTRIBUTING.md)
 
-## 项目参考
+## 项目资源
 
-- [架构索引](architecture/README.md)
-- [支持面清单](architecture/supported-surfaces.md)
 - [流程图示例](examples/flow-diagrams.md)
 - [文档语言索引](../README.md)
 - [支持政策](../../SUPPORT.md)
 - [安全报告](../../SECURITY.md)
 
 [English](../en/README.md)
+
+操作指南提供任务步骤，参考文档定义技术契约，架构文档说明组件边界和设计决策。

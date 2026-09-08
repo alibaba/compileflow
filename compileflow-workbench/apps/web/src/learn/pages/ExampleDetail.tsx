@@ -189,9 +189,11 @@ function useExampleExecution(example: Example | null): ExecutionState {
   const [executionParams, setExecutionParams] = useState('{}')
   const [executionResult, setExecutionResult] = useState<ExecutionResponse | null>(null)
   const executionRequestRef = useRef(0)
+  const executionInFlightRef = useRef(false)
 
   useEffect(() => {
     executionRequestRef.current += 1
+    executionInFlightRef.current = false
     setExecuting(false)
     setExecutionParams('{}')
     setExecutionResult(null)
@@ -202,6 +204,7 @@ function useExampleExecution(example: Example | null): ExecutionState {
   }, [example?.id])
 
   const onExecute = useCallback(async () => {
+    if (executionInFlightRef.current) return
     if (!example?.code) {
       message.error(t('exec.noCode'))
       return
@@ -221,6 +224,7 @@ function useExampleExecution(example: Example | null): ExecutionState {
     }
 
     const requestId = ++executionRequestRef.current
+    executionInFlightRef.current = true
     try {
       setExecuting(true)
       setExecutionResult(null)
@@ -241,7 +245,10 @@ function useExampleExecution(example: Example | null): ExecutionState {
       if (requestId !== executionRequestRef.current) return
       message.error(t('exec.error', { error: toError(error).message }))
     } finally {
-      if (requestId === executionRequestRef.current) setExecuting(false)
+      if (requestId === executionRequestRef.current) {
+        executionInFlightRef.current = false
+        setExecuting(false)
+      }
     }
   }, [example, executionParams, message, t])
 
@@ -517,11 +524,13 @@ function ExampleTabs({
 
 function QuickActions({
   example,
+  executing,
   onDownload,
   onExecute,
   onOpenInDesigner,
 }: {
   example: Example
+  executing: boolean
   onDownload: () => void
   onExecute: () => void
   onOpenInDesigner: () => void
@@ -541,8 +550,14 @@ function QuickActions({
         >
           {t('detail.openInDesigner')}
         </Button>
-        <Button block size="large" icon={<PlayCircleOutlined />} onClick={onExecute}>
-          {t('exec.execute')}
+        <Button
+          block
+          size="large"
+          icon={<PlayCircleOutlined />}
+          loading={executing}
+          onClick={onExecute}
+        >
+          {executing ? t('exec.executing') : t('exec.execute')}
         </Button>
         <Button block size="large" icon={<DownloadOutlined />} onClick={onDownload}>
           {example.code ? t('common.download') : t('detail.noCode')}
@@ -556,6 +571,7 @@ function ExampleSidebar({
   allExamples,
   contentRef,
   example,
+  executing,
   learningProgress,
   onDownload,
   onExecute,
@@ -564,6 +580,7 @@ function ExampleSidebar({
   allExamples: Example[]
   contentRef: RefObject<HTMLDivElement | null>
   example: Example
+  executing: boolean
   learningProgress: ReturnType<typeof useLearningProgress>
   onDownload: () => void
   onExecute: () => void
@@ -575,6 +592,7 @@ function ExampleSidebar({
         <LearningProgressCard exampleId={example.id} learningProgress={learningProgress} />
         <QuickActions
           example={example}
+          executing={executing}
           onDownload={onDownload}
           onExecute={onExecute}
           onOpenInDesigner={onOpenInDesigner}
@@ -674,6 +692,7 @@ function ExampleDetail() {
           allExamples={localizedExamples}
           contentRef={contentRef}
           example={example}
+          executing={execution.executing}
           learningProgress={learningProgress}
           onDownload={handleDownload}
           onExecute={() => {

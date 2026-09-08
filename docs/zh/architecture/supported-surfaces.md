@@ -13,16 +13,16 @@
 
 ## 目标平台基线
 
-| 边界                       | 目标基线                                                                                                                        |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Java 产物与生成流程        | Java 17 源代码/API/字节码；全部 LTS JDK 均参与构建，Java 17 运行完整测试套件，Java 21/25 运行定向并发与动态代码运行时契约       |
-| Spring 集成                | Spring Boot 4.1.1                                                                                                               |
-| Engine API/Core/TBBPM/BPMN | 不要求 CompileFlow 自有部署数据库                                                                                               |
-| Deploy 第一方事实源        | PostgreSQL 16.15/17.11/18.6 与 MySQL 8.4.7 契约矩阵；能力提供方共享与版本绑定的 JDBC 状态机，并分别负责方言选择与数据库变更脚本 |
-| Workbench 生产持久化       | 同一可执行产物支持 PostgreSQL 16.15/17.11/18.6 与 MySQL 8.4.7；Compose 推荐 PostgreSQL 18.6                                     |
-| Durable 第一方实现         | PostgreSQL 16.15/17.11/18.6 与 MySQL 8.4.7 契约矩阵；H2 仅用于测试                                                              |
-| Workbench 构建             | Node.js 24 LTS 与 pnpm 11.11.0；Node 精确补丁版本固定在 `release-baselines.json`                                                |
-| Workbench Java 运行时      | 固定的 Java 17 JDK 容器镜像；完整版本标签与 OCI 索引摘要记录在 `release-baselines.json`                                         |
+| 边界                       | 目标基线                                                                                                                                             |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Java 产物与生成流程        | Java 17 源代码/API/字节码；受支持的 Java 17、21、25 LTS 均参与构建或验证，其中 Java 17 运行完整测试套件，Java 21/25 运行定向并发与动态代码运行时契约 |
+| Spring 集成                | Spring Boot 4.1.1                                                                                                                                    |
+| Engine API/Core/TBBPM/BPMN | 不要求 CompileFlow 自有部署数据库                                                                                                                    |
+| Deploy 第一方事实源        | PostgreSQL 16.15/17.11/18.6 与 MySQL 8.4.7 契约矩阵；能力提供方共享与版本绑定的 JDBC 状态机，并分别负责方言选择与数据库变更脚本                      |
+| Workbench 生产持久化       | 同一可执行产物支持 PostgreSQL 16.15/17.11/18.6 与 MySQL 8.4.7；Compose 推荐 PostgreSQL 18.6                                                          |
+| Durable 第一方实现         | PostgreSQL 16.15/17.11/18.6 与 MySQL 8.4.7 契约矩阵；H2 仅用于测试                                                                                   |
+| Workbench 构建             | Node.js 24 LTS 与 pnpm 11.11.0；Node 精确补丁版本固定在 `release-baselines.json`                                                                     |
+| Workbench Java 运行时      | 固定的 Java 17 JDK 容器镜像；完整版本标签与 OCI 索引摘要记录在 `release-baselines.json`                                                              |
 
 表中列出的是经过测试的支持基线。未列出的平台可能可以运行，但不属于受支持矩阵。精确版本与镜像摘要记录在根目录的
 `release-baselines.json` 中。
