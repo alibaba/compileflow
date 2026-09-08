@@ -43,9 +43,9 @@ test('bundled Workbench loads and operates through the trusted edge', async ({ p
 
   const documentResponse = await page.goto(`${browserUrl}/operate/monitoring`)
   expect(documentResponse?.ok()).toBeTruthy()
-  await expect(page.getByText('运维控制面')).toBeVisible()
-  await expect(page.getByText('路由投递中')).toBeVisible()
-  await expect(page.getByText('持久化调用重试管道')).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: '监控' })).toBeVisible()
+  await expect(page.getByText('部署任务投递中')).toBeVisible()
+  await expect(page.getByText('异步调用的持久化重试队列')).toBeVisible()
 
   const initialHealthResponses = deploymentHealthResponses
   const deploymentRequeue = page.waitForResponse(
@@ -55,7 +55,7 @@ test('bundled Workbench loads and operates through the trusted edge', async ({ p
   )
   await page.getByRole('button', { name: '重新入队部署死信任务' }).click()
   expect((await deploymentRequeue).ok()).toBeTruthy()
-  await expect(page.getByText('部署死信已重新入队')).toBeVisible()
+  await expect(page.getByText('部署死信任务已重新入队')).toBeVisible()
   await expect.poll(() => deploymentHealthResponses).toBeGreaterThan(initialHealthResponses)
 
   const healthResponsesBeforeAsyncRequeue = {

@@ -224,7 +224,7 @@ test('publishes, canaries, promotes, rolls back, and executes the effective vers
   await chooseOpenSelectOption(page, v2.version)
   await page.getByRole('button', { name: '下一步' }).click()
   await page.getByLabel('别名').click()
-  await chooseOpenSelectOption(page, '生产别名 (PRODUCTION)')
+  await chooseOpenSelectOption(page, '生产（PRODUCTION）')
   await page.getByLabel('策略').click()
   await chooseOpenSelectOption(page, '灰度发布')
   await page.getByRole('spinbutton', { name: '灰度流量权重' }).fill('5000')
@@ -314,7 +314,7 @@ test('publishes, canaries, promotes, rolls back, and executes the effective vers
 
   await page.getByRole('button', { name: /全量发布|Promote/i }).click()
   const promoteDialog = page.getByRole('dialog', {
-    name: /确认放量|提升候选版本|Promote candidate/i,
+    name: /确认全量发布|Promote candidate/i,
   })
   await expect(promoteDialog).toBeVisible()
   const promoteResponse = page.waitForResponse(

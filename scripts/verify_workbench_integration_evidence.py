@@ -44,7 +44,7 @@ REQUIRED_CASES: frozenset[TestIdentity] = frozenset(
         ),
         (
             "server-api.spec.ts",
-            "compileflow-workbench-server integration › log delete returns deletedAt",
+            "compileflow-workbench-server integration › execution-log purge returns bounded progress",
         ),
         (
             "workbench-deployment-lifecycle.spec.ts",
