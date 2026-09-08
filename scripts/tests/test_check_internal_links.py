@@ -199,6 +199,10 @@ class JavaSecurityReleaseGateTest(unittest.TestCase):
                 "workflow_call:\n"
                 "  NVD_API_KEY:\n"
                 "    required: false\n"
+                "concurrency:\n"
+                "uses: actions/cache/restore@digest\n"
+                "uses: actions/cache/save@digest\n"
+                "-DnvdApiDelay=10000\n"
                 "run: ./mvnw verify -Psecurity-scan\n"
                 "uses: actions/upload-artifact@digest\n",
                 encoding="utf-8",
@@ -217,6 +221,33 @@ class JavaSecurityReleaseGateTest(unittest.TestCase):
 
             self.assertEqual([], find_java_security_release_gate_errors(root))
 
+    def test_rejects_scan_without_nvd_reliability_guards(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            workflows = root / ".github" / "workflows"
+            workflows.mkdir(parents=True)
+            (workflows / "java-security.yml").write_text(
+                "workflow_call:\nNVD_API_KEY:\nrequired: false\n-Psecurity-scan\n"
+                "actions/upload-artifact@digest\n",
+                encoding="utf-8",
+            )
+            caller = (
+                "uses: ./.github/workflows/java-security.yml\n"
+                "NVD_API_KEY: ${{ secrets.NVD_API_KEY }}\n"
+            )
+            (workflows / "supply-chain.yml").write_text(caller, encoding="utf-8")
+            (workflows / "release.yml").write_text(
+                "java-security-candidate-evidence:\n"
+                + caller
+                + "needs:\n  - java-security-candidate-evidence\n",
+                encoding="utf-8",
+            )
+
+            errors = find_java_security_release_gate_errors(root)
+
+            self.assertEqual(4, len(errors))
+            self.assertTrue(all("java-security.yml" in error for error in errors))
+
     def test_rejects_release_that_does_not_depend_on_security_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -224,6 +255,8 @@ class JavaSecurityReleaseGateTest(unittest.TestCase):
             workflows.mkdir(parents=True)
             (workflows / "java-security.yml").write_text(
                 "workflow_call:\nNVD_API_KEY:\nrequired: false\n-Psecurity-scan\n"
+                "concurrency:\nactions/cache/restore@digest\nactions/cache/save@digest\n"
+                "-DnvdApiDelay=10000\n"
                 "actions/upload-artifact@digest\n",
                 encoding="utf-8",
             )

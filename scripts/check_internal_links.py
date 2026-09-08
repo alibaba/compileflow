@@ -2239,7 +2239,7 @@ def check_supply_chain_workflow() -> list[str]:
 
 
 def find_java_security_release_gate_errors(root: Path) -> list[str]:
-    """Require one fail-closed Java dependency scan for daily and release evidence."""
+    """Require one reliable, fail-closed Java dependency scan for scheduled and release evidence."""
     errors: list[str] = []
     workflow_dir = root / ".github" / "workflows"
     security = workflow_dir / "java-security.yml"
@@ -2258,6 +2258,10 @@ def find_java_security_release_gate_errors(root: Path) -> list[str]:
         ("NVD_API_KEY:", "NVD credential contract"),
         ("required: false", "optional NVD credential"),
         ("-Psecurity-scan", "OWASP Dependency-Check Maven profile"),
+        ("concurrency:", "serialized NVD access"),
+        ("actions/cache/restore@", "vulnerability database cache restore"),
+        ("actions/cache/save@", "vulnerability database cache save"),
+        ("-DnvdApiDelay=", "anonymous NVD rate-limit protection"),
         ("actions/upload-artifact@", "dependency report evidence"),
     ):
         if fragment not in security_text:

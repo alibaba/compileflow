@@ -16,6 +16,9 @@ jobs:
     name: Scan Java runtime dependencies
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    concurrency:
+      group: java-dependency-security
+      cancel-in-progress: false
     env:
       NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 
@@ -30,12 +33,34 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Restore vulnerability database
+        id: dependency-check-cache
+        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: ${{ runner.os }}-dependency-check-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ${{ runner.os }}-dependency-check-
+
       - name: Scan Java runtime dependencies
         run: |
+          nvd_options=()
+          if [[ -z "${NVD_API_KEY}" ]]; then
+            # Anonymous NVD access is slower and subject to a lower rate limit.
+            nvd_options=(-DnvdApiDelay=10000 -DnvdMaxRetryCount=20)
+          fi
           ./mvnw verify -Psecurity-scan \
             -DskipTests \
             -Dcheckstyle.skip=true \
+            "${nvd_options[@]}" \
             -B -V --no-transfer-progress
+
+      - name: Save vulnerability database
+        if: always()
+        uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: ${{ steps.dependency-check-cache.outputs.cache-primary-key }}
 
       - name: Upload dependency reports
         if: always()
