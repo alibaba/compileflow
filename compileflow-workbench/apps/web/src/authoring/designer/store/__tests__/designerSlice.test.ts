@@ -1,6 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit'
 import type { StateWithHistory } from 'redux-undo'
-import undoable from 'redux-undo'
+import undoable, { ActionCreators } from 'redux-undo'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import type { TbbpmConnection, TbbpmNode } from '../../types/tbbpm'
@@ -9,9 +9,11 @@ import editorReducer, {
   addConnection,
   addNode,
   deleteConnection,
+  deleteGraph,
   deleteNode,
   moveNode,
   replaceContainerChildren,
+  setBpmnDefaultConnection,
   updateConnection,
   updateProcessInfo,
   updateNode,
@@ -58,8 +60,10 @@ function createTestStore(
           const undoableActions = [
             addNode.type,
             deleteNode.type,
+            deleteGraph.type,
             updateNode.type,
             replaceContainerChildren.type,
+            setBpmnDefaultConnection.type,
             moveNode.type,
             addConnection.type,
             deleteConnection.type,
@@ -227,6 +231,32 @@ describe('designerSlice - 节点操作', () => {
     const state = store.getState().editor.present
     expect(state.currentProcess?.nodes).toHaveLength(1)
     expect(state.currentProcess?.connections).toHaveLength(0)
+  })
+
+  it('批量删除节点和边只产生一个可撤销历史步骤', () => {
+    const original = {
+      ...bootstrapProcess,
+      nodes: [
+        { id: 'a', type: 'autoTask' as const, position: { x: 0, y: 0 }, properties: {} },
+        { id: 'b', type: 'waitTask' as const, position: { x: 100, y: 0 }, properties: {} },
+        { id: 'c', type: 'end' as const, position: { x: 200, y: 0 }, properties: {} },
+      ],
+      connections: [
+        { id: 'ab', sourceId: 'a', targetId: 'b' },
+        { id: 'bc', sourceId: 'b', targetId: 'c' },
+      ],
+    }
+    store = createTestStore(original)
+
+    store.dispatch(deleteGraph({ nodeIds: ['a'], connectionIds: ['bc'] }))
+
+    expect(store.getState().editor.present.currentProcess).toMatchObject({
+      nodes: [{ id: 'b' }, { id: 'c' }],
+      connections: [],
+    })
+    expect(store.getState().editor.past).toHaveLength(1)
+    store.dispatch(ActionCreators.undo())
+    expect(store.getState().editor.present.currentProcess).toEqual(original)
   })
 
   it('应该原子替换循环体归属', () => {
@@ -597,6 +627,73 @@ describe('designerSlice - 连接操作', () => {
 
     const flow = store.getState().editor.present.currentProcess
     expect(flow?.connections[0]?.sourceId).toBe('new-source')
+    expect(
+      flow?.type === 'BPMN'
+        ? flow.nodes.find((node) => node.id === 'gateway')?.properties.default
+        : undefined
+    ).toBeUndefined()
+  })
+
+  it('sets a BPMN default flow atomically and removes its hidden condition', () => {
+    store = createTestStore({ ...bootstrapProcess, type: 'BPMN' })
+    store.dispatch(
+      addNode({
+        id: 'gateway',
+        type: 'bpmn:ExclusiveGateway',
+        name: 'Gateway',
+        position: { x: 100, y: 100 },
+        properties: {},
+      })
+    )
+    store.dispatch(
+      addNode({
+        id: 'target',
+        type: 'bpmn:ServiceTask',
+        name: 'Target',
+        position: { x: 300, y: 100 },
+        properties: {},
+      })
+    )
+    store.dispatch(
+      addConnection({
+        id: 'fallback',
+        sourceId: 'gateway',
+        targetId: 'target',
+        condition: 'otherwise()',
+      })
+    )
+
+    store.dispatch(setBpmnDefaultConnection({ nodeId: 'gateway', connectionId: 'fallback' }))
+
+    const flow = store.getState().editor.present.currentProcess
+    expect(flow?.connections[0]?.condition).toBeUndefined()
+    expect(
+      flow?.type === 'BPMN'
+        ? flow.nodes.find((node) => node.id === 'gateway')?.properties.default
+        : undefined
+    ).toBe('fallback')
+    expect(store.getState().editor.past).toHaveLength(4)
+  })
+
+  it('rejects a default flow that does not leave the selected gateway', () => {
+    store = createTestStore({ ...bootstrapProcess, type: 'BPMN' })
+    store.dispatch(
+      addNode({
+        id: 'gateway',
+        type: 'bpmn:InclusiveGateway',
+        name: 'Gateway',
+        position: { x: 100, y: 100 },
+        properties: {},
+      })
+    )
+    store.dispatch(
+      addConnection({ id: 'foreign', sourceId: 'other', targetId: 'gateway', condition: 'ok' })
+    )
+
+    store.dispatch(setBpmnDefaultConnection({ nodeId: 'gateway', connectionId: 'foreign' }))
+
+    const flow = store.getState().editor.present.currentProcess
+    expect(flow?.connections[0]?.condition).toBe('ok')
     expect(
       flow?.type === 'BPMN'
         ? flow.nodes.find((node) => node.id === 'gateway')?.properties.default

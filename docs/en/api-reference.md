@@ -127,7 +127,7 @@ contains only ASCII letters, digits,
 
 ## 5. Results And Errors
 
-`ProcessResult<T>` is an immutable success-or-failure value with controlled execution attribution:
+`ProcessResult<T>` is an immutable success-or-failure value with `ProcessExecution` details:
 
 ```java
 boolean isSuccess();
@@ -146,7 +146,7 @@ A success has output and no error. A failure has a `ProcessError` and no output.
 so test `isSuccess()` instead of inferring the outcome from `getOutput()`. `ProcessError` codes are limited to 128
 characters and sanitized messages to 4,096 characters.
 
-`map()` transforms only successful output and carries the same failure and execution attribution otherwise. `orElse()`
+`map()` transforms only successful output and carries the same failure and execution details otherwise. `orElse()`
 and `orElseGet()` discard failure information, so use them only when a fallback is part of the application contract.
 `orElseThrow()` raises `ProcessExecutionException`; its supplier overload adapts a failure at an application boundary:
 
@@ -187,7 +187,7 @@ void load(ProcessRef.Version ref, ProcessDefinition definition);
 void unload(ProcessRef.Version... refs);
 ```
 
-`warmUp` compiles exact definitions into the node-local cache without creating or rebinding a public process identity.
+`warmUp` prepares exact definitions in the node-local cache without creating or rebinding a public process identity.
 Versioned `load` installs an immutable version binding. Neither operation publishes durable state or mutates an Alias.
 `unload` releases only explicit version ownership; Alias lifecycle belongs to the control plane.
 
@@ -268,7 +268,12 @@ Durable execution is a separate product boundary in `compileflow-durable-api`. I
 `execute(...)` calls. The storage-independent application facade is:
 
 ```java
-public interface DurableProcessEngine {
+public interface DurableProcessEngine extends AutoCloseable {
+    void start();
+    void stop();
+    boolean isRunning();
+    void close();
+
     ProcessRun start(ProcessRunId runId, ProcessDefinition definition, Map<String, ?> input);
     ProcessRun start(ProcessRunId runId, ProcessRef.Version version, Map<String, ?> input);
     ProcessRun start(ProcessRunId runId, ProcessRef.Alias alias, Map<String, ?> input);

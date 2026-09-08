@@ -14,15 +14,14 @@ This guide covers local evaluation and production deployment of the Workbench we
 | `compileflow-workbench-server` | Java API, persistence, execution worker, and deployment control. |
 | PostgreSQL or MySQL            | Supported Server database.                                       |
 
-The frontend and Server must use the same CompileFlow version. The committed OpenAPI description under `docs/specs/openapi`
-is the wire authority; generated frontend types and runtime validators must be regenerated together with Server changes.
+The frontend and Server must use the same CompileFlow version. The OpenAPI description under `docs/specs/openapi` is the
+wire contract between them.
 
 ## Prerequisites
 
 - Java 17, 21, or 25; Java 17 is the build baseline.
 - Node.js 24 LTS and the repository-pinned pnpm version.
 - PostgreSQL 16, 17, or 18, or MySQL 8.4 for a database-backed Server.
-- A supported browser for the web app.
 
 H2 is a test database only. Do not use it to validate a production deployment.
 
@@ -33,7 +32,7 @@ From this directory:
 ```bash
 pnpm install --frozen-lockfile
 pnpm type-check
-pnpm build
+pnpm build:web
 ```
 
 The build produces static web assets. `VITE_COMPILEFLOW_*` values are embedded at build time and visible to browser
@@ -42,16 +41,29 @@ users; never store credentials or private keys in them.
 For local authoring, start the development gateway using the command in `package.json`. Configure its port and log
 level with the documented `COMPILEFLOW_DEV_GATEWAY_*` variables. The gateway is only for local development and testing.
 
-## Run the Server locally
+## Run locally
 
-Build the matching Java Server artifact from the repository root, apply the packaged migrations for the selected
-database, and start it with the `dev` profile. Server startup fails if the schema, data source, or required authentication
-configuration is unavailable.
+The all-in-one stack starts PostgreSQL, Workbench Server, and the built web application with local development settings:
 
-The local Compose setup is useful for evaluating the full product. Before using an equivalent topology in production,
-replace its development credentials, network exposure, and storage settings.
+```bash
+export COMPILEFLOW_WORKBENCH_DATABASE_PASSWORD='your-local-postgres-password'
+pnpm up:all-in-one
+```
 
-### PostgreSQL Compose storage
+Open `http://127.0.0.1:4173`. Stop the stack with `docker compose -f docker-compose.all-in-one.yml down`; omit `-v` to
+retain the database volume.
+
+To run Web and Server separately, follow the [Server quick start](../compileflow-workbench-server/README.md), then start
+Web in real mode:
+
+```bash
+VITE_COMPILEFLOW_OPERATE_MODE=real pnpm --filter @compileflow/workbench-web dev
+```
+
+The Server `dev` profile applies the packaged migrations to its local database. Production deployments apply migrations
+before Server startup through a separately authorized database identity.
+
+## Local storage
 
 Both `docker-compose.yml` and `docker-compose.all-in-one.yml` mount the `compileflow_pg_data` named volume at
 `/var/lib/postgresql`. The PostgreSQL 18 image defaults to `PGDATA=/var/lib/postgresql/18/docker`, so a new database
@@ -132,6 +144,8 @@ as a general-purpose engine API.
 - Do not bypass schema admission, authentication, digest verification, or local-ready checks.
 - Schema validation is fail-closed; the Server does not become ready with pending or inconsistent migrations.
 - Database backups and retention are owned by the database operations policy.
+- Asynchronous invocation and attempt records have no supported purge API. Include their growth in database capacity,
+  backup, and retention planning; do not delete those tables directly.
 
 For canary, promotion, abort, rollback, outbox, and asynchronous invocation procedures, use the
 [operations playbook](../docs/en/operations-playbook.md) and [hot-deployment guide](../docs/en/hot-deploy.md).

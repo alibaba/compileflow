@@ -18,9 +18,9 @@ Deploy supports coordinated homogeneous upgrades only; it does not support mixed
 Alias-state and artifact parsers accept exactly schema `1` and reject unknown fields. The protocol uses explicit
 versioned payload codecs rather than a generic codec registry.
 
-In artifact mode `PROJECTION_STORE`, publication stores the immutable database fact before projecting it. A failed
-projection makes the publish command fail but does not discard or rewrite that fact; an exact retry is idempotent.
-Before create or rollback can introduce the version into an Alias, the control plane reloads the persisted winner and
+In artifact mode `PROJECTION_STORE`, publication stores the immutable publication record before projecting it. A failed
+projection makes the publish command fail but does not discard or rewrite that record; an exact retry is idempotent.
+Before create or rollback can introduce the version into an Alias, the control plane reloads the persisted artifact and
 confirms the projection again. A projection failure therefore cannot commit a route that newly references an
 unavailable artifact.
 
@@ -100,7 +100,7 @@ one candidate:
     "stableVersion": "1",
     "candidateVersion": "2",
     "candidateWeightBps": 1000,
-    "targetingPolicy": "enterprise-cohort",
+    "targetingPolicy": "regional-cohort",
     "targetingParameters": {
         "region": "cn"
     },
@@ -202,8 +202,8 @@ namespace, and its code must equal the exact target code. Bindings freeze public
 closure is obtained by recursively reading the referenced immutable artifacts and is never duplicated in one payload.
 
 Each exact Version owns its immutable `modelType`. Different Versions of the same `(namespace, code)` may use
-different frontends, including stable and candidate Versions on one Alias. Exact Version ProcessCalls may cross
-frontend boundaries when their shared semantic input/output contracts agree. The wire field remains on every
+different process formats, including stable and candidate Versions on one Alias. Exact Version ProcessCalls may cross
+format boundaries when their shared semantic input/output contracts agree. The wire field remains on every
 Version artifact so each payload is self-describing at the Runtime boundary.
 
 The producer refuses to serialize a mismatched digest. The consumer recomputes the artifact digest, checks payload

@@ -548,8 +548,7 @@ insufficient. Do not relax global `log_bin_trust_function_creators`. Local devel
 and the bundled Compose topology explicitly opt in to `database.migrate=true`. The default mode still validates Flyway checksums and rejects every pending
 migration before the application becomes ready; `spring.flyway.enabled` must remain enabled. The runtime DML role
 therefore needs read access to `cf_deploy_schema_history` and `cf_workbench_schema_history`, but no schema-creation or
-migration DDL privileges. The CI MySQL contract initializes both schemas as administrator, then runs the application
-contracts with SELECT, INSERT, UPDATE, and DELETE privileges only. Flyway's
+migration DDL privileges. Flyway's
 destructive `clean` operation is disabled, and Hibernate uses `ddl-auto=validate` to fail startup on schema drift. The
 default service configuration also enables graceful shutdown with a 30-second shutdown phase and exposes only Actuator
 `health`. Exactly `/actuator/health`, `/actuator/health/liveness`, and `/actuator/health/readiness` are anonymous;

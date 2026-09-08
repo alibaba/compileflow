@@ -30,7 +30,9 @@ compileflow:
 生命周期事件不能作为正确性、审计、计费或可靠集成的依据。`ProcessEngine` 执行应使用应用管理的事务或 Outbox；
 Durable 执行使用自身的事件日志和 Outbox。
 
-`ProcessEvent` 是一组封闭且不可变的记录。普通执行开始事件包含命名空间、流程编码和调用 ID；触发执行开始事件还包含请求的 `ProcessTrigger`。完成和失败事件包含引擎返回的 `ProcessExecution`，以及独立的运维归因信息 `ExecutionAttribution`；失败事件还包含类型化的 `ProcessError`。公共事件只覆盖执行与触发执行的生命周期。
+`ProcessEvent` 是一组封闭且不可变的记录。普通执行开始事件包含命名空间、流程编码和调用 ID；触发执行开始事件还包含请求的
+`ProcessTrigger`。完成和失败事件包含引擎返回的 `ProcessExecution`，以及独立的运维信息 `ExecutionAttribution`；
+失败事件还包含类型化的 `ProcessError`。公共事件只覆盖执行与触发执行的生命周期。
 
 追踪 ID 和事件时间是公共字段。事件不会携带路由键、流程变量、流程源码、任意元数据或原始异常对象。
 

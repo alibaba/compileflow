@@ -202,6 +202,8 @@ class JavaSecurityReleaseGateTest(unittest.TestCase):
                 "concurrency:\n"
                 "uses: actions/cache/restore@digest\n"
                 "uses: actions/cache/save@digest\n"
+                "find data -name odc.update.lock -delete\n"
+                "find data -name odc.update.lock -delete\n"
                 "-DnvdApiDelay=10000\n"
                 "run: ./mvnw verify -Psecurity-scan\n"
                 "uses: actions/upload-artifact@digest\n",
@@ -245,7 +247,7 @@ class JavaSecurityReleaseGateTest(unittest.TestCase):
 
             errors = find_java_security_release_gate_errors(root)
 
-            self.assertEqual(4, len(errors))
+            self.assertEqual(5, len(errors))
             self.assertTrue(all("java-security.yml" in error for error in errors))
 
     def test_rejects_release_that_does_not_depend_on_security_evidence(self) -> None:
@@ -256,6 +258,7 @@ class JavaSecurityReleaseGateTest(unittest.TestCase):
             (workflows / "java-security.yml").write_text(
                 "workflow_call:\nNVD_API_KEY:\nrequired: false\n-Psecurity-scan\n"
                 "concurrency:\nactions/cache/restore@digest\nactions/cache/save@digest\n"
+                "odc.update.lock\nodc.update.lock\n"
                 "-DnvdApiDelay=10000\n"
                 "actions/upload-artifact@digest\n",
                 encoding="utf-8",

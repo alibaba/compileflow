@@ -39,7 +39,7 @@ public final class FlowWarmup {
 }
 ```
 
-`warmUp` compiles exact content into this Engine's local runtime cache without creating a code or version binding. It is
+`warmUp` prepares exact content in this Engine's local runtime cache without creating a code or version binding. It is
 not durable publication, does not mutate an Alias, and does not prove that another node is ready.
 
 For a published exact version, the deployment runtime uses:
@@ -165,7 +165,7 @@ Use the extension interfaces in `compileflow-api`:
 - `ProcessEventListener` for events;
 - `ScriptExecutor` for script languages;
 - `RetryPolicy` and `FailureHandler` for named job policies;
-- named `ProcessAliasTargetingPolicy` values for route-bound enterprise targeting overrides.
+- named `ProcessAliasTargetingPolicy` values for route-bound targeting rules.
 
 Capabilities are registered while building the configuration and remain fixed for the engine lifetime. Runtime plugin
 replacement is not supported.

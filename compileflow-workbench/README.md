@@ -7,7 +7,8 @@ operations. It includes three areas:
 - **Build**: visual authoring, validation, simulation, and draft preview;
 - **Operate**: draft storage, publication, version routing, execution logs, and deployment operations.
 
-Implement Agent calls as Java Actions to compose them with service operations and business rules in the same process.
+Java Actions can call Agent services integrated by the application, so Agent calls, service operations, and business
+rules can be orchestrated in the same process.
 
 The deployable product combines the React application in this pnpm workspace with the sibling
 [`compileflow-workbench-server`](../compileflow-workbench-server/) Spring Boot service.
@@ -19,7 +20,8 @@ authentication or API boundary.
 
 ```text
 Production:
-Browser -> trusted authentication gateway -> Web + Workbench Server -> PostgreSQL or MySQL
+Browser -> trusted authentication gateway -> Web
+                                          -> Workbench Server -> PostgreSQL or MySQL
 
 Frontend development:
 Vite -> loopback dev-gateway preview mock
@@ -37,7 +39,7 @@ Workbench distributions include both the split `compileflow-workbench-server-<ve
 
 - Node.js 24 LTS (use the repository-pinned version)
 - pnpm 11.11.0
-- Java 17 or newer for Workbench Server
+- Java 17, 21, or 25 for Workbench Server
 - PostgreSQL 16, 17, or 18, or MySQL 8.4 for Workbench Server persistence
 
 ## Development

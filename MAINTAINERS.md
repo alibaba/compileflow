@@ -26,4 +26,6 @@ change and the affected scope.
 
 Access to repository settings, CI credentials, package publication, and signing keys follows least privilege and
 requires approval from an existing maintainer or organization owner other than the candidate. Remove access when the
-responsibility ends. Credential storage and rotation follow [SECURITY.md](SECURITY.md).
+responsibility ends. Store credentials only in the corresponding organization, repository, or protected-environment
+secret store; never place them in source, command-line arguments, artifacts, caches, or logs. Rotate credentials after
+suspected disclosure, unexpected use, or an ownership change, and revoke credentials that are no longer needed.

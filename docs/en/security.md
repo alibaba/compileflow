@@ -1,7 +1,7 @@
 # Security Guide
 
-CompileFlow compiles process definitions into Java code and runs them inside the host JVM. Treat every process
-definition as executable code.
+CompileFlow runs process definitions inside the host JVM; compiled mode generates Java code before execution. Treat
+every process definition as executable code.
 
 The [Threat Model](threat-model.md) records assets, actors, trust boundaries, mitigations, and residual deployment risks.
 This guide turns those boundaries into configuration and operating requirements.
@@ -117,8 +117,9 @@ private reflection or dependency injection. Use a Spring bean action when the co
 Java Code is a method body compiled into a generated typed wrapper with `javac --release 17`. Core registers the built-in
 Java executor by default. Declared inputs and outputs must use Java platform types. The compiler class path is empty, so
 definition-owned code cannot accidentally bind to embedding-application JARs. This limits accidental exposure; it does
-not restrict execution authority. Java Code remains trusted in-process computation, not a security sandbox. Run
-untrusted author code in an isolated Code Runner with operating-system or container boundaries.
+not restrict execution authority. Java Code remains trusted in-process computation, not a security sandbox. Do not run
+untrusted author code in Workbench Server. If an application accepts such code, execute it outside the CompileFlow
+deployment in an environment isolated by operating-system or container controls.
 
 Spring bean actions are denied by default. Expose only exact reviewed names through
 `compileflow.engine.components.allowed-beans`, or supply one custom `ProcessComponentResolver`; do not configure both.

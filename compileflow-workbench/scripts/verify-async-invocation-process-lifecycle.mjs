@@ -230,6 +230,7 @@ async function startServer(label) {
       '-jar',
       jar,
       '--spring.profiles.active=prod',
+      '--compileflow.workbench.server.database.migrate=true',
       '--spring.main.banner-mode=off',
       '--server.shutdown=graceful',
       '--server.address=127.0.0.1',

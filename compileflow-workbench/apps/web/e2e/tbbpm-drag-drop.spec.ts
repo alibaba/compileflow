@@ -1,9 +1,69 @@
 import fs from 'node:fs'
 
-import { expect, type Page, test } from '@playwright/test'
+import { expect, type Locator, type Page, test } from '@playwright/test'
 
 const DESIGNER_URL = '/build/designer?modelType=tbbpm&source=new'
 const TIMEOUT = 20_000
+
+const NODE_VISUALS: Record<string, { className: string; width: number; height: number }> = {
+  开始: { className: 'tbbpm-node-start', width: 80, height: 80 },
+  结束: { className: 'tbbpm-node-end', width: 80, height: 80 },
+  自动任务: { className: 'tbbpm-node-autotask', width: 200, height: 100 },
+  等待任务: { className: 'tbbpm-node-waittask', width: 200, height: 100 },
+  等待事件: { className: 'tbbpm-node-waiteventtask', width: 200, height: 100 },
+  定时任务: { className: 'tbbpm-node-waittask', width: 200, height: 100 },
+  脚本任务: { className: 'tbbpm-node-scripttask', width: 200, height: 100 },
+  排他网关: { className: 'tbbpm-node-exclusive', width: 100, height: 100 },
+  并行网关: { className: 'tbbpm-node-parallel', width: 100, height: 100 },
+  包容网关: { className: 'tbbpm-node-inclusive', width: 100, height: 100 },
+  '内嵌 BPM': { className: 'tbbpm-node-subbpm', width: 220, height: 120 },
+  'BPM 调用': { className: 'tbbpm-node-subbpm', width: 220, height: 120 },
+  条件循环: { className: 'tbbpm-node-while', width: 220, height: 120 },
+  集合遍历: { className: 'tbbpm-node-foreach', width: 220, height: 120 },
+  继续循环: { className: 'tbbpm-node-continue', width: 120, height: 60 },
+  中断循环: { className: 'tbbpm-node-break', width: 120, height: 60 },
+  注释: { className: 'tbbpm-node-note', width: 180, height: 120 },
+}
+
+const COLLAPSED_CATEGORY_BY_LABEL: Record<string, string> = {
+  '内嵌 BPM': '子流程',
+  'BPM 调用': '子流程',
+  条件循环: '循环',
+  集合遍历: '循环',
+  继续循环: '循环控制',
+  中断循环: '循环控制',
+  注释: '注释',
+}
+
+async function getPaletteItem(page: Page, label: string) {
+  const item = page.locator('.drag-palette-item').filter({ hasText: label }).first()
+  const category = COLLAPSED_CATEGORY_BY_LABEL[label]
+  if (category && !(await item.isVisible())) {
+    await page
+      .locator('.palette-category-title')
+      .filter({ hasText: new RegExp(`^${category}$`) })
+      .click()
+  }
+  await expect(item).toBeVisible({ timeout: TIMEOUT })
+  await item.scrollIntoViewIfNeeded()
+  return item
+}
+
+async function dragToCanvas(page: Page, item: Locator) {
+  const canvas = page.locator('.tbbpm-canvas, .x6-graph').first()
+  const canvasBox = await canvas.boundingBox()
+  expect(canvasBox).toBeTruthy()
+  await item.hover()
+  await page.mouse.down()
+  await page.waitForTimeout(100)
+  await page.mouse.move(
+    canvasBox!.x + Math.min(canvasBox!.width * 0.4, 420),
+    canvasBox!.y + canvasBox!.height * 0.55,
+    { steps: 24 }
+  )
+  await page.waitForTimeout(100)
+  await page.mouse.up()
+}
 
 async function gotoTbbpmDesigner(page: Page) {
   await page.goto(DESIGNER_URL)
@@ -118,25 +178,9 @@ async function exerciseSpecificProperties(page: Page, label: string) {
 async function exerciseNodeGroup(page: Page, labels: readonly string[]) {
   const graphNodes = page.locator('.x6-node')
   const initialCount = await graphNodes.count()
-  const collapsedCategoryByLabel: Record<string, string> = {
-    '内嵌 BPM': '子流程',
-    'BPM 调用': '子流程',
-    条件循环: '循环',
-    集合遍历: '循环',
-    继续循环: '循环控制',
-    中断循环: '循环控制',
-    注释: '注释',
-  }
 
   for (const [index, label] of labels.entries()) {
-    const paletteItem = page.locator('.drag-palette-item').filter({ hasText: label }).first()
-    const category = collapsedCategoryByLabel[label]
-    if (category && !(await paletteItem.isVisible())) {
-      await page
-        .locator('.palette-category-title')
-        .filter({ hasText: new RegExp(`^${category}$`) })
-        .click()
-    }
+    const paletteItem = await getPaletteItem(page, label)
     await expect(paletteItem).toBeEnabled({ timeout: TIMEOUT })
     await paletteItem.focus()
     await page.keyboard.press('Enter')
@@ -144,6 +188,8 @@ async function exerciseNodeGroup(page: Page, labels: readonly string[]) {
 
     const createdNode = graphNodes.last()
     await expect(createdNode.locator('.tbbpm-node')).toBeVisible({ timeout: TIMEOUT })
+    const expectedVisual = NODE_VISUALS[label]
+    await expect(createdNode.locator(`.${expectedVisual.className}`)).toBeVisible()
     const visualCoverage = await createdNode.evaluate((cell) => {
       const surface = cell.querySelector<HTMLElement>('.tbbpm-node')
       const foreignObject = cell.querySelector<SVGForeignObjectElement>('foreignObject')
@@ -157,6 +203,11 @@ async function exerciseNodeGroup(page: Page, labels: readonly string[]) {
     })
     expect(visualCoverage.width).toBeGreaterThan(0.9)
     expect(visualCoverage.height).toBeGreaterThan(0.9)
+    const cellSize = await createdNode.locator('foreignObject').evaluate((foreignObject) => ({
+      width: Number(foreignObject.getAttribute('width')),
+      height: Number(foreignObject.getAttribute('height')),
+    }))
+    expect(cellSize).toEqual({ width: expectedVisual.width, height: expectedVisual.height })
 
     const tabs = page.locator('.tbbpm-designer-right-sider .ant-tabs-tab')
     const hasTypeProperties = label !== '开始' && label !== '结束'
@@ -210,17 +261,6 @@ test.describe('TBBPM palette node creation', () => {
     expect(xml).toContain('自动任务')
   })
 
-  test('clicking a palette button creates exactly one TBBPM node', async ({ page }) => {
-    const autoTaskItem = page.locator('.drag-palette-item').filter({ hasText: '自动任务' }).first()
-    const graphNodes = page.locator('.x6-node')
-    const beforeCount = await graphNodes.count()
-
-    await autoTaskItem.click()
-
-    await expect(graphNodes).toHaveCount(beforeCount + 1, { timeout: TIMEOUT })
-    await expect(graphNodes.last()).toContainText('自动任务')
-  })
-
   test('select-all copy and paste duplicates every copyable selected node', async ({ page }) => {
     const autoTaskItem = page.locator('.drag-palette-item').filter({ hasText: '自动任务' }).first()
     const graphNodes = page.locator('.x6-node')
@@ -270,6 +310,22 @@ test.describe('TBBPM palette node creation', () => {
   for (const label of nodeLabels) {
     test(`${label}节点渲染、选中并支持属性编辑`, async ({ page }) => {
       await exerciseNodeGroup(page, [label])
+    })
+
+    test(`${label}节点鼠标点击与拖拽均只创建一次`, async ({ page }) => {
+      const graphNodes = page.locator('.x6-node')
+      const item = await getPaletteItem(page, label)
+      const initialCount = await graphNodes.count()
+      const matchingNodes = graphNodes.filter({ hasText: label })
+      const initialMatchingCount = await matchingNodes.count()
+
+      await dragToCanvas(page, item)
+      await expect(graphNodes).toHaveCount(initialCount + 1, { timeout: TIMEOUT })
+      await expect(matchingNodes).toHaveCount(initialMatchingCount + 1)
+
+      await item.click()
+      await expect(graphNodes).toHaveCount(initialCount + 2, { timeout: TIMEOUT })
+      await expect(matchingNodes).toHaveCount(initialMatchingCount + 2)
     })
   }
 

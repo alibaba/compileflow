@@ -22,6 +22,7 @@ import { WaitTaskNode } from './WaitTaskNode'
 
 import {
   isTbbpmNodeType,
+  TBBPM_NODE_SIZES,
   TBBPM_NODE_TYPES,
   type TbbpmNodeType,
 } from '@/authoring/designer/types/tbbpm'
@@ -34,22 +35,16 @@ const NODE_CONFIGS = {
   start: {
     shape: 'tbbpm-start',
     component: StartNode,
-    width: 80,
-    height: 80,
     ports: [{ id: 'bottom', group: 'bottom' }],
   },
   end: {
     shape: 'tbbpm-end',
     component: EndNode,
-    width: 80,
-    height: 80,
     ports: [{ id: 'top', group: 'top' }],
   },
   autoTask: {
     shape: 'tbbpm-auto-task',
     component: AutoTaskNode,
-    width: 200,
-    height: 100,
     ports: [
       { id: 'top', group: 'top' },
       { id: 'bottom', group: 'bottom' },
@@ -58,8 +53,6 @@ const NODE_CONFIGS = {
   waitTask: {
     shape: 'tbbpm-wait-task',
     component: WaitTaskNode,
-    width: 200,
-    height: 100,
     ports: [
       { id: 'top', group: 'top' },
       { id: 'bottom', group: 'bottom' },
@@ -68,8 +61,6 @@ const NODE_CONFIGS = {
   waitEventTask: {
     shape: 'tbbpm-wait-event-task',
     component: WaitEventTaskNode,
-    width: 200,
-    height: 100,
     ports: [
       { id: 'top', group: 'top' },
       { id: 'bottom', group: 'bottom' },
@@ -78,8 +69,6 @@ const NODE_CONFIGS = {
   timerTask: {
     shape: 'tbbpm-timer-task',
     component: TimerTaskNode,
-    width: 200,
-    height: 100,
     ports: [
       { id: 'top', group: 'top' },
       { id: 'bottom', group: 'bottom' },
@@ -88,8 +77,6 @@ const NODE_CONFIGS = {
   scriptTask: {
     shape: 'tbbpm-script-task',
     component: ScriptTaskNode,
-    width: 200,
-    height: 100,
     ports: [
       { id: 'top', group: 'top' },
       { id: 'bottom', group: 'bottom' },
@@ -98,8 +85,6 @@ const NODE_CONFIGS = {
   exclusive: {
     shape: 'tbbpm-exclusive',
     component: ExclusiveNode,
-    width: 100,
-    height: 100,
     ports: [
       { id: 'top', group: 'top' },
       { id: 'bottom', group: 'bottom' },
@@ -110,8 +95,6 @@ const NODE_CONFIGS = {
   parallel: {
     shape: 'tbbpm-parallel',
     component: ParallelNode,
-    width: 100,
-    height: 100,
     ports: [
       { id: 'top', group: 'top' },
       { id: 'bottom', group: 'bottom' },
@@ -122,8 +105,6 @@ const NODE_CONFIGS = {
   inclusive: {
     shape: 'tbbpm-inclusive',
     component: InclusiveNode,
-    width: 100,
-    height: 100,
     ports: [
       { id: 'top', group: 'top' },
       { id: 'bottom', group: 'bottom' },
@@ -134,8 +115,6 @@ const NODE_CONFIGS = {
   subBpm: {
     shape: 'tbbpm-sub-bpm',
     component: SubBpmNode,
-    width: 220,
-    height: 120,
     ports: [
       { id: 'top', group: 'top' },
       { id: 'bottom', group: 'bottom' },
@@ -144,8 +123,6 @@ const NODE_CONFIGS = {
   bpmCall: {
     shape: 'tbbpm-bpm-call',
     component: BpmCallNode,
-    width: 220,
-    height: 120,
     ports: [
       { id: 'top', group: 'top' },
       { id: 'bottom', group: 'bottom' },
@@ -154,8 +131,6 @@ const NODE_CONFIGS = {
   while: {
     shape: 'tbbpm-while',
     component: WhileNode,
-    width: 220,
-    height: 120,
     ports: [
       { id: 'top', group: 'top' },
       { id: 'bottom', group: 'bottom' },
@@ -164,8 +139,6 @@ const NODE_CONFIGS = {
   foreach: {
     shape: 'tbbpm-foreach',
     component: ForEachNode,
-    width: 220,
-    height: 120,
     ports: [
       { id: 'top', group: 'top' },
       { id: 'bottom', group: 'bottom' },
@@ -174,22 +147,16 @@ const NODE_CONFIGS = {
   continue: {
     shape: 'tbbpm-continue',
     component: ContinueNode,
-    width: 120,
-    height: 60,
     ports: [{ id: 'top', group: 'top' }],
   },
   break: {
     shape: 'tbbpm-break',
     component: BreakNode,
-    width: 120,
-    height: 60,
     ports: [{ id: 'top', group: 'top' }],
   },
   note: {
     shape: 'tbbpm-note',
     component: NoteNode,
-    width: 180,
-    height: 120,
     ports: [],
   },
 } as const
@@ -203,10 +170,11 @@ export function registerTbbpmNodes() {
   }
 
   Object.entries(NODE_CONFIGS).forEach(([nodeType, config]) => {
+    const size = TBBPM_NODE_SIZES[nodeType as TbbpmNodeType]
     register({
       shape: config.shape,
-      width: config.width,
-      height: config.height,
+      width: size.width,
+      height: size.height,
       component: config.component,
       effect: ['data'],
       ports: {
@@ -270,7 +238,9 @@ export function registerTbbpmNodes() {
 }
 
 export function getNodeConfig(nodeType: string) {
-  return isTbbpmNodeType(nodeType) ? NODE_CONFIGS[nodeType] : undefined
+  return isTbbpmNodeType(nodeType)
+    ? { ...NODE_CONFIGS[nodeType], ...TBBPM_NODE_SIZES[nodeType] }
+    : undefined
 }
 
 const SHAPE_TO_NODE_TYPE: ReadonlyMap<string, TbbpmNodeType> = new Map(

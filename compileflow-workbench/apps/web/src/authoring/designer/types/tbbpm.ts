@@ -23,6 +23,29 @@ export const TBBPM_NODE_TYPES = [
 
 export type TbbpmNodeType = (typeof TBBPM_NODE_TYPES)[number]
 
+export const TBBPM_NODE_SIZES: Record<
+  TbbpmNodeType,
+  Readonly<{ width: number; height: number }>
+> = {
+  start: { width: 80, height: 80 },
+  end: { width: 80, height: 80 },
+  autoTask: { width: 200, height: 100 },
+  waitTask: { width: 200, height: 100 },
+  waitEventTask: { width: 200, height: 100 },
+  timerTask: { width: 200, height: 100 },
+  scriptTask: { width: 200, height: 100 },
+  exclusive: { width: 100, height: 100 },
+  parallel: { width: 100, height: 100 },
+  inclusive: { width: 100, height: 100 },
+  subBpm: { width: 220, height: 120 },
+  bpmCall: { width: 220, height: 120 },
+  while: { width: 220, height: 120 },
+  foreach: { width: 220, height: 120 },
+  continue: { width: 120, height: 60 },
+  break: { width: 120, height: 60 },
+  note: { width: 180, height: 120 },
+}
+
 const TBBPM_NODE_TYPE_SET: ReadonlySet<string> = new Set(TBBPM_NODE_TYPES)
 
 export function isTbbpmNodeType(value: string): value is TbbpmNodeType {

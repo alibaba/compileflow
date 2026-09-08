@@ -17,6 +17,7 @@ export interface UseDeploymentManagementDataResult {
   loading: boolean
   hasMore: boolean
   loadMore: () => void
+  queryReady: boolean
   reload: () => void
   handleRestoreBaseline: (id: string) => void
 }
@@ -140,15 +141,31 @@ export function useDeploymentManagementData(
   query: DeploymentQuery = {}
 ): UseDeploymentManagementDataResult {
   const [deployments, setDeployments] = useState<Deployment[]>([])
-  const [listLoading, setListLoading] = useState(false)
+  const [listLoading, setListLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [error, setError] = useState(false)
   const [nextCursor, setNextCursor] = useState<string | null>(null)
+  const queryKey = JSON.stringify([
+    query.keyword ?? null,
+    query.alias ?? null,
+    query.status ?? null,
+  ])
+  const renderedQueryKey = useRef(queryKey)
+  const queryEpoch = useRef(0)
+  if (renderedQueryKey.current !== queryKey) {
+    renderedQueryKey.current = queryKey
+    queryEpoch.current += 1
+  }
+  const [loadedQueryEpoch, setLoadedQueryEpoch] = useState(-1)
   const requestGeneration = useRef(0)
+  const loadMoreInFlight = useRef(false)
   const loading = listLoading || actionLoading
+  const queryReady = loadedQueryEpoch === queryEpoch.current
 
   const reload = useCallback(async () => {
+    loadMoreInFlight.current = false
     const generation = ++requestGeneration.current
+    const epoch = queryEpoch.current
     try {
       setListLoading(true)
       setError(false)
@@ -156,6 +173,7 @@ export function useDeploymentManagementData(
       if (generation === requestGeneration.current) {
         setDeployments(response.deployments)
         setNextCursor(response.nextCursor)
+        setLoadedQueryEpoch(epoch)
       }
     } catch {
       if (generation !== requestGeneration.current) return
@@ -175,7 +193,8 @@ export function useDeploymentManagementData(
   }, [reload])
 
   const loadMore = useCallback(() => {
-    if (!nextCursor || loading) return
+    if (!queryReady || !nextCursor || loading || loadMoreInFlight.current) return
+    loadMoreInFlight.current = true
     const generation = ++requestGeneration.current
     void (async () => {
       try {
@@ -189,10 +208,13 @@ export function useDeploymentManagementData(
         if (generation !== requestGeneration.current) return
         setError(true)
       } finally {
-        if (generation === requestGeneration.current) setListLoading(false)
+        if (generation === requestGeneration.current) {
+          loadMoreInFlight.current = false
+          setListLoading(false)
+        }
       }
     })()
-  }, [loading, nextCursor, query.alias, query.keyword, query.status])
+  }, [loading, nextCursor, query.alias, query.keyword, query.status, queryReady])
 
   const handleRestoreBaseline = useRestoreBaselineAction(
     deployments,
@@ -207,6 +229,7 @@ export function useDeploymentManagementData(
     loading,
     hasMore: nextCursor !== null,
     loadMore,
+    queryReady,
     reload,
     handleRestoreBaseline,
   }

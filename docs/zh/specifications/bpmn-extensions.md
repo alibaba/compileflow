@@ -131,10 +131,11 @@ BPMN `scriptTask` 使用标准 BPMN 字段描述实现，CompileFlow 扩展只�
 `ScriptExecutor`。Java 与 QL 共用这一标准 BPMN 结构和同一份语义计划。每个脚本输入与输出都以
 `cf:input` 或 `cf:output` 显式声明。
 
-Java 脚本内容是方法体。内置执行器在加载流程运行时时生成类型明确的包装类，并使用 `javac --release 17` 编译。
+Java Code 是方法体。内置执行器在加载流程运行时时生成类型明确的包装类，并使用 `javac --release 17` 编译。
 `ScriptProgram` 只属于对应的临时运行时，不会作为流程身份持久化。脚本语言、原始内容和声明签名始终绑定到不可变流程版本，
-因此可以随时从流程定义重新准备运行时。脚本输入和输出仅支持 JDK 平台类型。Java 脚本在应用进程内运行可信代码，
-不提供安全沙箱；不可信的 Workbench 代码必须交给隔离的 Code Runner 执行。
+因此可以随时从流程定义重新准备运行时。脚本输入和输出仅支持 JDK 平台类型。Java Code 在应用进程内运行可信代码，
+不提供安全沙箱。Workbench Server 不得执行不可信作者提交的代码；应用如需接收此类代码，应在 CompileFlow 部署之外
+使用操作系统或容器隔离的执行环境。
 
 CompileFlow 的执行控制直接声明在脚本任务上：`cf:execution` 是带命名空间的任务属性，
 `cf:invocationPolicy` 与 `cf:effectPolicy` 是 `extensionElements` 的直接子元素。`cf:execution` 默认为

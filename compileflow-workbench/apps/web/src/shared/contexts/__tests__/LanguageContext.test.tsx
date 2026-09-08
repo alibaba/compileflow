@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react'
+import { act, render, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { LanguageProvider } from '../LanguageContext'
@@ -8,20 +8,24 @@ import i18n from '@/shared/i18n'
 describe('LanguageProvider', () => {
   afterEach(async () => {
     vi.restoreAllMocks()
-    await i18n.changeLanguage('zh')
+    await act(async () => {
+      await i18n.changeLanguage('zh')
+    })
   })
 
-  it('keeps the app usable when browser storage access is denied', () => {
+  it('keeps the app usable when browser storage access is denied', async () => {
     vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
       throw new DOMException('Storage is blocked', 'SecurityError')
     })
-    expect(() =>
-      render(
-        <LanguageProvider>
-          <span>content</span>
-        </LanguageProvider>
-      )
-    ).not.toThrow()
+    await act(async () => {
+      expect(() =>
+        render(
+          <LanguageProvider>
+            <span>content</span>
+          </LanguageProvider>
+        )
+      ).not.toThrow()
+    })
   })
 
   it('keeps the document language synchronized with the selected locale', async () => {
@@ -33,7 +37,9 @@ describe('LanguageProvider', () => {
 
     await waitFor(() => expect(document.documentElement.lang).toBe('zh-CN'))
 
-    await i18n.changeLanguage('en')
+    await act(async () => {
+      await i18n.changeLanguage('en')
+    })
     rerender(
       <LanguageProvider>
         <span>content</span>
@@ -50,9 +56,11 @@ describe('LanguageProvider', () => {
       </LanguageProvider>
     )
 
-    window.dispatchEvent(
-      Object.assign(new Event('storage'), { key: 'compileflow:language', newValue: 'en' })
-    )
+    act(() => {
+      window.dispatchEvent(
+        Object.assign(new Event('storage'), { key: 'compileflow:language', newValue: 'en' })
+      )
+    })
 
     await waitFor(() => expect(document.documentElement.lang).toBe('en'))
   })

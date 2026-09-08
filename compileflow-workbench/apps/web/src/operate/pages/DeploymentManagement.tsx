@@ -1,6 +1,6 @@
 import { RocketOutlined, SearchOutlined } from '@ant-design/icons'
 import { AutoComplete, Button, Input, Select, Table } from 'antd'
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
@@ -15,6 +15,7 @@ import { usePageTitle } from '@/shared/hooks/usePageTitle'
 import { usePaginationItemRender } from '@/shared/hooks/usePaginationItemRender'
 
 const { Option } = Select
+const PAGE_SIZE = 10
 
 const DeploymentManagement: React.FC = () => {
   usePageTitle('pageTitle.operate.deployments')
@@ -24,12 +25,32 @@ const DeploymentManagement: React.FC = () => {
 
   const { filters, updateFilter, clearAll } = useDeploymentFilters()
   const keyword = useDebounce(filters.searchText.trim(), 300)
-  const { deployments, error, loading, hasMore, loadMore, reload, handleRestoreBaseline } =
-    useDeploymentManagementData({
-      keyword: keyword || undefined,
-      alias: filters.aliasFilter || undefined,
-      status: filters.statusFilter || undefined,
-    })
+  const {
+    deployments,
+    error,
+    loading,
+    hasMore,
+    loadMore,
+    queryReady,
+    reload,
+    handleRestoreBaseline,
+  } = useDeploymentManagementData({
+    keyword: keyword || undefined,
+    alias: filters.aliasFilter || undefined,
+    status: filters.statusFilter || undefined,
+  })
+
+  useEffect(() => {
+    if (loading || !queryReady) return
+    const requiredRows = filters.page * PAGE_SIZE
+    if (deployments.length >= requiredRows) return
+    if (hasMore) {
+      loadMore()
+      return
+    }
+    const lastPage = Math.max(1, Math.ceil(deployments.length / PAGE_SIZE))
+    if (filters.page > lastPage) updateFilter('page', lastPage)
+  }, [deployments.length, filters.page, hasMore, loadMore, loading, queryReady, updateFilter])
 
   const columns = useMemo(
     () =>
@@ -125,8 +146,10 @@ const DeploymentManagement: React.FC = () => {
         loading={loading}
         scroll={{ x: 'max-content' }}
         pagination={{
-          pageSize: 10,
+          current: filters.page,
+          pageSize: PAGE_SIZE,
           itemRender: paginationItemRender,
+          onChange: (page) => updateFilter('page', page),
           showTotal: (total) => t('common.totalItems', { total }),
         }}
       />

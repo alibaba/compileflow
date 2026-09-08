@@ -38,7 +38,7 @@ selected explicitly.
 - **A unique definition for nearly every call.** Compilation is amortized over reuse; ad hoc one-shot definitions can
   spend more time preparing than executing.
 - **DMN decision tables.** CompileFlow does not include a DMN engine.
-- **A non-JVM runtime.** Runtime execution requires Java 17 or later and the `jdk.compiler` module.
+- **A non-JVM runtime.** Runtime execution requires a supported JDK (17, 21, or 25) with the `jdk.compiler` module.
 
 ## Integration boundaries
 
@@ -52,14 +52,14 @@ selected explicitly.
 
 ## Decision checklist
 
-| Question                                                       | If yes                                    | If no                                          |
-| -------------------------------------------------------------- | ----------------------------------------- | ---------------------------------------------- |
-| Does each definition execute many times?                       | Compilation cost can be amortized         | Compilation reuse may not pay off              |
-| Must execution resume from a persisted boundary after restart? | CompileFlow Durable                       | `ProcessEngine` may be sufficient              |
-| Is retrying the complete request sufficient?                   | Workbench Server async invocation may fit | Durable is required for persisted continuation |
-| Do you need managed human tasks or the full BPMN standard?     | Outside the supported scope               | Continue evaluation                            |
-| Do you need immutable versions and canary routing?             | Add CompileFlow Deploy                    | Use direct Inline or Classpath definitions     |
-| Can the application run on Java 17+ with `jdk.compiler`?       | Continue evaluation                       | Unsupported runtime environment                |
+| Question                                                        | If yes                                    | If no                                          |
+| --------------------------------------------------------------- | ----------------------------------------- | ---------------------------------------------- |
+| Does each definition execute many times?                        | Compilation cost can be amortized         | Compilation reuse may not pay off              |
+| Must execution resume from a persisted boundary after restart?  | CompileFlow Durable                       | `ProcessEngine` may be sufficient              |
+| Is retrying the complete request sufficient?                    | Workbench Server async invocation may fit | Durable is required for persisted continuation |
+| Do you need managed human tasks or the full BPMN standard?      | Outside the supported scope               | Check the remaining requirements               |
+| Do you need immutable versions and canary routing?              | Add CompileFlow Deploy                    | Use direct Inline or Classpath definitions     |
+| Can the application run on a supported JDK with `jdk.compiler`? | Supported runtime                         | Unsupported runtime environment                |
 
 ## Related guides
 

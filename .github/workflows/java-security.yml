@@ -42,6 +42,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-dependency-check-
 
+      - name: Remove stale vulnerability database lock
+        run: |
+          data_dir="${HOME}/.m2/repository/org/owasp/dependency-check-data"
+          if [[ -d "${data_dir}" ]]; then
+            find "${data_dir}" -type f -name 'odc.update.lock' -delete
+          fi
+
       - name: Scan Java runtime dependencies
         run: |
           nvd_options=()
@@ -54,6 +61,14 @@ jobs:
             -Dcheckstyle.skip=true \
             "${nvd_options[@]}" \
             -B -V --no-transfer-progress
+
+      - name: Remove vulnerability database lock before caching
+        if: always()
+        run: |
+          data_dir="${HOME}/.m2/repository/org/owasp/dependency-check-data"
+          if [[ -d "${data_dir}" ]]; then
+            find "${data_dir}" -type f -name 'odc.update.lock' -delete
+          fi
 
       - name: Save vulnerability database
         if: always()

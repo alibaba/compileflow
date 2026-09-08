@@ -1,7 +1,46 @@
-import { expect, type Page, test } from '@playwright/test'
+import { expect, type Locator, type Page, test } from '@playwright/test'
 
 const DESIGNER_URL = '/build/designer?modelType=bpmn'
 const TIMEOUT = 20_000
+
+const NODE_VISUALS: Record<string, { className: string; width: number; height: number }> = {
+  流程开始: { className: 'bpmn-start-event', width: 36, height: 36 },
+  流程结束: { className: 'bpmn-end-event', width: 36, height: 36 },
+  服务任务: { className: 'bpmn-service-task', width: 100, height: 80 },
+  脚本任务: { className: 'bpmn-script-task', width: 100, height: 80 },
+  接收任务: { className: 'bpmn-receive-task', width: 100, height: 80 },
+  排他网关: { className: 'bpmn-exclusive-gateway', width: 50, height: 50 },
+  并行网关: { className: 'bpmn-parallel-gateway', width: 50, height: 50 },
+  包容网关: { className: 'bpmn-inclusive-gateway', width: 50, height: 50 },
+  调用活动: { className: 'bpmn-call-activity', width: 140, height: 100 },
+  嵌入式子流程: { className: 'bpmn-sub-process', width: 320, height: 220 },
+}
+
+async function getPaletteItem(page: Page, label: string) {
+  const item = page.locator('.drag-palette-item').filter({ hasText: label }).first()
+  if (!(await item.isVisible())) {
+    await page.locator('.ant-collapse-header').filter({ hasText: '组合' }).click()
+  }
+  await expect(item).toBeVisible({ timeout: TIMEOUT })
+  await item.scrollIntoViewIfNeeded()
+  return item
+}
+
+async function dragToCanvas(page: Page, item: Locator) {
+  const canvas = page.locator('.bpmn-canvas-wrapper, .x6-graph').first()
+  const canvasBox = await canvas.boundingBox()
+  expect(canvasBox).toBeTruthy()
+  await item.hover()
+  await page.mouse.down()
+  await page.waitForTimeout(100)
+  await page.mouse.move(
+    canvasBox!.x + Math.min(canvasBox!.width * 0.4, 420),
+    canvasBox!.y + canvasBox!.height * 0.55,
+    { steps: 24 }
+  )
+  await page.waitForTimeout(100)
+  await page.mouse.up()
+}
 
 async function gotoBpmnDesigner(page: Page) {
   await page.goto(DESIGNER_URL)
@@ -74,10 +113,7 @@ async function exerciseSpecificProperties(page: Page, label: string) {
 }
 
 async function exerciseBpmnNode(page: Page, label: string) {
-  const paletteItem = page.locator('.drag-palette-item').filter({ hasText: label }).first()
-  if (!(await paletteItem.isVisible())) {
-    await page.locator('.ant-collapse-header').filter({ hasText: '组合' }).click()
-  }
+  const paletteItem = await getPaletteItem(page, label)
 
   const graphNodes = page.locator('.x6-node')
   const initialCount = await graphNodes.count()
@@ -89,6 +125,8 @@ async function exerciseBpmnNode(page: Page, label: string) {
   const createdNode = graphNodes.last()
   const surface = createdNode.locator('.bpmn-node')
   await expect(surface).toBeVisible({ timeout: TIMEOUT })
+  const expectedVisual = NODE_VISUALS[label]
+  await expect(createdNode.locator(`.${expectedVisual.className}`)).toBeVisible()
   await expect(createdNode.locator('.tbbpm-node')).toHaveCount(0)
   await expect(surface.locator('svg')).toBeVisible()
   const visualCoverage = await createdNode.evaluate((cell) => {
@@ -104,6 +142,11 @@ async function exerciseBpmnNode(page: Page, label: string) {
   })
   expect(visualCoverage.width).toBeGreaterThan(0.9)
   expect(visualCoverage.height).toBeGreaterThan(0.9)
+  const cellSize = await createdNode.locator('foreignObject').evaluate((foreignObject) => ({
+    width: Number(foreignObject.getAttribute('width')),
+    height: Number(foreignObject.getAttribute('height')),
+  }))
+  expect(cellSize).toEqual({ width: expectedVisual.width, height: expectedVisual.height })
 
   const tabs = page.locator('.bpmn-designer-right-sider .ant-tabs-tab')
   const hasTypeProperties = label !== '流程开始' && label !== '流程结束'
@@ -154,17 +197,6 @@ test.describe('BPMN palette node creation', () => {
     })
   })
 
-  test('clicking a palette button creates exactly one BPMN node', async ({ page }) => {
-    const serviceTask = page.locator('.drag-palette-item').filter({ hasText: '服务任务' }).first()
-    const graphNodes = page.locator('.x6-node')
-    const beforeCount = await graphNodes.count()
-
-    await serviceTask.click()
-
-    await expect(graphNodes).toHaveCount(beforeCount + 1, { timeout: TIMEOUT })
-    await expect(graphNodes.last()).toContainText('服务任务')
-  })
-
   const nodeLabels = [
     '流程开始',
     '流程结束',
@@ -182,35 +214,23 @@ test.describe('BPMN palette node creation', () => {
     test(`${label}节点渲染、选中并支持属性编辑`, async ({ page }) => {
       await exerciseBpmnNode(page, label)
     })
+
+    test(`${label}节点鼠标点击与拖拽均只创建一次`, async ({ page }) => {
+      const graphNodes = page.locator('.x6-node')
+      const item = await getPaletteItem(page, label)
+      const initialCount = await graphNodes.count()
+      const matchingNodes = graphNodes.filter({ hasText: label })
+      const initialMatchingCount = await matchingNodes.count()
+
+      await dragToCanvas(page, item)
+      await expect(graphNodes).toHaveCount(initialCount + 1, { timeout: TIMEOUT })
+      await expect(matchingNodes).toHaveCount(initialMatchingCount + 1)
+
+      await item.click()
+      await expect(graphNodes).toHaveCount(initialCount + 2, { timeout: TIMEOUT })
+      await expect(matchingNodes).toHaveCount(initialMatchingCount + 2)
+    })
   }
-
-  test('pointer drag from palette places a node on the canvas', async ({ page }) => {
-    const serviceTask = page.locator('.drag-palette-item').filter({ hasText: '服务任务' }).first()
-    const canvas = page.locator('.bpmn-canvas-wrapper, .x6-graph').first()
-    await expect(serviceTask).toBeVisible()
-    await expect(serviceTask).toBeEnabled({ timeout: TIMEOUT })
-    await expect(canvas).toBeVisible()
-
-    const beforeCount = await page.locator('.x6-node').count()
-    const itemBox = await serviceTask.boundingBox()
-    const canvasBox = await canvas.boundingBox()
-    expect(itemBox).toBeTruthy()
-    expect(canvasBox).toBeTruthy()
-
-    const startX = itemBox!.x + itemBox!.width / 2
-    const startY = itemBox!.y + itemBox!.height / 2
-    const endX = canvasBox!.x + canvasBox!.width * 0.55
-    const endY = canvasBox!.y + canvasBox!.height * 0.45
-
-    await page.mouse.move(startX, startY)
-    await page.mouse.down()
-    await page.waitForTimeout(100)
-    await page.mouse.move(endX, endY, { steps: 24 })
-    await page.waitForTimeout(100)
-    await page.mouse.up()
-
-    await expect(page.locator('.x6-node')).toHaveCount(beforeCount + 1, { timeout: TIMEOUT })
-  })
 
   test('canvas renders the X6 grid layer used as the placement guide', async ({ page }) => {
     await expect(page.locator('.bpmn-canvas-wrapper, .bpmn-canvas').first()).toBeVisible()

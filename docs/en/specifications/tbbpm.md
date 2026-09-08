@@ -1,12 +1,12 @@
 # TBBPM specification
 
 > **Schema**: `compileflow-tbbpm/src/main/resources/TBBPM.xsd`.
-> **Runtime baseline**: Java 17 or later.
+> **Supported runtimes**: Java 17, 21, and 25.
 
 ## 1. Scope
 
-TBBPM is CompileFlow's compact XML format for compiled business orchestration. A definition is parsed, semantically
-validated, and compiled to Java bytecode. The same model can target one of two explicit execution surfaces:
+TBBPM is CompileFlow's compact XML format for business orchestration. A definition is parsed, validated, and prepared
+for compiled or interpreted execution. The same model can target one of two explicit execution surfaces:
 
 - `ProcessEngine`, which executes one Process invocation; or
 - `DurableProcessEngine`, which persists a Run at supported Wait, Timer, Effect, and terminal boundaries.
@@ -508,9 +508,10 @@ Every Script input and output is declared with `<input>` or `<output>`. Java Cod
 `return price.multiply(quantity);`. During Process runtime load, the first-party Java executor generates a typed wrapper
 and compiles it with `javac --release 17`; the resulting `ScriptProgram` belongs to that exact disposable runtime and is
 never persisted. The language, exact source, and declared signature remain immutable Process-version truth, so a runtime
-can always prepare it again from source. Java Code accepts JDK platform input/output types only and runs as trusted embedded
-computation, not a sandbox; an untrusted Workbench deployment requires an isolated Code Runner with network disabled by
-default.
+can always prepare it again from source. Java Code accepts JDK platform input/output types only and runs as trusted
+embedded computation, not a sandbox. Workbench Server must not execute definitions containing code from untrusted
+authors; applications that accept such code need an execution environment outside the CompileFlow deployment, isolated
+with operating-system or container controls.
 
 Script example:
 

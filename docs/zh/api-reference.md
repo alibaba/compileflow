@@ -117,7 +117,7 @@ ProcessExecutionOptions options = ProcessExecutionOptions.builder()
 
 ## 5. 结果与错误
 
-`ProcessResult<T>` 是不可变的成功或失败值，并携带受控执行归因：
+`ProcessResult<T>` 是不可变的成功或失败值，并携带 `ProcessExecution` 执行信息：
 
 ```java
 boolean isSuccess();
@@ -135,7 +135,7 @@ T orElseThrow();
 成功结果包含输出且不含错误；失败结果包含 `ProcessError` 且不含输出。成功输出本身可以为 `null`，因此应通过
 `isSuccess()` 判断结果，不能根据 `getOutput()` 推断。`ProcessError` 的错误码最长 128 个字符，脱敏消息最长 4,096 个字符。
 
-`map()` 只转换成功输出；失败时保留原有错误和执行归因。`orElse()` 与 `orElseGet()`
+`map()` 只转换成功输出；失败时保留原有错误和执行信息。`orElse()` 与 `orElseGet()`
 会丢弃失败信息，只应在回退值本身就是业务契约时使用。`orElseThrow()` 抛出
 `ProcessExecutionException`；接收异常供应器的重载用于在应用边界转换异常：
 
@@ -174,7 +174,7 @@ void load(ProcessRef.Version ref, ProcessDefinition definition);
 void unload(ProcessRef.Version... refs);
 ```
 
-`warmUp` 把精确定义编译到节点本地缓存，但不会创建或重绑定公开流程身份。带版本的 `load` 安装不可变版本
+`warmUp` 在节点本地缓存中准备精确定义，但不会创建或重绑定公开流程身份。带版本的 `load` 安装不可变版本
 绑定；两者都不会发布持久状态或修改 Alias。`unload` 只释放显式版本的本地资源，Alias 生命周期由控制面管理。
 
 `engine.tooling()` 提供不会执行流程的预检与源码生成功能：
@@ -246,7 +246,12 @@ Durable 执行是 `compileflow-durable-api` 中的独立产品边界。它不会
 `ProcessEngine`，加入 Durable Starter 也不会让普通 `execute(...)` 自动持久化。与存储无关的应用门面为：
 
 ```java
-public interface DurableProcessEngine {
+public interface DurableProcessEngine extends AutoCloseable {
+    void start();
+    void stop();
+    boolean isRunning();
+    void close();
+
     ProcessRun start(ProcessRunId runId, ProcessDefinition definition, Map<String, ?> input);
     ProcessRun start(ProcessRunId runId, ProcessRef.Version version, Map<String, ?> input);
     ProcessRun start(ProcessRunId runId, ProcessRef.Alias alias, Map<String, ?> input);

@@ -4,8 +4,8 @@ CompileFlow 明确区分流程结果、边界异常与 HTTP 传输异常。三�
 
 ## 引擎 API
 
-`execute(...)` 和 `trigger(...)` 对执行管线中的失败返回 `ProcessResult<T>`。每个结果都携带受控的
-`ProcessExecution` 归因，并且只包含一种结果：
+`execute(...)` 和 `trigger(...)` 对执行管线中的失败返回 `ProcessResult<T>`。每个结果都包含
+`ProcessExecution` 执行信息，并且只包含一种结果：
 
 - 成功：包含 `output`，不包含错误；
 - 失败：包含 `ProcessError`，其中有稳定的 `code` 和可安全展示的 `message`。
@@ -34,7 +34,7 @@ CompileFlow 明确区分流程结果、边界异常与 HTTP 传输异常。三�
 
 ## 执行 HTTP 契约
 
-Workbench Server 与开发预览服务使用可区分的执行响应。流程结果以 HTTP 200 返回：
+Workbench Server 与本地开发网关使用可区分的执行响应。流程结果以 HTTP 200 返回：
 
 ```json
 {
@@ -74,7 +74,7 @@ Workbench Server 与开发预览服务使用可区分的执行响应。流程结
 }
 ```
 
-Workbench Server 与开发预览服务使用相同的 `application/problem+json` 格式。生产网关可以返回自己的传输错误，但必须保持非
+Workbench Server 与本地开发网关使用相同的 `application/problem+json` 格式。生产网关可以返回自己的传输错误，但必须保持非
 2xx，不能伪装成引擎结果。大写 `code` 扩展是稳定的程序分支依据，
 `detail` 是针对本次失败且可安全展示的文本。
 
@@ -94,7 +94,7 @@ Workbench Server 与开发预览服务使用相同的 `application/problem+json`
 - 稳定 `invocationId` 提供关联能力和异步提交去重：相同请求返回已有执行，同一 ID 对应不同请求则产生冲突。这仍不能让任意流程副作用变成
   恰好一次语义。
 - 所有可能被重试且会产生副作用的流程动作，都必须使用稳定业务键实现幂等。
-- Workbench 在持久化异步调用前完成别名准入，随后只保存选定的精确版本和必要归因。路由键与
+- Workbench 在持久化异步调用前完成别名准入，随后只保存选定的精确版本和必要执行信息。路由键与
   路由属性不进入持久化状态；调用方未提供 `routingKey` 时，以持久化调用 ID 作为分组键。
 - 源格式合法但超出 CompileFlow 共享 Process 语义的构造使用 `CF_VALIDATION_006`；目标实现能力不足仍使用
   `CF_VALIDATION_005`。

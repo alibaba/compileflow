@@ -4,12 +4,16 @@ import type { ProcessVariable, TbbpmProcessDefinition } from '../types/flowDefin
 import { isJavaClassName, requireGeneratedJavaIdentifier } from '../types/javaIdentifiers'
 import { isValidLoopIterationLimit, MAX_LOOP_ITERATIONS } from '../types/loopLimits'
 import { findInapplicableTbbpmNodeProperties } from '../types/nodePropertyContracts'
-import type { TbbpmConnection, TbbpmNode, TbbpmNodeType, TbbpmVar } from '../types/tbbpm'
 import {
   getTbbpmChildNodeTypes,
   isTbbpmNodeType,
+  TBBPM_NODE_SIZES,
   TBBPM_ROOT_NODE_TYPES,
   TBBPM_STRUCTURED_SCOPE_CHILD_NODE_TYPES,
+  type TbbpmConnection,
+  type TbbpmNode,
+  type TbbpmNodeType,
+  type TbbpmVar,
 } from '../types/tbbpm'
 import { normalizeJavaConditionExpression } from '../validation/javaConditionExpression'
 
@@ -222,7 +226,7 @@ function parseTbbpmNode(
 ): TbbpmNode | null {
   validateNodeAttributes(element, tagName)
   validateNodeChildren(element, tagName)
-  const { x, y, width, height } = parseNodeGeometry(element, layoutIndex)
+  const { x, y, width, height } = parseNodeGeometry(element, layoutIndex, tagName)
   const properties: TbbpmNode['properties'] = {}
   appendNodeSpecificProperties(tagName, element, properties)
 
@@ -248,7 +252,8 @@ function parseNodeDisplayName(element: Element, tagName: TbbpmNodeType, id: stri
 
 function parseNodeGeometry(
   element: Element,
-  layoutIndex: number
+  layoutIndex: number,
+  nodeType: TbbpmNodeType
 ): {
   x: number
   y: number
@@ -257,7 +262,7 @@ function parseNodeGeometry(
 } {
   const value = element.getAttribute('g')?.trim()
   if (!value) {
-    return { x: 80 + layoutIndex * 160, y: 80, width: 100, height: 80 }
+    return { x: 80 + layoutIndex * 280, y: 80, ...TBBPM_NODE_SIZES[nodeType] }
   }
   const geometry = value.split(',')
   if (geometry.length !== 4) {

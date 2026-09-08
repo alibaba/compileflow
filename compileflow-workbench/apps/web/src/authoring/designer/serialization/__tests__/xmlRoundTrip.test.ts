@@ -199,6 +199,25 @@ describe('BPMN XML双向同步测试', () => {
 // ==================== TBBPM测试用例 ====================
 
 describe('TBBPM XML双向同步测试', () => {
+  test('缺少 g 时按节点真实默认尺寸布局且互不重叠', () => {
+    const definition = requireParsedProcess(
+      parseTbbpmXml(`<bpm code="missing_geometry">
+        <start id="start"><transition to="task"/></start>
+        <autoTask id="task">
+          <action type="java" class="com.example.Task" method="execute"/>
+          <transition to="end"/>
+        </autoTask>
+        <end id="end"/>
+      </bpm>`)
+    )
+
+    expect(definition.nodes.map(({ position, size, type }) => ({ position, size, type }))).toEqual([
+      { type: 'start', position: { x: 80, y: 80 }, size: { width: 80, height: 80 } },
+      { type: 'autoTask', position: { x: 360, y: 80 }, size: { width: 200, height: 100 } },
+      { type: 'end', position: { x: 640, y: 80 }, size: { width: 80, height: 80 } },
+    ])
+  })
+
   test('Wait timeout在两种Wait节点上往返一致', () => {
     const xml = `<bpm code="waits">
       <waitTask id="checkpoint" timeout="PT24H"/>

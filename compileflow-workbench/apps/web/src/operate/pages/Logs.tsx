@@ -1,6 +1,7 @@
-import { DownloadOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons'
+import { DeleteOutlined, DownloadOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons'
 import type { TableColumnsType } from 'antd'
-import { App, Button, DatePicker, Descriptions, Input, Select, Table } from 'antd'
+import { Alert, App, Button, DatePicker, Descriptions, Input, Select, Space, Table } from 'antd'
+import type { MessageInstance } from 'antd/es/message/interface'
 import dayjs, { type Dayjs } from 'dayjs'
 import type { TFunction } from 'i18next'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -8,7 +9,7 @@ import { useTranslation } from 'react-i18next'
 
 import styles from './Logs.module.css'
 
-import { exportLogs, getLogById, getLogs } from '@/operate/api/logs'
+import { exportLogs, getLogById, getLogs, purgeLogs } from '@/operate/api/logs'
 import { LoadErrorAlert } from '@/shared/components/LoadErrorAlert'
 import { LocalizedModal as Modal } from '@/shared/components/LocalizedModal'
 import { DataPageShell, FilterBar, SemanticTag, statusToTagKind } from '@/shared/components/page'
@@ -71,9 +72,12 @@ interface LogPageState {
   detailVisible: boolean
   filterState: LogFilterState
   handleExport: () => Promise<void>
+  handlePurge: (before: string) => Promise<boolean>
   handleViewDetail: (id: string) => Promise<void>
   loadError: boolean
   loading: boolean
+  exporting: boolean
+  purging: boolean
   logs: ExecutionLog[]
   page: number
   reload: () => void
@@ -117,6 +121,87 @@ function DurationValue({ duration }: { duration?: number }) {
   ) : (
     <span title={`${duration} ms`}>{formatDuration(duration)}</span>
   )
+}
+
+function useLogMaintenance(
+  filterState: LogFilterState,
+  reload: () => Promise<void>,
+  message: MessageInstance,
+  t: TFunction
+) {
+  const [exporting, setExporting] = useState(false)
+  const [purging, setPurging] = useState(false)
+  const exportInFlight = useRef(false)
+  const purgeInFlight = useRef(false)
+  const mounted = useRef(true)
+  const activeReload = useRef(reload)
+  activeReload.current = reload
+
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
+
+  const handleExport = useCallback(async () => {
+    if (!mounted.current || exportInFlight.current) return
+    exportInFlight.current = true
+    setExporting(true)
+    const hasCompleteDateRange = Boolean(filterState.startTime && filterState.endTime)
+    try {
+      const blob = await exportLogs({
+        keyword: filterState.keyword || undefined,
+        traceId: filterState.traceId || undefined,
+        parentInvocationId: filterState.parentInvocationId || undefined,
+        status: filterState.status || undefined,
+        startTime: hasCompleteDateRange ? filterState.startTime : undefined,
+        endTime: hasCompleteDateRange ? filterState.endTime : undefined,
+      })
+      if (!mounted.current) return
+      downloadBlob(blob, `logs_${Date.now()}.csv`)
+      message.success(t('logs.exportSuccess'))
+    } catch (error) {
+      if (!mounted.current) return
+      logger.error('Failed to export logs', toError(error))
+      message.error(t('error.exportFailed'))
+    } finally {
+      exportInFlight.current = false
+      if (mounted.current) setExporting(false)
+    }
+  }, [filterState, message, t])
+
+  const handlePurge = useCallback(
+    async (before: string): Promise<boolean> => {
+      if (!mounted.current || purgeInFlight.current) return false
+      purgeInFlight.current = true
+      setPurging(true)
+      let deletedCount = 0
+      try {
+        let hasMore: boolean
+        do {
+          const result = await purgeLogs({ before })
+          if (!mounted.current) return false
+          deletedCount += result.deletedCount
+          hasMore = result.hasMore
+        } while (hasMore)
+        message.success(t('logs.purgeSuccess', { count: deletedCount }))
+        await activeReload.current()
+        return mounted.current
+      } catch (error) {
+        if (!mounted.current) return false
+        logger.error('Failed to purge logs', toError(error), { before })
+        message.error(t('logs.purgeFailed'))
+        return false
+      } finally {
+        purgeInFlight.current = false
+        if (mounted.current) setPurging(false)
+      }
+    },
+    [message, t]
+  )
+
+  return { exporting, handleExport, handlePurge, purging }
 }
 
 export function useLogsPageState(t: TFunction): LogPageState {
@@ -167,6 +252,7 @@ export function useLogsPageState(t: TFunction): LogPageState {
     filterState.status,
     filterState.traceId,
   ])
+  const maintenance = useLogMaintenance(filterState, loadLogs, message, t)
 
   useEffect(() => {
     setLogs([])
@@ -207,33 +293,6 @@ export function useLogsPageState(t: TFunction): LogPageState {
     [message, t]
   )
 
-  const handleExport = useCallback(async () => {
-    const hasCompleteDateRange = Boolean(filterState.startTime && filterState.endTime)
-    try {
-      const blob = await exportLogs({
-        keyword: filterState.keyword || undefined,
-        traceId: filterState.traceId || undefined,
-        parentInvocationId: filterState.parentInvocationId || undefined,
-        status: filterState.status || undefined,
-        startTime: hasCompleteDateRange ? filterState.startTime : undefined,
-        endTime: hasCompleteDateRange ? filterState.endTime : undefined,
-      })
-      downloadBlob(blob, `logs_${Date.now()}.csv`)
-      message.success(t('logs.exportSuccess'))
-    } catch (error) {
-      logger.error('Failed to export logs', toError(error))
-      message.error(t('error.exportFailed'))
-    }
-  }, [
-    filterState.endTime,
-    filterState.keyword,
-    filterState.parentInvocationId,
-    filterState.startTime,
-    filterState.status,
-    filterState.traceId,
-    t,
-  ])
-
   const setDateRange = useCallback(
     (startTime: string, endTime: string) => updateFilters({ startTime, endTime, page: 1 }),
     [updateFilters]
@@ -245,13 +304,16 @@ export function useLogsPageState(t: TFunction): LogPageState {
 
   return {
     detailVisible,
+    exporting: maintenance.exporting,
     filterState,
-    handleExport,
+    handleExport: maintenance.handleExport,
+    handlePurge: maintenance.handlePurge,
     handleViewDetail,
     loadError,
     loading,
     logs,
     page: filterState.page,
+    purging: maintenance.purging,
     reload: () => void loadLogs(),
     selectedLog,
     setDateRange,
@@ -468,6 +530,67 @@ function LogDetailModal({ state, t }: { state: LogPageState; t: TFunction }) {
   )
 }
 
+function LogPageActions({ state, t }: { state: LogPageState; t: TFunction }) {
+  const [purgeOpen, setPurgeOpen] = useState(false)
+  const [purgeBefore, setPurgeBefore] = useState<Dayjs | null>(null)
+  const validCutoff = purgeBefore?.isBefore(dayjs()) ?? false
+
+  return (
+    <>
+      <Space>
+        <Button
+          icon={<DownloadOutlined />}
+          loading={state.exporting}
+          disabled={state.exporting || state.purging}
+          onClick={() => void state.handleExport()}
+        >
+          {t('logs.export')}
+        </Button>
+        <Button
+          danger
+          icon={<DeleteOutlined />}
+          disabled={state.exporting || state.purging}
+          onClick={() => {
+            setPurgeBefore(dayjs().subtract(30, 'day'))
+            setPurgeOpen(true)
+          }}
+        >
+          {t('logs.purge')}
+        </Button>
+      </Space>
+      <Modal
+        open={purgeOpen}
+        title={t('logs.purgeTitle')}
+        okText={t('logs.purgeConfirm')}
+        cancelText={t('common.cancel')}
+        confirmLoading={state.purging}
+        closable={!state.purging}
+        keyboard={!state.purging}
+        mask={{ closable: !state.purging }}
+        cancelButtonProps={{ disabled: state.purging }}
+        okButtonProps={{ danger: true, disabled: !validCutoff }}
+        onCancel={() => {
+          if (!state.purging) setPurgeOpen(false)
+        }}
+        onOk={async () => {
+          if (!purgeBefore || !validCutoff) return
+          if (await state.handlePurge(purgeBefore.toISOString())) setPurgeOpen(false)
+        }}
+      >
+        <Alert type="warning" showIcon title={t('logs.purgeWarning')} />
+        <DatePicker
+          showTime
+          value={purgeBefore}
+          onChange={setPurgeBefore}
+          aria-label={t('logs.purgeBefore')}
+          placeholder={t('logs.purgeBefore')}
+          style={{ width: '100%', marginTop: 16 }}
+        />
+      </Modal>
+    </>
+  )
+}
+
 function Logs() {
   usePageTitle('pageTitle.operate.logs')
   const { t } = useTranslation()
@@ -485,16 +608,7 @@ function Logs() {
         eyebrow={t('nav.operate')}
         title={t('logs.title')}
         subtitle={t('logs.subtitle')}
-        actions={
-          <Button
-            icon={<DownloadOutlined />}
-            onClick={() => {
-              void state.handleExport()
-            }}
-          >
-            {t('logs.export')}
-          </Button>
-        }
+        actions={<LogPageActions state={state} t={t} />}
         filters={<LogFilters state={state} t={t} />}
       >
         {state.loadError && <LoadErrorAlert onRetry={state.reload} />}

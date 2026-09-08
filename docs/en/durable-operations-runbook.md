@@ -114,9 +114,8 @@ lifecycle phase drains. Set `spring.lifecycle.timeout-per-shutdown-phase` and th
 above the longest supported in-flight call. A forced process death after that outer deadline is recovered through lease
 expiry and fencing, so externally visible work still requires idempotency.
 
-The Kernel does not route recovery by Application Build ID. A stored Process must be executable by the current configured
-engine and registered capabilities; otherwise the Run remains recoverable but does not advance until the capability is
-available.
+A stored Process must be executable by the configured engine and registered application capabilities. If a required
+capability is unavailable, the Run remains recoverable but does not advance until that capability is restored.
 
 ## 11. Incident completion
 

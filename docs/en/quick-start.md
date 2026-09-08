@@ -1,11 +1,10 @@
 # CompileFlow Quick Start
 
-Start with the repository's verified Spring Boot sample, then use the minimum example to embed the same TBBPM flow in
-an application.
+Start with the Spring Boot sample, then embed the same TBBPM flow in an application.
 
 ## Prerequisites
 
-- JDK 17, 21, or 25. Java 17 is the build, release, and default production-image baseline.
+- JDK 17, 21, or 25. Java 17 is the build and release baseline.
 - The repository Maven Wrapper; no separate Maven installation is required.
 
 Verify the toolchain from the repository root:
@@ -15,7 +14,7 @@ java -version
 ./mvnw -version
 ```
 
-## Run The Verified Sample
+## Run The Sample
 
 Install the starter and its reactor dependencies, then run the sample:
 
@@ -37,8 +36,7 @@ Run the sample's context test with:
 ../../mvnw -f pom.xml test -Dtest=SampleApplicationTest
 ```
 
-The sample is maintained at [examples/spring-boot-basic](../../examples/spring-boot-basic/README.md), and its test
-verifies the behavior described here.
+The complete source is in [examples/spring-boot-basic](../../examples/spring-boot-basic/README.md).
 
 ## Add The Starter
 
@@ -102,7 +100,7 @@ Place this definition at `src/main/resources/flows/hello.bpm`:
 </bpm>
 ```
 
-Strict preflight validates the XML schema, process graph, generated Java source, and compilation before execution.
+Strict preflight validates the XML schema and process graph, then verifies that the selected runtime can be prepared.
 
 ## Execute The Flow
 
@@ -139,7 +137,7 @@ source bytes before exact cache matching; publish the definition and use
 
 ## Preflight And Warmup
 
-Validate and compile known flows during application startup:
+Validate and prepare known flows during application startup:
 
 ```java
 ProcessDefinition definition = ProcessDefinition.classpath(
@@ -160,7 +158,7 @@ if (report.getOverallStatus() != ProcessPreflightReport.OverallStatus.PASS) {
 processEngine.runtime().warmUp(definition);
 ```
 
-`runtime().warmUp(...)` compiles exact definition content into this engine's local runtime cache without creating a code
+`runtime().warmUp(...)` prepares exact definition content in this engine's local runtime cache without creating a code
 or version binding. It is not a distributed release operation and does not mutate an Alias route.
 
 ## Standalone Usage

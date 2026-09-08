@@ -1,7 +1,7 @@
 # CompileFlow Examples
 
-These runnable Spring Boot applications demonstrate CompileFlow integration and common execution patterns. Run commands
-from the repository root unless an example says otherwise.
+These Spring Boot applications and integration scenarios demonstrate common CompileFlow patterns. Run commands from the
+repository root unless an example says otherwise.
 
 | Example                                                                    | What it covers                                                                                         |
 | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |

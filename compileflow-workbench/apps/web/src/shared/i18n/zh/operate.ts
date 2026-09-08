@@ -585,6 +585,20 @@ const zhOperate = {
 
   'logs.export': '导出',
 
+  'logs.purge': '清理日志',
+
+  'logs.purgeTitle': '清理历史执行日志',
+
+  'logs.purgeBefore': '清理此时间之前的日志',
+
+  'logs.purgeWarning': '该操作会永久删除截止时间之前的执行日志，且无法撤销。',
+
+  'logs.purgeConfirm': '确认清理',
+
+  'logs.purgeSuccess': '已清理 {{count}} 条执行日志',
+
+  'logs.purgeFailed': '日志清理失败',
+
   'logs.noData': '暂无执行日志',
 
   // 通用筛选

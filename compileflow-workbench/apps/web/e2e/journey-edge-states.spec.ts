@@ -265,6 +265,11 @@ test.describe('Workbench semantic and edge-state journeys', () => {
     page,
   }) => {
     test.setTimeout(60_000)
+    await page.goto('/operate/deployments?page=broken&statusFilter=invalid&source=shared')
+    await expect(page).toHaveURL('/operate/deployments?source=shared', { timeout: TIMEOUT })
+    await page.goto('/operate/deployments?page=2&source=shared')
+    await expect(page).toHaveURL('/operate/deployments?source=shared', { timeout: TIMEOUT })
+
     await page.goto('/operate/deployments')
     const search = page.getByRole('searchbox', {
       name: /按流程编码或部署 ID 搜索|Search by process code or deployment ID/i,

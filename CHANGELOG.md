@@ -14,7 +14,6 @@ Highlights:
 - CompileFlow Durable for persisted waits, timers, external operations, and recovery after application restarts;
 - CompileFlow Workbench for learning, visual authoring, publication, monitoring, and execution inspection;
 - PostgreSQL and MySQL persistence for Deploy, Durable, and Workbench;
-- runnable examples, reference documentation, database migrations, SBOMs, checksums, and build provenance.
 
 Supported APIs, process nodes, databases, and operational boundaries are listed in
 [Supported Surfaces](docs/en/architecture/supported-surfaces.md).

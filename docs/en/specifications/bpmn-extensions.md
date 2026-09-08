@@ -141,9 +141,11 @@ and output is explicitly declared with `cf:input` or `cf:output`.
 
 Java Code is a method body. The first-party executor creates a typed wrapper during Process runtime load and
 compiles it with `javac --release 17`; the `ScriptProgram` belongs to that exact disposable runtime and is never
-persisted process identity. Exact language, source, and declared signature stay bound to the immutable Process version
+persisted as process identity. Exact language, source, and declared signature stay bound to the immutable Process version
 so a runtime can prepare again from source. Java Code accepts JDK platform input/output types only and runs as trusted
-embedded computation, not a sandbox; Workbench deployments for untrusted authors require an isolated Code Runner.
+embedded computation, not a sandbox. Workbench Server must not execute definitions containing code from untrusted
+authors; applications that accept such code need an execution environment outside the CompileFlow deployment, isolated
+with operating-system or container controls.
 
 CompileFlow execution controls attach directly to the Script Task: `cf:execution` is a qualified task attribute, while
 `cf:invocationPolicy` and `cf:effectPolicy` are direct children of `extensionElements`.

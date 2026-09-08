@@ -9,9 +9,9 @@ Workbench。本文介绍整体架构，具体契约以对应文档为准。
 flowchart TB
     App["应用"]
     API["compileflow-api<br/>ProcessRef、ProcessDefinition、ProcessEngine"]
-    Core["compileflow-core<br/>解析、编译、缓存、执行"]
+    Core["compileflow-core<br/>解析、准备、缓存、执行"]
     Formats["TBBPM 或 BPMN 格式模块"]
-    DeployAPI["compileflow-deploy-api<br/>命令、领域契约、存储 SPI"]
+    DeployAPI["compileflow-deploy-api<br/>命令与领域契约"]
     DeployProtocol["compileflow-deploy-protocol<br/>传输对象、编解码、投影键"]
     Control["部署控制面<br/>不可变发布、灰度、Outbox"]
     Runtime["deploy-runtime<br/>期望状态收敛为本地就绪状态"]

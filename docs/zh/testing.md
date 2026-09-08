@@ -9,7 +9,7 @@
 | 单元测试   | 单个类或纯规则                         | 解析、校验、路由、状态转换和错误映射。                |
 | 模块集成   | 一个 Maven 模块及其依赖                | Spring 组装、生成代码、资源生命周期和 Provider 行为。 |
 | 存储契约   | 一个受支持的真实数据库实现             | 事务、数据库迁移、锁、租约和恢复语义。                |
-| 跨模块集成 | Engine、Deploy、Durable 或 Server 组合 | 公开工作流和精确版本归因。                            |
+| 跨模块集成 | Engine、Deploy、Durable 或 Server 组合 | 公开工作流和实际执行版本。                            |
 | Workbench  | pnpm workspace                         | TypeScript、契约、UI 和浏览器行为。                   |
 
 测试结果必须可重复。不要依赖执行顺序、开发者主目录、默认时区、网络可用性或其他测试遗留的静态状态。
@@ -52,7 +52,7 @@
 运行一个测试类：
 
 ```bash
-./mvnw -pl <module> -Dtest=<TestClass> test
+./mvnw -pl <module> -am -Dtest=<TestClass> -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
 同时构建依赖模块：

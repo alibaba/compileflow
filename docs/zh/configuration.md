@@ -91,8 +91,7 @@ engine.execute(
 流程定义明确指定模型类型，执行器和缓存限额由引擎共享，不按流程格式分别配置。只使用一种格式时，选择
 `compileflow-spring-boot-starter-tbbpm` 或 `compileflow-spring-boot-starter-bpmn`；同时使用两种格式时，引入基础 Starter
 和两个格式模块。
-`COMPILED` 仍是默认值。`INTERPRETED` 是正式支持的执行实现，不代表可以使用没有编译器的宿主：支持的 2.0 宿主仍需提供
-`jdk.compiler`，用于定义校验和运行时准备。
+默认执行模式为 `COMPILED`。`INTERPRETED` 同样受到支持，但两种模式都要求宿主提供 `jdk.compiler`，用于定义校验和运行时准备。
 
 每个并行分支使用一个编排任务线程。Java 21 及以上使用虚拟线程；Java 17 使用有限、无队列的平台线程
 执行器，内部 CPU 自适应上限为 `max(8, min(64, CPUs * 4))`；达到上限后由提交流程线程直接执行分支，从而提供背压，并避免把嵌套任务排在等待中的父分支之后。
@@ -126,13 +125,13 @@ Java 代码以 `Script(language="java", source)` 表示，并由 `compileflow-co
 | ---------------------------------------- | ------ | -------------------------------------------------------------------------------------------------- |
 | `compileflow.engine.definition.max-size` | `4MB`  | 单个 inline 或 classpath 流程定义允许的最大 UTF-8/二进制大小，范围为 `1B` 至硬性安全上限 `100MB`。 |
 
-loader 最多读取 `max-size + 1` 字节，并在 XSD 校验前冻结一份不可变字节快照，因此 schema 校验和模型
-解析看到的内容完全一致。解析到 HTTP、HTTPS、FTP 或 FTPS 的 classpath 资源会被拒绝；远程制品必须由具备认证、网络策略、超时和摘要校验的应用或部署 resolver
+加载器最多读取 `max-size + 1` 字节，并在 XSD 校验前冻结一份不可变字节快照，因此 Schema 校验和模型
+解析看到的内容完全一致。解析到 HTTP、HTTPS、FTP 或 FTPS 的类路径资源会被拒绝；远程制品必须由具备认证、网络策略、超时和摘要校验的应用或部署解析器
 获取。
 Schema 校验和流式解析均强制 XML 元素嵌套不超过 128 层，即使关闭 schema 校验也生效；超限返回定义校验错误，
 不限制同层节点数量。这是解析安全边界，不是公共并发配置，也不是 ProcessCall 深度设置。
 
-### Runtime 加载与 Java 诊断
+### 运行时加载与 Java 诊断
 
 | 属性                                                         | 默认值  | 约束/用途                                                    |
 | ------------------------------------------------------------ | ------- | ------------------------------------------------------------ |
@@ -141,9 +140,9 @@ Schema 校验和流式解析均强制 XML 元素嵌套不超过 128 层，即使
 | `compileflow.engine.java-diagnostics.debug.output-directory` | 未设置  | 设置后按生成类名导出稳定的 `source/` 与 `metadata/` 目录树。 |
 | `compileflow.engine.java-diagnostics.debug.bytecode-enabled` | `false` | 同时导出 `.class` 文件；启用时必须设置输出目录。             |
 
-默认 runtime 加载全程在内存中完成。调试目录可能包含生成源码、脚本、表达式、常量和 class 文件，应使用操作系统权限或 ACL
+默认在内存中加载运行时。调试目录可能包含生成源码、脚本、表达式、常量和 class 文件，应使用操作系统权限或 ACL
 保护配置根目录，并限制访问与保留周期，也不能放在 Web 可访问目录下。生成源码按包路径稳定写入 `source/`，可选字节码写入对应的
-`classes/`，sidecar 属性写入 `metadata/`。再次编译同一个生成类时会原子替换这些文件，因此 IDE 断点始终绑定到同一个文件 URL。在
+`classes/`，配套属性写入 `metadata/`。再次编译同一个生成类时会原子替换这些文件，因此 IDE 断点始终绑定到同一个文件 URL。在
 IntelliJ IDEA 中，将 `<output-directory>/source` 标记为 Sources Root，并在可执行代码行设置断点。Durable 生成类名包含标准化后的完整流程
 code 和 program digest 前缀，源码头同时保留原始流程 code，便于直接识别。
 
@@ -259,7 +258,7 @@ Outbox 保留时间）允许 `0ms`。精度更细或数值过大的值会在绑�
 不另设键列表配置。缺少依赖时启动失败。
 
 发布会写入一条不可变的 `(namespace, code, version)` 记录，其中保存原始 UTF-8 源码、模型类型、SHA-256 摘要、元数据、操作者
-和数据库时间。记录一旦存在即表示版本已经发布，不再维护可变发布状态或准备租约。使用相同身份和内容重试时返回原记录，不改写审计字段；内容不同则直接报告冲突。首次写入仓储前，系统会解析源码，并按对应格式校验 Schema 和模型结构；这一步不会生成、缓存或安装节点本地运行时。编辑器或发布流水线需要 Java 编译诊断时，可以额外调用
+和数据库时间。记录一旦存在即表示版本已经发布，不再维护可变发布状态或准备租约。使用相同身份和内容重试时返回原记录，不改写审计字段；内容不同则直接报告冲突。首次写入仓储前，系统会解析源码，并按对应格式校验 Schema 和模型结构；这一步不会生成、缓存或安装节点本地运行时。需要 Java 编译诊断时，可以额外调用
 `ProcessToolingService.preflight(...)` 并使用严格选项。控制面校验不能证明具有不同应用类路径或组件环境的运行节点已经就绪。发布也不会修改路由。
 
 摘要是版本和制品的必填字段，不是可选元数据或功能开关。解析制品载荷、读取数据库和加载运行时都会校验身份与完整性。运行时安装会在相应信任边界内执行真实引擎部署；安装失败时，该节点不能进入本地就绪状态，也不会激活对应路由。
@@ -452,8 +451,7 @@ Deploy V1 与 Workbench V1 数据库变更脚本。MySQL 开启二进制日志�
 级 DDL 授权可能不足，不应全局放宽 `log_bin_trust_function_creators`。本地开发和 bundled Compose 显式设置
 `database.migrate=true`。默认模式仍会在应用
 就绪前校验 Flyway 校验和并拒绝所有待执行变更，不能关闭 `spring.flyway.enabled`。运行时 DML 身份因此需要只读访问
-`cf_deploy_schema_history` 和 `cf_workbench_schema_history`，但不需要创建数据库结构或执行迁移 DDL 的权限。MySQL 契约测试
-先由管理员初始化两套数据库结构，再以仅有 SELECT、INSERT、UPDATE、DELETE 权限的应用身份运行。破坏性的 `clean` 已关闭；Hibernate 使用
+`cf_deploy_schema_history` 和 `cf_workbench_schema_history`，但不需要创建数据库结构或执行迁移 DDL 的权限。破坏性的 `clean` 已关闭；Hibernate 使用
 `ddl-auto=validate`，数据库结构漂移会直接导致启动失败。默认服务还启用优雅停机（每个停机阶段 30 秒），且只暴露 Actuator `health`
 。只有 `/actuator/health`、`/actuator/health/liveness` 和 `/actuator/health/readiness` 可匿名访问；health component、detail
 与其他健康检查组仍被隐藏或要求认证。数据库连接池、HTTP 服务、Actuator 和日志调优继续使用 Spring 标准的

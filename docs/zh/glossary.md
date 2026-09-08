@@ -4,19 +4,19 @@
 
 ## 引擎与编译
 
-| 英文                 | 中文         | 含义                                                       |
-| -------------------- | ------------ | ---------------------------------------------------------- |
-| Process engine       | 流程引擎     | 长期复用、支持多种流程格式的 `ProcessEngine`               |
-| Process reference    | 流程引用     | 指向已发布版本或别名的引用                                 |
-| Process definition   | 流程定义     | 以内联文本或类路径资源提供的流程内容                       |
-| Preflight            | 预检         | 解析并校验流程，可选择准备运行时缓存；不发布版本或修改别名 |
-| Warm-up              | 预热         | 将指定流程定义编译到引擎缓存                               |
-| Compile-then-execute | 编译后执行   | 执行前先生成并编译 Java                                    |
-| Generated runtime    | 生成运行时   | 引擎管理的流程类及运行时包装                               |
-| Runtime identity     | 运行时身份   | 当前引擎中的精确编译标识（`ProcessRuntimeIdentity`）       |
-| Runtime cache        | 运行时缓存   | 容量受限的生成运行时缓存                                   |
-| Invocation ID        | 调用 ID      | 一次已接收调用的稳定标识                                   |
-| Process execution    | 流程执行记录 | 与执行结果一起返回的受控归因                               |
+| 英文                 | 中文       | 含义                                                       |
+| -------------------- | ---------- | ---------------------------------------------------------- |
+| Process engine       | 流程引擎   | 长期复用、支持多种流程格式的 `ProcessEngine`               |
+| Process reference    | 流程引用   | 指向已发布版本或别名的引用                                 |
+| Process definition   | 流程定义   | 以内联文本或类路径资源提供的流程内容                       |
+| Preflight            | 预检       | 解析并校验流程，可选择准备运行时缓存；不发布版本或修改别名 |
+| Warm-up              | 预热       | 在引擎缓存中准备指定流程定义                               |
+| Compile-then-execute | 编译后执行 | 执行前先生成并编译 Java                                    |
+| Generated runtime    | 生成运行时 | 引擎管理的流程类及运行时包装                               |
+| Runtime identity     | 运行时身份 | 当前引擎中的精确编译标识（`ProcessRuntimeIdentity`）       |
+| Runtime cache        | 运行时缓存 | 容量受限的已准备运行时缓存                                 |
+| Invocation ID        | 调用 ID    | 一次已接收调用的稳定标识                                   |
+| Process execution    | 执行信息   | 与执行结果一起返回的流程与路由信息                         |
 
 ## 路由与部署
 

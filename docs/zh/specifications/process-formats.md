@@ -97,7 +97,7 @@ BPMN 服务任务通过标准扩展元素使用同一 Action 模型：
 </serviceTask>
 ```
 
-两种格式共享 Java、Spring Bean、内置 QL/Java 脚本语言和显式注册的脚本 Provider。Java 脚本执行器在应用进程内运行可信代码，
+两种格式共享 Java、Spring Bean、内置 QL/Java Code 语言和显式注册的脚本 Provider。Java Code 执行器在应用进程内运行可信代码，
 不提供安全沙箱。TBBPM 使用直接元素；BPMN 将 CompileFlow 扩展数据放在命名空间中。BPMN `scriptTask` 使用标准
 `scriptFormat` 与 `script` 字段，不包装为 `cf:action`。完整 `cf:` 契约见 [BPMN 扩展规范](bpmn-extensions.md)。
 

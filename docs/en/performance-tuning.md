@@ -59,7 +59,7 @@ it does not make a transaction safe to replay.
 
 For the underlying concurrency and transaction semantics, see
 [JDK queue policies](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/ThreadPoolExecutor.html)
-and [Spring transaction boundaries](https://docs.spring.io/spring-framework/docs/6.2.x/javadoc-api/org/springframework/transaction/annotation/Transactional.html).
+and [Spring transaction boundaries](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html).
 The numerical examples above illustrate capacity calculations, not measured CompileFlow performance.
 
 ## Alias Target Selection
@@ -177,7 +177,7 @@ class FlowWarmup {
 
 ## Checklist
 
-- [ ] Runtime uses `code`/`version` (no inline content)
+- [ ] Deploy-managed high-throughput paths use Version or Alias references instead of inline content
 - [ ] Selectors are pure in-memory and read local snapshots only
 - [ ] Compilation workers, queue, and in-flight registry are bounded for the workload
 - [ ] Runtime cache sized to reduce evictions

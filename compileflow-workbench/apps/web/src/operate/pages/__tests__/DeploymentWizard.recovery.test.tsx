@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { ConfigProvider } from 'antd'
 import type { MessageInstance } from 'antd/es/message/interface'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -42,10 +43,12 @@ function renderWizard(initialEntry = '/operate/deploy-wizard') {
   }
 
   return render(
-    <MemoryRouter initialEntries={[initialEntry]}>
-      <DeploymentWizard />
-      <LocationProbe />
-    </MemoryRouter>
+    <ConfigProvider theme={{ token: { motion: false } }}>
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <DeploymentWizard />
+        <LocationProbe />
+      </MemoryRouter>
+    </ConfigProvider>
   )
 }
 

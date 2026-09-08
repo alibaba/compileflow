@@ -75,13 +75,6 @@ class BatchOperationTools {
     this.graph = graph
   }
 
-  deleteSelected() {
-    const selectedCells = this.graph.getSelectedCells()
-    if (selectedCells.length > 0) {
-      this.graph.removeCells(selectedCells)
-    }
-  }
-
   moveSelected(dx: number, dy: number) {
     const nodes = selectedNodes(this.graph)
 
@@ -97,31 +90,6 @@ class BatchOperationTools {
     selectedCells.forEach((cell) => {
       cell.attr(attrs)
     })
-  }
-
-  duplicateSelected(offsetX: number = 50, offsetY: number = 50): Cell[] {
-    const selectedCells = this.graph.getSelectedCells()
-    const duplicatedCells: Cell[] = []
-
-    selectedCells.forEach((cell) => {
-      if (cell.isNode()) {
-        const position = cell.position()
-        const cellData = cell.toJSON()
-        const newCell = this.graph.createNode({
-          ...cellData,
-          id: undefined,
-          position: {
-            x: position.x + offsetX,
-            y: position.y + offsetY,
-          },
-        })
-
-        this.graph.addCell(newCell)
-        duplicatedCells.push(newCell)
-      }
-    })
-
-    return duplicatedCells
   }
 }
 

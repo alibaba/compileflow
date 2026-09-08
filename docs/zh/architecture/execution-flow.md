@@ -147,7 +147,7 @@ DefaultProcessDefinitionLoader.load
 
 ## 9. 条件安装
 
-编译完成后，`runtimeCache.install` 按条件更新绑定：
+运行时准备完成后，`runtimeCache.install` 按条件更新绑定：
 
 - 不可变版本不能绑定到不同内容；
 - 无版本绑定只有在预期包装对象仍持有它时才能更新；
@@ -186,7 +186,7 @@ DefaultProcessDefinitionLoader.load
 
 `ProcessRuntimeManager` 提供以下引擎本地管理能力：
 
-- `warmUp(ProcessDefinition...)` 编译精确流程定义，但不创建公共绑定；
+- `warmUp(ProcessDefinition...)` 准备精确流程定义，但不创建公共绑定；
 - `load(ProcessRef.Version, ProcessDefinition)` 创建不可变的本地版本绑定；
 - `unload(ProcessRef.Version...)` 释放精确版本绑定的本地所有权。
 

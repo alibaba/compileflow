@@ -162,13 +162,13 @@ retain their typed error boundary and are shared by every waiter on that single-
 removed after completion, so a later request may start a new attempt after the definition or environment has been
 corrected.
 
-Optional debug export runs only when explicitly configured. Exported source/classes are diagnostic artifacts, use a
+Optional debug export runs only when explicitly configured. Exported source/classes are diagnostic artifacts and use
 stable package-relative paths under `source/`, `metadata/`, and optionally `classes/` in the configured output directory.
 They do not change Runtime identity; an export failure still fails preparation instead of silently dropping diagnostics.
 
 ## 9. Conditional Installation
 
-After compilation, `runtimeCache.install` performs a conditional binding update:
+After runtime preparation, `runtimeCache.install` performs a conditional binding update:
 
 - immutable version binding to different exact content is a conflict;
 - an unversioned binding may change only if the expected wrapper still owns it;
@@ -196,7 +196,7 @@ must honor interruption when applicable.
 
 The Engine converts known execution failures to `ProcessError` and returns
 `ProcessResult.failure(...)`. JVM fatal `Error` values are never normalized into a `ProcessResult`. Success returns the
-output variable map with the same controlled execution attribution.
+output variable map with the same execution details.
 
 Nested process calls preserve the outer execution scope while returning their own result. Generated code identifies the
 call site; the execution context performs one exact lookup in the resolved graph. It never derives a classpath from the
@@ -216,7 +216,7 @@ process-instance persistence, resume, external message correlation, or crash rec
 
 `ProcessRuntimeManager` is an Engine-local capability view:
 
-- `warmUp(ProcessDefinition...)` compiles exact definitions without creating a public binding;
+- `warmUp(ProcessDefinition...)` prepares exact definitions without creating a public binding;
 - `load(ProcessRef.Version, ProcessDefinition)` creates one immutable local version binding;
 - `unload(ProcessRef.Version...)` releases local ownership of exact-version bindings.
 

@@ -42,7 +42,8 @@ Recovery uses the committed semantic checkpoint, exact process identity, typed i
 
 Preparation may compile a disposable runtime. It must complete before execution uses it, and a failed preparation cannot advance the Run. A Worker renews its lease while it owns a turn and releases ownership on completion or failure.
 
-A missing application class, component, script executor, or serializer is an application/runtime capability problem. It is repaired in the current deployment and must not rewrite stored semantics or introduce historical-build routing.
+A missing application class, component, script executor, or serializer is an application/runtime capability problem.
+Restore that capability in the deployment without rewriting stored process semantics.
 
 ## Action and Effect
 
@@ -60,7 +61,9 @@ Run, timeline, and Outbox queries use typed exact filters and keyset cursors. Du
 
 Run state, invocation state, requests, leases, and Effect/Outbox facts use explicit state transitions. A Store Provider must preserve transition atomicity, lock ordering, compare-and-set behavior, database-time semantics, and token fencing. PostgreSQL and MySQL are independent first-party Providers with their own migrations; H2 is test-only.
 
-The physical table layout is Provider-owned. The Kernel contract is the transaction and recovery semantics, not a fixed table count. The Provider-neutral testkit is the evidence for a supported Store implementation.
+The physical table layout is Provider-owned. The Kernel contract is the transaction and recovery semantics, not a fixed
+table count. The provider-neutral testkit checks the common Store contract; support also requires the database-specific
+transaction, concurrency, crash-recovery, and migration evidence listed in [Supported surfaces](supported-surfaces.md).
 
 ## Retention and observability
 

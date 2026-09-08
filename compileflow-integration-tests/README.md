@@ -30,7 +30,7 @@ Run commands from the repository root and keep the Maven scope explicit.
 # Fast smoke tag
 ./mvnw test -pl compileflow-integration-tests -am -Dgroups=smoke
 
-# Pull-request integration suite without slow scenarios
+# Integration suite without slow scenarios
 ./mvnw verify -pl compileflow-integration-tests -am \
   -DexcludedGroups=slow
 

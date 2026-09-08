@@ -31,6 +31,10 @@ interface CanvasToolbarProps {
   graph: Graph | null
   /** Optional example loader exposed by the TBBPM designer. */
   onLoadExample?: () => void
+  /** Duplicates the selected canonical model graph, including descendants and edges. */
+  onDuplicateSelection?: () => void
+  /** Deletes the selected canonical nodes and edges as one undoable graph mutation. */
+  onDeleteSelection?: () => void
 }
 
 interface ToolbarAction {
@@ -49,6 +53,8 @@ interface ToolbarActions {
 
 function useToolbarActions(
   graph: Graph | null,
+  onDuplicateSelection: (() => void) | undefined,
+  onDeleteSelection: (() => void) | undefined,
   t: TFunction,
   tools: ReturnType<typeof createMultiSelectionTools> | null
 ): ToolbarActions {
@@ -119,16 +125,14 @@ function useToolbarActions(
         icon: <CopyOutlined />,
         tooltip: t('designer.toolbar.copySelected'),
         onClick: () => {
-          if (!tools || !graph) return
-          const duplicated = tools.batch.duplicateSelected()
-          graph.select(duplicated)
+          onDuplicateSelection?.()
         },
       },
       {
         key: 'delete',
         icon: <DeleteOutlined />,
         tooltip: t('designer.toolbar.deleteSelected'),
-        onClick: () => tools?.batch.deleteSelected(),
+        onClick: () => onDeleteSelection?.(),
       },
       {
         key: 'select-all',
@@ -137,7 +141,7 @@ function useToolbarActions(
         onClick: () => tools?.selection.selectAll(),
       },
     ],
-    [graph, t, tools]
+    [onDeleteSelection, onDuplicateSelection, t, tools]
   )
 
   const view = useMemo(
@@ -206,6 +210,8 @@ function ToolbarActionGroup({
 
 const CanvasToolbar = React.memo(function CanvasToolbar({
   graph,
+  onDeleteSelection,
+  onDuplicateSelection,
   onLoadExample,
 }: CanvasToolbarProps) {
   const { t } = useTranslation()
@@ -213,7 +219,7 @@ const CanvasToolbar = React.memo(function CanvasToolbar({
   // preserving React.memo effectiveness on downstream button components.
   const tools = useMemo(() => (graph ? createMultiSelectionTools(graph) : null), [graph])
   const disabled = !graph
-  const actions = useToolbarActions(graph, t, tools)
+  const actions = useToolbarActions(graph, onDuplicateSelection, onDeleteSelection, t, tools)
 
   return (
     <div className="x6-canvas-toolbar" role="toolbar" aria-label={t('designer.toolbar.label')}>

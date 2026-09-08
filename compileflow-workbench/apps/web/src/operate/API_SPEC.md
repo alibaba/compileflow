@@ -8,10 +8,8 @@ The OpenAPI document defines endpoint paths, methods, request and response schem
 enums. This document covers behavior that is difficult to express in OpenAPI: trust boundaries, identity, optimistic
 concurrency, idempotency, routing, retries, and data-exposure rules. Endpoint and schema inventories remain in OpenAPI.
 
-The generated TypeScript projection is
-[`workbenchServerOpenApi.ts`](../shared/contracts/generated/workbenchServerOpenApi.ts). Domain contracts may narrow wire
-strings into safer unions; [`serverContractParity.ts`](../shared/contracts/serverContractParity.ts) verifies their field
-sets and base types.
+This is a same-version companion contract between Workbench Web and Workbench Server, not a stable API for third-party
+engine integrations. Deploy both components from the same CompileFlow release.
 
 ## Request and Trust Boundary
 

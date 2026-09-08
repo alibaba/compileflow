@@ -4,7 +4,7 @@ import type { PropsWithChildren } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getLogById, getLogs } from '@/operate/api/logs'
+import { exportLogs, getLogById, getLogs, purgeLogs } from '@/operate/api/logs'
 import { mockLogs } from '@/operate/api/mockLogData'
 import { useLogsPageState } from '@/operate/pages/Logs'
 import { useProcessManagementData } from '@/operate/pages/ProcessManagement'
@@ -22,6 +22,7 @@ vi.mock('@/operate/api/logs', () => ({
   exportLogs: vi.fn(),
   getLogById: vi.fn(),
   getLogs: vi.fn(),
+  purgeLogs: vi.fn(),
 }))
 
 vi.mock('@/shared/api/processes', () => ({
@@ -192,6 +193,146 @@ describe('latest request ordering', () => {
     })
 
     expect(result.current.selectedLog).toEqual(newLog)
+  })
+
+  it('coalesces repeated log export clicks while the request is pending', async () => {
+    const exportRequest = deferred<Blob>()
+    vi.mocked(exportLogs).mockReturnValue(exportRequest.promise)
+    Object.defineProperty(window.URL, 'createObjectURL', {
+      configurable: true,
+      value: vi.fn(() => 'blob:logs'),
+    })
+    Object.defineProperty(window.URL, 'revokeObjectURL', {
+      configurable: true,
+      value: vi.fn(),
+    })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
+    vi.mocked(getLogs).mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20 })
+
+    const { result } = renderHook(() => useLogsPageState(translate), {
+      wrapper: routerWrapper,
+    })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    let first!: Promise<void>
+    let second!: Promise<void>
+    act(() => {
+      first = result.current.handleExport()
+      second = result.current.handleExport()
+    })
+    expect(exportLogs).toHaveBeenCalledTimes(1)
+    expect(result.current.exporting).toBe(true)
+
+    await act(async () => {
+      exportRequest.resolve(new Blob(['logs']))
+      await Promise.all([first, second])
+    })
+    expect(result.current.exporting).toBe(false)
+  })
+
+  it('does not download a late log export after leaving the page', async () => {
+    const exportRequest = deferred<Blob>()
+    const createObjectUrl = vi.fn(() => 'blob:logs')
+    vi.mocked(exportLogs).mockReturnValue(exportRequest.promise)
+    vi.mocked(getLogs).mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20 })
+    Object.defineProperty(window.URL, 'createObjectURL', {
+      configurable: true,
+      value: createObjectUrl,
+    })
+
+    const { result, unmount } = renderHook(() => useLogsPageState(translate), {
+      wrapper: routerWrapper,
+    })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    let exporting!: Promise<void>
+    act(() => {
+      exporting = result.current.handleExport()
+    })
+    unmount()
+    await act(async () => {
+      exportRequest.resolve(new Blob(['logs']))
+      await exporting
+    })
+
+    expect(createObjectUrl).not.toHaveBeenCalled()
+    expect(message.success).not.toHaveBeenCalled()
+  })
+
+  it('purges every bounded batch once and reloads the active query', async () => {
+    const firstBatch = deferred<{ deletedCount: number; hasMore: boolean; purgedAt: string }>()
+    vi.mocked(getLogs).mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20 })
+    vi.mocked(purgeLogs)
+      .mockReturnValueOnce(firstBatch.promise)
+      .mockResolvedValueOnce({ deletedCount: 1, hasMore: false, purgedAt: '2026-09-08T00:00:01Z' })
+
+    const { result } = renderHook(() => useLogsPageState(translate), {
+      wrapper: routerWrapper,
+    })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    let purge!: Promise<boolean>
+    act(() => {
+      purge = result.current.handlePurge('2026-08-01T00:00:00Z')
+      void result.current.handlePurge('2026-08-01T00:00:00Z')
+    })
+    expect(purgeLogs).toHaveBeenCalledTimes(1)
+    act(() => result.current.updateFilter('keyword', 'latest-query'))
+    await waitFor(() =>
+      expect(getLogs).toHaveBeenLastCalledWith(expect.objectContaining({ keyword: 'latest-query' }))
+    )
+
+    await act(async () => {
+      firstBatch.resolve({
+        deletedCount: 2,
+        hasMore: true,
+        purgedAt: '2026-09-08T00:00:00Z',
+      })
+      await purge
+    })
+
+    expect(purgeLogs).toHaveBeenCalledTimes(2)
+    expect(getLogs).toHaveBeenLastCalledWith(expect.objectContaining({ keyword: 'latest-query' }))
+    expect(message.success).toHaveBeenCalledWith(expect.stringContaining('3'))
+    expect(result.current.purging).toBe(false)
+  })
+
+  it('reports purge failure without converting it into success', async () => {
+    vi.mocked(getLogs).mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20 })
+    vi.mocked(purgeLogs).mockRejectedValue(new Error('purge unavailable'))
+    const { result } = renderHook(() => useLogsPageState(translate), {
+      wrapper: routerWrapper,
+    })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    let succeeded = true
+    await act(async () => {
+      succeeded = await result.current.handlePurge('2026-08-01T00:00:00Z')
+    })
+    expect(succeeded).toBe(false)
+    expect(message.error).toHaveBeenCalled()
+    expect(result.current.purging).toBe(false)
+  })
+
+  it('ignores a purge response that arrives after leaving the page', async () => {
+    const purgeRequest = deferred<{ deletedCount: number; hasMore: boolean; purgedAt: string }>()
+    vi.mocked(getLogs).mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20 })
+    vi.mocked(purgeLogs).mockReturnValue(purgeRequest.promise)
+    const { result, unmount } = renderHook(() => useLogsPageState(translate), {
+      wrapper: routerWrapper,
+    })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    let purging!: Promise<boolean>
+    act(() => {
+      purging = result.current.handlePurge('2026-08-01T00:00:00Z')
+    })
+    unmount()
+    purgeRequest.resolve({ deletedCount: 2, hasMore: false, purgedAt: '2026-09-08T00:00:00Z' })
+    await expect(purging).resolves.toBe(false)
+
+    expect(getLogs).toHaveBeenCalledTimes(1)
+    expect(message.success).not.toHaveBeenCalled()
   })
 
   it('keeps the newest process page when an older page responds last', async () => {

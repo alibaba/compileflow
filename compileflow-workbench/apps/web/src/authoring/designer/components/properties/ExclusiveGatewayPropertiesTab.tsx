@@ -1,20 +1,17 @@
 import { Alert, Divider, Form } from 'antd'
 import { useTranslation } from 'react-i18next'
 
+import { setBpmnDefaultConnection } from '../../store/editorSlice'
 import type { BpmnNodePropertyTabProps } from '../../types/propertyTabs'
 
 import { GatewayRoutingProperties } from './GatewayRoutingProperties'
 
-export default function ExclusiveGatewayPropertiesTab({
-  node,
-  onUpdate,
-}: BpmnNodePropertyTabProps) {
-  const { t } = useTranslation()
-  const p = node.properties
+import { useAppDispatch } from '@/app/hooks'
 
-  const update = (field: string, value: unknown) => {
-    onUpdate(node.id, { ...p, [field]: value })
-  }
+export default function ExclusiveGatewayPropertiesTab({ node }: BpmnNodePropertyTabProps) {
+  const { t } = useTranslation()
+  const dispatch = useAppDispatch()
+  const p = node.properties
 
   return (
     <div style={{ padding: '16px 16px 24px' }}>
@@ -30,7 +27,9 @@ export default function ExclusiveGatewayPropertiesTab({
         <GatewayRoutingProperties
           nodeId={node.id}
           defaultConnectionId={p.default as string | undefined}
-          onDefaultConnectionChange={(value) => update('default', value)}
+          onDefaultConnectionChange={(connectionId) =>
+            dispatch(setBpmnDefaultConnection({ nodeId: node.id, connectionId }))
+          }
           conditionHelp={
             <>
               <Divider style={{ fontSize: 12 }}>

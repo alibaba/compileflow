@@ -8,7 +8,7 @@ and node-local installation have separate ownership.
 
 ## Local Definition Prewarming
 
-A development tool can compile an exact updated definition into one engine's bounded runtime cache before executing that
+A development tool can prepare an exact updated definition in one engine's bounded runtime cache before executing that
 same definition:
 
 ```java
@@ -171,9 +171,8 @@ Projection store artifact keys:
 compileflow.process.version.{identityDigest}
 ```
 
-`identityDigest` is lowercase SHA-256 over the ordered, length-prefixed UTF-8 identity tuple. Payloads retain the full
-identity and consumers verify it against the key. In `PROJECTION_STORE` mode, the artifact payload must fit the selected
-backend's documented per-item capacity.
+See the [distributed integration guide](hot-deploy-integration.md) for key encoding and validation. In
+`PROJECTION_STORE` mode, the artifact payload must fit the selected backend's documented per-item capacity.
 
 See [configuration](configuration.md), [distributed integration](hot-deploy-integration.md), and
 [operations](operations-playbook.md).

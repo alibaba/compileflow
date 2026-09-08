@@ -88,6 +88,39 @@ describe('designer graph clipboard', () => {
     expect(nodes[nodes.length - 1].parentId).toBeUndefined()
   })
 
+  it('duplicates the canonical node properties instead of stale canvas data', () => {
+    const configured: UnifiedProcessDefinition = {
+      ...flow,
+      nodes: flow.nodes.map((node) =>
+        node.id === 'task'
+          ? {
+              ...node,
+              properties: {
+                action: {
+                  actionType: 'java',
+                  className: 'com.example.OrderService',
+                  method: 'execute',
+                },
+              },
+            }
+          : node
+      ),
+    }
+    load(configured)
+    const { result } = renderHook(useClipboard, { wrapper })
+
+    act(() => result.current.duplicateNodes(['task']))
+
+    const nodes = store.getState().editor.present.currentProcess!.nodes
+    expect(nodes).toHaveLength(5)
+    expect(nodes[4]).toMatchObject({
+      parentId: undefined,
+      position: { x: 70, y: 70 },
+      properties: configured.nodes[2].properties,
+    })
+    expect(store.getState().editor.past).toHaveLength(1)
+  })
+
   it('rejects a clipboard from a different model without modifying the destination', () => {
     const { result } = renderHook(useClipboard, { wrapper })
     act(() => result.current.copyNodes(['task']))

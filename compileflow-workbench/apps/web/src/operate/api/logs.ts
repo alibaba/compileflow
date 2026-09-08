@@ -81,11 +81,19 @@ function escapeCsvCell(value: unknown): string {
 
 export async function purgeLogs(params: LogPurgeParams): Promise<LogPurgeResult> {
   if (isOperateMockMode()) {
-    return Promise.resolve({
-      deletedCount: 0,
+    const cutoff = Date.parse(params.before)
+    if (!Number.isFinite(cutoff)) throw new Error('Mock: invalid log purge cutoff')
+    let deletedCount = 0
+    for (let index = mockLogs.length - 1; index >= 0; index -= 1) {
+      if (Date.parse(mockLogs[index].startTime) >= cutoff) continue
+      mockLogs.splice(index, 1)
+      deletedCount += 1
+    }
+    return {
+      deletedCount,
       hasMore: false,
       purgedAt: new Date().toISOString(),
-    })
+    }
   }
   return apiClient.post<LogPurgeResult>('/api/execution-logs/purge', params)
 }

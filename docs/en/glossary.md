@@ -11,13 +11,13 @@ HTTP fields retain their source spelling.
 | Process reference    | Reference to an exact published Version or a published Alias                                                 |
 | Process definition   | Explicit inline or classpath content                                                                         |
 | Preflight            | Parse, validate, and optionally prepare a cached exact runtime, without Version binding or Alias publication |
-| Warm-up              | Compile an explicit definition into the engine cache                                                         |
+| Warm-up              | Prepare an explicit definition in the engine cache                                                           |
 | Compile-then-execute | Generate and compile Java before running a process                                                           |
 | Generated runtime    | Engine-owned compiled process class and runtime wrapper                                                      |
 | Runtime identity     | Engine-local exact compilation identity (`ProcessRuntimeIdentity`)                                           |
-| Runtime cache        | Bounded cache of generated runtimes                                                                          |
+| Runtime cache        | Bounded cache of prepared runtimes                                                                           |
 | Invocation ID        | Stable identifier for one accepted invocation                                                                |
-| Process execution    | Controlled attribution returned with an outcome                                                              |
+| Process execution    | Execution details returned with an outcome                                                                   |
 
 ## Routing And Deployment
 

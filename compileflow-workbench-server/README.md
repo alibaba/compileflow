@@ -5,8 +5,9 @@ publication, published execution, deployment control, persisted asynchronous inv
 catalog.
 
 The Server API is designed for Workbench, not as a general remote interface to the CompileFlow engine. Business
-applications embed CompileFlow with `compileflow-spring-boot-starter` and call its in-process Java API. Workbench Server
-is optional and is not required by the embedded engine.
+applications normally use `compileflow-spring-boot-starter-tbbpm` or `compileflow-spring-boot-starter-bpmn` and call the
+in-process Java API. Applications that need both formats can combine the base starter with both format modules.
+Workbench Server is optional and is not required by the embedded engine.
 
 ## Runtime Boundary
 
@@ -25,7 +26,7 @@ prove an individual browser user's identity. Do not turn an unsigned user header
 
 ## Quick Start
 
-From the repository root, build with Java 17 or newer:
+From the repository root, build with Java 17, 21, or 25:
 
 ```bash
 ./mvnw install -pl compileflow-workbench-server -am -DskipTests
@@ -107,23 +108,8 @@ The canonical machine-readable contract is
 [`docs/specs/openapi/compileflow-workbench-server.openapi.json`](../docs/specs/openapi/compileflow-workbench-server.openapi.json).
 
 It is generated from a real Spring application context. Springdoc is test-scoped, so production does not expose Swagger
-UI or `/v3/api-docs`.
-
-Regenerate after changing a controller or transport contract:
-
-```bash
-./mvnw test -pl compileflow-workbench-server -am \
-  -Dtest=OpenApiContractTest \
-  -Dcompileflow.openapi.update=true \
-  -Dsurefire.failIfNoSpecifiedTests=false
-
-cd compileflow-workbench
-pnpm generate:workbench-server-contract
-pnpm check:workbench-server-contract
-```
-
-Workbench uses generated wire types, refined domain contracts, runtime response validation, and compile-time parity
-assertions. Contract changes must keep routes, methods, statuses, request and response types, and schemas synchronized.
+UI or `/v3/api-docs`. Contract maintenance commands are documented in the
+[Workbench contribution guide](../compileflow-workbench/CONTRIBUTING.md).
 
 ## Health
 

@@ -51,7 +51,7 @@ support matrix.
 
 ## Operations and security
 
-- [Durable key rotation](durable-key-rotation.md)
+- [Durable wait-token security](durable-key-rotation.md)
 - [Durable operations runbook](durable-operations-runbook.md)
 - [Monitoring](monitoring.md)
 - [Operations playbook](operations-playbook.md)

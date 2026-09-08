@@ -7,4 +7,4 @@
 - [流程格式参考](process-formats.md)
 - [Workbench Server OpenAPI](workbench-server-openapi.md)
 
-[`docs/specs`](../../specs/) 中的 OpenAPI 文档、JSON Schema 和基准样例由工具生成或校验，请勿手工修改生成文件。
+[`docs/specs`](../../specs/) 包含对应的 OpenAPI、JSON Schema 和协议样例。

@@ -16,7 +16,7 @@ outside the scope of this example.
 
 ## Prerequisites
 
-- JDK 17 or later
+- JDK 17, 21, or 25
 - Docker, or a PostgreSQL database created specifically for this example
 
 ## Verify

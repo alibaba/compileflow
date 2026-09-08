@@ -3,6 +3,7 @@ import fs from 'node:fs'
 
 import type { APIRequestContext, Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
+import dayjs from 'dayjs'
 
 import {
   failingProcessXml,
@@ -2819,5 +2820,44 @@ test.describe('Real-mode Operate UI tour', () => {
     expect(preview.result?.version_marker).toBe('bpmn-preview')
     await shot(page, '324-real-bpmn-preview')
     await assertNoPageErrors(errors)
+  })
+
+  test('execution-log purge completes through the UI and persists on the server', async ({
+    page,
+    request,
+  }) => {
+    const code = `workbench.real.purge.${crypto.randomUUID()}`
+    await seedDeployedMarkerProcess(request, code, 'Real purge flow', 'purge-marker')
+    await executeAlias(request, code, `purge-execution-${crypto.randomUUID()}`)
+
+    await page.goto(`/operate/logs?keyword=${encodeURIComponent(code)}`)
+    await expect(page.getByText(code).first()).toBeVisible({ timeout: TIMEOUT })
+    await page.getByRole('button', { name: /清理日志|Purge logs/i }).click()
+    const dialog = page.getByRole('dialog')
+    const cutoffInput = dialog.getByRole('textbox', {
+      name: /清理此时间之前的日志|Purge logs before this time/i,
+    })
+
+    const cutoffMs = Date.now() + 1_100
+    await expect.poll(() => Date.now(), { timeout: 5_000 }).toBeGreaterThan(cutoffMs)
+    await cutoffInput.fill(dayjs(cutoffMs).format('YYYY-MM-DD HH:mm:ss'))
+    await cutoffInput.press('Enter')
+    const purgeResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname === '/api/execution-logs/purge' &&
+        response.ok(),
+      { timeout: TIMEOUT }
+    )
+    await dialog.getByRole('button', { name: /确认清理|Purge logs/i }).click()
+    const result = (await (await purgeResponse).json()) as { deletedCount: number }
+    expect(result.deletedCount).toBeGreaterThan(0)
+    await expect(dialog).not.toBeVisible({ timeout: TIMEOUT })
+
+    const remaining = await getJson<{ total: number }>(
+      request,
+      `/api/execution-logs?keyword=${encodeURIComponent(code)}&page=1&pageSize=20`
+    )
+    expect(remaining.total).toBe(0)
   })
 })

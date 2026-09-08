@@ -8,9 +8,16 @@ import { useClipboard } from '../hooks/useClipboard'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import {
   deleteConnection as deleteConnectionAction,
+  deleteGraph,
   deleteNode as deleteNodeAction,
 } from '../store/editorSlice'
-import { selectContextMenu, selectSelectedNodeId, togglePanel } from '../store/uiSlice'
+import {
+  selectContextMenu,
+  selectEdge,
+  selectNode,
+  selectSelectedNodeId,
+  togglePanel,
+} from '../store/uiSlice'
 
 import CanvasToolbar from './CanvasToolbar'
 import { DesignerErrorBoundary } from './DesignerErrorBoundary'
@@ -47,7 +54,7 @@ export function BaseDesignerCore({
 }: BaseDesignerCoreProps) {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
-  const { copyNodes, pasteNodes } = useClipboard()
+  const { copyNodes, duplicateNodes, pasteNodes } = useClipboard()
 
   const selectedNodeId = useAppSelector(selectSelectedNodeId)
   const contextMenu = useAppSelector(selectContextMenu)
@@ -62,15 +69,45 @@ export function BaseDesignerCore({
     [onGraphReady]
   )
 
+  const handleDuplicateSelection = useCallback(() => {
+    duplicateNodes(
+      graphInstance
+        ?.getSelectedCells()
+        .filter((cell) => cell.isNode())
+        .map((cell) => cell.id) ?? []
+    )
+  }, [duplicateNodes, graphInstance])
+
+  const handleDeleteSelection = useCallback(() => {
+    const selectedCells = graphInstance?.getSelectedCells() ?? []
+    if (selectedCells.length === 0) {
+      if (selectedNodeId) dispatch(deleteNodeAction(selectedNodeId))
+      return
+    }
+    dispatch(
+      deleteGraph({
+        nodeIds: selectedCells.filter((cell) => cell.isNode()).map((cell) => cell.id),
+        connectionIds: selectedCells.filter((cell) => cell.isEdge()).map((cell) => cell.id),
+      })
+    )
+    dispatch(selectNode(null))
+    dispatch(selectEdge(null))
+  }, [dispatch, graphInstance, selectedNodeId])
+
   // Copy/paste shortcuts are registered at UnifiedDesigner page level to avoid duplicate handlers.
   useKeyboardShortcuts([
     {
       id: 'delete',
       key: 'Delete',
-      handler: () => {
-        if (selectedNodeId) dispatch(deleteNodeAction(selectedNodeId))
-      },
+      handler: handleDeleteSelection,
       description: t('designer.shortcuts.deleteNode'),
+    },
+    {
+      id: 'duplicate',
+      key: 'd',
+      ctrl: true,
+      handler: handleDuplicateSelection,
+      description: t('designer.toolbar.copySelected'),
     },
     {
       id: 'search',
@@ -131,7 +168,12 @@ export function BaseDesignerCore({
       palette={renderPalette(graphInstance)}
       canvas={
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-          <CanvasToolbar graph={graphInstance} onLoadExample={onLoadExample} />
+          <CanvasToolbar
+            graph={graphInstance}
+            onDuplicateSelection={handleDuplicateSelection}
+            onDeleteSelection={handleDeleteSelection}
+            onLoadExample={onLoadExample}
+          />
           <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
             {renderCanvas(handleGraphReady)}
           </div>

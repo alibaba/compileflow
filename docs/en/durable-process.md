@@ -66,8 +66,9 @@ their input/output contracts are validated before starting the Run. Classpath ca
 
 Durable accepts the documented strict TBBPM and BPMN profiles and rejects every other model type or unsupported
 construct before registration. The schema preserves the closed `ProcessModelType` fact so recovery never guesses a
-format from XML. Both frontends lower only semantics already proved by the same format-neutral Kernel; general message correlation, user tasks,
-boundary events, and event-based gateways remain separate product choices.
+format from XML. Both frontends lower only semantics already proved by the same format-neutral Kernel. Message
+correlation, user tasks, boundary events, and event-based gateways are outside the supported Durable surface and remain
+the application's responsibility.
 
 ## Start an explicit definition
 
@@ -119,12 +120,13 @@ Start input is a closed, partial map of `param` variables from the selected exac
 first Machine Turn, while a present key with a null value remains an explicit null. Later checkpoints contain complete
 Process state, but only as Kernel-committed continuation; callers cannot inject that state again.
 
-Every Start accepts a caller-allocated RunId so admission is addressable before the request. RunId is not a generic idempotency key: a duplicate
-returns `RUN_ALREADY_EXISTS`, and an ambiguous response is resolved with `getRun(runId)`. Alias duplicate
+Every Start accepts a caller-allocated `ProcessRunId` so admission is addressable before the request. A Run ID is not a
+generic idempotency key: a duplicate returns `RUN_ALREADY_EXISTS`, and an ambiguous response is resolved with
+`getRun(runId)`. Alias duplicate
 detection happens before mutable Alias resolution. A caller-allocated value is permanently bound to one Run
-occurrence and must never be reused, even after retention. If an HTTP request, message, or business operation must
-start only once, the outer application/admission inbox still owns request equivalence and its identity-to-RunId
-mapping. The Kernel has no generic idempotency key or command receipt.
+occurrence and must never be reused, even after retention. If an HTTP request, message, or business operation must start
+only once, the application adapter must decide request equivalence and map its business identity to a `ProcessRunId`.
+The Kernel has no generic idempotency key or command receipt.
 
 Before a replayable Action, Effect input, or Wait-description callback crosses into application
 code, the exact Process serializer creates a typed detached graph. This includes mutable POJOs inside
@@ -140,12 +142,12 @@ ScriptExecutor implementations, or application POJO class shape. Every declared 
 variable, scope frame, Effect input/output, or Wait result is therefore an application-managed persistence schema.
 
 Application-owned implementations must keep those values decodable for as long as the corresponding Runs are retained.
-CompileFlow does not persist an ApplicationBuildId or route recovery by application build.
+The current deployment must provide compatible application classes and registered capabilities for recovery.
 
 CompileFlow does own compatibility of its parser, semantic compiler, resume coordinates, and Engine envelope format.
 The persisted envelope has a compact internal version header used only for fail-closed decode and migration; it is not
-Process/codec identity. The checked-in compatibility corpus verifies recovery from frozen Definition, continuation,
-Wait, Timer, and Effect fixtures.
+Process/codec identity. Compatibility covers recovery from stored Definition, continuation, Wait, Timer, and Effect
+state.
 
 Persisted Runs require matching application, Kernel, and Store protocol versions. Mixed-version rolling operation is
 not a Supported contract.

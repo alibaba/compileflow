@@ -86,6 +86,58 @@ describe('useDeploymentManagementData', () => {
     expect(result.current.loading).toBe(false)
   })
 
+  it('starts only one load-more request for rapid repeated calls', async () => {
+    const nextPage = deferred<DeploymentListResponse>()
+    vi.mocked(getDeployments)
+      .mockResolvedValueOnce({
+        deployments: [mockDeployments[0]],
+        hasMore: true,
+        nextCursor: 'next-page',
+      })
+      .mockReturnValueOnce(nextPage.promise)
+
+    const { result } = renderHook(() => useDeploymentManagementData())
+    await waitFor(() => expect(result.current.queryReady).toBe(true))
+
+    act(() => {
+      result.current.loadMore()
+      result.current.loadMore()
+    })
+    expect(getDeployments).toHaveBeenCalledTimes(2)
+
+    nextPage.resolve({ deployments: [], hasMore: false, nextCursor: null })
+    await act(async () => nextPage.promise)
+  })
+
+  it('never combines a previous cursor with a newly selected filter', async () => {
+    const nextQuery = deferred<DeploymentListResponse>()
+    vi.mocked(getDeployments)
+      .mockResolvedValueOnce({
+        deployments: [mockDeployments[0]],
+        hasMore: true,
+        nextCursor: 'old-query-cursor',
+      })
+      .mockReturnValueOnce(nextQuery.promise)
+
+    const { result, rerender } = renderHook<
+      ReturnType<typeof useDeploymentManagementData>,
+      { keyword: string }
+    >(({ keyword }) => useDeploymentManagementData({ keyword }), {
+      initialProps: { keyword: 'order' },
+    })
+    await waitFor(() => expect(result.current.queryReady).toBe(true))
+
+    rerender({ keyword: 'payment' })
+    await waitFor(() => expect(getDeployments).toHaveBeenCalledTimes(2))
+    expect(result.current.queryReady).toBe(false)
+    act(() => result.current.loadMore())
+    expect(getDeployments).toHaveBeenCalledTimes(2)
+    expect(getDeployments).toHaveBeenLastCalledWith({ keyword: 'payment', limit: 100 })
+
+    nextQuery.resolve({ deployments: [], hasMore: false, nextCursor: null })
+    await act(async () => nextQuery.promise)
+  })
+
   it('keeps load failures visible until a retry succeeds', async () => {
     const recovered = {
       deployments: [mockDeployments[0]],

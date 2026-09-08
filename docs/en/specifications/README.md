@@ -7,5 +7,4 @@ These documents define CompileFlow's process formats and same-release HTTP contr
 - [Process format reference](process-formats.md)
 - [Workbench Server OpenAPI](workbench-server-openapi.md)
 
-The checked-in OpenAPI document, JSON schemas, and golden fixtures under [`docs/specs`](../../specs/) are generated or
-machine-validated contract artifacts. Do not edit generated files by hand.
+[`docs/specs`](../../specs/) contains the corresponding machine-readable OpenAPI, JSON Schema, and protocol fixtures.

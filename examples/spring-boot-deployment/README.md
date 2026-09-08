@@ -24,7 +24,7 @@ and audit controls.
 
 ## Prerequisites
 
-- JDK 17 or later
+- JDK 17, 21, or 25
 - A PostgreSQL database created specifically for this example
 - `curl` to call the example endpoint
 

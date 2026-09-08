@@ -1,6 +1,7 @@
 # Durable 流程
 
-Durable Process 为流程提供持久化执行能力，由一个 `DurableStore` 作为唯一状态源。内置实现支持 PostgreSQL 和 MySQL。Durable 与 `ProcessEngine` 相互独立，不会自动持久化普通流程调用，也不会将应用版本写入流程身份。
+Durable Process 为流程提供持久化执行能力，由一个 `DurableStore` 作为唯一状态源。内置实现支持 PostgreSQL 和 MySQL。
+Durable 与 `ProcessEngine` 相互独立，不会自动持久化普通流程调用。
 
 ## 添加依赖
 
@@ -95,9 +96,10 @@ API 为 Version 和 Alias 分别提供强类型重载；仅有流程编码不能
 
 已存储流程会固定源码、控制语义、变量声明、Action 声明和恢复位置，但不会固定 Spring Bean、Java Action 字节码、依赖库、`ScriptExecutor` 实现或应用 POJO 的类结构。持久化变量、作用域帧、Effect 输入输出或 Wait 结果涉及的每个 Java 类型，都属于应用需要维护的持久化数据结构。
 
-只要对应流程实例仍被保留，应用就必须保证这些值可以继续解码。CompileFlow 不持久化应用构建 ID，也不按应用版本选择恢复节点。
+只要对应流程实例仍被保留，应用就必须保证这些值可以继续解码。当前部署必须提供与已存储状态兼容的应用类和注册能力。
 
-CompileFlow 负责解析器、语义编译器、恢复坐标和内部状态封装格式的兼容性。封装中的内部版本头只用于安全解码和数据升级，不属于流程或编解码器身份。仓库中的流程定义、continuation、Wait、Timer 和 Effect 固定样例用于验证已提交状态仍可恢复。
+CompileFlow 负责解析器、语义编译器、恢复坐标和内部状态封装格式的兼容性。封装中的内部版本头只用于安全解码和数据升级，
+不属于流程或编解码器身份。兼容性覆盖已存储的流程定义、续执行状态、Wait、Timer 和 Effect 状态。
 
 持久化流程要求应用、Durable 内核和存储使用匹配的协议版本；不支持不同协议版本混合运行。
 

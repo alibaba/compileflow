@@ -1,6 +1,6 @@
 # 安全指南
 
-CompileFlow 会把流程定义编译成 Java 代码，并在宿主 JVM 内执行。请把每一份流程定义都当成可执行代码处理。
+CompileFlow 在宿主 JVM 内执行流程；编译模式会先生成 Java 代码。请把每一份流程定义都当成可执行代码处理。
 
 [威胁模型](threat-model.md)说明需要保护的资产、参与者、信任边界、防护措施和部署环境中的剩余风险；本文给出相应的配置与运维要求。
 
@@ -19,12 +19,6 @@ CompileFlow 适用于来源可信、已经授权的流程定义。它不是用�
 内联定义和类路径定义统一受 `compileflow.engine.definition.max-size` 限制，默认 4 MiB。加载器只读取一次内容并保存为有界的不可变字节快照，Schema 校验和模型解析使用完全相同的字节。应用类加载器返回的已知网络 URL 会被拒绝。
 
 嵌入式引擎不会通过 URL 获取流程定义。远程制品应由应用或部署解析器获取，并在交给编译器前完成认证、网络访问控制、超时、大小限制和摘要校验。
-
-相关回归测试位于：
-
-```text
-compileflow-bpmn/src/test/java/com/alibaba/compileflow/engine/bpmn/BpmnModelReaderTest.java
-```
 
 ### Java 标识符规范化
 
@@ -107,7 +101,7 @@ Spring Bean 动作默认不能访问任何组件。只应通过 `compileflow.eng
 生产环境应：
 
 - 只允许来源可信且已经授权的流程定义上线。
-- 将任何包含内建 QL 或 Java 脚本的流程定义视为可执行输入，只允许已经授权的定义上线。
+- 将任何包含内建 QL 或 Java Code 的流程定义视为可执行输入，只允许已经授权的定义上线。
 - 除非已经授权的 Spring 动作确实需要，否则保持 `compileflow.engine.components.allowed-beans` 为空。
 - 通过职责单一的 Spring 适配器或解析器限制流程可调用的方法。
 - 优先暴露职责单一的服务接口，而不是范围宽泛的业务服务。

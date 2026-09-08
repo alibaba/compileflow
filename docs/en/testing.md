@@ -10,7 +10,7 @@ rule crosses a module or persistence boundary.
 | Unit                     | One class or pure rule                      | Parsing, validation, routing, state transitions, and error mapping.       |
 | Module integration       | One Maven module with its dependencies      | Spring wiring, generated code, resource lifecycle, and provider behavior. |
 | Store contract           | A real first-party database Provider        | Transaction, migration, locking, lease, and recovery semantics.           |
-| Cross-module integration | Engine, Deploy, Durable, or Server together | Public workflows and exact version attribution.                           |
+| Cross-module integration | Engine, Deploy, Durable, or Server together | Public workflows and the exact effective version.                         |
 | Workbench                | pnpm workspace                              | TypeScript, contract, UI, and browser behavior.                           |
 
 Tests must be deterministic. Do not depend on execution order, a developer home directory, the default timezone, network availability, or static state left by an earlier test.
@@ -54,7 +54,7 @@ Server endpoint tests should cover request validation, authentication mode, prob
 Run one test class:
 
 ```bash
-./mvnw -pl <module> -Dtest=<TestClass> test
+./mvnw -pl <module> -am -Dtest=<TestClass> -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
 Build dependent modules from the reactor:

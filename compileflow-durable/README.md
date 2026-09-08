@@ -27,7 +27,7 @@ support boundary.
 
 Applications choose exactly one database starter. If both provider compositions are present,
 set `compileflow.durable.database.provider` explicitly; otherwise startup fails closed. A complete custom `DurableStore`
-overrides first-party auto-configuration. The aggregate POM is the definitive module list.
+overrides first-party auto-configuration.
 
 ## Start and Query a Run
 

@@ -52,12 +52,11 @@ TBBPM 和文档化的 BPMN 2.0 子集由各自规范及[节点支持](node-suppo
 
 仓库中的 [OpenAPI 描述](specifications/workbench-server-openapi.md)是 `compileflow-workbench-server` `/api/**` 端点在同一版本内的精确线协议契约。该接口属于“随部署提供支持”的能力，供匹配版本的 Workbench 前端与服务端配套使用，不是稳定的第三方集成 API。
 
-控制器记录类、OpenAPI、生成的 TypeScript、运行时校验和契约测试必须同步更新。前端和 Server 必须来自同一个 CompileFlow
-版本；此支持面不定义兼容窗口。
+前端和 Server 必须来自同一个 CompileFlow 版本；此支持面不定义兼容窗口。
 
 ### 持久化、线协议与遥测
 
-每个已发布的 Flyway 数据库变更脚本都不可修改。数据库结构变化必须新增脚本，并为所属产品提供启动、重启和恢复验证。
+每个已发布的 Flyway 数据库变更脚本都不可修改，数据库结构变化必须新增脚本。
 
 持久化类型标识、错误码、协议字段名、指标名称和标签键都属于兼容性契约。CompileFlow 元数据使用 `compileflow.` 命名空间；Deploy 指标使用 `compileflow.deploy.*` 命名空间。应用元数据应使用自己的命名空间。发布元数据只用于描述，不是路由或投影的权威来源。发布完整性通过命令中的 `expectedArtifactDigest` 字段校验。
 

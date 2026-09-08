@@ -33,7 +33,7 @@ CompileFlow Durable 为长时间运行的流程提供持久化能力，可在流
 
 - **⚡ 高性能执行** —— 支持编译执行和解释执行两种模式；编译模式生成并复用 Java 运行时。
 - **🧩 TBBPM 与 BPMN** —— 使用统一的引擎 API 处理 TBBPM 和文档明确支持的 BPMN 2.0 子集。
-- **✅ Java 与 Spring Boot 集成** —— 提供线程安全的引擎、流程预检、类型安全的结果和稳定错误码。
+- **✅ Java 与 Spring Boot 集成** —— 可直接嵌入或通过 Spring Boot 集成，提供声明式变量、流程预检、类型安全的结果和稳定错误码。
 - **🚦 版本化部署** —— 使用 CompileFlow Deploy 发布不可变版本，通过修订号检查更新别名，并按稳定规则进行灰度路由。
 - **⏱️ 持久化执行** —— 保存流程等待、定时任务和外部操作状态，并在应用重启后恢复执行。
 - **🖥️ 可视化 Workbench** —— 在浏览器中建模和校验流程，并通过 Workbench Server 发布、监控和查看执行。
@@ -65,7 +65,7 @@ Durable API。
 
 ## 快速开始
 
-CompileFlow 需要 JDK 17 或更高版本。生成的字节码以 Java 17 为目标。CI 在 Java 17 上运行完整行为测试，并在 Java 21 和 25 上运行并发及动态代码兼容性检查。
+CompileFlow 支持 JDK 17、21 和 25，生成的字节码以 Java 17 为目标。
 
 从源码构建并安装所需模块：
 
@@ -147,7 +147,7 @@ flowchart LR
 | 运维部署       | [运维手册](docs/zh/operations-playbook.md)               | [Operations](docs/en/operations-playbook.md)                     |
 | 参与贡献       | [贡献指南（英文）](CONTRIBUTING.md)                      | [Contributing](CONTRIBUTING.md)                                  |
 
-[中文文档中心](docs/zh/README.md)是任务指南、规范、架构和模块文档的统一入口。兼容性决策请以[支持面清单](docs/zh/architecture/supported-surfaces.md)为准。
+[文档中心](docs/README.md)是双语文档总入口，[中文文档](docs/zh/README.md)提供中文任务指南、规范和架构索引。兼容性决策请以[支持面清单](docs/zh/architecture/supported-surfaces.md)为准。
 
 ## 构建与测试
 
@@ -157,7 +157,7 @@ flowchart LR
 ./mvnw -B test -pl compileflow-integration-tests -am
 ```
 
-仓库专用验证命令见[测试指南](docs/zh/testing.md)。发布要求由仓库工作流及[英文贡献指南](CONTRIBUTING.md)中的检查项强制执行。
+仓库专用验证命令见[测试指南](docs/zh/testing.md)和[英文贡献指南](CONTRIBUTING.md)。
 
 ## Adopters
 

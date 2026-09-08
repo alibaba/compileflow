@@ -4,12 +4,12 @@ Format-neutral Spring Boot auto-configuration for CompileFlow. It binds `compile
 integrates application beans, engine lifecycle, metrics, and context propagation. It does not select a process format
 or enable persistence.
 
-Most applications should depend on `compileflow-spring-boot-starter` instead of using this artifact directly. The
-concrete auto-configuration classes and implementation packages are not supported application APIs; public engine
-contracts live in `compileflow-api`.
+Most applications should use `compileflow-spring-boot-starter-tbbpm` or `compileflow-spring-boot-starter-bpmn`.
+Applications that assemble multiple process formats can combine `compileflow-spring-boot-starter` with the required
+format modules. The concrete auto-configuration classes and implementation packages are not supported application APIs;
+public engine contracts live in `compileflow-api`.
 
-Use this module directly only when assembling a custom Spring Boot integration. For the standard integration, use the
-starter. Engine properties and activation rules are documented in the
+Use this module directly only when assembling a custom Spring Boot integration. Engine properties and activation rules are documented in the
 [configuration guide](../docs/en/configuration.md); module relationships are documented in the
 [module map](../docs/en/architecture/module-map.md). Deploy and Durable provide separate starters.
 

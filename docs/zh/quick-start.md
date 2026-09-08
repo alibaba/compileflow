@@ -4,7 +4,7 @@
 
 ## 前置条件
 
-- JDK 17、21 或 25；构建、发布与默认生产镜像统一以 Java 17 为基线。
+- JDK 17、21 或 25；构建与发布以 Java 17 为基线。
 - 使用仓库自带的 Maven Wrapper，无需单独安装 Maven。
 
 在仓库根目录验证工具链：
@@ -14,7 +14,7 @@ java -version
 ./mvnw -version
 ```
 
-## 运行已验证示例
+## 运行示例
 
 先安装 Starter 及其模块依赖，再运行示例：
 
@@ -99,7 +99,7 @@ BOM 只管理版本，不会向应用添加依赖。
 </bpm>
 ```
 
-严格预检会在执行前校验 XML Schema、流程图、生成的 Java 源码和编译结果。
+严格预检会校验 XML Schema 和流程图，并确认所选执行模式能够正常准备运行时。
 
 ## 执行流程
 
@@ -135,7 +135,7 @@ public final class PricingService {
 
 ## 预检与预热
 
-在应用启动或发布准备阶段校验并编译已知流程：
+在应用启动时校验并准备已知流程：
 
 ```java
 ProcessDefinition definition = ProcessDefinition.classpath(
@@ -156,7 +156,7 @@ if (report.getOverallStatus() != ProcessPreflightReport.OverallStatus.PASS) {
 processEngine.runtime().warmUp(definition);
 ```
 
-`runtime().warmUp(...)` 只将指定定义编译到当前引擎的本地运行时缓存，不创建流程代码或版本绑定；
+`runtime().warmUp(...)` 只在当前引擎的本地缓存中准备指定定义，不创建流程编码或版本绑定；
 它不是分布式发布操作，也不会修改别名路由。
 
 ## 独立模式

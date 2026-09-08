@@ -38,6 +38,7 @@ import './BpmnCanvas.css'
 
 const logger = createLogger('BpmnCanvas')
 const PARENT_ID_DATA_KEY = '__parentId'
+const POSITION_TOLERANCE = 0.5
 
 interface BpmnCanvasProps {
   onGraphReady?: (graph: Graph) => void
@@ -67,6 +68,42 @@ function bpmnNodeToX6Cell(node: BpmnNode): Record<string, unknown> {
       [PARENT_ID_DATA_KEY]: node.parentId,
     },
   }
+}
+
+function hasBpmnNodeDataChanged(cell: Node, node: BpmnNode): boolean {
+  const data = cell.getData() as {
+    label?: string
+    action?: ActionDefinition
+    scriptFormat?: string
+    messageRef?: string
+    calledElement?: string
+    classpath?: string
+    version?: string
+    [PARENT_ID_DATA_KEY]?: string
+  }
+  return (
+    data.label !== node.name ||
+    data.action?.actionType !== node.properties.action?.actionType ||
+    data.scriptFormat !== node.properties.scriptFormat ||
+    data.messageRef !== node.properties.messageRef ||
+    data.calledElement !== node.properties.calledElement ||
+    data.classpath !== node.properties.classpath ||
+    data.version !== node.properties.version ||
+    data[PARENT_ID_DATA_KEY] !== node.parentId
+  )
+}
+
+function hasBpmnNodeChanged(cell: Node, node: BpmnNode): boolean {
+  const position = cell.position()
+  const size = cell.getSize()
+  const config = getBpmnNodeConfig(node.type)
+  return (
+    Math.abs(position.x - node.position.x) > POSITION_TOLERANCE ||
+    Math.abs(position.y - node.position.y) > POSITION_TOLERANCE ||
+    size.width !== (node.size?.width ?? config?.width ?? 100) ||
+    size.height !== (node.size?.height ?? config?.height ?? 80) ||
+    hasBpmnNodeDataChanged(cell, node)
+  )
 }
 
 function bpmnNodeFromX6Node(node: Node): BpmnNode | null {
@@ -257,41 +294,20 @@ const BpmnCanvas = memo(function BpmnCanvas({ onGraphReady }: BpmnCanvasProps) {
     registerBpmnNodes()
   }, [])
 
-  const POS_TOLERANCE = 0.5
-
   useCanvasSync(localGraphRef, isSyncingRef, {
     nodes,
     connections,
     selectedNodeId,
     nodeToX6Cell: bpmnNodeToX6Cell,
     connectionToX6Edge: bpmnConnectionToX6Edge,
-    checkNodeChanged: (cell, node) => {
-      const currentPos = cell.position()
-      const currentData = cell.getData() as {
-        label?: string
-        action?: ActionDefinition
-        scriptFormat?: string
-        messageRef?: string
-        calledElement?: string
-        classpath?: string
-        version?: string
-        [PARENT_ID_DATA_KEY]?: string
-      }
-      return (
-        Math.abs(currentPos.x - node.position.x) > POS_TOLERANCE ||
-        Math.abs(currentPos.y - node.position.y) > POS_TOLERANCE ||
-        currentData.label !== node.name ||
-        currentData.action?.actionType !== node.properties.action?.actionType ||
-        currentData.scriptFormat !== node.properties.scriptFormat ||
-        currentData.messageRef !== node.properties.messageRef ||
-        currentData.calledElement !== node.properties.calledElement ||
-        currentData.classpath !== node.properties.classpath ||
-        currentData.version !== node.properties.version ||
-        currentData[PARENT_ID_DATA_KEY] !== node.parentId
-      )
-    },
+    checkNodeChanged: hasBpmnNodeChanged,
     syncNodeToCell: (cell, node) => {
       cell.position(node.position.x, node.position.y)
+      const nodeConfig = getBpmnNodeConfig(node.type)
+      cell.resize(
+        node.size?.width ?? nodeConfig?.width ?? 100,
+        node.size?.height ?? nodeConfig?.height ?? 80
+      )
       cell.setData({
         label: node.name,
         ...node.properties,

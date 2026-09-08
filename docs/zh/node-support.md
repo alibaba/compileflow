@@ -48,7 +48,11 @@ Durable TBBPM 能力集支持 `start`、`end`、`autoTask`、`scriptTask`、`exc
 `while`、`foreach`、`break`、`continue`、结构化 `parallel`/`inclusive`、`subBpm` 与 `bpmCall`。Parallel/Inclusive 使用持久化的
 确定性的分支边界和稳定合并顺序。流程调用产生的应用写入无法证明只属于单个分支，因此不能放在并发区域中。
 
-Durable `bpmCall` 可以在 Direct graph 中声明精确的应用 classpath 路径，也可以声明精确 Version；版本图只使用 Version 依赖。Alias 只在根流程启动时解析，此后所有静态调用位置都绑定到精确目标。子流程调用在同一个 Run 中使用新的 `ProcessInvocation` 帧执行，不会创建另一个 Run。排他网关、While、Timer、guard 和 transition 表达式会继续生成 Java 源码。Action 可以间接使用已注册的 `ScriptExecutor`，CompileFlow 不限定脚本语言。Durable While 计划允许配置 `maxIterations` 上限，TBBPM 则要求每个 `while` 都必须声明该值；单次执行步数还会受到独立的 Turn 预算限制。
+Durable `bpmCall` 可以在直接调用图中声明精确的应用类路径，也可以声明精确版本；版本调用图只使用确定版本。别名只在根流程启动时解析，
+此后所有静态调用位置都绑定到精确目标。子流程调用在同一个 Run 中使用新的 `ProcessInvocation` 帧执行，不会创建另一个 Run。
+排他网关、While、Timer、守卫条件和连线条件会继续生成 Java 源码。Action 可以间接使用已注册的 `ScriptExecutor`，CompileFlow
+不限定脚本语言。Durable While 计划允许配置 `maxIterations` 上限，TBBPM 则要求每个 `while` 都必须声明该值；
+单次执行步数还会受到独立的执行轮次预算限制。
 
 详见 [TBBPM 规范](specifications/tbbpm.md#34-durable-timer-与-effect-action)
 与 [Durable Process 使用指南](durable-process.md)。

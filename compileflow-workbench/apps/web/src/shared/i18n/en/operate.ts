@@ -595,6 +595,20 @@ const enOperate = {
 
   'logs.export': 'Export',
 
+  'logs.purge': 'Purge logs',
+
+  'logs.purgeTitle': 'Purge historical execution logs',
+
+  'logs.purgeBefore': 'Purge logs before this time',
+
+  'logs.purgeWarning': 'Execution logs before the cutoff will be permanently deleted.',
+
+  'logs.purgeConfirm': 'Purge logs',
+
+  'logs.purgeSuccess': 'Purged {{count}} execution logs',
+
+  'logs.purgeFailed': 'Failed to purge logs',
+
   'logs.noData': 'No execution logs',
 
   // Shared filters

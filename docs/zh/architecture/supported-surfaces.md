@@ -38,7 +38,7 @@ API 与 SPI 位于同一个无运行时依赖的制品中：引擎配置使用 S
 | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `ProcessEngine`, `ProcessEngineFactory`                                                                         | 引擎生命周期与执行入口                                                          |
 | `ProcessRef`, `ProcessDefinition`                                                                               | 已有流程身份与显式定义来源                                                      |
-| `ProcessResult`, `ProcessError`, `ProcessExecution`, `ProcessExecutionOptions`                                  | 类型化执行结果、受控归因与请求选项                                              |
+| `ProcessResult`, `ProcessError`, `ProcessExecution`, `ProcessExecutionOptions`                                  | 类型化执行结果、执行信息与请求选项                                              |
 | `ProcessAliasTarget`、`AliasRoutingOptions`、`ProcessTrigger`、`ProcessDataMapper`、`ProcessExecutionException` | 执行辅助值、路由控制、类型映射与失败传播                                        |
 | `ProcessDefinitionDigest`、`ProcessIdentifiers`、`ProcessText`                                                  | 稳定摘要与身份/文本校验契约                                                     |
 | `ProcessRuntimeManager`, `ProcessToolingService`                                                                | 本地运行时生命周期与不执行流程的工具链                                          |
@@ -147,8 +147,7 @@ Durable 通过同一语义执行后端接受文档定义的严格 TBBPM 和 BPMN
 | `compileflow.durable.*`          | Durable 应用/维护运行时        | 默认关闭；角色、迁移、Worker 和留存必须显式选择 |
 | `compileflow.workbench.server.*` | `compileflow-workbench-server` | 认证、HTTP 限制、持久化异步调用                 |
 
-权威用户指南：[configuration.md](../configuration.md)。生成的 Spring 元数据与 `ConfigurationMetadataTest`
-必须与属性类保持一致。
+权威用户指南：[configuration.md](../configuration.md)。生成的 Spring 配置元数据必须与属性类保持一致。
 
 ## 部署行为
 

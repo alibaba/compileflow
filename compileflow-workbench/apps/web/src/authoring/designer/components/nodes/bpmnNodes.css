@@ -19,10 +19,14 @@
   justify-content: center;
   cursor: pointer;
   user-select: none;
+  width: 100%;
+  height: 100%;
 }
 
-.bpmn-node svg {
+.bpmn-node > svg {
   display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .bpmn-node-label {
@@ -54,8 +58,8 @@
 /* ==================== 事件节点样式 ==================== */
 
 .bpmn-event {
-  width: 36px;
-  height: 36px;
+  width: 100%;
+  height: 100%;
 }
 
 .bpmn-start-event svg circle {
@@ -69,8 +73,8 @@
 /* ==================== 任务节点样式 ==================== */
 
 .bpmn-task {
-  width: 100px;
-  height: 80px;
+  width: 100%;
+  height: 100%;
 }
 
 .bpmn-service-task svg rect {
@@ -102,8 +106,8 @@
 /* ==================== 网关节点样式 ==================== */
 
 .bpmn-gateway {
-  width: 50px;
-  height: 50px;
+  width: 100%;
+  height: 100%;
 }
 
 .bpmn-exclusive-gateway svg path {
@@ -120,8 +124,8 @@
 }
 
 .bpmn-call-activity {
-  width: 140px;
-  height: 100px;
+  width: 100%;
+  height: 100%;
 }
 
 .bpmn-call-activity svg rect {

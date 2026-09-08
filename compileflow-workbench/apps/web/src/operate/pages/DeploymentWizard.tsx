@@ -373,11 +373,18 @@ function useDeploymentWizardState(
   )
   const selectedAliasPreset = formData.alias ? getDeploymentAliasPreset(formData.alias) : undefined
   const deployment = useDeploymentSubmission(formData, selectedProcess, t)
+  const advancing = useRef(false)
   const handleNext = useCallback(async () => {
-    const values = await validatedStepValues(form)
-    if (!values) return
-    setFormData((previous) => ({ ...previous, ...values }))
-    setCurrent((step) => step + 1)
+    if (advancing.current) return
+    advancing.current = true
+    try {
+      const values = await validatedStepValues(form)
+      if (!values) return
+      setFormData((previous) => ({ ...previous, ...values }))
+      setCurrent((step) => step + 1)
+    } finally {
+      advancing.current = false
+    }
   }, [form])
 
   const handlePrev = useCallback(() => setCurrent((step) => step - 1), [])

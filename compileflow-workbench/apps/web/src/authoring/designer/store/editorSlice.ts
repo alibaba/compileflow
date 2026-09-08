@@ -201,6 +201,37 @@ function clearRemovedBpmnDefaultConnections(
   })
 }
 
+function removeGraphCells(
+  process: UnifiedProcessDefinition,
+  nodeIds: readonly string[],
+  connectionIds: readonly string[] = []
+): void {
+  const removedNodeIds = new Set(nodeIds)
+  let foundDescendant = true
+  while (foundDescendant) {
+    foundDescendant = false
+    process.nodes.forEach((node) => {
+      if (node.parentId && removedNodeIds.has(node.parentId) && !removedNodeIds.has(node.id)) {
+        removedNodeIds.add(node.id)
+        foundDescendant = true
+      }
+    })
+  }
+  const removedConnectionIds = new Set(connectionIds)
+  process.connections.forEach((connection) => {
+    if (removedNodeIds.has(connection.sourceId) || removedNodeIds.has(connection.targetId)) {
+      removedConnectionIds.add(connection.id)
+    }
+  })
+  for (let index = process.nodes.length - 1; index >= 0; index -= 1) {
+    if (removedNodeIds.has(process.nodes[index].id)) process.nodes.splice(index, 1)
+  }
+  process.connections = process.connections.filter(
+    (connection) => !removedConnectionIds.has(connection.id)
+  )
+  clearRemovedBpmnDefaultConnections(process, removedConnectionIds)
+}
+
 function resetDocumentTracking(state: EditorState, requestId: string): void {
   state.documentRequestId = requestId
   state.activeSaveRequestId = null
@@ -556,44 +587,18 @@ const editorSlice = createSlice({
     deleteNode: {
       reducer(state, action: ChangeAction<string>) {
         if (!state.currentProcess) return
-        const nodeId = action.payload
-        const deletedIds = new Set([nodeId])
-        let foundDescendant = true
-        while (foundDescendant) {
-          foundDescendant = false
-          state.currentProcess.nodes.forEach((node) => {
-            if (node.parentId && deletedIds.has(node.parentId) && !deletedIds.has(node.id)) {
-              deletedIds.add(node.id)
-              foundDescendant = true
-            }
-          })
-        }
-        if (state.currentProcess.type === 'BPMN') {
-          const removedConnectionIds = new Set(
-            state.currentProcess.connections
-              .filter(
-                (connection) =>
-                  deletedIds.has(connection.sourceId) || deletedIds.has(connection.targetId)
-              )
-              .map((connection) => connection.id)
-          )
-          state.currentProcess.nodes = state.currentProcess.nodes.filter(
-            (node) => !deletedIds.has(node.id)
-          )
-          state.currentProcess.connections = state.currentProcess.connections.filter(
-            (connection) =>
-              !deletedIds.has(connection.sourceId) && !deletedIds.has(connection.targetId)
-          )
-          clearRemovedBpmnDefaultConnections(state.currentProcess, removedConnectionIds)
-        } else {
-          state.currentProcess.nodes = state.currentProcess.nodes.filter(
-            (node) => !deletedIds.has(node.id)
-          )
-          state.currentProcess.connections = state.currentProcess.connections.filter(
-            (connection) =>
-              !deletedIds.has(connection.sourceId) && !deletedIds.has(connection.targetId)
-          )
-        }
+        removeGraphCells(state.currentProcess, [action.payload])
+        markChanged(state, action.meta.changeToken)
+      },
+      prepare: prepareChange,
+    },
+
+    deleteGraph: {
+      reducer(state, action: ChangeAction<{ nodeIds: string[]; connectionIds: string[] }>) {
+        if (!state.currentProcess) return
+        const { nodeIds, connectionIds } = action.payload
+        if (nodeIds.length === 0 && connectionIds.length === 0) return
+        removeGraphCells(state.currentProcess, nodeIds, connectionIds)
         markChanged(state, action.meta.changeToken)
       },
       prepare: prepareChange,
@@ -626,6 +631,34 @@ const editorSlice = createSlice({
           }
           markChanged(state, action.meta.changeToken)
         }
+      },
+      prepare: prepareChange,
+    },
+
+    setBpmnDefaultConnection: {
+      reducer(state, action: ChangeAction<{ nodeId: string; connectionId: string | undefined }>) {
+        if (state.currentProcess?.type !== 'BPMN') return
+        const { nodeId, connectionId } = action.payload
+        const node = state.currentProcess.nodes.find((candidate) => candidate.id === nodeId)
+        if (
+          !node ||
+          (node.type !== 'bpmn:ExclusiveGateway' && node.type !== 'bpmn:InclusiveGateway')
+        ) {
+          return
+        }
+        if (connectionId) {
+          const connection = state.currentProcess.connections.find(
+            (candidate) => candidate.id === connectionId && candidate.sourceId === nodeId
+          )
+          if (!connection) return
+          if (node.properties.default === connectionId && connection.condition === undefined) return
+          connection.condition = undefined
+          node.properties.default = connectionId
+        } else {
+          if (node.properties.default === undefined) return
+          delete node.properties.default
+        }
+        markChanged(state, action.meta.changeToken)
       },
       prepare: prepareChange,
     },
@@ -810,8 +843,10 @@ export const {
   replaceContainerChildren,
   moveNode,
   deleteNode,
+  deleteGraph,
   addConnection,
   updateConnection,
+  setBpmnDefaultConnection,
   deleteConnection,
   updateProcessInfo,
   clearWarnings,

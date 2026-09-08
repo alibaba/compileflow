@@ -73,8 +73,14 @@ export function useCanvasSync<
           if (!graph.getCellById(id)) graph.addNode(nodeToX6Cell(node))
         } else {
           const cell = graph.getCellById(id)
-          if (cell?.isNode() && checkNodeChanged(cell, node)) {
-            syncNodeToCell(cell, node)
+          if (cell?.isNode()) {
+            const nextCell = nodeToX6Cell(node)
+            if (typeof nextCell.shape === 'string' && cell.shape !== nextCell.shape) {
+              graph.removeCell(cell)
+              graph.addNode(nextCell)
+            } else if (checkNodeChanged(cell, node)) {
+              syncNodeToCell(cell, node)
+            }
           }
         }
       })

@@ -1,6 +1,7 @@
 # CompileFlow 文档
 
-通过这些文档，可以在应用中集成 CompileFlow、定义和校验流程、运维可选的 Deploy 与 Durable 产品，并了解项目的公共契约。项目简介、安装示例和社区入口见[中文 README](../../README_CN.md)；各项能力的权威支持范围见[支持面清单](architecture/supported-surfaces.md)。
+这里介绍如何在应用中集成 CompileFlow、定义和校验流程，以及使用 Deploy、Durable 和 Workbench。项目简介、安装示例和社区入口见
+[中文 README](../../README_CN.md)，各项能力的支持范围见[支持面清单](architecture/supported-surfaces.md)。
 
 ## 选择阅读路径
 
@@ -45,7 +46,7 @@
 
 ## 运维与安全
 
-- [Durable 密钥轮换](durable-key-rotation.md)
+- [Durable Wait 令牌安全](durable-key-rotation.md)
 - [Durable 运维手册](durable-operations-runbook.md)
 - [监控与可观测性](monitoring.md)
 - [运维手册](operations-playbook.md)

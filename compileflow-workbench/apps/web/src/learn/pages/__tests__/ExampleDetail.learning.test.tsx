@@ -136,7 +136,9 @@ describe('ExampleDetail learning progress ownership', () => {
     expect(readLearningProgress()?.totalExamples).toBe(2)
     expect(screen.getByText('0 / 2')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'learning.markComplete' }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'learning.markComplete' }))
+    })
 
     expect(readLearningProgress()?.totalExamples).toBe(2)
     expect(readLearningProgress()?.completedExamples).toEqual([example.id])

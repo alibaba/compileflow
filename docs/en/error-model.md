@@ -7,7 +7,7 @@ conversion failed.
 ## Engine API
 
 `execute(...)` and `trigger(...)` return `ProcessResult<T>` for failures that occur inside the process execution
-pipeline. Every result contains controlled `ProcessExecution` attribution and exactly one outcome:
+pipeline. Every result contains `ProcessExecution` details and exactly one outcome:
 
 - success: `output` and no error;
 - failure: a `ProcessError` with a stable `code` and a safe human-readable `message`.
@@ -99,7 +99,7 @@ on `code`; detailed diagnostics remain in secured server logs.
   neither code is emitted after a process action starts. Exhausted retries require route/runtime diagnosis, not an
   unbounded retry loop.
 - `CF_EXEC_013` requires correcting the call graph or depth budget. Waiting and
-  replaying the same request cannot resolve them.
+  replaying the same request cannot resolve it.
 - `CF_EXEC_014` requires correcting the resolved call target, authority, or cycle. Waiting and replaying the same
   request cannot resolve it.
 - Workbench persisted asynchronous invocation defaults to one attempt.

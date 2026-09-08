@@ -5,7 +5,7 @@ without invoking a Spring bean.
 
 ## Prerequisites
 
-- JDK 17 or later
+- JDK 17, 21, or 25
 - A local checkout of this repository
 
 Install the TBBPM starter and its dependencies from the repository root:

@@ -10,9 +10,9 @@ each contract in detail.
 flowchart TB
     App["Application"]
     API["compileflow-api<br/>ProcessRef, ProcessDefinition, ProcessEngine"]
-    Core["compileflow-core<br/>resolve, compile, cache, execute"]
+    Core["compileflow-core<br/>resolve, prepare, cache, execute"]
     Formats["TBBPM or BPMN format module"]
-    DeployAPI["compileflow-deploy-api<br/>commands, domain contracts, storage SPI"]
+    DeployAPI["compileflow-deploy-api<br/>commands and domain contracts"]
     DeployProtocol["compileflow-deploy-protocol<br/>wire payloads, codecs, projection keys"]
     Control["deploy control plane<br/>immutable publication, rollouts, outbox"]
     Runtime["deploy-runtime<br/>desired to local-ready convergence"]
@@ -74,7 +74,7 @@ request
   -> compile once per exact local ProcessRuntimeIdentity
   -> cache and retain
   -> execute
-  -> return typed outcome and controlled attribution
+  -> return typed outcome and execution details
 ```
 
 `INTERPRETED` realizes the same semantic plan without generating a process class; registered scripts still have their

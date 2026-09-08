@@ -1,4 +1,4 @@
-# Durable 密钥与令牌生命周期
+# Durable Wait 令牌安全
 
 CompileFlow Durable 内核不管理请求身份 HMAC 根密钥、分页令牌密钥、载荷加密密钥或应用编解码密钥。请求去重和不透明分页令牌由定义相应协议的 HTTP、RPC 或 MQ 适配器负责，其密钥可按适配器自身的生命周期轮换，不影响 Durable 存储中的身份数据。
 

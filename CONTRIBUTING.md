@@ -57,7 +57,7 @@ For Java changes:
 - keep compiler warnings at zero rather than suppressing broad categories;
 - make concurrency tests deterministic with latches, barriers, or controlled executors instead of timing assumptions.
 
-Apply or verify Java formatting with JDK 17 or newer:
+Apply or verify Java formatting with a supported JDK:
 
 ```bash
 ./mvnw -Pexamples,benchmarks -pl '!compileflow-bom' com.diffplug.spotless:spotless-maven-plugin:3.9.0:apply

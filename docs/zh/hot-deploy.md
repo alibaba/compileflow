@@ -55,7 +55,8 @@ compileflow:
             mode: SOURCE
 ```
 
-控制面通过 `compileflow-deploy-spi` 中的 `DeploymentProjectionStore` 分发已经提交的 Outbox 记录，并将当前路由状态同步到投影存储。缺少必需组件时启动失败；应用必须提供符合安全要求的投影存储 Bean。
+控制面通过 `compileflow-deploy-spi` 中的 `DeploymentProjectionStore` 分发已经提交的 Outbox 记录，并将当前路由状态同步到投影存储。
+缺少必需组件时启动失败。该 SPI 属于 Provider Preview；自定义实现需要自行验证原子更新、订阅收敛、故障恢复与容量边界。
 
 ### 分布式运行时
 
@@ -143,7 +144,7 @@ compileflow.deployment.alias.{identityDigest}
 compileflow.process.version.{identityDigest}
 ```
 
-`identityDigest` 是对按顺序编码、带长度前缀的 UTF-8 身份元组计算得到的小写 SHA-256。载荷保留完整身份，消费方会根据键重新校验。在 `PROJECTION_STORE` 模式下，单个制品载荷不能超过所选投影存储的容量限制。
+键的编码和校验规则见[分布式集成](hot-deploy-integration.md)。在 `PROJECTION_STORE` 模式下，单个制品载荷不能超过所选投影存储的容量限制。
 
 继续阅读[配置指南](configuration.md)、[分布式集成](hot-deploy-integration.md)和
 [运维手册](operations-playbook.md)。

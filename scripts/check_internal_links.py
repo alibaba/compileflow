@@ -2266,6 +2266,11 @@ def find_java_security_release_gate_errors(root: Path) -> list[str]:
     ):
         if fragment not in security_text:
             errors.append(f"{security.relative_to(root)} must include {description}")
+    if security_text.count("odc.update.lock") < 2:
+        errors.append(
+            f"{security.relative_to(root)} must remove stale Dependency-Check locks "
+            "after cache restore and before cache save"
+        )
 
     reusable_call = "uses: ./.github/workflows/java-security.yml"
     secret_mapping = "NVD_API_KEY: ${{ secrets.NVD_API_KEY }}"
@@ -2587,7 +2592,7 @@ def check_governance_document_set() -> list[str]:
         Path("CODE_OF_CONDUCT.md"): ["Contributor Covenant"],
         Path("CONTRIBUTING.md"): ["Pull Request", "Developer Certificate of Origin 1.1"],
         Path("MAINTAINERS.md"): ["@yusu1210", ".github/CODEOWNERS", "review", "Access Management"],
-        Path("SECURITY.md"): ["GitHub Security Advisories", "CycloneDX VEX", "Repository Credential Policy"],
+        Path("SECURITY.md"): ["GitHub Security Advisories", "Release Integrity", "CycloneDX VEX"],
         Path("SUPPORT.md"): ["no dedicated Q&A channel", "GitHub Security Advisories", "Support Scope"],
         Path("docs/en/threat-model.md"): ["TM-01", "TM-11", "CycloneDX VEX"],
         Path("docs/zh/threat-model.md"): ["TM-01", "TM-11", "CycloneDX VEX"],
@@ -3231,10 +3236,8 @@ def check_security_policy() -> list[str]:
     required = [
         "GitHub Security Advisories",
         "Security fixes are provided for the current `2.x` line",
-        "Security Automation",
-        "Finding And Exception Policy",
+        "Release Integrity",
         "CycloneDX VEX",
-        "Repository Credential Policy",
     ]
     for phrase in required:
         if phrase not in text:

@@ -20,20 +20,3 @@ and implementation contracts.
 | [`user-guide/BPMN_DESIGNER_USER_GUIDE.md`](user-guide/BPMN_DESIGNER_USER_GUIDE.md)             | Users                            | BPMN designer workflow                                            |
 | [`../apps/dev-gateway/README.md`](../apps/dev-gateway/README.md)                               | Frontend developers              | Local preview mock and configuration                              |
 | [`../apps/web/src/operate/API_SPEC.md`](../apps/web/src/operate/API_SPEC.md)                   | API developers                   | Operate API behavior beyond the OpenAPI schema                    |
-
-## Contract Sources
-
-Generated and executable sources take precedence over prose documentation:
-
-| Contract                             | Authority                                                        |
-| ------------------------------------ | ---------------------------------------------------------------- |
-| Routes and designer entry parameters | `apps/web/src/shared/constants.ts`                               |
-| Browser build configuration          | `apps/web/src/shared/config/buildConfigSchema.ts`                |
-| Operate REST shapes                  | `apps/web/src/shared/contracts/` and `apps/web/src/operate/api/` |
-| Development-gateway configuration    | `apps/dev-gateway/src/config.ts`                                 |
-| BPMN/TBBPM node support              | Designer type unions, palettes, parsers, validators, and tests   |
-| Local storage schema                 | `apps/web/src/authoring/designer/api/processDatabase.ts`         |
-| Visual tokens                        | `apps/web/src/shared/styles/variables.css`                       |
-
-When behavior changes, update the authoritative source, its focused tests, and the corresponding concise guide in the
-same change. Do not copy API inventories into prose; they drift quickly and are already covered by the listed sources.

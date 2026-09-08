@@ -63,13 +63,12 @@ backoff changes must state their effect on persisted behavior.
 
 The committed [OpenAPI description](specifications/workbench-server-openapi.md) is the exact same-release wire contract for `compileflow-workbench-server` `/api/**` endpoints. It supports the matching Workbench frontend and Server deployment (**Supported by deployment**); it is not a stable third-party integration API.
 
-Controller records, OpenAPI, generated TypeScript, runtime validation, and contract tests must change together. The frontend
-and Server must come from the same CompileFlow version; this surface does not define a compatibility window.
+The frontend and Server must come from the same CompileFlow version; this surface does not define a compatibility window.
 
 ### Persisted, wire, and telemetry facts
 
-Deploy and Workbench schemas are managed by Flyway. Every published Flyway migration is immutable; schema changes add a new
-migration and include startup, restart, and recovery coverage for the owning product.
+Deploy and Workbench schemas are managed by Flyway. Every published Flyway migration is immutable; schema changes add a
+new migration.
 
 Persisted discriminator strings, error codes, protocol field names, metric names, and metric tag keys are compatibility facts. CompileFlow metadata uses the `compileflow.` namespace; Deploy uses the `compileflow.deploy.*` metric namespace. Application metadata uses an application-owned namespace. Release metadata is descriptive and is not a routing or projection authority. Publication integrity uses the explicit `expectedArtifactDigest` command field.
 

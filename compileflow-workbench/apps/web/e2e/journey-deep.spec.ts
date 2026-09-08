@@ -458,6 +458,28 @@ test.describe('Deep Operate flows / monitoring / logs', () => {
       await shot(page, '62-logs-export')
     }
 
+    await page.getByRole('button', { name: /清理日志|Purge logs/i }).click()
+    const purgeDialog = page.getByRole('dialog')
+    await expect(purgeDialog).toBeVisible()
+    await expect(purgeDialog).toContainText(/永久删除|permanently deleted/i)
+    const purgeBefore = purgeDialog.getByRole('textbox', {
+      name: /清理此时间之前的日志|Purge logs before this time/i,
+    })
+    await expect(purgeBefore).not.toHaveValue('')
+    await purgeBefore.hover()
+    const clearPurgeBefore = purgeDialog.locator('.ant-picker-clear')
+    await expect(clearPurgeBefore).toBeVisible()
+    await clearPurgeBefore.click()
+    await expect(purgeDialog.getByRole('button', { name: /确认清理|Purge logs/i })).toBeDisabled()
+    await purgeDialog.getByRole('button', { name: /取\s*消|Cancel/i }).click()
+
+    await page.getByRole('button', { name: /清理日志|Purge logs/i }).click()
+    await expect(purgeDialog).toBeVisible()
+    await purgeDialog.getByRole('button', { name: /确认清理|Purge logs/i }).click()
+    await expect(purgeDialog).not.toBeVisible()
+    await expect(page.getByText(/已清理 20 条执行日志|Purged 20 execution logs/i)).toBeVisible()
+    await expect(page.getByText(/暂无执行日志|No execution logs/i)).toBeVisible()
+
     // Range picker should be interactive (controlled).
     const range = page.locator('.ant-picker-range')
     if (await range.count()) {

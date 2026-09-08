@@ -30,42 +30,7 @@ We aim to:
 - publish a GitHub Security Advisory and release notes after the fix is available;
 - credit reporters unless they prefer to remain anonymous.
 
-## Security Automation
+## Release Integrity
 
-Automated security checks include CodeQL, SpotBugs, dependency review, OWASP Dependency-Check, pnpm audit, Dependabot,
-and OpenSSF Scorecard. They cover Java, JavaScript/TypeScript, GitHub Actions, container definitions, and the dependency
-lockfiles used to build release artifacts.
-
-OWASP Dependency-Check supports anonymous NVD access. The CI workflow serializes these scans, retains the local
-vulnerability database between runs, and uses a conservative request interval when no credential is available.
-Maintainers should configure the optional `NVD_API_KEY` repository secret to make initial and incremental NVD updates
-faster and less susceptible to public API rate limits; the scan remains fail-closed with or without that credential.
-
-Release artifacts include a CycloneDX SBOM, checksums, and provenance. Security findings are evaluated against the
-source revision and dependency inventory that produced the affected artifacts.
-
-## Finding And Exception Policy
-
-The following findings block merge or release until fixed or covered by an approved, time-bounded exception:
-
-- a high or critical runtime-dependency vulnerability reported by Dependency Review;
-- an OWASP Dependency-Check runtime finding with CVSS 7.0 or higher;
-- a high-severity finding from the complete Workbench pnpm lockfile audit;
-- an unsuppressed high or critical CodeQL alert, or a SpotBugs finding that fails the repository check;
-- a dependency license not shown to be compatible with Apache-2.0 distribution.
-
-Lower-severity findings are evaluated for reachability, affected surfaces, and available mitigations.
-
-Any temporary suppression or risk acceptance must identify its owner, rationale, scope, mitigation, and expiry. A
-dependency vulnerability determined to be non-exploitable must also be represented by a CycloneDX VEX statement tied
-to the affected SBOM.
-
-## Repository Credential Policy
-
-Repository, registry, signing, and scanning credentials belong only in the corresponding GitHub organization,
-repository, or protected-environment secret store. Workflows must not expose credentials to untrusted pull-request
-code or place them in command-line arguments, artifacts, caches, or logs.
-
-Repository administration requires MFA and least privilege. Rotate credentials after suspected disclosure, unexpected
-use, or an ownership change, and revoke credentials that are no longer needed. Access rules are documented in
-[MAINTAINERS.md](MAINTAINERS.md).
+Release artifacts include CycloneDX SBOMs, checksums, and provenance. A dependency vulnerability determined to be
+non-exploitable is documented with a CycloneDX VEX statement tied to the affected SBOM.
