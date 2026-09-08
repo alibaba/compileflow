@@ -21,7 +21,7 @@
 
 CompileFlow 是一款轻量、高性能、可集成、可扩展的 Java 流程引擎，支持 TBBPM 和文档明确支持的 BPMN 2.0 子集。
 
-`ProcessEngine` 在进程内执行流程，不持久化执行状态，并支持编译执行和解释执行两种模式。
+CompileFlow Process 引擎专注于纯内存、无状态执行。
 CompileFlow 已应用于阿里业务中台、淘宝、阿里云、国际化等业务的多个核心系统。
 
 CompileFlow Durable 为长时间运行的流程提供持久化能力，可在流程等待、定时触发或外部操作后继续执行，并支持应用重启后的恢复。
@@ -160,9 +160,6 @@ flowchart LR
 仓库专用验证命令见[测试指南](docs/zh/testing.md)和[英文贡献指南](CONTRIBUTING.md)。
 
 ## Adopters
-
-CompileFlow 已应用于以下阿里巴巴集团业务和平台。
-公司名称、产品名称和标志均为其各自所有者的商标。
 
 <table>
   <tr>
