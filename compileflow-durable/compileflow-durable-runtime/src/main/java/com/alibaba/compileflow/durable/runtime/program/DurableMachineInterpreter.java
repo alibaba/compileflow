@@ -179,11 +179,11 @@ public final class DurableMachineInterpreter implements DurableProgram {
             } else if (step instanceof DurableMachinePlan.Step.Replayable replayable) {
                 invokeReplayable(nodeId, state, frames, writes, context);
                 nodeId = resolveNext(replayable.next(), state, frames, writes);
-            } else if (step instanceof DurableMachinePlan.Step.Await await) {
+            } else if (step instanceof DurableMachinePlan.Step.Await) {
                 return wait(nodeId, state, frames, context);
             } else if (step instanceof DurableMachinePlan.Step.Timer timer) {
                 return timer(nodeId, timer.scheduleExpression(), state, frames);
-            } else if (step instanceof DurableMachinePlan.Step.Effect effect) {
+            } else if (step instanceof DurableMachinePlan.Step.Effect) {
                 return effect(nodeId, state, frames, context);
             } else if (step instanceof DurableMachinePlan.Step.ProcessCall) {
                 return processCall(nodeId, state, frames, context);

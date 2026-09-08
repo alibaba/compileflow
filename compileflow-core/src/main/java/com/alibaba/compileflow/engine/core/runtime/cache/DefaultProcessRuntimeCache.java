@@ -271,7 +271,8 @@ public class DefaultProcessRuntimeCache implements ProcessRuntimeCache {
             .stream()
             .filter(candidate -> getRuntime(candidate) == null)
             .count();
-        while (residentRuntimeCount() + missing > maxResidentRuntimes) {
+        long capacity = maxResidentRuntimes;
+        while (residentRuntimeCount() + missing > capacity) {
             ProcessRuntimeIdentity evictable = runtimes
                 .asMap()
                 .keySet()

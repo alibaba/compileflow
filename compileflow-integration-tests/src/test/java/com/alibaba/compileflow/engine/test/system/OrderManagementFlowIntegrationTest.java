@@ -123,7 +123,8 @@ class OrderManagementFlowIntegrationTest {
         BusinessContext business = new BusinessContext("order-44");
         business.setOrderAmount(512.00);
         business.setCustomerType("MEMBER");
-        business.setPaymentType(new String("online"));
+        // Use a distinct instance to verify that routing compares values, not references.
+        business.setPaymentType(new StringBuilder("online").toString());
         Map<String, Object> context = new HashMap<>();
         context.put("BUSINESS_CONTEXT", business);
 

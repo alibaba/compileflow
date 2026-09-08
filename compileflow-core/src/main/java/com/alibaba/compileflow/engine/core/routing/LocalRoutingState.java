@@ -56,6 +56,7 @@ public final class LocalRoutingState {
 
     @Override
     public String toString() {
-        return "LocalRoutingState{aliases=" + aliasRouteState + ", installedVersions=" + installedVersionState + '}';
+        return "LocalRoutingState{aliases=" + aliasRouteState + ", installedProcessCount="
+                + installedVersionState.snapshot().size() + '}';
     }
 }

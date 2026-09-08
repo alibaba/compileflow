@@ -148,8 +148,8 @@ public final class CompileFlowDeploymentProperties {
         return !runtimeWorkerEnabled || routing != null && routing.hasSubscriptions();
     }
 
-    @AssertTrue(message = "compileflow.deploy.topology=EMBEDDED requires control-plane-enabled=true, artifact."
-            + "mode=SOURCE, and runtime-worker-enabled=false")
+    @AssertTrue(message = "compileflow.deploy.topology=EMBEDDED requires control-plane-enabled=true, "
+            + "artifact.mode=SOURCE, and runtime-worker-enabled=false")
     public boolean isEmbeddedTopologyValid() {
         return !enabled || topology != Topology.EMBEDDED
                 || controlPlaneEnabled && artifact.getMode() == DeploymentArtifactProperties.Mode.SOURCE

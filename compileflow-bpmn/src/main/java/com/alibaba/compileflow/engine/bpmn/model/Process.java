@@ -35,6 +35,7 @@ public class Process extends AbstractElement implements BpmnElementContainer, Pr
     private String name;
     private Boolean isExecutable;
 
+    @Override
     public String getName() {
         return name;
     }

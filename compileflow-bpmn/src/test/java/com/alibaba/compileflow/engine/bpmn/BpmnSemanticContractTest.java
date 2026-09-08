@@ -733,10 +733,10 @@ class BpmnSemanticContractTest {
 
     @Test
     void rejectsForeignAttributesInsteadOfTreatingThemAsBpmn() {
-        String xml = flow("Definitions_foreign_attribute",
-                "<bpmn:serviceTask id=\"task\" vendor:" + "mode=\"external\"/>")
+        String serviceTask = "<bpmn:serviceTask id=\"task\" vendor:mode=\"external\"/>";
+        String xml = flow("Definitions_foreign_attribute", serviceTask)
             .replace("xmlns:cf=\"http://www.compileflow.org\"",
-                    "xmlns:cf=\"http://www.compileflow.org\"" + " xmlns:vendor=\"urn:vendor:test\"");
+                    "xmlns:cf=\"http://www.compileflow.org\" xmlns:vendor=\"urn:vendor:test\"");
 
         assertThatThrownBy(() -> parseWithoutSchema(xml))
             .isInstanceOf(CompileFlowException.class)

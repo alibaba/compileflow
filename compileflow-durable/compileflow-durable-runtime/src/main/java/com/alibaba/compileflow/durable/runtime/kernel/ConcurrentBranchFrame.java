@@ -61,6 +61,7 @@ public record ConcurrentBranchFrame(FrontierId parentFrontierId, String splitId,
     /**
      * Stable identity of the child frontier represented by this ancestry frame.
      */
+    @Override
     public FrontierId frontierId() {
         return FrontierId.branch(parentFrontierId, splitId, activation.stableIdentity());
     }

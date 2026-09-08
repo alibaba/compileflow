@@ -1,6 +1,5 @@
 """Bind CI analysis evidence to the actual selected Maven dependency closure."""
 
-import re
 import shlex
 import unittest
 import xml.etree.ElementTree as ET

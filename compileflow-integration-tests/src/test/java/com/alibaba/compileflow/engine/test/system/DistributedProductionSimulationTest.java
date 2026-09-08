@@ -140,7 +140,8 @@ public class DistributedProductionSimulationTest {
                     .append("aliasState=")
                     .append(localRoutingState.getAliasRouteState().resolve(ns, code, "prod").orElse(null))
                     .append('\n');
-                sb.append("installedState=").append(localRoutingState.getInstalledVersionState()).append('\n');
+                sb.append("installedState=").append(localRoutingState.getInstalledVersionState().snapshot()).append(
+                        '\n');
                 return sb.toString();
             });
 

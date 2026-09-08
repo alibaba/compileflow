@@ -231,7 +231,7 @@ class AliasWeightedRoutingIntegrationTest {
     private String dumpRoutingState(String code) {
         StringBuilder sb = new StringBuilder();
         sb.append("namespace=").append(DEFAULT_NAMESPACE).append(", code=").append(code).append('\n');
-        sb.append("installedState=").append(localRoutingState.getInstalledVersionState()).append('\n');
+        sb.append("installedState=").append(localRoutingState.getInstalledVersionState().snapshot()).append('\n');
         sb.append("aliasState(prod)=<not-public> (validate via router)\n");
         return sb.toString();
     }

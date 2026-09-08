@@ -65,6 +65,8 @@ Object.defineProperty(window, 'getComputedStyle', {
 
 // Mock ResizeObserver
 global.ResizeObserver = class ResizeObserver {
+  constructor(_callback: ResizeObserverCallback) {}
+
   observe() {}
 
   unobserve() {}

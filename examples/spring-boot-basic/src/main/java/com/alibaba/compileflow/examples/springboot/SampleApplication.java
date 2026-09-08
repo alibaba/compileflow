@@ -21,6 +21,7 @@ import com.alibaba.compileflow.engine.preflight.ProcessPreflightOptions;
 import com.alibaba.compileflow.engine.preflight.ProcessPreflightReport;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -51,7 +52,12 @@ public class SampleApplication {
                 .tooling()
                 .preflight(source, ProcessPreflightOptions.strict());
             if (report.getOverallStatus() != ProcessPreflightReport.OverallStatus.PASS) {
-                throw new IllegalStateException("preflight failed: " + report);
+                String diagnostics = report
+                    .getItems()
+                    .stream()
+                    .map(item -> item.getType() + "=" + item.getStatus() + ": " + item.getMessage())
+                    .collect(Collectors.joining("; "));
+                throw new IllegalStateException("preflight failed: " + diagnostics);
             }
 
             Map<String, Object> input = new HashMap<>();

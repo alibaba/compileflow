@@ -856,7 +856,7 @@ final class DurableJavaProgramCodeGenerator {
             generateNext(code, nodeIdTarget, replayable.next());
         } else if (step instanceof DurableMachinePlan.Step.Await) {
             generateWait(code, nodeId);
-        } else if (step instanceof DurableMachinePlan.Step.Timer timer) {
+        } else if (step instanceof DurableMachinePlan.Step.Timer) {
             generateTimer(code, nodeId);
         } else if (step instanceof DurableMachinePlan.Step.Effect) {
             generateEffect(code, nodeId);

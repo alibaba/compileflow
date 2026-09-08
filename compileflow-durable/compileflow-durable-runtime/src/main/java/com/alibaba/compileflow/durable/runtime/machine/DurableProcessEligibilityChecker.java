@@ -304,6 +304,7 @@ final class DurableProcessEligibilityChecker {
                         DurableExpressionValidator.TargetType.DURATION, problems);
                 case WAKE_AT_EXPRESSION -> validateExpression(semantics, node, timer.value(),
                         DurableExpressionValidator.TargetType.INSTANT, problems);
+                default -> throw new IllegalStateException("Unsupported timer kind: " + timer.kind());
             }
         }
     }

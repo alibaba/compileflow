@@ -88,6 +88,13 @@ public final class ProcessObservabilityConfig {
         return mdcPropagationEnabled;
     }
 
+    @Override
+    public String toString() {
+        return "ProcessObservabilityConfig{eventsAsync=" + eventsAsync + ", eventDeliveryMaxConcurrency="
+                + eventDeliveryMaxConcurrency + ", eventDeliveryMaxPending=" + eventDeliveryMaxPending
+                + ", mdcPropagationEnabled=" + mdcPropagationEnabled + '}';
+    }
+
     private ValidationResult validate() {
         return ProcessConfigValidator.combine(ProcessConfigValidator.validatePositive(eventDeliveryMaxConcurrency,
                         "observability.eventDeliveryMaxConcurrency"),

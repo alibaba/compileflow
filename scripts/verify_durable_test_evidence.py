@@ -11,7 +11,6 @@ import sys
 import xml.etree.ElementTree as ET
 from collections import Counter
 from pathlib import Path
-from typing import Iterable
 
 try:
     from scripts.evidence_io import write_json as write_evidence

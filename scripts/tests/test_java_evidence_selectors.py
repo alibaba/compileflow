@@ -11,12 +11,10 @@ from scripts.verify_durable_release_evidence import REQUIRED_TEST_CASES
 from scripts.verify_workbench_postgres_evidence import REQUIRED_METHODS
 
 
-ANNOTATED_METHOD = re.compile(
-    r"((?:@[\w.]+(?:\([^;]*?\))?\s*)+)"
-    r"(?:(?:public|protected|private|final|static)\s+)*"
-    r"void\s+(\w+)\s*\([^)]*\)\s*(?:throws\s+[\w.,\s]+)?\{"
+METHOD_DECLARATION = re.compile(
+    r"(?:(?:public|protected|private|final|static|synchronized)\s+)*void\s+(\w+)\s*\("
 )
-TEST_ANNOTATION = re.compile(r"@(?:[\w.]+\.)?(?:Test|ParameterizedTest|RepeatedTest|TestTemplate)\b")
+TEST_ANNOTATION = re.compile(r"^@(?:[\w.]+\.)?(?:Test|ParameterizedTest|RepeatedTest|TestTemplate)\b")
 
 
 def strip_java_non_code(source: str) -> str:
@@ -72,6 +70,36 @@ def source_index(root: Path) -> dict[str, Path]:
     return result
 
 
+def annotated_test_methods(source: str) -> set[str]:
+    """Return test methods using a linear, line-oriented annotation scan."""
+    methods = set()
+    awaiting_method = False
+    annotation_depth = 0
+    declaration = ""
+    for line in source.splitlines():
+        stripped = line.strip()
+        if annotation_depth > 0:
+            annotation_depth += stripped.count("(") - stripped.count(")")
+            continue
+        if stripped.startswith("@"):
+            if TEST_ANNOTATION.search(stripped):
+                awaiting_method = True
+            annotation_depth = max(0, stripped.count("(") - stripped.count(")"))
+            continue
+        if not awaiting_method or not stripped:
+            continue
+        declaration += " " + stripped
+        method = METHOD_DECLARATION.search(declaration)
+        if method:
+            methods.add(method.group(1))
+            awaiting_method = False
+            declaration = ""
+        elif ";" in stripped or "{" in stripped:
+            awaiting_method = False
+            declaration = ""
+    return methods
+
+
 def test_methods(identity: str, index: dict[str, Path], seen: frozenset[str] = frozenset()) -> set[str]:
     if identity in seen:
         raise AssertionError(f"Cyclic test inheritance: {identity}")
@@ -80,10 +108,7 @@ def test_methods(identity: str, index: dict[str, Path], seen: frozenset[str] = f
     package = re.search(r"\bpackage\s+([\w.]+)\s*;", source)
     if package and identity.rsplit(".", 1)[0] != package.group(1):
         raise AssertionError(f"Package does not match source path: {path}")
-    methods = {
-        name for annotations, name in ANNOTATED_METHOD.findall(source)
-        if TEST_ANNOTATION.search(annotations)
-    }
+    methods = annotated_test_methods(source)
     parent = re.search(r"\bclass\s+" + re.escape(path.stem) + r"\b[^{}]*?\bextends\s+([\w.]+)", source)
     if parent:
         base = parent.group(1)
@@ -122,7 +147,7 @@ class JavaEvidenceSelectorsTest(unittest.TestCase):
             base = root / "module/src/main/java/example/Base.java"
             base.parent.mkdir(parents=True)
             base.write_text(
-                "package example; public class Base { @Test public void inherited() {} }",
+                "package example; public class Base {\n@Test\npublic void inherited() {}\n}",
                 encoding="utf-8",
             )
             child = root / "module/src/test/java/example/Child.java"
@@ -135,7 +160,9 @@ class JavaEvidenceSelectorsTest(unittest.TestCase):
                 'String block = """@Test void textBlockDecoy() {}""";\n'
                 "char quote = '\\''; // @Test void characterDecoy() {}\n"
                 "void helper() {}\n"
-                "@ParameterizedTest @ValueSource(strings = {\"a\"}) void parameterized(String value) {}\n"
+                "@ParameterizedTest\n"
+                "@ValueSource(strings = {\"a\"})\n"
+                "void parameterized(String value) {}\n"
                 "}", encoding="utf-8",
             )
             self.assertEqual({"inherited", "parameterized"}, test_methods("example.Child", source_index(root)))

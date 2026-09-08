@@ -54,6 +54,11 @@ public final class LocalAliasRouteState {
         return applyEntry(alias, new Entry(null, revision));
     }
 
+    @Override
+    public String toString() {
+        return "LocalAliasRouteState{routeCount=" + routes.size() + '}';
+    }
+
     private boolean applyEntry(ProcessRef.Alias alias, Entry desired) {
         boolean[] applied = {false};
         routes.compute(alias, (ignored, current) -> {

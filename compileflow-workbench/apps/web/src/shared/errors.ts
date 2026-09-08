@@ -44,7 +44,7 @@ export function toError(error: unknown, fallbackMessage = 'Unknown error'): Erro
   }
 
   try {
-    if (typeof error === 'object' && error !== null) {
+    if (typeof error === 'object') {
       const serialized = JSON.stringify(error)
       if (serialized) return new Error(serialized)
     }
