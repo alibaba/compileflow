@@ -8,7 +8,6 @@ import styles from './AppShell.module.css'
 
 import ContextualSidebar from '@/shared/components/ContextualSidebar'
 import MockBanner from '@/shared/components/MockBanner'
-import { APP_BUILD_CONFIG } from '@/shared/config/buildConfig'
 import { ROUTES } from '@/shared/constants'
 import { useSidebar } from '@/shared/contexts/SidebarContext'
 import { isHubRootPath } from '@/shared/navigation/hubRoots'
@@ -74,7 +73,7 @@ function AppShell({ loadExamples, loadProcesses }: AppBarProps) {
         >
           {isDesignerPage ? (
             <div className={styles.designerContainer}>
-              {APP_BUILD_CONFIG.operateMode === 'mock' && showMockBanner && (
+              {showMockBanner && (
                 <MockBanner
                   closable
                   onClose={() => setShowMockBanner(false)}
@@ -85,7 +84,7 @@ function AppShell({ loadExamples, loadProcesses }: AppBarProps) {
             </div>
           ) : (
             <div className={`${styles.pageContainer} ${isHubRoot ? styles.pageContainerHub : ''}`}>
-              {!isHubRoot && showMockBanner && (
+              {showMockBanner && (!isHubRoot || location.pathname === ROUTES.OPERATE) && (
                 <MockBanner closable onClose={() => setShowMockBanner(false)} />
               )}
               <RouteContent />

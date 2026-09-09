@@ -34,6 +34,8 @@ const original = {
   id: 'edge',
   sourceId: 'a',
   targetId: 'b',
+  sourcePort: 'right',
+  targetPort: 'left',
   name: 'Branch',
   condition: 'ok',
   waypoints: [{ x: 10, y: 20 }],
@@ -127,6 +129,8 @@ describe.each(['BPMN', 'TBBPM'] as const)('%s canvas connection round-trip', (ty
           id: 'edge',
           getSourceCellId: () => 'a',
           getTargetCellId: () => 'c',
+          getSourcePortId: () => 'right',
+          getTargetPortId: () => 'left',
           getVertices: () => [{ x: 30, y: 40 }],
         },
       })
@@ -140,7 +144,31 @@ describe.each(['BPMN', 'TBBPM'] as const)('%s canvas connection round-trip', (ty
     mount()
     const calls = vi.mocked(useCanvasSync).mock.calls
     const options = calls[calls.length - 1][2]
-    expect(options.connectionToX6Edge(original)).toMatchObject({ vertices: original.waypoints })
+    expect(options.connectionToX6Edge(original)).toMatchObject({
+      vertices: original.waypoints,
+      zIndex: -1,
+      source: { cell: 'a', port: 'right' },
+      target: { cell: 'b', port: 'left' },
+    })
+  })
+
+  it('detects a side-only change on the same connected nodes', () => {
+    mount()
+    const calls = vi.mocked(useCanvasSync).mock.calls
+    const options = calls[calls.length - 1][2]
+    const edge = {
+      getData: () => ({ condition: original.condition }),
+      getLabels: () => [{ attrs: { label: { text: original.name } } }],
+      getSourceCellId: () => original.sourceId,
+      getTargetCellId: () => original.targetId,
+      getSourcePortId: () => 'bottom',
+      getTargetPortId: () => original.targetPort,
+      getVertices: () => original.waypoints,
+    }
+    expect(options.checkEdgeChanged(edge as unknown as Edge, original)).toBe(true)
+    expect(
+      options.checkEdgeChanged(edge as unknown as Edge, { ...original, sourcePort: 'bottom' })
+    ).toBe(false)
   })
 
   it('enforces terminal and entry-only TBBPM port directions', () => {
@@ -184,6 +212,8 @@ describe.each(['BPMN', 'TBBPM'] as const)('%s canvas connection round-trip', (ty
       getLabels: () => [{ attrs: { label: { text: original.name } } }],
       getSourceCellId: () => 'a',
       getTargetCellId: () => 'c',
+      getSourcePortId: () => 'right',
+      getTargetPortId: () => 'left',
       getVertices: () => original.waypoints,
       setData: vi.fn(),
       setLabels: vi.fn(),
@@ -194,7 +224,7 @@ describe.each(['BPMN', 'TBBPM'] as const)('%s canvas connection round-trip', (ty
     const restored = { ...original, waypoints: undefined }
     expect(options.checkEdgeChanged(edge as unknown as Edge, restored)).toBe(true)
     options.syncEdgeToCell(edge as unknown as Edge, restored)
-    expect(edge.setTarget).toHaveBeenCalledWith({ cell: 'b' })
+    expect(edge.setTarget).toHaveBeenCalledWith({ cell: 'b', port: 'left' })
     expect(edge.setVertices).toHaveBeenCalledWith([])
   })
 })

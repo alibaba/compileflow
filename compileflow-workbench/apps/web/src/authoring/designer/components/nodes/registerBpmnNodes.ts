@@ -1,5 +1,7 @@
 import { register } from '@antv/x6-react-shape'
 
+import { CONNECTION_PORTS } from '../../types/graphTypes'
+
 import { BpmnScriptTaskNode } from './BpmnScriptTaskNode'
 import { CallActivityNode } from './CallActivityNode'
 import { EndEventNode } from './EndEventNode'
@@ -28,20 +30,14 @@ const BPMN_NODE_CONFIGS = {
     component: StartEventNode,
     width: 36,
     height: 36,
-    ports: [
-      // StartEvent只有出口
-      { id: 'out', group: 'out' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   'bpmn:EndEvent': {
     shape: 'bpmn-end-event',
     component: EndEventNode,
     width: 36,
     height: 36,
-    ports: [
-      // EndEvent只有入口
-      { id: 'in', group: 'in' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
 
   // ==================== Tasks ====================
@@ -50,36 +46,21 @@ const BPMN_NODE_CONFIGS = {
     component: ServiceTaskNode,
     width: 100,
     height: 80,
-    ports: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-      { id: 'left', group: 'left' },
-      { id: 'right', group: 'right' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   'bpmn:ScriptTask': {
     shape: 'bpmn-script-task',
     component: BpmnScriptTaskNode,
     width: 100,
     height: 80,
-    ports: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-      { id: 'left', group: 'left' },
-      { id: 'right', group: 'right' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   'bpmn:ReceiveTask': {
     shape: 'bpmn-receive-task',
     component: ReceiveTaskNode,
     width: 100,
     height: 80,
-    ports: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-      { id: 'left', group: 'left' },
-      { id: 'right', group: 'right' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
 
   // ==================== Gateways ====================
@@ -88,36 +69,21 @@ const BPMN_NODE_CONFIGS = {
     component: ExclusiveGatewayNode,
     width: 50,
     height: 50,
-    ports: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-      { id: 'left', group: 'left' },
-      { id: 'right', group: 'right' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   'bpmn:ParallelGateway': {
     shape: 'bpmn-parallel-gateway',
     component: ParallelGatewayNode,
     width: 50,
     height: 50,
-    ports: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-      { id: 'left', group: 'left' },
-      { id: 'right', group: 'right' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   'bpmn:InclusiveGateway': {
     shape: 'bpmn-inclusive-gateway',
     component: InclusiveGatewayNode,
     width: 50,
     height: 50,
-    ports: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-      { id: 'left', group: 'left' },
-      { id: 'right', group: 'right' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
 
   // ==================== Subprocesses ====================
@@ -126,24 +92,14 @@ const BPMN_NODE_CONFIGS = {
     component: CallActivityNode,
     width: 140,
     height: 100,
-    ports: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-      { id: 'left', group: 'left' },
-      { id: 'right', group: 'right' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   'bpmn:SubProcess': {
     shape: 'bpmn-sub-process',
     component: SubProcessNode,
     width: 320,
     height: 220,
-    ports: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-      { id: 'left', group: 'left' },
-      { id: 'right', group: 'right' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
 } as const
 
@@ -203,30 +159,6 @@ export function registerBpmnNodes() {
               },
             },
             right: {
-              position: { name: 'right', args: { dx: -6 } },
-              attrs: {
-                circle: {
-                  r: 4,
-                  magnet: true,
-                  stroke: '#31d0c6',
-                  strokeWidth: 2,
-                  fill: '#fff',
-                },
-              },
-            },
-            in: {
-              position: { name: 'left', args: { dx: 6 } },
-              attrs: {
-                circle: {
-                  r: 4,
-                  magnet: true,
-                  stroke: '#31d0c6',
-                  strokeWidth: 2,
-                  fill: '#fff',
-                },
-              },
-            },
-            out: {
               position: { name: 'right', args: { dx: -6 } },
               attrs: {
                 circle: {

@@ -28,10 +28,14 @@ export interface BaseNode {
   metadata?: NodeMetadata
 }
 
+export const CONNECTION_PORTS = ['top', 'bottom', 'left', 'right'] as const
+
 export interface BaseConnection {
   id: string
   sourceId: string
   targetId: string
+  sourcePort?: string
+  targetPort?: string
   name?: string
   condition?: string
   /** Edge bend points in canvas coordinates. */

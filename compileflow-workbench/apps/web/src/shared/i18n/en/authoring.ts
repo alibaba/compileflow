@@ -2023,8 +2023,6 @@ const enAuthoring = {
 
   'designer.loading.suspense': 'Loading…',
 
-  'designer.loading.contextMenu': 'Loading menu…',
-
   'designer.loading.rightPanel': 'Loading panel…',
 
   'designer.loading.monaco': 'Loading code editor…',

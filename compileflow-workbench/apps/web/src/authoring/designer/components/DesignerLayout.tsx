@@ -47,6 +47,7 @@ import {
 } from '../store/uiSlice'
 import type { ProcessConnection, UnifiedProcessDefinition } from '../types/flowDefinition'
 
+import ContextMenu from './ContextMenu'
 import { SuspenseFallback } from './LoadingFeedback'
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks'
@@ -54,7 +55,7 @@ import type { AppDispatch } from '@/app/store'
 import type { ProcessSimulationEngine } from '@/authoring/designer/simulation/ProcessSimulationEngine'
 import { createSimulationEngine } from '@/authoring/designer/simulation/ProcessSimulationEngine'
 import { useTheme } from '@/shared/contexts/ThemeContext'
-import { useMediaQuery } from '@/shared/hooks/useMediaQuery'
+import { useCompactContainer } from '@/shared/hooks/useCompactContainer'
 
 const ValidationResultPanel = lazy(() => import('./ValidationResultPanel'))
 const ProcessDebuggerPanel = lazy(() => import('./ProcessDebuggerPanel'))
@@ -62,7 +63,6 @@ const EdgePropertiesPanel = lazy(() => import('./EdgePropertiesPanel'))
 const KeyboardShortcutsModal = lazy(() => import('./KeyboardShortcutsModal'))
 const ProcessVariablesDialog = lazy(() => import('./ProcessVariablesDialog'))
 const HelpDocumentation = lazy(() => import('./HelpDocumentation'))
-const ContextMenu = lazy(() => import('./ContextMenu'))
 const NodeSearch = lazy(() => import('./NodeSearch'))
 
 const { Sider } = Layout
@@ -568,24 +568,22 @@ function DesignerContextMenu({
   actions: ContextMenuActions
   contextMenu: ContextMenuState
 }) {
-  const { t } = useTranslation()
   return (
-    <Suspense fallback={<SuspenseFallback text={t('designer.loading.contextMenu')} />}>
-      {contextMenu.visible && contextMenu.position && (
-        <ContextMenu
-          visible={contextMenu.visible}
-          position={contextMenu.position}
-          menuType={contextMenu.type}
-          onClose={actions.onClose}
-          onEdit={actions.onEdit}
-          onCopy={actions.onCopy}
-          onPaste={actions.onPaste}
-          onDelete={actions.onDelete}
-          onBreakpoint={actions.onBreakpoint}
-          onSelectAll={actions.onSelectAll}
-        />
-      )}
-    </Suspense>
+    contextMenu.visible &&
+    contextMenu.position && (
+      <ContextMenu
+        visible={contextMenu.visible}
+        position={contextMenu.position}
+        menuType={contextMenu.type}
+        onClose={actions.onClose}
+        onEdit={actions.onEdit}
+        onCopy={actions.onCopy}
+        onPaste={actions.onPaste}
+        onDelete={actions.onDelete}
+        onBreakpoint={actions.onBreakpoint}
+        onSelectAll={actions.onSelectAll}
+      />
+    )
   )
 }
 
@@ -822,7 +820,7 @@ export function DesignerLayout({
   processVariablesDialog,
 }: DesignerLayoutProps) {
   const dispatch = useAppDispatch()
-  const isMobile = useMediaQuery('(max-width: 768px)')
+  const { containerRef, compact: isMobile } = useCompactContainer(960)
   const wasMobileRef = useRef<boolean | null>(null)
   const previousSelectionRef = useRef<string | null>(null)
   const { graphRef } = useDesignerContext()
@@ -866,7 +864,11 @@ export function DesignerLayout({
     previousSelectionRef.current = selection
     if (!isMobile) return
 
-    if (selection !== null && selection !== previousSelection) {
+    if (
+      selection !== null &&
+      (selection !== previousSelection ||
+        (!layoutState.leftPanelCollapsed && !layoutState.rightPanelCollapsed))
+    ) {
       dispatch(setSidePanelsCollapsed({ left: true, right: layoutState.rightPanelCollapsed }))
     } else if (
       selection === null &&
@@ -901,7 +903,7 @@ export function DesignerLayout({
   }, [dispatch, isMobile, layoutState.rightPanelCollapsed])
 
   return (
-    <Layout className={layoutClassName} style={{ height: '100%' }}>
+    <Layout ref={containerRef} className={layoutClassName} style={{ height: '100%' }}>
       <DesignerLeftSider
         collapsed={layoutState.leftPanelCollapsed}
         layoutClassName={layoutClassName}

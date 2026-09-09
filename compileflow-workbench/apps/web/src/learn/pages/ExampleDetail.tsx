@@ -475,6 +475,7 @@ function ExecutionResult({ result }: { result: ExecutionResponse }) {
           </>
         )}
       </div>
+      <Paragraph type="secondary">{result.message}</Paragraph>
       <pre className={styles.execPre}>{JSON.stringify(payload, null, 2)}</pre>
     </div>
   )

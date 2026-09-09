@@ -106,6 +106,20 @@ class BpmnModelReaderTest {
         return BpmnXmlParser.getInstance().parse(source("test.bpmn", xml), SchemaValidation.DISABLED);
     }
 
+    @Test
+    void shouldAcceptEditorGeometryWithoutChangingExecutableNodes() {
+        String xml = BPMN_WITH_COMPILEFLOW_EXTENSIONS.replace(
+            "<sequenceFlow id=\"flow_start_task\" sourceRef=\"start\" targetRef=\"task\"/>",
+            "<sequenceFlow id=\"flow_start_task\" sourceRef=\"start\" targetRef=\"task\">"
+                + "<?workbench-edge {\"sourcePort\":\"right\",\"targetPort\":\"left\"}?>"
+                + "</sequenceFlow>"
+        );
+        BpmnModel model = parse(xml);
+        assertThat(model.getNode("start")).isNotNull();
+        assertThat(model.getNode("task")).isNotNull();
+        assertThat(model.getNode("end")).isNotNull();
+    }
+
     private static FlowSource source(String code, String xml) {
         return FlowSource.of(code, xml.getBytes(StandardCharsets.UTF_8));
     }

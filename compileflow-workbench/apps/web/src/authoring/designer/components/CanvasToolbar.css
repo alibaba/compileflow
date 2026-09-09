@@ -118,26 +118,22 @@
   }
 }
 
-@media (max-width: 768px) {
-  .x6-canvas-toolbar {
-    padding: var(--spacing-1) var(--spacing-2);
-    overflow-x: auto;
-    overflow-y: hidden;
-  }
+.x6-canvas-toolbar-compact {
+  padding: var(--spacing-1) var(--spacing-2);
+}
 
-  .x6-canvas-toolbar .ant-btn {
-    min-width: 44px !important;
-    min-height: 44px !important;
-  }
+.x6-canvas-toolbar-compact .ant-btn {
+  min-width: 44px !important;
+  min-height: 44px !important;
+}
 
-  .x6-canvas-toolbar .ant-space {
-    gap: 0 !important;
-    padding: 0;
-  }
+.x6-canvas-toolbar-compact .ant-space {
+  gap: 0 !important;
+  padding: 0;
+}
 
-  .x6-canvas-toolbar .ant-divider-vertical {
-    margin: 0 4px;
-  }
+.x6-canvas-toolbar-compact .ant-divider-vertical {
+  margin: 0 4px;
 }
 
 @media (max-width: 1024px) and (min-width: 769px) {

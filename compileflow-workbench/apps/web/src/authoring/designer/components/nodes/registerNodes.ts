@@ -1,5 +1,7 @@
 import { register } from '@antv/x6-react-shape'
 
+import { CONNECTION_PORTS } from '../../types/graphTypes'
+
 import { AutoTaskNode } from './AutoTaskNode'
 import { EndNode } from './EndNode'
 import { ExclusiveNode } from './ExclusiveNode'
@@ -35,124 +37,82 @@ const NODE_CONFIGS = {
   start: {
     shape: 'tbbpm-start',
     component: StartNode,
-    ports: [{ id: 'bottom', group: 'bottom' }],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   end: {
     shape: 'tbbpm-end',
     component: EndNode,
-    ports: [{ id: 'top', group: 'top' }],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   autoTask: {
     shape: 'tbbpm-auto-task',
     component: AutoTaskNode,
-    ports: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   waitTask: {
     shape: 'tbbpm-wait-task',
     component: WaitTaskNode,
-    ports: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   waitEventTask: {
     shape: 'tbbpm-wait-event-task',
     component: WaitEventTaskNode,
-    ports: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   timerTask: {
     shape: 'tbbpm-timer-task',
     component: TimerTaskNode,
-    ports: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   scriptTask: {
     shape: 'tbbpm-script-task',
     component: ScriptTaskNode,
-    ports: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   exclusive: {
     shape: 'tbbpm-exclusive',
     component: ExclusiveNode,
-    ports: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-      { id: 'left', group: 'left' },
-      { id: 'right', group: 'right' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   parallel: {
     shape: 'tbbpm-parallel',
     component: ParallelNode,
-    ports: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-      { id: 'left', group: 'left' },
-      { id: 'right', group: 'right' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   inclusive: {
     shape: 'tbbpm-inclusive',
     component: InclusiveNode,
-    ports: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-      { id: 'left', group: 'left' },
-      { id: 'right', group: 'right' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   subBpm: {
     shape: 'tbbpm-sub-bpm',
     component: SubBpmNode,
-    ports: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   bpmCall: {
     shape: 'tbbpm-bpm-call',
     component: BpmCallNode,
-    ports: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   while: {
     shape: 'tbbpm-while',
     component: WhileNode,
-    ports: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   foreach: {
     shape: 'tbbpm-foreach',
     component: ForEachNode,
-    ports: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-    ],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   continue: {
     shape: 'tbbpm-continue',
     component: ContinueNode,
-    ports: [{ id: 'top', group: 'top' }],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   break: {
     shape: 'tbbpm-break',
     component: BreakNode,
-    ports: [{ id: 'top', group: 'top' }],
+    ports: CONNECTION_PORTS.map((id) => ({ id, group: id })),
   },
   note: {
     shape: 'tbbpm-note',

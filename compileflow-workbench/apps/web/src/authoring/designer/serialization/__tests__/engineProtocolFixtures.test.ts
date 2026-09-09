@@ -38,6 +38,40 @@ function mappings(
 }
 
 describe('Engine protocol fixtures', () => {
+  test('BPMN fixed ports do not turn exported endpoints into bends after repeated reloads', () => {
+    let model = parseBpmnXml(fixture(golden.bpmn.fixture)).data!
+    Object.assign(model.connections[0], {
+      sourcePort: 'right',
+      targetPort: 'left',
+      waypoints: undefined,
+    })
+    for (let reload = 0; reload < 3; reload++) {
+      model = parseBpmnXml(generateBpmnXml(model)).data!
+      expect(model.connections[0]).toMatchObject({ sourcePort: 'right', targetPort: 'left' })
+      expect(model.connections[0].waypoints).toBeUndefined()
+    }
+  })
+  test.each(['tbbpm', 'bpmn'] as const)(
+    '%s preserves connection ports and bends through XML',
+    (type) => {
+      const source = fixture(golden[type].fixture)
+      const geometry = { sourcePort: 'right', targetPort: 'left', waypoints: [{ x: 150, y: 80 }] }
+      if (type === 'tbbpm') {
+        const model = parseTbbpmXml(source).data!
+        Object.assign(model.connections[0], geometry)
+        const parsed = parseTbbpmXml(generateTbbpmXml(model))
+        expect(parsed.success, parsed.error?.message).toBe(true)
+        expect(parsed.data?.connections[0]).toMatchObject(geometry)
+      } else {
+        const model = parseBpmnXml(source).data!
+        Object.assign(model.connections[0], geometry)
+        const parsed = parseBpmnXml(generateBpmnXml(model))
+        expect(parsed.success, parsed.error?.message).toBe(true)
+        expect(parsed.data?.connections[0]).toMatchObject(geometry)
+      }
+    }
+  )
+
   test('round-trips the Durable TBBPM protocol fixture', () => {
     expect(golden.formatVersion).toBe(1)
     const source = fixture(golden.tbbpm.fixture)

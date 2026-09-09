@@ -25,7 +25,7 @@ import { useTranslation } from 'react-i18next'
 
 import { fitGraphContent, resetGraphView } from '@/authoring/designer/canvas/graphViewport'
 import { createMultiSelectionTools } from '@/authoring/designer/canvas/selectionTools'
-import { useMediaQuery } from '@/shared/hooks/useMediaQuery'
+import { useCompactContainer } from '@/shared/hooks/useCompactContainer'
 import './CanvasToolbar.css'
 
 interface CanvasToolbarProps {
@@ -254,7 +254,7 @@ const CanvasToolbar = React.memo(function CanvasToolbar({
   onCreateConnection,
 }: CanvasToolbarProps) {
   const { t } = useTranslation()
-  const compact = useMediaQuery('(max-width: 768px)')
+  const { containerRef, compact } = useCompactContainer()
   // Cache the tools object so its onClick references are stable across renders,
   // preserving React.memo effectiveness on downstream button components.
   const tools = useMemo(() => (graph ? createMultiSelectionTools(graph) : null), [graph])
@@ -303,9 +303,14 @@ const CanvasToolbar = React.memo(function CanvasToolbar({
   )
 
   return (
-    <div className="x6-canvas-toolbar" role="toolbar" aria-label={t('designer.toolbar.label')}>
+    <div
+      ref={containerRef}
+      className={`x6-canvas-toolbar${compact ? ' x6-canvas-toolbar-compact' : ''}`}
+      role="toolbar"
+      aria-label={t('designer.toolbar.label')}
+    >
       {/* Divider uses type="vertical" for direction; orientation controls text alignment. */}
-      <Space separator={<Divider vertical />}>
+      <Space wrap={compact} separator={<Divider vertical />}>
         {!compact && (
           <ToolbarActionGroup
             actions={actions.align}

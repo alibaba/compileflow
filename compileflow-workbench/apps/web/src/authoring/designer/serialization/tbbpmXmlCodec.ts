@@ -23,6 +23,7 @@ import {
   parseActionElement,
   parseMappedVariableElement,
 } from './actionXml'
+import { readConnectionGeometry, writeConnectionGeometry } from './connectionGeometry'
 import { escapeXml } from './xmlEscaping'
 import { validateXmlInput } from './xmlInputValidation'
 import type { GenerateOptions, ParseOptions, ParseResult, ParseWarning } from './xmlTypes'
@@ -687,6 +688,7 @@ function parseTbbpmTransition(trans: Element, sourceId: string, index: number): 
     name: trans.getAttribute('name') || undefined,
     condition: normalizeOptionalJavaCondition(trans.getAttribute('condition')),
     g: trans.getAttribute('g') || undefined,
+    ...readConnectionGeometry(trans),
     from: sourceId,
     to,
   }
@@ -1490,7 +1492,12 @@ function appendTransitions(lines: string[], connections: TbbpmConnection[], inde
       attrs.push(`condition="${escapeXml(normalizeJavaConditionExpression(conn.condition))}"`)
     }
     if (conn.g) attrs.push(`g="${escapeXml(conn.g)}"`)
-    lines.push(`${indent}<transition ${attrs.join(' ')}/>`)
+    const geometry = writeConnectionGeometry(conn)
+    lines.push(
+      geometry
+        ? `${indent}<transition ${attrs.join(' ')}>${geometry}</transition>`
+        : `${indent}<transition ${attrs.join(' ')}/>`
+    )
   })
 }
 

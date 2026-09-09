@@ -64,10 +64,11 @@ test.describe('1. 页面加载与布局', () => {
     await waitForCanvas(page)
     const toolbar = page.locator('.x6-canvas-toolbar')
     await expect(toolbar).toBeVisible()
-    await expect(toolbar.getByRole('button', { name: '左对齐' })).toBeDisabled()
     await expect(toolbar.getByRole('button', { name: /创建选中节点的副本/ })).toBeDisabled()
     await expect(toolbar.getByRole('button', { name: /全选/ })).toBeEnabled()
-    await expect(toolbar.getByRole('button', { name: /放大/ })).toBeEnabled()
+    await toolbar.getByRole('button', { name: '更多画布操作' }).click()
+    await expect(page.getByRole('menuitem', { name: /左对齐/ })).toBeDisabled()
+    await expect(page.getByRole('menuitem', { name: /放大/ })).toBeEnabled()
   })
 
   test('1.8 画布背景网格显示', async ({ page }) => {
@@ -178,7 +179,8 @@ test.describe('3. 画布操作', () => {
 
   test('3.2 工具栏放大按钮可点击', async ({ page }) => {
     const initial = parseInt(await page.locator('.status-bar-zoom-btn').innerText(), 10)
-    const zoomInBtn = page.locator('.x6-canvas-toolbar button[aria-label="放大（Ctrl+滚轮）"]')
+    await page.getByRole('button', { name: '更多画布操作' }).click()
+    const zoomInBtn = page.getByRole('menuitem', { name: /放大/ })
     await expect(zoomInBtn).toBeVisible()
     await expect(zoomInBtn).not.toBeDisabled()
     await zoomInBtn.click()
@@ -189,7 +191,8 @@ test.describe('3. 画布操作', () => {
 
   test('3.3 工具栏缩小按钮可点击', async ({ page }) => {
     const initial = parseInt(await page.locator('.status-bar-zoom-btn').innerText(), 10)
-    const zoomOutBtn = page.locator('.x6-canvas-toolbar button[aria-label="缩小（Ctrl+滚轮）"]')
+    await page.getByRole('button', { name: '更多画布操作' }).click()
+    const zoomOutBtn = page.getByRole('menuitem', { name: /缩小/ })
     await expect(zoomOutBtn).toBeVisible()
     await zoomOutBtn.click()
     await expect
@@ -228,20 +231,23 @@ test.describe('3. 画布操作', () => {
   })
 
   test('3.5 工具栏重置视图按钮可点击', async ({ page }) => {
-    await page.locator('.x6-canvas-toolbar button[aria-label="放大（Ctrl+滚轮）"]').click()
-    const resetBtn = page.locator('.x6-canvas-toolbar button[aria-label="重置视图"]')
+    await page.getByRole('button', { name: '更多画布操作' }).click()
+    await page.getByRole('menuitem', { name: /放大/ }).click()
+    await page.getByRole('button', { name: '更多画布操作' }).click()
+    const resetBtn = page.getByRole('menuitem', { name: /重置视图/ })
     await expect(resetBtn).toBeVisible()
     await resetBtn.click()
     await expect(page.locator('.status-bar-zoom-btn')).toHaveText('100%')
   })
 
   test('3.6 右键画布显示上下文菜单', async ({ page }) => {
-    const canvas = page.locator('.tbbpm-canvas')
+    const canvas = page.locator('.x6-graph-scroller')
     const box = await canvas.boundingBox()
     if (!box) throw new Error('Canvas not found')
-    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { button: 'right' })
-    await page.waitForTimeout(300)
-    // 上下文菜单可能存在也可能需要进一步交互，只要不报错即可
+    await page.mouse.click(box.x + 24, box.y + 24, { button: 'right' })
+    await page.getByRole('menuitem', { name: /全选/ }).click()
+    await expect(page.locator('.x6-node-selected')).toHaveCount(2)
+    await expect(page.getByRole('menu')).toBeHidden()
   })
 })
 

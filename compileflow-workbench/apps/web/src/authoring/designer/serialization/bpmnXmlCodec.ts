@@ -28,6 +28,7 @@ import {
   parseInvocationPolicyElement,
   parseMappedVariableElement,
 } from './actionXml'
+import { readConnectionGeometry, writeConnectionGeometry } from './connectionGeometry'
 import { escapeXml } from './xmlEscaping'
 import { validateXmlInput } from './xmlInputValidation'
 import type { GenerateOptions, ParseResult, ParseWarning } from './xmlTypes'
@@ -720,6 +721,7 @@ function parseConnections(
         name: optionalAttribute(element, 'name'),
         condition: body,
         waypoints,
+        ...readConnectionGeometry(element),
       }
     }
   )
@@ -1069,12 +1071,18 @@ function generateBpmnConnectionXml(connection: BpmnConnection, indent: string): 
     connection.condition === undefined
       ? undefined
       : normalizeJavaConditionExpression(connection.condition)
-  if (condition === undefined || condition === '') {
+  const geometry = writeConnectionGeometry(connection)
+  if ((condition === undefined || condition === '') && !geometry) {
     return `${indent}<bpmn:sequenceFlow ${attributes.join(' ')}/>`
   }
   return [
     `${indent}<bpmn:sequenceFlow ${attributes.join(' ')}>`,
-    `${indent}  <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="java">${escapeXml(condition)}</bpmn:conditionExpression>`,
+    ...(geometry ? [`${indent}  ${geometry}`] : []),
+    ...(condition
+      ? [
+          `${indent}  <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="java">${escapeXml(condition)}</bpmn:conditionExpression>`,
+        ]
+      : []),
     `${indent}</bpmn:sequenceFlow>`,
   ].join('\n')
 }
@@ -1098,13 +1106,36 @@ function generateBpmnEdgeXml(
   nodesById: ReadonlyMap<string, BpmnNode>
 ): string {
   const configured = connection.waypoints
+  const endpoint = (id: string, port?: string) => {
+    const node = requiredMapValue(nodesById, id)
+    const { width, height } = { ...defaultGeometry(node.type), ...node.size }
+    const { x, y } = node.position
+    switch (port) {
+      case 'top':
+        return { x: x + width / 2, y: y + 6 }
+      case 'bottom':
+        return { x: x + width / 2, y: y + height - 6 }
+      case 'left':
+        return { x: x + 6, y: y + height / 2 }
+      case 'right':
+        return { x: x + width - 6, y: y + height / 2 }
+      default:
+        return nodeCenter(node)
+    }
+  }
   const points =
-    configured && configured.length >= 2
-      ? configured
-      : [
-          nodeCenter(requiredMapValue(nodesById, connection.sourceId)),
-          nodeCenter(requiredMapValue(nodesById, connection.targetId)),
+    connection.sourcePort || connection.targetPort
+      ? [
+          endpoint(connection.sourceId, connection.sourcePort),
+          ...(configured ?? []),
+          endpoint(connection.targetId, connection.targetPort),
         ]
+      : configured && configured.length >= 2
+        ? configured
+        : [
+            nodeCenter(requiredMapValue(nodesById, connection.sourceId)),
+            nodeCenter(requiredMapValue(nodesById, connection.targetId)),
+          ]
   return [
     `${indent}<bpmndi:BPMNEdge id="BPMNEdge_${escapeXml(connection.id)}" bpmnElement="${escapeXml(connection.id)}">`,
     ...points.map((point) => `${indent}  <di:waypoint x="${point.x}" y="${point.y}"/>`),
