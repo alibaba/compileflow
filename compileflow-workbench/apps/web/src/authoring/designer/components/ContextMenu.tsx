@@ -9,7 +9,8 @@ import {
 } from '@ant-design/icons'
 import type { MenuProps } from 'antd'
 import { Menu } from 'antd'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 
 interface ContextMenuPosition {
@@ -43,6 +44,15 @@ function ContextMenu({
   onSelectAll,
 }: ContextMenuProps) {
   const { t } = useTranslation()
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useLayoutEffect(() => {
+    const menu = menuRef.current
+    if (!visible || !position || !menu) return
+    const bounds = menu.getBoundingClientRect()
+    menu.style.left = `${Math.max(8, Math.min(position.x, window.innerWidth - bounds.width - 8))}px`
+    menu.style.top = `${Math.max(8, Math.min(position.y, window.innerHeight - bounds.height - 8))}px`
+  }, [visible, position, menuType])
 
   useEffect(() => {
     const handleClick = () => {
@@ -50,132 +60,131 @@ function ContextMenu({
         onClose()
       }
     }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (visible && event.key === 'Escape') {
+        event.preventDefault()
+        onClose()
+      }
+    }
 
     document.addEventListener('click', handleClick)
-    return () => document.removeEventListener('click', handleClick)
+    document.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('resize', handleClick)
+    return () => {
+      document.removeEventListener('click', handleClick)
+      document.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('resize', handleClick)
+    }
   }, [visible, onClose])
 
-  if (!visible || !position) {
-    return null
-  }
+  const nodeMenuItems: MenuProps['items'] = [
+    {
+      key: 'edit',
+      label: t('designer.contextMenu.editProps'),
+      icon: <EditOutlined />,
+      onClick: () => {
+        onEdit?.()
+        onClose()
+      },
+    },
+    {
+      key: 'copy',
+      label: t('designer.contextMenu.copy'),
+      icon: <CopyOutlined />,
+      onClick: () => {
+        onCopy?.()
+        onClose()
+      },
+    },
+    {
+      key: 'delete',
+      label: t('designer.contextMenu.delete'),
+      icon: <DeleteOutlined />,
+      danger: true,
+      onClick: () => {
+        onDelete?.()
+        onClose()
+      },
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'breakpoint',
+      label: t('designer.contextMenu.breakpoint'),
+      icon: <BugOutlined />,
+      onClick: () => {
+        onBreakpoint?.()
+        onClose()
+      },
+    },
+  ]
 
-  const nodeMenuItems: MenuProps['items'] = useMemo(
-    () => [
-      {
-        key: 'edit',
-        label: t('designer.contextMenu.editProps'),
-        icon: <EditOutlined />,
-        onClick: () => {
-          onEdit?.()
-          onClose()
-        },
+  const edgeMenuItems: MenuProps['items'] = [
+    {
+      key: 'edit',
+      label: t('designer.contextMenu.editCondition'),
+      icon: <EditOutlined />,
+      onClick: () => {
+        onEdit?.()
+        onClose()
       },
-      {
-        key: 'copy',
-        label: t('designer.contextMenu.copy'),
-        icon: <CopyOutlined />,
-        onClick: () => {
-          onCopy?.()
-          onClose()
-        },
+    },
+    {
+      key: 'delete',
+      label: t('designer.contextMenu.deleteEdge'),
+      icon: <ScissorOutlined />,
+      danger: true,
+      onClick: () => {
+        onDelete?.()
+        onClose()
       },
-      {
-        key: 'delete',
-        label: t('designer.contextMenu.delete'),
-        icon: <DeleteOutlined />,
-        danger: true,
-        onClick: () => {
-          onDelete?.()
-          onClose()
-        },
-      },
-      {
-        type: 'divider',
-      },
-      {
-        key: 'breakpoint',
-        label: t('designer.contextMenu.breakpoint'),
-        icon: <BugOutlined />,
-        onClick: () => {
-          onBreakpoint?.()
-          onClose()
-        },
-      },
-    ],
-    [onBreakpoint, onClose, onCopy, onDelete, onEdit, t]
-  )
+    },
+  ]
 
-  const edgeMenuItems: MenuProps['items'] = useMemo(
-    () => [
-      {
-        key: 'edit',
-        label: t('designer.contextMenu.editCondition'),
-        icon: <EditOutlined />,
-        onClick: () => {
-          onEdit?.()
-          onClose()
-        },
+  const canvasMenuItems: MenuProps['items'] = [
+    {
+      key: 'paste',
+      label: t('designer.contextMenu.paste'),
+      icon: <SnippetsOutlined />,
+      onClick: () => {
+        onPaste?.()
+        onClose()
       },
-      {
-        key: 'delete',
-        label: t('designer.contextMenu.deleteEdge'),
-        icon: <ScissorOutlined />,
-        danger: true,
-        onClick: () => {
-          onDelete?.()
-          onClose()
-        },
+    },
+    {
+      key: 'selectAll',
+      label: t('designer.contextMenu.selectAll'),
+      icon: <SelectOutlined />,
+      onClick: () => {
+        onSelectAll?.()
+        onClose()
       },
-    ],
-    [onClose, onDelete, onEdit, t]
-  )
+    },
+  ]
 
-  const canvasMenuItems: MenuProps['items'] = useMemo(
-    () => [
-      {
-        key: 'paste',
-        label: t('designer.contextMenu.paste'),
-        icon: <SnippetsOutlined />,
-        onClick: () => {
-          onPaste?.()
-          onClose()
-        },
-      },
-      {
-        key: 'selectAll',
-        label: t('designer.contextMenu.selectAll'),
-        icon: <SelectOutlined />,
-        onClick: () => {
-          onSelectAll?.()
-          onClose()
-        },
-      },
-    ],
-    [onClose, onPaste, onSelectAll, t]
-  )
+  const menuItems = { node: nodeMenuItems, edge: edgeMenuItems, canvas: canvasMenuItems }
 
-  let items: MenuProps['items'] = []
-  if (menuType === 'node') {
-    items = nodeMenuItems
-  } else if (menuType === 'edge') {
-    items = edgeMenuItems
-  } else if (menuType === 'canvas') {
-    items = canvasMenuItems
-  }
+  if (!visible || !position || !menuType) return null
 
-  return (
+  return createPortal(
     <div
+      ref={menuRef}
       style={{
         position: 'fixed',
         left: position.x,
         top: position.y,
+        maxWidth: 'calc(100vw - 16px)',
+        maxHeight: 'calc(100dvh - 16px)',
+        overflow: 'auto',
         zIndex: 10000,
         boxShadow:
           '0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 9px 28px 8px rgba(0, 0, 0, 0.05)',
       }}
     >
-      <Menu items={items} style={{ border: '1px solid var(--color-border-light)' }} />
-    </div>
+      <Menu items={menuItems[menuType]} style={{ border: '1px solid var(--color-border-light)' }} />
+    </div>,
+    document.body
   )
 }
 

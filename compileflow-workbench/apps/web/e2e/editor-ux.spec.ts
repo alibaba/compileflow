@@ -187,74 +187,69 @@ test.describe('editor interaction feedback', () => {
     )
   })
 
-  test('connection gesture exposes valid targets, snaps to a port, and creates one edge', async ({
-    page,
-  }) => {
-    await page.goto('/build/designer?modelType=tbbpm&source=template&templateId=tpl-4')
-    await page.waitForSelector('.x6-graph', { timeout: TIMEOUT })
-    const taskItem = page.locator('.drag-palette-item').filter({ hasText: '自动任务' }).first()
-    await taskItem.click()
-    await page.locator('.x6-graph').click({ position: { x: 20, y: 20 } })
+  for (const modelType of ['tbbpm', 'bpmn'] as const) {
+    for (const [portIndex, sourceSide] of ['top', 'bottom', 'left', 'right'].entries()) {
+      test(`${modelType} connection gesture ${sourceSide} snaps, saves and restores its selected port`, async ({
+        page,
+      }) => {
+        await page.goto(
+          `/build/designer?modelType=${modelType}&source=template&templateId=${modelType === 'tbbpm' ? 'tpl-4' : 'tpl-1'}`
+        )
+        await page.waitForSelector('.x6-graph', { timeout: TIMEOUT })
+        const taskItem = page
+          .locator('.drag-palette-item')
+          .filter({ hasText: modelType === 'tbbpm' ? '自动任务' : '服务任务' })
+          .first()
+        await taskItem.click()
+        await page.locator('.x6-graph').click({ position: { x: 20, y: 20 } })
 
-    const sourceNode = page.locator('.x6-node').filter({ has: page.locator('.tbbpm-node-start') })
-    const sourcePort = sourceNode.locator('.x6-port-body').last()
-    const targetPort = page
-      .locator('.x6-node')
-      .filter({ has: page.locator('.tbbpm-node-autotask') })
-      .locator('.x6-port-body')
-      .first()
-    const edges = page.locator('.x6-edge')
-    const initialEdges = await edges.count()
-    const sourceCenter = await center(sourceNode)
-    await page.mouse.click(sourceCenter.x, sourceCenter.y)
-    await page.mouse.move(sourceCenter.x, sourceCenter.y)
-    await expect(sourcePort).toBeVisible()
-    const sourceIsTopHitTarget = await sourcePort.evaluate((element) => {
-      const box = element.getBoundingClientRect()
-      const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)
-      return hit === element
-    })
-    expect(sourceIsTopHitTarget).toBe(true)
-    const target = await movePointer(page, sourcePort, targetPort)
+        const sourceNode = page.locator('.x6-node').filter({
+          has: page.locator(modelType === 'tbbpm' ? '.tbbpm-node-start' : '.bpmn-start-event'),
+        })
+        const sourcePort = sourceNode.locator('.x6-port-body').nth(portIndex)
+        const targetPort = page
+          .locator('.x6-node')
+          .filter({
+            has: page.locator(
+              modelType === 'tbbpm' ? '.tbbpm-node-autotask' : '.bpmn-service-task'
+            ),
+          })
+          .locator('.x6-port-body')
+          .first()
+        const edges = page.locator('.x6-edge')
+        const initialEdges = await edges.count()
+        const sourceCenter = await center(sourceNode)
+        await page.mouse.click(sourceCenter.x, sourceCenter.y)
+        await page.mouse.move(sourceCenter.x, sourceCenter.y)
+        await expect(sourcePort).toBeVisible()
+        const sourceIsTopHitTarget = await sourcePort.evaluate((element) => {
+          const box = element.getBoundingClientRect()
+          const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)
+          return hit === element
+        })
+        expect(sourceIsTopHitTarget).toBe(true)
+        const target = await movePointer(page, sourcePort, targetPort)
 
-    await expect(page.locator('.available-node')).not.toHaveCount(0)
-    await expect(page.locator('.available-magnet')).not.toHaveCount(0)
-    await page.mouse.move(target.x, target.y, { steps: 8 })
-    await expect(page.locator('.adsorbed-magnet')).not.toHaveCount(0)
-    await page.mouse.up()
+        await expect(page.locator('.available-node')).not.toHaveCount(0)
+        await expect(page.locator('.available-magnet')).not.toHaveCount(0)
+        await page.mouse.move(target.x, target.y, { steps: 8 })
+        await expect(page.locator('.adsorbed-magnet')).not.toHaveCount(0)
+        await page.mouse.up()
 
-    await expect(edges).toHaveCount(initialEdges + 1, { timeout: TIMEOUT })
-  })
-
-  test('BPMN Sequence Flow is created by a real port-to-port mouse gesture', async ({ page }) => {
-    await page.goto('/build/designer?modelType=bpmn&source=new')
-    await page.waitForSelector('.x6-graph', { timeout: TIMEOUT })
-    await page.locator('.drag-palette-item').filter({ hasText: '流程开始' }).first().click()
-    await page.locator('.drag-palette-item').filter({ hasText: '服务任务' }).first().click()
-    await page.locator('.x6-graph').click({ position: { x: 20, y: 20 } })
-
-    const sourceNode = page.locator('.x6-node').filter({ has: page.locator('.bpmn-start-event') })
-    const sourcePort = sourceNode.locator('.x6-port-body').first()
-    const targetPort = page
-      .locator('.x6-node')
-      .filter({ has: page.locator('.bpmn-service-task') })
-      .locator('.x6-port-body')
-      .first()
-    const edges = page.locator('.x6-edge')
-    const initialEdges = await edges.count()
-
-    const sourceCenter = await center(sourceNode)
-    await page.mouse.click(sourceCenter.x, sourceCenter.y)
-    await page.mouse.move(sourceCenter.x, sourceCenter.y)
-    await expect(sourcePort).toBeVisible()
-    const target = await movePointer(page, sourcePort, targetPort)
-    await expect(page.locator('.available-magnet')).not.toHaveCount(0)
-    await page.mouse.move(target.x, target.y, { steps: 8 })
-    await expect(page.locator('.adsorbed-magnet')).not.toHaveCount(0)
-    await page.mouse.up()
-
-    await expect(edges).toHaveCount(initialEdges + 1, { timeout: TIMEOUT })
-  })
+        await expect(edges).toHaveCount(initialEdges + 1, { timeout: TIMEOUT })
+        await page.getByRole('button', { name: /^保存/ }).click()
+        await expect(page.getByRole('button', { name: '已保存', exact: true })).toBeVisible()
+        await page.reload()
+        await expect(edges).toHaveCount(initialEdges + 1, { timeout: TIMEOUT })
+        await page.getByTestId('designer-tab-xml').click()
+        await expect(page.locator('.xml-code-editor-panel .monaco-editor')).toBeVisible({
+          timeout: TIMEOUT,
+        })
+        await expect.poll(() => readDesignerXml(page)).toContain(`"sourcePort":"${sourceSide}"`)
+        expect(await readDesignerXml(page)).toContain('"targetPort":"top"')
+      })
+    }
+  }
 
   test('non-drag connection creation and edge property history stay canonical through XML', async ({
     page,

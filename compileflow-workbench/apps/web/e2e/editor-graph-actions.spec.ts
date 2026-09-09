@@ -21,7 +21,7 @@ test.describe('canonical graph actions', () => {
 
     await page.getByRole('tab', { name: /任务属性/ }).click()
     await page.getByRole('textbox', { name: 'Java 类名' }).fill('com.example.CloneSource')
-    await page.locator('.x6-canvas-toolbar button[aria-label^="放大"]').focus()
+    await page.getByRole('button', { name: '适应画布', exact: true }).focus()
     await page.keyboard.press('Control+d')
 
     await expect(nodes).toHaveCount(4, { timeout: TIMEOUT })

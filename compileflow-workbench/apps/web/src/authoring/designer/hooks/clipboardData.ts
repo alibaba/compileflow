@@ -43,6 +43,8 @@ const clipboardDataSchema = z.object({
       id: z.string().min(1),
       sourceId: z.string().min(1),
       targetId: z.string().min(1),
+      sourcePort: z.string().optional(),
+      targetPort: z.string().optional(),
       name: z.string().optional(),
       condition: z.string().optional(),
       waypoints: z.array(z.object({ x: z.number().finite(), y: z.number().finite() })).optional(),

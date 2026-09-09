@@ -81,8 +81,9 @@ function tbbpmNodeToX6Cell(node: TbbpmNode): Record<string, unknown> {
 function tbbpmConnectionToX6Edge(connection: TbbpmConnection): Record<string, unknown> {
   return {
     id: connection.id,
-    source: connection.sourceId,
-    target: connection.targetId,
+    zIndex: -1,
+    source: { cell: connection.sourceId, port: connection.sourcePort },
+    target: { cell: connection.targetId, port: connection.targetPort },
     vertices: connection.waypoints ?? [],
     labels: connection.name ? [{ attrs: { label: { text: connection.name } } }] : undefined,
     data: { condition: connection.condition },
@@ -133,10 +134,18 @@ function registerTbbpmMutationEvents(
     const sourceId = edge.getSourceCellId()
     const targetId = edge.getTargetCellId()
     if (!sourceId || !targetId) return
+    const sourcePort = edge.getSourcePortId()
+    const targetPort = edge.getTargetPortId()
 
     runGraphMutation(isSyncingRef, () => {
       const vertices = edge.getVertices() ?? []
-      const updates = { sourceId, targetId, waypoints: vertices.length > 0 ? vertices : undefined }
+      const updates = {
+        sourceId,
+        targetId,
+        sourcePort,
+        targetPort,
+        waypoints: vertices.length > 0 ? vertices : undefined,
+      }
       if (connectionsRef.current.some((connection) => connection.id === edge.id)) {
         dispatch(updateConnection({ id: edge.id, updates }))
       } else {
@@ -308,6 +317,8 @@ const TbbpmCanvas = memo(function TbbpmCanvas({ onGraphReady }: TbbpmCanvasProps
         currentLabel !== conn.name ||
         edge.getSourceCellId() !== conn.sourceId ||
         edge.getTargetCellId() !== conn.targetId ||
+        edge.getSourcePortId() !== conn.sourcePort ||
+        edge.getTargetPortId() !== conn.targetPort ||
         JSON.stringify(edge.getVertices()) !== JSON.stringify(conn.waypoints ?? [])
       )
     },
@@ -315,8 +326,8 @@ const TbbpmCanvas = memo(function TbbpmCanvas({ onGraphReady }: TbbpmCanvasProps
       const currentData = (edge.getData() ?? {}) as Record<string, unknown>
       edge.setData({ ...currentData, condition: conn.condition })
       edge.setLabels(conn.name ? [{ attrs: { label: { text: conn.name } } }] : [])
-      edge.setSource({ cell: conn.sourceId })
-      edge.setTarget({ cell: conn.targetId })
+      edge.setSource({ cell: conn.sourceId, port: conn.sourcePort })
+      edge.setTarget({ cell: conn.targetId, port: conn.targetPort })
       edge.setVertices(conn.waypoints ?? [])
     },
   })

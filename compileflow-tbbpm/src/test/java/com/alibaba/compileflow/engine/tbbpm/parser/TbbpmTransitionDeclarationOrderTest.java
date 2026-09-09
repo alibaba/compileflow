@@ -77,6 +77,21 @@ class TbbpmTransitionDeclarationOrderTest {
     }
 
     @Test
+    void editorGeometryDoesNotChangeExecutableTransitions() {
+        String xml = exclusiveXml().replace(
+            "<transition to=\"decision\"/>",
+            "<transition to=\"decision\"><?workbench-edge {\"sourcePort\":\"right\",\"targetPort\":\"left\"}?></transition>"
+        );
+        TbbpmModel model = parse(xml);
+        assertThat(model.getNode("start").getOutgoingTransitions())
+            .extracting(Transition::getTarget)
+            .containsExactly("decision");
+        assertThat(getExclusive(model, "decision").getOutgoingTransitions())
+            .extracting(Transition::getTarget)
+            .containsExactly("first", "second");
+    }
+
+    @Test
     void rejectsRemovedPriorityAttribute() {
         assertThatThrownBy(() -> parse(exclusiveXml().replace("to=\"first\"", "to=\"first\" priority=\"1\"")))
             .isInstanceOf(RuntimeException.class);

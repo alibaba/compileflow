@@ -120,7 +120,7 @@ describe('ExampleDetail execution integration', () => {
     useParamsMock.mockReturnValue({ id: 'example-1' })
     executePreviewMock.mockResolvedValue({
       success: true,
-      message: 'ok',
+      message: 'Draft preview completed (mock)',
       result: { output: 'done' },
     })
   })
@@ -156,6 +156,7 @@ describe('ExampleDetail execution integration', () => {
       })
     })
     expect(await screen.findByText(/"output": "done"/)).toBeInTheDocument()
+    expect(screen.getByText('Draft preview completed (mock)')).toBeInTheDocument()
   })
 
   it('coalesces rapid execute clicks into one server execution', async () => {

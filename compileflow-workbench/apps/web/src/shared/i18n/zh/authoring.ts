@@ -1928,8 +1928,6 @@ const zhAuthoring = {
 
   'designer.loading.suspense': '加载中…',
 
-  'designer.loading.contextMenu': '加载菜单中…',
-
   'designer.loading.rightPanel': '加载面板中…',
 
   'designer.loading.monaco': '加载代码编辑器…',

@@ -149,6 +149,8 @@ function registerBpmnMutationEvents(
     const sourceId = edge.getSourceCellId()
     const targetId = edge.getTargetCellId()
     if (!sourceId || !targetId) return
+    const sourcePort = edge.getSourcePortId()
+    const targetPort = edge.getTargetPortId()
 
     runGraphMutation(isSyncingRef, () => {
       const vertices = (edge.getVertices() ?? []) as Array<{ x: number; y: number }>
@@ -157,7 +159,13 @@ function registerBpmnMutationEvents(
         dispatch(
           updateConnection({
             id: edge.id,
-            updates: { sourceId, targetId, waypoints: vertices.length > 0 ? vertices : undefined },
+            updates: {
+              sourceId,
+              targetId,
+              sourcePort,
+              targetPort,
+              waypoints: vertices.length > 0 ? vertices : undefined,
+            },
           })
         )
         return
@@ -167,6 +175,8 @@ function registerBpmnMutationEvents(
           id: edge.id,
           sourceId,
           targetId,
+          sourcePort,
+          targetPort,
           name: '',
           waypoints: vertices.length > 0 ? vertices : undefined,
         })
@@ -249,8 +259,9 @@ function registerBpmnGraphEvents(graph: Graph, options: BpmnGraphEventOptions) {
 function bpmnConnectionToX6Edge(connection: BpmnConnection): Record<string, unknown> {
   return {
     id: connection.id,
-    source: connection.sourceId,
-    target: connection.targetId,
+    zIndex: -1,
+    source: { cell: connection.sourceId, port: connection.sourcePort },
+    target: { cell: connection.targetId, port: connection.targetPort },
     labels: connection.name ? [{ attrs: { label: { text: connection.name } } }] : undefined,
     vertices: connection.waypoints || [],
     data: { condition: connection.condition },
@@ -342,14 +353,16 @@ const BpmnCanvas = memo(function BpmnCanvas({ onGraphReady }: BpmnCanvasProps) {
         currentData?.condition !== conn.condition ||
         edge.getSourceCellId() !== conn.sourceId ||
         edge.getTargetCellId() !== conn.targetId ||
+        edge.getSourcePortId() !== conn.sourcePort ||
+        edge.getTargetPortId() !== conn.targetPort ||
         JSON.stringify(edge.getVertices()) !== JSON.stringify(conn.waypoints ?? [])
       )
     },
     syncEdgeToCell: (edge, conn) => {
       edge.setData({ condition: conn.condition })
       edge.setLabels(conn.name ? [{ attrs: { label: { text: conn.name } } }] : [])
-      edge.setSource({ cell: conn.sourceId })
-      edge.setTarget({ cell: conn.targetId })
+      edge.setSource({ cell: conn.sourceId, port: conn.sourcePort })
+      edge.setTarget({ cell: conn.targetId, port: conn.targetPort })
       edge.setVertices(conn.waypoints ?? [])
     },
   })
