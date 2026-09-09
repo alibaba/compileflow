@@ -25,7 +25,7 @@ Java 会在运行时擦除泛型参数。CompileFlow 在声明和生成源码层
 `Map<String, Object>`、脚本或子流程结果等动态边界进入时，只能按原始类检查。引擎不会隐式遍历、转换或校验集合元素，执行上下文提供的
 `List<T>` 或 `Map<K,V>` 内容仍由应用负责。
 
-这些 Java 类型声明规则不代表 Durable 持久化支持。Durable Run 状态还必须满足 Kernel 固定的可移植 value schema 与编码契约；
+这些 Java 类型声明规则不代表 Durable 持久化支持。Durable Run 状态还必须满足内核规定的可移植数据结构与编码规则；
 仅在 JVM 类加载器中可见并不足够，也没有应用载荷编解码 SPI。
 
 ## 运行时转换

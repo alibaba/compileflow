@@ -1,4 +1,4 @@
-# 支持面清单
+# 支持范围与兼容性
 
 以下产品契约构成 CompileFlow 支持面。未列出的内容属于内部实现，即使 JVM 可见性为 `public`，应用也不应依赖。
 
@@ -18,7 +18,7 @@
 | Java 产物与生成流程        | Java 17 源代码/API/字节码；受支持的 Java 17、21、25 LTS 均参与构建或验证，其中 Java 17 运行完整测试套件，Java 21/25 运行定向并发与动态代码运行时契约 |
 | Spring 集成                | Spring Boot 4.1.1                                                                                                                                    |
 | Engine API/Core/TBBPM/BPMN | 不要求 CompileFlow 自有部署数据库                                                                                                                    |
-| Deploy 第一方事实源        | PostgreSQL 16.15/17.11/18.6 与 MySQL 8.4.7 契约矩阵；能力提供方共享与版本绑定的 JDBC 状态机，并分别负责方言选择与数据库变更脚本                      |
+| Deploy 官方存储实现        | PostgreSQL 16.15/17.11/18.6 与 MySQL 8.4.7 契约矩阵；能力提供方共享与版本绑定的 JDBC 状态机，并分别负责方言选择与数据库变更脚本                      |
 | Workbench 生产持久化       | 同一可执行产物支持 PostgreSQL 16.15/17.11/18.6 与 MySQL 8.4.7；Compose 推荐 PostgreSQL 18.6                                                          |
 | Durable 第一方实现         | PostgreSQL 16.15/17.11/18.6 与 MySQL 8.4.7 契约矩阵；H2 仅用于测试                                                                                   |
 | Workbench 构建             | Node.js 24 LTS 与 pnpm 11.11.0；Node 精确补丁版本固定在 `release-baselines.json`                                                                     |
@@ -83,7 +83,7 @@ JDBC 状态机，同时分别保留方言选择、数据库变更脚本和真实
 
 ## 部署线协议（`compileflow-deploy-protocol`）
 
-受支持的线协议辅助类型位于 `com.alibaba.compileflow.deploy.protocol`，负责带架构版本的制品和路由载荷、解析器、
+受支持的线协议辅助类型位于 `com.alibaba.compileflow.deploy.protocol`，负责带协议结构版本的制品和路由载荷、解析器、
 规范化有界 JSON 与投影键。协议模块依赖部署领域 API；领域 API 不反向依赖线格式。
 
 应用不得依赖 Deploy 管理端、运行时和集成实现、仓储实现、Spring 组合根内部类型或服务端适配器。
@@ -134,7 +134,7 @@ Durable 通过同一语义执行后端接受文档定义的严格 TBBPM 和 BPMN
 除上述配置和工厂装配入口外，`compileflow-durable-runtime` 的包、PostgreSQL/MySQL 实现类、
 `compileflow-durable-testkit`、Spring 自动配置组合 bean
 和 Durable 数据库表都不是应用 API。第一方跨制品装配所需的 JVM `public` 可见性不会形成 Store 扩展契约。公共 Durable API
-属于受支持界面；生产部署必须使用支持面清单列出的组合。
+属于受支持的集成入口；生产部署必须使用本页列出的组合。
 
 完整边界与维护规则见 [Durable 架构](durable-architecture.md)。
 
@@ -157,7 +157,7 @@ Durable 通过同一语义执行后端接受文档定义的严格 TBBPM 和 BPMN
 
 - 控制面与运行时保持分离
 - 已发布的 Deploy `ProcessArtifact` 与 exact Process Version 不可变
-- PostgreSQL 与 MySQL 是不同的第一方事实源，在应用组合阶段只选择一次；共享 JDBC 状态机不会合并数据库架构、
+- PostgreSQL 与 MySQL 是不同的官方存储实现，在应用组合阶段只选择一次；共享 JDBC 状态机不会合并数据库架构、
   变更脚本、运行时选择或数据库专属证据
 - `compileflow-deploy-spring-boot-autoconfigure` 只拥有数据库无关的 Deploy 组合
 - `compileflow-deploy-spring-boot-starter` 是宿主自行提供完整 `DeployStore` 时使用的流程格式和存储实现中立入口

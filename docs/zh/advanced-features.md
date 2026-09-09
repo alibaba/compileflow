@@ -156,7 +156,7 @@ ProcessResult<OrderResponse> result = engine.execute(
 
 使用 `compileflow-api` 中的扩展接口：
 
-- `ProcessEnginePlugin`：组合配置贡献；
+- `ProcessEnginePlugin`：集中注册一组相关扩展；
 - `ProcessEventListener`：事件；
 - `ScriptExecutor`：脚本语言；
 - `RetryPolicy` 与 `FailureHandler`：具名调用策略扩展；

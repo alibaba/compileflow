@@ -2,7 +2,7 @@
 
 CompileFlow 提供三类相互独立的观测能力，可按需分别配置。
 
-| 表面             | 所有者                         | 配置方式                                                       |
+| 观测能力         | 负责组件                       | 配置方式                                                       |
 | ---------------- | ------------------------------ | -------------------------------------------------------------- |
 | 引擎生命周期事件 | 每个 `ProcessEngine`           | `ProcessEngineConfig` 能力与 `ProcessObservabilityConfig` 行为 |
 | JVM 指标导出     | Spring 应用                    | Micrometer `MeterRegistry` 与标准指标过滤器                    |

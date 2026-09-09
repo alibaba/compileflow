@@ -9,7 +9,7 @@ CompileFlow 接受 TBBPM 和文档明确支持的 BPMN 2.0 子集。本页说明
 | 全称     | Taobao Business Process Model                                         | Business Process Model and Notation 2.0                              |
 | 规范来源 | CompileFlow 维护的[TBBPM 规范](tbbpm.md)                              | OMG 正式规范                                                         |
 | 可移植性 | CompileFlow 原生                                                      | 使用标准 BPMN 词汇与模型交换格式；执行能力仍取决于子集和扩展         |
-| 适用目标 | 面向 CompileFlow 的自动化流程                                         | 使用已记录 BPMN 子集的流程定义                                       |
+| 适用目标 | 面向 CompileFlow 的自动化流程                                         | 使用文档明确支持的 BPMN 子集                                       |
 | 持久化   | `ProcessEngine` 不保存后续执行位置；Durable 支持文档列出的 TBBPM 能力 | `ProcessEngine` 不保存后续执行位置；Durable 支持文档列出的 BPMN 能力 |
 
 ## 2. 执行模型
@@ -152,5 +152,5 @@ TBBPM 与 BPMN 共用编译执行引擎。首次执行包含准备成本，后�
 - [TBBPM 规范](tbbpm.md)
 - [BPMN 扩展规范](bpmn-extensions.md)
 - [何时使用 CompileFlow](../when-to-use.md)
-- [支持面清单](../architecture/supported-surfaces.md)
+- [支持范围与兼容性](../architecture/supported-surfaces.md)
 - [扩展指南](../extension-guide.md)

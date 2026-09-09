@@ -48,8 +48,8 @@ may occur inside bounded loops; resumption requires the exact Run's one-time Wai
 `timerTask` is accepted by the TBBPM schema and Durable compiler, including inside loops; ProcessEngine
 execution rejects it because `ProcessRuntime` has no durable scheduler. Effect is not a node. Every executable Action in a Durable
 TBBPM model explicitly declares `execution="replayable|effect"`. BPMN service Actions have the same requirement;
-a BPMN `scriptTask` defaults to `replayable` and can explicitly select `cf:execution="effect"`. An Effect Action uses its ProcessEngine Java, bean, inline, or
-registered script implementation while the Kernel durably owns dispatch and unknown-outcome handling.
+a BPMN `scriptTask` defaults to `replayable` and can explicitly select `cf:execution="effect"`. An Effect Action calls a Java method, a Spring Bean method, or
+a script in a registered language. The Kernel persists dispatch state and outcomes, including unknown outcomes.
 
 The Durable TBBPM profile supports `start`, `end`, `autoTask`, `scriptTask`, `exclusive`, both Wait nodes, `timerTask`,
 `while`, `foreach`, `break`, `continue`, structured `parallel`/`inclusive`, `subBpm`, and `bpmCall`. Parallel and Inclusive use persisted

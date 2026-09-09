@@ -81,6 +81,10 @@ Two execution paths have separate contracts:
 
 Learn and Designer use preview. Operate uses published execution. Neither path silently falls back to the other.
 
+Preview is disabled by default and enabled by the local `dev` profile. It executes trusted definitions with the Server's
+permissions, not in a sandbox. Keep `compileflow.workbench.server.preview-execution.enabled=false` in production unless
+the gateway explicitly authorizes trusted authors to execute drafts. See the [security guide](../docs/en/security.md).
+
 ## Persistence
 
 Flyway is the schema authority. It runs before JPA, while Hibernate uses `ddl-auto=validate`. Select PostgreSQL or MySQL
@@ -88,7 +92,7 @@ with `COMPILEFLOW_WORKBENCH_SERVER_CONFIG_DATABASE_PROVIDER=POSTGRESQL|MYSQL`. T
 Workbench migration sets from the matching locations:
 `db/compileflow-deploy/{postgres|mysql}/migration` and
 `db/compileflow-workbench-server/{postgres|mysql}/migration`. Neither location is under Flyway's default discovery root. A
-production deployment may apply them with a separate DDL identity and set
+production deployment should apply them with a separate DDL identity and retain the default
 `COMPILEFLOW_WORKBENCH_SERVER_CONFIG_DATABASE_MIGRATE=false`; startup still validates Flyway checksums and rejects
 pending migrations. Do not disable
 `spring.flyway.enabled`, because that would bypass schema admission. The executable artifact supports PostgreSQL and
@@ -98,9 +102,9 @@ Workbench draft tables and deployment control-plane tables are separate data dom
 both. Publication creates an immutable source version; alias changes and rollout events use the deployment service and
 transactional outbox.
 
-Workbench Server records completed executions synchronously before returning the response. This keeps dashboards and
-canary samples complete even when a best-effort event queue is saturated. Listener failures do not change the process
-result, so the execution log is not an exactly-once audit ledger.
+Workbench Server attempts to record completed executions synchronously before returning the response. This avoids
+sample loss caused by a saturated asynchronous event queue, but database or listener failures can still leave gaps.
+Listener failures do not change the process result, so the execution log is not an exactly-once audit ledger.
 
 ## HTTP Contract
 

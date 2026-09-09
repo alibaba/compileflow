@@ -35,6 +35,12 @@
   background: var(--color-border-light);
 }
 
+.canvas-toolbar-menu {
+  max-height: calc(50dvh - 12px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 /* Tool group visual container — subtle background */
 .x6-canvas-toolbar .ant-space {
   padding: 2px 4px;
@@ -120,12 +126,17 @@
   }
 
   .x6-canvas-toolbar .ant-btn {
-    min-width: 36px !important;
-    min-height: 36px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
   }
 
-  .x6-canvas-toolbar .ant-space:nth-child(2) {
-    display: none;
+  .x6-canvas-toolbar .ant-space {
+    gap: 0 !important;
+    padding: 0;
+  }
+
+  .x6-canvas-toolbar .ant-divider-vertical {
+    margin: 0 4px;
   }
 }
 

@@ -52,6 +52,7 @@ async function gotoBpmnDesigner(page: Page) {
 async function selectOption(page: Page, label: string, option: string) {
   await page.getByRole('combobox', { name: label }).click()
   const dropdown = page.locator('.ant-select-dropdown:visible')
+  await expect(dropdown).not.toHaveClass(/ant-slide-up-(appear|enter)/)
   await dropdown.locator('.ant-select-item-option').filter({ hasText: option }).click()
   await expect(dropdown).toBeHidden()
 }

@@ -6,7 +6,7 @@ CompileFlow 只在应用边界解析一次外部配置。配置完成类型转�
 Java 配置快照只引用外部传入的协作组件，其生命周期仍由应用管理；引擎只关闭工厂自行创建的资源。复用同一份配置创建
 多个引擎时，传入的协作组件必须满足各自文档约定的线程安全契约。
 
-以下设置构成受支持配置面。名称、类型、单位、枚举值、归属、语义和接受范围属于契约。语义、安全和启用默认值保持稳定；运维容量与性能默认值可依据有记录的验证结果演进，不构成延迟保证。实现字段和未记录的别名不属于受支持配置。详见[兼容性政策](compatibility-policy.md)。
+以下设置构成受支持的配置范围。名称、类型、单位、枚举值、归属、语义和取值范围属于契约。语义、安全和启用默认值保持稳定；运维容量与性能默认值可依据有记录的验证结果演进，不构成延迟保证。实现字段和未记录的别名不属于受支持配置。详见[兼容性策略](compatibility-policy.md)。
 
 ## 边界与优先级
 
@@ -19,7 +19,7 @@ Java 配置快照只引用外部传入的协作组件，其生命周期仍由应
 | 开发网关         | `COMPILEFLOW_DEV_GATEWAY_*`      | 仅回环的 Node.js 模拟服务 | 冻结的 `DevGatewayConfig`                                      |
 | Web 应用         | `VITE_COMPILEFLOW_*`             | Vite 构建产物             | 冻结的 `AppBuildConfig`                                        |
 
-本地部署模板还接受少量插值输入，但它们不是第七个应用配置边界。Compose 将
+本地部署模板还接受少量插值输入，但它们不构成独立的应用配置接口。Compose 将
 `COMPILEFLOW_WORKBENCH_DATABASE_*` 转换为 PostgreSQL 与 Spring 标准 datasource 配置；回环 nginx 容器只接收由同一个
 Workbench Server 密钥派生的
 `COMPILEFLOW_WORKBENCH_LOCAL_GATEWAY_UPSTREAM_API_KEY`。这些值不会进入浏览器构建，也不会在 Java 或 Node 业务代码中形成第二套配置
@@ -135,7 +135,7 @@ Schema 校验和流式解析均强制 XML 元素嵌套不超过 128 层，即使
 
 | 属性                                                         | 默认值  | 约束/用途                                                    |
 | ------------------------------------------------------------ | ------- | ------------------------------------------------------------ |
-| `compileflow.engine.runtime-load-timeout`                    | `10s`   | 同步调用等待 runtime load 的最长时间，至少 `1ms`。           |
+| `compileflow.engine.runtime-load-timeout`                    | `10s`   | 同步调用等待运行时加载的最长时间，至少 `1ms`。           |
 | `compileflow.engine.java-diagnostics.debug.symbols`          | `LINES` | `NONE`、`LINES` 或 `FULL`；本身不会写文件。                  |
 | `compileflow.engine.java-diagnostics.debug.output-directory` | 未设置  | 设置后按生成类名导出稳定的 `source/` 与 `metadata/` 目录树。 |
 | `compileflow.engine.java-diagnostics.debug.bytecode-enabled` | `false` | 同时导出 `.class` 文件；启用时必须设置输出目录。             |
@@ -146,10 +146,10 @@ Schema 校验和流式解析均强制 XML 元素嵌套不超过 128 层，即使
 IntelliJ IDEA 中，将 `<output-directory>/source` 标记为 Sources Root，并在可执行代码行设置断点。Durable 生成类名包含标准化后的完整流程
 code 和 program digest 前缀，源码头同时保留原始流程 code，便于直接识别。
 
-每个 single-flight runtime load 只尝试一次 Java 编译。对同一份已解析源码快照而言，解析、代码生成、类解析与 Java
+每次合并后的运行时加载只尝试一次 Java 编译。对同一份已解析源码快照而言，解析、代码生成、类解析与 Java
 编译诊断都是确定性的，因此引擎不会盲目重试。流程定义或运行环境修复后，后续调用可以发起新一次编译；部署收敛与持久化异步调用分别拥有自己的有界重试策略。
 
-`runtime-load-timeout` 只限制同步调用的等待时间。超时不会由任意一个等待者取消共享 runtime load；已接纳的任务会
+`runtime-load-timeout` 只限制同步调用的等待时间。超时不会由任意一个等待者取消共享的运行时加载任务；已接纳的任务会
 继续执行，成功后进入节点本地缓存，后续调用可直接复用。JDK 编译器没有可靠的强制终止契约，资源上限由流程定义大小、runtime-load 并发与 pending 准入共同保证。
 
 ```yaml
@@ -175,10 +175,10 @@ compileflow:
 | 运维        | `compileflow.engine.observability.events.max-concurrency`  | `2`     | 生命周期事件分发的最大并发数，必须为正数。                                |
 | 运维        | `compileflow.engine.observability.events.max-pending`      | `16`    | 等待事件分发槽位的额外任务上限，必须为非负数；饱和时设为 `0` 会拒绝投递。 |
 | 运维        | `compileflow.engine.observability.mdc-propagation-enabled` | `false` | 是否跨引擎执行器边界复制 MDC。                                            |
-| Advanced    | `compileflow.engine.plugins.discovery-enabled`             | `false` | 仅在显式启用时通过 `ServiceLoader` 自动发现 `ProcessEnginePlugin`。       |
-| Operational | `compileflow.engine.components.allowed-beans`              | `[]`    | 暴露给流程定义的精确 Spring bean 名；空列表拒绝自动 bean 访问。           |
+| 高级        | `compileflow.engine.plugins.discovery-enabled`             | `false` | 仅在显式启用时通过 `ServiceLoader` 自动发现 `ProcessEnginePlugin`。       |
+| 运维        | `compileflow.engine.components.allowed-beans`              | `[]`    | 暴露给流程定义的精确 Spring bean 名；空列表拒绝自动 bean 访问。           |
 
-存在 `MeterRegistry` 时会自动注册 Micrometer binder。指标启停和过滤使用 Spring Boot 标准的
+存在 `MeterRegistry` 时会自动注册 Micrometer 指标绑定器。指标启停和过滤使用 Spring Boot 标准的
 `management.metrics.enable.*`，不创建重复的 CompileFlow 开关。程序化 `ProcessObservabilityConfig`
 只包含事件分发与 MDC 传播行为。
 
@@ -192,20 +192,20 @@ ProcessEngine 执行应使用应用事务/Outbox，Durable 执行应使用 Durab
 Workbench Server 为终态执行日志有意将 `events.async` 覆盖为 `false`，使请求在返回前尝试写入数据库，
 避免事件队列饱和造成样本偏差。监听器失败仍与流程结果隔离，因此这不构成持久化审计保证。
 
-trace 捕获同样是构造期协作者。`TraceIdProvider` 只是轻量日志/事件关联钩子，不是 CompileFlow 自研 tracing 或 context
-propagation 抽象。独立运行时可通过
+追踪标识提供方也在构造时配置。`TraceIdProvider` 只是轻量日志/事件关联钩子，不是完整的链路追踪或上下文
+传播机制。独立运行时可通过
 `ProcessEngineConfig.Builder.traceIdProvider(...)` 设置一个 `TraceIdProvider`；Spring 存在应用声明的唯一
-`TraceIdProvider` bean 时使用它，否则读取标准 MDC `traceId`。引擎只接受 1–128 字符且首尾无空白的标识；provider/MDC
-返回空值、首尾带空白、超长值或 provider 失败时都不会归一化或截断错误 identity，而是继续回退到 32 位十六进制本地 ID。非法观测输入不能改变流程执行结果。
+`TraceIdProvider` bean 时使用它，否则读取标准 MDC `traceId`。引擎只接受 1–128 字符且首尾无空白的标识；提供方或 MDC
+返回空值、首尾带空白、超长值或提供方失败时都不会归一化或截断非法标识，而是继续回退到 32 位十六进制本地 ID。非法观测输入不能改变流程执行结果。
 
 独立应用通过一个显式 `ProcessComponentResolver` 暴露组件；Spring 应用也可在
 `compileflow.engine.components.allowed-beans` 中列出精确 bean 名。默认空列表拒绝全部自动 bean 访问；以
-`&` 开头的 FactoryBean 解引用名、空值、重复值和带首尾空白的别名都会被拒绝。自定义 resolver 与非空 allowlist
+`&` 开头的 FactoryBean 解引用名、空值、重复值和带首尾空白的别名都会被拒绝。自定义解析器与非空允许列表
 互斥，避免任一策略被静默忽略。解析同时使用声明的组件名和所需 Java 类型；缺失或类型不兼容直接失败，不会转而实例化流程中声明的类型。
 
 独立应用可通过 `ProcessEngineConfig.Builder.contextPropagator(...)` 设置一个 `ProcessContextPropagator`。它只在
-ProcessEngine 自有线程切换时捕获应用环境上下文，并在结束时恢复 worker 原上下文；Durable 不会持久化或恢复该上下文。
-classpath 存在 Micrometer Context Propagation 时，Spring 自动提供适配器，自定义 `ProcessContextPropagator` bean 会替换它。
+ProcessEngine 自有线程切换时捕获应用环境上下文，并在结束时恢复工作线程原有的上下文；Durable 不会持久化或恢复该上下文。
+类路径中存在 Micrometer Context Propagation 时，Spring 自动提供适配器，自定义 `ProcessContextPropagator` bean 会替换它。
 
 其余类型化扩展点（`ScriptExecutor`、`RetryPolicy`、`FailureHandler`、`ProcessEnginePlugin`）同样是构造期协作者。
 注册、排序、所有权和失败语义见[扩展指南](extension-guide.md)。
@@ -219,32 +219,32 @@ classpath 存在 Micrometer Context Propagation 时，Spring 自动提供适配�
 
 | 属性                                        | 默认值     | 约束/用途                                                                                                                  |
 | ------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `compileflow.deploy.enabled`                | `false`    | deployment 仓储、路由、控制面、运行时和指标的总开关。                                                                      |
+| `compileflow.deploy.enabled`                | `false`    | 部署仓储、路由、控制面、运行时和指标的总开关。                                                                      |
 | `compileflow.deploy.topology`               | `EMBEDDED` | `EMBEDDED` 在命令返回前激活已提交 Alias，并保留 outbox 恢复；`DISTRIBUTED` 使用同步通道。                                  |
 | `compileflow.deploy.control-plane-enabled`  | `true`     | 当前进程承载发布命令、outbox 分发与分布式对账。                                                                            |
 | `compileflow.deploy.runtime-worker-enabled` | `false`    | 仅在 `DISTRIBUTED` 拓扑下启用通道订阅、需求规划、产物解析与安装角色；Embedded 本地收敛由 `topology` 选择，不由该开关启用。 |
-| `compileflow.deploy.database.provider`      | 未设置     | 仅当两个第一方 Provider composition 同时存在时必填；取值 `POSTGRESQL` 或 `MYSQL`，选择不可用 Provider 会启动失败。         |
-| `compileflow.deploy.database.migrate`       | `false`    | 为 true 时应用所选 Deploy migration；否则校验由外部迁移的 schema。                                                         |
+| `compileflow.deploy.database.provider`      | 未设置     | 仅当两个官方数据库自动配置模块同时存在时必填；取值 `POSTGRESQL` 或 `MYSQL`，选择不可用的数据库实现会启动失败。         |
+| `compileflow.deploy.database.migrate`       | `false`    | 为 `true` 时执行所选 Deploy 数据库迁移；否则校验由外部更新的数据库结构。                                                         |
 
-启用 deployment 后至少要选择一个进程职责。`EMBEDDED` 要求
+启用部署系统后至少要选择一个进程职责。`EMBEDDED` 要求
 `control-plane-enabled=true`、`runtime-worker-enabled=false`；`DISTRIBUTED`
-支持纯控制面、纯 worker 和显式配置的组合进程。数据库型纯 worker 应设置
-`control-plane-enabled=false`，此时即使存在 `DataSource` 也不会启动发布服务和 outbox worker。
+支持纯控制面、纯运行时工作节点和显式配置的组合进程。数据库型纯运行时工作节点应设置
+`control-plane-enabled=false`，此时即使存在 `DataSource` 也不会启动发布服务和 Outbox 工作节点。
 
-只有 deployment 已启用、选中匹配 Provider 且存在 `DataSource` 时才自动创建一个完整 `DeployStore`，不存在内存回退。alias 状态与 routing 事件始终在 Store 拥有的同一事务中提交；拓扑必需基础设施不完整时启动失败，不会选择非事务或断连路径。这些拓扑和一致性要求属于受支持的配置契约。
+只有部署系统已启用、选中匹配的数据库实现且存在 `DataSource` 时才自动创建一个完整 `DeployStore`，不存在内存回退。别名状态与路由事件始终在 Store 拥有的同一事务中提交；拓扑必需基础设施不完整时启动失败，不会选择非事务或断连路径。这些拓扑和一致性要求属于受支持的配置契约。
 
 ### 发布、产物与运行时
 
 | 属性                                                  | 默认值                 | 约束/用途                                                                                                                  |
 | ----------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `compileflow.deploy.artifact.mode`                    | `SOURCE`               | `SOURCE` 或 `PROJECTION_STORE`，发布端和运行时 resolver 共用。                                                             |
-| `compileflow.deploy.artifact.key-prefix`              | `compileflow.process.` | 最长 128 个字符的可移植 projection store 前缀，只允许 ASCII 字母、数字、`.`、`_`、`:` 与 `-`。                             |
-| `compileflow.deploy.artifact.operation-timeout`       | `5s`                   | 每次 projection store 产物读取或原子 CAS 的 deadline，至少 `1ms`。                                                         |
-| `compileflow.deploy.runtime.failure-backoff`          | `5m`                   | 两种拓扑中安装失败后的重试等待时间，必须为正整毫秒；运行时使用单调时钟 deadline，因此还必须能表示为 Java `long` 纳秒区间。 |
-| `compileflow.deploy.runtime.convergence-timeout`      | `30s`                  | 嵌入式调用方的最长等待时间，覆盖 alias 查询、产物解析、运行时加载及本地就绪状态发布；分布式 runtime 节点不使用该值。       |
+| `compileflow.deploy.artifact.mode`                    | `SOURCE`               | `SOURCE` 或 `PROJECTION_STORE`，发布端和运行时解析器共用。                                                             |
+| `compileflow.deploy.artifact.key-prefix`              | `compileflow.process.` | 最长 128 个字符的可移植投影存储前缀，只允许 ASCII 字母、数字、`.`、`_`、`:` 与 `-`。                             |
+| `compileflow.deploy.artifact.operation-timeout`       | `5s`                   | 每次投影存储制品读取或原子 CAS 的截止时间，至少 `1ms`。                                                         |
+| `compileflow.deploy.runtime.failure-backoff`          | `5m`                   | 两种拓扑中安装失败后的重试等待时间，必须为正整毫秒；运行时使用单调时钟截止时间，因此还必须能表示为 Java `long` 纳秒区间。 |
+| `compileflow.deploy.runtime.convergence-timeout`      | `30s`                  | 嵌入式调用方的最长等待时间，覆盖别名查询、产物解析、运行时加载及本地就绪状态发布；分布式运行时节点不使用该值。       |
 | `compileflow.deploy.runtime.installation-concurrency` | `1`                    | 分布式产物安装最大并发数，或嵌入式收敛操作的最大准入数，范围 `1..256`。                                                    |
 
-嵌入式收敛由 runtime 管理的有界执行器执行。调用方超时或被中断不会取消共享工作，也不会释放其准入槽位；
+嵌入式收敛由运行时管理的有界执行器执行。调用方超时或被中断不会取消共享工作，也不会释放其准入槽位；
 后台操作完成后才释放槽位。容量耗尽时立即返回 `CONVERGENCE_FAILED`。该配置限制调用方的等待时间，
 不强制终止提供方 I/O 或编译；卡住的提供方会持续占用容量，直到其返回，因此应另行配置 I/O 超时。
 执行器关闭后停止新准入，并允许已提交的工作完成。
@@ -435,15 +435,15 @@ chunked/未知长度请求都受约束，超限返回 HTTP 413。同一个权威
 XML 导入不存在第二套独立大小策略。这里不使用 Tomcat `maxPostSize` 充当通用限制，因为该参数只约束表单参数解析，不约束任意
 JSON 请求体。
 
-CSV 导出与金丝雀健康评估要求在内存中得到完整的执行日志样本。每次查询最多读取
+CSV 导出与灰度健康评估需要在内存中读取完整的执行日志样本。每次查询最多读取
 `compileflow.workbench.server.execution-log.max-query-rows` 条；只要存在额外匹配行，请求就以 HTTP 422 和 RFC 9457 Problem
 Detail（code 为 `EXECUTION_LOG_QUERY_LIMIT_EXCEEDED`）明确失败，不返回被截断或误导性的
 结果。应先缩小时间范围或过滤条件，再考虑提高上限。硬上限用于防止一次同步请求让服务端承担无界的内存分析或导出任务。Workbench
-监控聚合由数据库在显式时间窗口内分组计算，不受这个行物化上限约束。
+监控聚合由数据库在指定时间窗口内分组计算，不受这个明细查询行数上限约束。
 
 执行日志的 Retention 清理同样有界：单次 `POST /api/execution-logs/purge` 最多按稳定的 `(logged_at, id)` 顺序删除
 `compileflow.workbench.server.execution-log.purge-batch-size` 条最老匹配记录。应重复请求直到返回 `hasMore=false`，并观察 WAL、Dead
-Tuple、Lock 与 Autovacuum，而不是执行一次无界追赶删除。
+Tuple、Lock 与 Autovacuum 等数据库指标，避免一次删除全部积压记录。
 
 Flyway 是服务端应用唯一的数据库结构迁移工具。默认
 `compileflow.workbench.server.database.migrate=false`，因此 DDL 不属于运行时身份；生产环境由独立授权的部署身份执行已提交的
@@ -452,8 +452,8 @@ Deploy V1 与 Workbench V1 数据库变更脚本。MySQL 开启二进制日志�
 `database.migrate=true`。默认模式仍会在应用
 就绪前校验 Flyway 校验和并拒绝所有待执行变更，不能关闭 `spring.flyway.enabled`。运行时 DML 身份因此需要只读访问
 `cf_deploy_schema_history` 和 `cf_workbench_schema_history`，但不需要创建数据库结构或执行迁移 DDL 的权限。破坏性的 `clean` 已关闭；Hibernate 使用
-`ddl-auto=validate`，数据库结构漂移会直接导致启动失败。默认服务还启用优雅停机（每个停机阶段 30 秒），且只暴露 Actuator `health`
-。只有 `/actuator/health`、`/actuator/health/liveness` 和 `/actuator/health/readiness` 可匿名访问；health component、detail
+`ddl-auto=validate`，数据库结构漂移会直接导致启动失败。默认服务还启用优雅停机（每个停机阶段 30 秒），且只暴露 Actuator `health`。
+只有 `/actuator/health`、`/actuator/health/liveness` 和 `/actuator/health/readiness` 可匿名访问；健康组件、详情
 与其他健康检查组仍被隐藏或要求认证。数据库连接池、HTTP 服务、Actuator 和日志调优继续使用 Spring 标准的
 `spring.datasource.hikari.*`、`server.*`、`management.*` 和 `logging.*`，不创建重复的 `compileflow.workbench.server.*` 别名。
 容器或 Pod 的终止宽限必须长于 Spring 生命周期与引擎执行器的实际关停预算；本地 Compose 按默认配置预留 75 秒。
@@ -472,8 +472,8 @@ Node 开发网关只是在回环地址上运行的草稿接口模拟服务。它
 覆盖端口时，开发网关进程与 Vite 进程必须收到相同的
 `COMPILEFLOW_DEV_GATEWAY_PORT`。Vite 只在 Node.js 开发代理配置中消费该值，不会把它暴露给浏览器代码。
 
-Web 的 `VITE_COMPILEFLOW_*` 是嵌入 JavaScript bundle 的公开 **构建时输入**
-，不能保存秘密；变更后必须重新构建镜像。该应用命名空间内的未知变量会使构建失败，其他工具仍可使用无关的 `VITE_*` 名称。浏览器固定使用同源
+Web 的 `VITE_COMPILEFLOW_*` 是公开 **构建时输入**，会嵌入 JavaScript 构建产物，不能保存凭据；变更后必须重新构建镜像。
+该应用命名空间内的未知变量会使构建失败，其他工具仍可使用无关的 `VITE_*` 名称。浏览器固定使用同源
 `/api` 和 `/health` 路径；端点路由属于生产网关、本地 nginx 或 Vite 开发代理的责任，不是 Web 配置。
 
 | 变量                                     | 默认值                                   | 用途                                                                                                                        |
@@ -510,7 +510,7 @@ try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
 
 ## 支持的 Spring Bean 扩展点
 
-只有下列面向应用的 API 与 provider SPI bean 类型属于 Supported Spring 组装扩展点：
+Spring 自动配置支持通过以下 API 和存储 SPI 类型的 Bean 提供或替换组件：
 
 | 领域         | 支持的 bean 类型                                                                                                                                                                                                                                                  |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -518,8 +518,8 @@ try (ProcessEngine engine = ProcessEngineFactory.create(config)) {
 | Deploy       | `ProcessDeploymentService`、`DeploymentProjectionStore`、`ProcessArtifactSource`                                                                                                                                                                                  |
 | Durable 执行 | `DurableProcessEngine`、`DurableOperatorService`、`DurableStore`、`DurableWaitDescriptionProvider`、`DurableVersionDefinitionSource`、`DurableAliasStateSource`、`DurableOutboxSink`                                                                              |
 
-定义其中一种 bean 会替换或提供该精确组装职责。其他 `@ConditionalOnMissingBean` 检查、bean 方法名、实现类、
-executor、scheduler、coordinator、repository 与 lifecycle adapter 都是自动配置实现细节，不属于兼容扩展点。
+自定义 Bean 只影响对应组件。其他 `@ConditionalOnMissingBean` 检查、Bean 方法名、实现类、
+执行器、调度器、协调器、仓储和生命周期适配器均为自动配置的内部实现，不属于受兼容性承诺保护的扩展点。
 自定义组装必须依赖这里列出的 API/SPI 类型，而不是实现包。
 
 具名 `RetryPolicy` 与 `FailureHandler` 通过 `ProcessEngineConfig.Builder` 或 `ProcessEnginePlugin` 注册，Plugin 本身

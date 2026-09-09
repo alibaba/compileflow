@@ -55,7 +55,7 @@ TBBPM 在嵌套动作上声明 Durable 执行语义；BPMN 直接在 `scriptTask
 代码时，脚本动作文本与变量名都会按 Java 字面量转义。
 
 编译器、解析器、图分析和格式分派类型都属于内部实现。公共契约以
-[支持面清单](architecture/supported-surfaces.md)为准。
+[支持范围与兼容性](architecture/supported-surfaces.md)为准。
 
 `ProcessEngineProvider` 是 API 与 Core 之间随版本绑定的引导契约，不属于受支持的扩展 SPI。
 Core 提供唯一引导入口；缺失或歧义会导致构造失败。语义前端独立发现。
@@ -253,7 +253,7 @@ class EngineExtensions {
 
 不支持在运行中安装、升级或卸载插件 JAR。增加 JAR 后需要重启应用。流程定义热部署由
 `compileflow-deploy` 提供。受支持的扩展边界见
-[支持面清单](architecture/supported-surfaces.md)。
+[支持范围与兼容性](architecture/supported-surfaces.md)。
 
 ServiceLoader 插件应是可复用的配置提供方，不应创建需要独立关闭的资源。需要持有资源的协作者应通过应用显式配置或
 Spring Bean 注入，由资源所有者确定性关闭。

@@ -211,6 +211,7 @@ const zhAuthoring = {
   'designer.autoSave.pending': '未保存 · 即将自动保存',
 
   'designer.toolbar.label': '画布工具栏',
+  'designer.toolbar.moreActions': '更多画布操作',
 
   'designer.toolbar.alignGroup': '对齐工具',
 

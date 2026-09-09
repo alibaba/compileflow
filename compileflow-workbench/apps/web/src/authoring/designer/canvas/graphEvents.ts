@@ -1,7 +1,7 @@
 import { type Cell, type Edge, type Graph, type Node } from '@antv/x6'
 import { type MutableRefObject, useEffect, useRef } from 'react'
 
-import { selectEdge, selectNode, showContextMenu } from '../store/uiSlice'
+import { openRightPanelTab, selectEdge, selectNode, showContextMenu } from '../store/uiSlice'
 import type { ProcessConnection } from '../types/flowDefinition'
 
 import type { AppDispatch } from '@/app/store'
@@ -75,9 +75,30 @@ export function registerSelectionEvents<Connection extends ProcessConnection>(
     dispatch(selectNode(node.id))
   })
 
+  graph.on('node:dblclick', ({ node }: { node: Node }) => {
+    dispatch(selectNode(node.id))
+    dispatch(
+      openRightPanelTab({
+        tab: 'properties',
+        collapseLeft: window.matchMedia('(max-width: 768px)').matches,
+      })
+    )
+  })
+
   graph.on('edge:click', ({ edge }: { edge: Edge }) => {
     const connection = connectionsRef.current.find((candidate) => candidate.id === edge.id)
     dispatch(selectEdge(connection?.id ?? null))
+  })
+
+  graph.on('edge:dblclick', ({ edge }: { edge: Edge }) => {
+    if (!connectionsRef.current.some((connection) => connection.id === edge.id)) return
+    dispatch(selectEdge(edge.id))
+    dispatch(
+      openRightPanelTab({
+        tab: 'edge',
+        collapseLeft: window.matchMedia('(max-width: 768px)').matches,
+      })
+    )
   })
 
   graph.on('blank:click', () => {

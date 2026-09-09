@@ -29,7 +29,7 @@ are profile-gated auxiliary builds, not runtime dependencies.
 
 ## Execution Surfaces
 
-`ProcessEngine` and `DurableProcessEngine` are sibling application-facing execution surfaces. `ProcessEngine` executes
+`ProcessEngine` and `DurableProcessEngine` are sibling engines with separate application APIs. `ProcessEngine` executes
 one invocation from an explicit definition, version, or Alias. Durable creates a persistent Run; each Durable engine
 owns its node-local resources and optional Workers. It is not a mode hidden inside `ProcessEngine`.
 
@@ -47,8 +47,8 @@ converges desired published state into locally ready runtimes; it does not alter
 
 - Public contracts live in `compileflow-api` or the explicitly named product API module.
 - Format modules parse and normalize their own source formats; core consumes their semantic-compiler provider boundary.
-- Execution surfaces and persistence providers never depend on a source-format implementation. Starters compose these
-  orthogonal axes without publishing format-by-execution products.
+- Engines and persistence providers do not depend on a specific process format. Starters combine these capabilities
+  without requiring a separate module for every combination of format, engine, and store.
 - Deployment control-plane state is committed before data-plane convergence and runtime installation.
 - Durable persistence is explicit and independent from Workbench's whole-invocation async queue.
 - Internal implementations remain package-private or module-internal unless a product contract requires exposure.

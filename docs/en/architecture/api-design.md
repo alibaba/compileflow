@@ -46,9 +46,9 @@ A small application call needs a command wrapper only when the wrapper adds a me
   `ProcessRef.Alias` are the two published-reference variants.
 - `ProcessExecution` reports the process identity and optional exact published `ProcessRef.Version` that ran.
 - Immediate execution accepts the reference forms supported by `ProcessEngine` routing.
-- Durable exact admission accepts `ProcessRef.Version`. Published Alias admission accepts `ProcessRef.Alias`, resolves it once,
-  and materializes the same exact stored Process semantics. Version may remain admission attribution, but recovery uses
-  the stored Process ID and never routes through Version or Alias again.
+- Durable starts from either `ProcessRef.Version` or `ProcessRef.Alias`, resolving an alias once. Both paths store the
+  resolved process definition. The version may be recorded as the start source, but recovery uses the stored process ID
+  and never routes through a version or alias again.
 - Alias is mutable Deploy control-plane state, never Durable recovery identity.
 - Deploy domain artifacts live in `deploy.api.artifact`; protocol parsers, payloads, and keys live in
   `deploy.protocol`.
@@ -65,13 +65,12 @@ Identity categories distinguish responsibilities; they do not require a separate
 | Recovery    | Durable Store retains exact Processes, continuation and frozen call-site targets for a Run                       | Current Alias routes, version sources or local caches                     |
 | Operational | Persisted control state, revisions and lease authority govern operator and worker mutations                      | Process code, invocation attribution or diagnostic worker names alone     |
 
-Shared vocabulary does not imply shared aggregate configuration ownership. A lifecycle root owns its construction
-configuration; collaborators receive the capabilities and values they actually consume. Framework adapters bind properties
-and select lifecycle timing, but do not create a second runtime owner.
+An engine manages its construction configuration and runtime resources. Internal components receive only the dependencies
+and values they need. Framework adapters bind properties and coordinate startup and shutdown without duplicating resource
+management already handled by the engine.
 
-Repeated representation is not repeated authority. Database columns, verified artifact projections and diagnostics may
-repeat facts for storage or transport. Their authority, validation and invalidation rules must be explicit; they must not
-independently redefine those facts.
+Database columns, artifact projections, and diagnostics may hold copies of the same data. Specify which copy is
+authoritative and how other copies are validated and invalidated.
 
 Admission and recovery need different dependencies, not duplicate admission implementations. All sources admitted under
 the same policy pass the same bounds before semantic compilation. Recovery uses stored exact semantics without consulting

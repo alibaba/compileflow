@@ -16,7 +16,7 @@
 | Runtime identity     | 运行时身份 | 当前引擎中的精确编译标识（`ProcessRuntimeIdentity`）       |
 | Runtime cache        | 运行时缓存 | 容量受限的已准备运行时缓存                                 |
 | Invocation ID        | 调用 ID    | 一次已接收调用的稳定标识                                   |
-| Process execution    | 执行信息   | 与执行结果一起返回的流程与路由信息                         |
+| Process execution    | 执行信息   | 随结果返回的流程标识、调用标识、实际版本及起止时间         |
 
 ## 路由与部署
 
@@ -28,7 +28,7 @@
 | Candidate version | 候选版本   | 接收灰度流量的版本                           |
 | Rollout           | 发布操作   | 使用修订号检查修改别名流量的操作             |
 | Canary            | 灰度       | 分配给候选版本的加权流量                     |
-| Promote           | 提升       | 把候选版本变为唯一稳定版本                   |
+| Promote           | 全量切换   | 把候选版本变为唯一稳定版本                   |
 | Abort             | 中止       | 恢复开始灰度时记录的稳定路由                 |
 | Rollback          | 回滚       | 新建发布操作，重新指向此前记录的稳定版本     |
 | Routing key       | 路由键     | 用于确定性分组的请求元数据                   |
@@ -59,7 +59,7 @@ Run、Wait、Effect、Journal、Outbox、检查点和执行结果的定义见 [D
 | 英文              | 中文     | 含义                                      |
 | ----------------- | -------- | ----------------------------------------- |
 | Split gateway     | 分支网关 | 一个入边、多个出边的网关                  |
-| Join gateway      | 汇聚网关 | 多个入边、一个出边的网关                  |
+| Join gateway      | 汇合网关 | 多个入边、一个出边的网关                  |
 | Branch frame      | 分支帧   | 一个并发分支独立使用的生成流程状态        |
 | Continuation      | 后续路径 | 分支收敛后只生成一次的共享路径            |
 | Invocation policy | 调用策略 | 一次同步动作调用的重试、超时与失败处理    |
@@ -74,5 +74,5 @@ Run、Wait、Effect、Journal、Outbox、检查点和执行结果的定义见 [D
 | Quick Start         | 快速开始   |
 | API Reference       | API 参考   |
 | Extension Guide     | 扩展指南   |
-| Supported Surfaces  | 支持面清单 |
+| Supported Surfaces  | 支持范围与兼容性 |
 | Operations Playbook | 运维手册   |

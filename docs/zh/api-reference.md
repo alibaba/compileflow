@@ -323,4 +323,4 @@ public interface DurableProcessEngine extends AutoCloseable {
 - [扩展指南](extension-guide.md)
 - [热部署](hot-deploy.md)
 - [Durable Process](durable-process.md)
-- [支持面清单](architecture/supported-surfaces.md)
+- [支持范围与兼容性](architecture/supported-surfaces.md)

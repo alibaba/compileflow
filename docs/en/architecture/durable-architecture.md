@@ -1,6 +1,6 @@
 # Durable architecture
 
-Durable is the optional execution product for processes that must survive application restarts. It is a separate execution product, not a persistence switch for `ProcessEngine`.
+Durable preserves process state across application restarts. It is a separate engine, not a persistence switch for `ProcessEngine`.
 
 ## Core invariant
 
@@ -10,19 +10,20 @@ The Kernel does not persist generated Java source, classes, bytecode, live objec
 
 ## Admission and execution
 
-Start admission materializes one exact immutable stored Process and binds the Run to its `processId`. It resolves an exact `ProcessRef.Version` or a published Alias to an exact version. Alias is Deploy control-plane state, not recovery authority. The Engine rejects a reused Run ID before resolving Alias once. Alias movement affects later admissions; it does not retarget an admitted Run. `DurableProcessEngine` and `ProcessEngine` are sibling execution surfaces.
+Starting a run stores an immutable process definition and binds the run to its `processId`. A `ProcessRef.Version` selects an exact version; a published alias is resolved once to an exact version. Aliases belong to the Deploy control plane and are not used for recovery. The engine rejects a reused run ID before resolving an alias. Later alias changes affect new runs, not existing ones. `DurableProcessEngine` and `ProcessEngine` are separate execution entry points.
 
 Durable supports the documented TBBPM and BPMN profiles only. An Action declares `execution=replayable|effect`; this is distinct from the synchronous retry policy. The Durable API exposes Run, Effect, and operator contracts. Definition registration is start-admission preparation, not an application lifecycle API; Deploy is not required to recover a Run and its route state is not recovery authority.
 
-## Worker lifecycle
+## Starting and stopping workers
 
+A worker claims and processes Durable work in the background.
 `DurableWorkerCoordinator` in `compileflow-durable-runtime` owns polling, bounded execution slots,
 maintenance scheduling, and worker health. It has no Spring dependency. `DurableWorkerLifecycle`
 only adapts Spring startup and shutdown timing through the owning `DurableProcessEngine`; disabling workers creates
 neither the worker graph nor its lifecycle adapter.
 
 Stopping prevents new scheduling and drains admitted work without interrupting application code.
-The completion callback runs only after that work exits. The composing host must retain Store,
+The completion callback runs only after that work exits. The application must retain Store,
 lease-renewal and runtime resources until draining completes; stopping is not proof that an
 external Effect was canceled. Application and operator APIs remain separate capabilities.
 
@@ -36,7 +37,7 @@ Each Start creates one Run with a stable Run ID. A Process Call creates an invoc
 
 Root input is a closed, partial map of declared `param` variables. `return` and `inner` remain Process-owned. Undeclared keys fail before application code runs. Completing a Wait commits a typed result for that existing Run; it does not create a new invocation or Run.
 
-## Recovery authority
+## Recovery state
 
 Recovery uses the committed semantic checkpoint, exact process identity, typed invocation state, pending requests, Wait/Timer facts, Effect facts, and bounded ownership lease. Database time and fencing tokens protect ownership. A late Worker completion is rejected after ownership changes.
 
@@ -47,13 +48,15 @@ Restore that capability in the deployment without rewriting stored process seman
 
 ## Action and Effect
 
-An Action is deterministic process logic or a governed external boundary. A replayable Action may run again from the same semantic inputs. An external Effect request is committed with a stable occurrence identity before dispatch, and its outcome is resolved separately. That identity enables application-owned deduplication but does not prove it; the Kernel does not pretend that an interrupted external call is automatically reversible.
+An Action executes deterministic process logic or calls an external system. A replayable Action may run again from the same inputs. An external Effect request is committed with a stable occurrence identity before dispatch, and its outcome is resolved separately. Applications can use that identity for deduplication, but must implement it themselves. The Kernel cannot automatically undo an interrupted external call.
 
 Durable rejects non-default `invocationPolicy`; synchronous retry and timeout policy belongs to `ProcessEngine` invocations. Durable Effect recovery uses the committed `effectPolicy` and fenced Store transitions. A failed or interrupted external call can leave an unknown outcome and must not be treated as proof that nothing happened.
 
 ## Wait completion and queries
 
-A `WaitToken` is an opaque, one-shot bearer capability for one materialized Wait occurrence. The Store retains only its digest as authority and discovers the owning Run from that digest; the caller cannot supply recovery coordinates. This does not require an application token table, although an integration may retain a mapping when an external system exposes only its own job ID. Raw tokens are credentials and must not enter logs, URLs, metrics, or operator views.
+A `WaitToken` is an opaque, one-shot credential for one persisted wait. The wait record stores only its digest, which identifies the owning run; callers cannot choose a recovery position. An active outbox record temporarily retains the raw token for reliable delivery, so protect the outbox as credential storage. See [wait-token security](../durable-key-rotation.md) for retention and cleanup rules.
+
+An application token table is not required, although an integration may retain a mapping when an external system exposes only its own job ID. Raw tokens must not enter logs, URLs, metrics, or operator views.
 
 Run, timeline, and Outbox queries use typed exact filters and keyset cursors. Durable does not provide fuzzy search; adapters may build separate non-authoritative search projections.
 

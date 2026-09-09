@@ -1366,7 +1366,10 @@ test.describe('Real-mode Operate UI tour', () => {
     const searchInput = page.getByPlaceholder(/搜索示例|Search examples/i)
     await expect(searchInput).toBeVisible({ timeout: TIMEOUT })
     await examplesLoaded
-    await shot(page, '180-real-cmdk-open')
+    await expect(page.getByRole('dialog')).not.toHaveClass(/ant-zoom-(appear|enter)/)
+    await page
+      .getByRole('dialog')
+      .screenshot({ path: test.info().outputPath('180-real-cmdk-open.png') })
 
     await searchInput.fill(searchNeedle)
     const match = page
@@ -1374,7 +1377,9 @@ test.describe('Real-mode Operate UI tour', () => {
       .getByRole('button')
       .filter({ hasText: /TBBPM|BPMN/i })
     await expect(match.first()).toBeVisible({ timeout: TIMEOUT })
-    await shot(page, '181-real-cmdk-match')
+    await page
+      .getByRole('dialog')
+      .screenshot({ path: test.info().outputPath('181-real-cmdk-match.png') })
     await match.first().click()
     await page.waitForURL(new RegExp(`/learn/examples/${target.id}`), { timeout: TIMEOUT })
     await shot(page, '182-real-cmdk-example')

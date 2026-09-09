@@ -71,6 +71,9 @@ For documentation changes:
 - distinguish supported behavior from unsupported behavior;
 - keep examples aligned with supported APIs;
 - use direct, task-oriented language and relative repository links;
+- use the [English](docs/en/glossary.md) and [Chinese](docs/zh/glossary.md) glossaries consistently; translate prose
+  naturally while preserving API names, configuration keys, and protocol fields;
+- check claims such as "never stored," "always succeeds," and "only once" against failure, retry, and recovery paths;
 - keep compatibility commitments in specifications, the compatibility policy, or Supported Surfaces.
 
 Keep credentials, editor state, generated build output, and local planning notes out of the repository.

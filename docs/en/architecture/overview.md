@@ -1,6 +1,6 @@
 # CompileFlow architecture overview
 
-CompileFlow is a multi-frontend, compile-then-execute process engine. Optional products add hot deployment, persisted
+CompileFlow supports TBBPM and BPMN, with compiled execution enabled by default. Optional modules add hot deployment, persisted
 Durable execution, and the browser-based Workbench. This page provides the high-level map; the linked documents define
 each contract in detail.
 

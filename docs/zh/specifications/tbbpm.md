@@ -211,7 +211,7 @@ Action 并发与 Durable 执行语义相互独立：
 ```
 
 任务与 Action 仍属于业务模型，不会产生另一套 Effect 目标身份。当前部署负责解析并调用 Action 实现。Kernel 在发送外部调用前提交
-Effect 及可移植输入，将稳定的 occurrence ID 作为调用键，记录结果后再从同一任务继续执行。输入映射必须指定流程变量来源或默认值；
+Effect 及可移植输入，将稳定的执行实例 ID 作为调用键，记录结果后再从同一任务继续执行。输入映射必须指定流程变量来源或默认值；
 输出映射必须指向已声明的根流程变量。
 
 省略 `<effectPolicy>` 时使用保守的 `manual` 恢复模式：只发送一次外部调用，结果未知时等待人工处理。显式恢复模式包括
@@ -266,8 +266,8 @@ TBBPM 支持：
 - 所有可执行节点必须可达，整个容器必须只有一个控制流出口；交叉或部分汇合的非结构化 region 会在生成代码前被拒绝。
 
 网关是纯路由与同步元素，不能包含 action。路由前或同步后需要执行的计算与副作用必须建模为
-独立任务，使执行、重试、幂等与可观测性的归属始终落在一个明确的业务步骤上。汇合网关的唯一出向转移也不能带 `condition`
-，因为它不执行节点体或路由判断；需要条件路由时必须在 join 后增加独立 split。校验会拒绝不符合此契约的定义，不会静默跳过
+独立任务，使执行、重试、幂等与可观测性都对应到明确的业务步骤。汇合网关的唯一出向转移也不能带 `condition`，
+因为它不执行节点体或路由判断；需要条件路由时必须在 join 后增加独立 split。校验会拒绝不符合此契约的定义，不会静默跳过
 action 或条件。
 
 Action、脚本、表达式与被调流程只能以只读方式使用流程状态中的对象。流程状态只能通过显式输出或明确的流程构造表达式修改。
@@ -304,7 +304,7 @@ Action、脚本、表达式与被调流程只能以只读方式使用流程状�
 `subBpm` 表示当前流程内部的嵌套作用域。它没有独立的流程身份、资源位置、版本、调用点绑定或参数映射，
 直接共享外层流程状态。它必须恰好包含一个直接 `start` 和一个直接
 `end`，所有直接可执行子节点都必须从该 start 可达；允许嵌套 `subBpm`、`while` 与 `foreach`。语义前端将它
-降低为与 BPMN `subProcess` 相同的作用域边界，不会创建子流程调用。位于循环内时，它也可以包含 `break` 与
+转换为与 BPMN `subProcess` 相同的作用域边界，不会创建子流程调用。位于循环内时，它也可以包含 `break` 与
 `continue`；这些控制节点绑定最近的外层循环，而不是 `subBpm` 本身。
 
 ```xml
@@ -403,8 +403,8 @@ TBBPM 用两个结构化节点表达两种不同意图：`while` 表示按条件
 存在 `output` 时，它必须是 `foreach` 的第一个直接子元素；两个属性都必填，并分别引用不同的已声明流程变量。
 `target` 必须声明为 `java.util.List`，不能声明为具体 List 实现；聚合只保证有序 List，不保证具体实现或可变性。
 `source` 必须引用 `inner` 流程变量；target 声明了类型参数时，该参数必须与 source 变量类型
-完全一致，raw output list 仍然合法。并行聚合始终按输入索引排序，不依赖完成顺序；顺序聚合按迭代顺序收集，并仅在循环退出时原子发布，
-触发 `break` 的当前迭代结果也会被收集。每次迭代开始前，输出 source 变量都会重置为其流程变量声明的默认值，因此提前 `continue` 不会复用
+完全一致，未声明泛型参数的输出 List 仍然合法。并行聚合始终按输入索引排序，不依赖完成顺序；顺序聚合按迭代顺序收集，并仅在循环退出时原子发布，
+触发 `break` 的当前迭代结果也会被收集。每次迭代开始前，输出来源变量都会重置为其流程变量声明的默认值，因此提前 `continue` 不会复用
 上一次迭代的结果。空输入直接产生空输出集合，不创建迭代任务。
 
 `break` 与 `continue` 可以出现在顺序循环体内，并可带条件表达式。并行 `foreach` 中仍允许每个迭代独立 `continue`，但禁止
@@ -468,7 +468,7 @@ Java Code 是可信的进程内代码，不提供安全沙箱。Workbench Server
 
 Java Code 示例：
 
-core 提供可信进程内 Java executor；QL 与 Java 默认均可用。
+Core 默认提供 QL 和 Java 脚本执行器；Java 代码在宿主进程内以应用权限运行。
 
 ```xml
 <action type="script" language="java">
@@ -479,16 +479,16 @@ core 提供可信进程内 Java executor；QL 与 Java 默认均可用。
 
 ## 5. 动作映射
 
-所有映射只使用一个方向代数：读取 `source`，写入 `target`。
+所有映射遵循同一方向规则：读取 `source`，写入 `target`。
 
 Action 输入写作 `<input source="processExpression" target="argument" dataType="java.lang.String"/>`。
 `target` 与 `dataType` 必填，`source` 与 `defaultValue` 必须且只能声明一个。`source` 表达式按原文保留；
-`target` 是 action 局部参数名或脚本 binding。
+`target` 是 action 局部参数名或脚本绑定变量。
 
 Action 输出写作 `<output target="processVariable" dataType="java.lang.String"/>`。其 source 是 action 的唯一
 返回值，因此由上下文隐含。两个属性均必填，最多只能有一个输出，且 target 必须是已声明的根流程变量；省略输出即丢弃返回值。
 
-流程调用沿用同一代数，但两端都显式声明：调用输入把调用方 `source` 映射到被调流程 `target`；调用输出把被调流程
+流程调用沿用同一映射规则，但两端都显式声明：调用输入把调用方 `source` 映射到被调流程 `target`；调用输出把被调流程
 `source` 映射到调用方 `target`。调用映射不重复 `dataType`，被调流程的 `param` 与 `return` 声明是类型事实来源。
 
 ## 6. 调用策略
@@ -507,14 +507,14 @@ Action 输出写作 `<output target="processVariable" dataType="java.lang.String
 </action>
 ```
 
-Duration 使用规范大写 ISO-8601 形式，并保持整毫秒精度。`timeout` 是整个逻辑调用的正 wall-clock 预算，
+Duration 使用规范大写 ISO-8601 形式，并保持整毫秒精度。`timeout` 是整个逻辑调用的总耗时上限，必须为正值，
 包含所有尝试和重试退避；`attemptTimeout` 是单次尝试的正预算，同时声明时不得大于 `timeout`。每次尝试
-实际获得单次预算与剩余总预算中的较小值。`maxAttempts` 范围为 1 到 100，并包含首次调用；backoff multiplier 不小于 1.0。
+实际获得单次预算与剩余总预算中的较小值。`maxAttempts` 范围为 1 到 100，并包含首次调用；退避倍数不小于 1.0。
 `jitter` 可取 `full`（默认）或 `none`；全抖动会在 0 到当前指数退避上限之间均匀分散每次等待。
-单次尝试超时可按 `retryOn` 重试；总超时永不重试，直接交给 `onFailure`。总 deadline 之后不得启动新尝试，
+单次尝试超时可按 `retryOn` 重试；总超时永不重试，直接交给 `onFailure`。总截止时间之后不得启动新尝试，
 退避等待计入总预算。取消是协作式的，不能撤销外部副作用。`retryOn` 与 `onFailure` 使用普通 Engine 中配置的
-精确 lowercase kebab-case 名称。超时或重试不会把 Action 变成 Durable Effect，也不能证明外部系统的
-exactly-once。作者只能为语义能够承受所选 invocation policy 的实现启用它。Durable 会拒绝非默认 invocation policy，不会静默忽略；它使用
+精确的小写 kebab-case 名称。超时或重试不会把 Action 变成 Durable Effect，也不能证明外部系统的
+恰好一次执行。只有动作实现能够承受所选重试和超时行为时才能启用该策略。Durable 会拒绝非默认调用策略，不会静默忽略；它使用
 `execution="replayable|effect"` 与可选 `<effectPolicy>`。
 
 ## 7. 校验与执行
@@ -527,11 +527,11 @@ exactly-once。作者只能为语义能够承受所选 invocation policy 的实�
 - 缺失的循环属性、非法迭代上限、畸形循环作用域及错误的 `break`/`continue` 位置。
 - ProcessEngine 执行的循环内嵌触发入口；Durable Parallel `foreach` 内再次嵌套并发 split。Durable 顺序循环可以包含结构化并发 split。
 
-`ProcessPreflightOptions.strict()` 还会构建并编译 runtime，因此能够校验生成的 Java、已注册脚本 executor、Java 类型及方法相关语法。
+`ProcessPreflightOptions.strict()` 还会构建并编译运行时，因此能够校验生成的 Java、已注册脚本执行器、Java 类型及方法相关语法。
 
 执行会解析一个精确的 definition byte snapshot，并以该内容和本地编译输入建立 runtime identity。
 随后执行所选 runtime（默认 `COMPILED`，或基于同一语义计划的 `INTERPRETED`）。重复请求可以复用该精确
-runtime。Trigger 执行与 ProcessEngine 执行使用相同的 source、routing、runtime、result 与 observability 管线。
+runtime。Trigger 执行与 ProcessEngine 执行使用相同的来源解析、路由、运行时、结果处理与可观测性流程。
 
 ```java
 ProcessResult<Map<String, Object>> result = engine.trigger(
@@ -540,7 +540,7 @@ ProcessResult<Map<String, Object>> result = engine.trigger(
         Map.of("paymentId", "P-42"));
 ```
 
-该调用从 `payment` 入口启动新 invocation，不会恢复此前的 Java 对象或已存储流程实例。
+该调用从 `payment` 入口启动一次新调用，不会恢复此前的 Java 对象或已存储流程实例。
 
 ## 8. 一致性要求
 

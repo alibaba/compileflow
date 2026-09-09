@@ -36,4 +36,4 @@ Project policies: [Contributing](../CONTRIBUTING.md) · [Support](../SUPPORT.md)
 [Maintainers](../MAINTAINERS.md)
 
 Product boundaries: [English supported surfaces](en/architecture/supported-surfaces.md) ·
-[中文支持面清单](zh/architecture/supported-surfaces.md)
+[中文支持范围与兼容性](zh/architecture/supported-surfaces.md)

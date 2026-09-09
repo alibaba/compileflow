@@ -47,7 +47,7 @@ public final class OrderService {
 
 CompileFlow Workbench Server 复用同一个引擎执行两种流程格式。
 
-## 3. 普通 Java 生命周期
+## 3. 非 Spring 应用的资源管理
 
 将引擎与其他应用基础设施一起创建，并指定唯一的所有者负责关闭。命令行和批处理应用使用顶层
 `try` 块即可：
@@ -91,7 +91,7 @@ public final class Application {
 如果工作线程在超时后仍忽略中断，引擎会继续清理其他资源，并让 `close()` 抛出 `IllegalStateException`，而不是报告关闭成功。
 Java 无法安全终止忽略中断的调用方代码；宿主应先停止接收新请求并排空进行中的调用，再关闭引擎。
 
-## 5. 观察资源所有权
+## 5. 监控资源使用
 
 重点监控：
 

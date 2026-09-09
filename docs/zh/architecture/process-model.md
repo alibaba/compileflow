@@ -59,5 +59,5 @@ Durable 保存流程定义的原始字节和模型类型，以便恢复时选择
 ## 相关文档
 
 - [执行流程](execution-flow.md)
-- [支持面清单](supported-surfaces.md)
+- [支持范围与兼容性](supported-surfaces.md)
 - [扩展指南](../extension-guide.md)

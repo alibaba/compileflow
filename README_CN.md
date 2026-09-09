@@ -132,7 +132,7 @@ flowchart LR
     runtime --> engine
 ```
 
-可执行节点、流程格式和公共兼容性承诺见[支持面清单](docs/zh/architecture/supported-surfaces.md)。
+可执行节点、流程格式和公共兼容性承诺见[支持范围与兼容性](docs/zh/architecture/supported-surfaces.md)。
 
 ## 文档
 
@@ -142,11 +142,11 @@ flowchart LR
 | 配置和容量规划 | [配置指南](docs/zh/configuration.md)                     | [Configuration](docs/en/configuration.md)                        |
 | 使用持久化执行 | [Durable Process](docs/zh/durable-process.md)            | [Durable Process](docs/en/durable-process.md)                    |
 | 理解系统架构   | [架构文档](docs/zh/architecture/README.md)               | [Architecture](docs/en/architecture/README.md)                   |
-| 查看支持范围   | [支持面清单](docs/zh/architecture/supported-surfaces.md) | [Supported Surfaces](docs/en/architecture/supported-surfaces.md) |
+| 查看支持范围   | [支持范围与兼容性](docs/zh/architecture/supported-surfaces.md) | [Supported Surfaces](docs/en/architecture/supported-surfaces.md) |
 | 运维部署       | [运维手册](docs/zh/operations-playbook.md)               | [Operations](docs/en/operations-playbook.md)                     |
 | 参与贡献       | [贡献指南（英文）](CONTRIBUTING.md)                      | [Contributing](CONTRIBUTING.md)                                  |
 
-[文档中心](docs/README.md)是双语文档总入口，[中文文档](docs/zh/README.md)提供中文任务指南、规范和架构索引。兼容性决策请以[支持面清单](docs/zh/architecture/supported-surfaces.md)为准。
+[文档中心](docs/README.md)是双语文档总入口，[中文文档](docs/zh/README.md)提供中文任务指南、规范和架构索引。兼容性决策请以[支持范围与兼容性](docs/zh/architecture/supported-surfaces.md)为准。
 
 ## 构建与测试
 

@@ -121,7 +121,7 @@ durable.completeWait(
 
 ## 外部操作
 
-外部 observation 用 Action 的 `execution="effect"`：
+需要读取或修改外部系统状态的动作使用 `execution="effect"`：
 
 ```xml
 <action type="spring-bean" execution="effect" bean="payment"

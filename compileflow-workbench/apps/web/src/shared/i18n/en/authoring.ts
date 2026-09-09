@@ -224,6 +224,7 @@ const enAuthoring = {
   'designer.autoSave.pending': 'Unsaved · auto-save scheduled',
 
   'designer.toolbar.label': 'Canvas toolbar',
+  'designer.toolbar.moreActions': 'More canvas actions',
 
   'designer.toolbar.alignGroup': 'Align tools',
 

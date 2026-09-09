@@ -14,9 +14,10 @@ Durable 内核不持久化生成的 Java 源码、类、字节码、内存对象
 
 Durable 只支持文档列出的 TBBPM 和 BPMN 能力。动作通过 `execution=replayable|effect` 声明执行语义，与同步调用的重试策略相互独立。Durable API 提供流程实例、外部操作和运维契约；注册流程定义只是启动前的准备，不属于应用生命周期 API。恢复流程实例不依赖 Deploy，也不读取当前路由状态。
 
-## 工作节点生命周期
+## 工作节点的启动与停止
 
-`compileflow-durable-runtime` 中的 `DurableWorkerCoordinator` 负责轮询、有界执行容量、维护调度和
+工作节点（Worker）在后台领取并处理 Durable 任务。
+`compileflow-durable-runtime` 中的 `DurableWorkerCoordinator` 负责轮询、执行容量限制、维护任务调度和
 工作节点的健康状态，不依赖 Spring。`DurableWorkerLifecycle` 通过所属的 `DurableProcessEngine` 接入 Spring 启停时序；
 禁用工作节点时，不会创建相关对象或生命周期适配器。
 
@@ -34,7 +35,7 @@ Durable 只支持文档列出的 TBBPM 和 BPMN 能力。动作通过 `execution
 
 根流程输入只能包含已声明的 `param` 变量，可以省略部分参数；`return` 和 `inner` 由流程自身管理。未声明的字段会在应用代码运行前被拒绝。完成等待只向已有流程实例提交类型化结果，不会创建新的调用或流程实例。
 
-## 恢复权威
+## 恢复依据
 
 恢复依据包括已提交的语义检查点、确定的流程身份、类型化调用状态、待处理请求、等待与定时器状态、外部操作状态以及有界所有权租约。数据库时间和隔离令牌共同保护所有权；所有权变化后，旧工作节点迟到的提交会被拒绝。
 
@@ -50,7 +51,9 @@ Durable 不接受非默认的 `invocationPolicy`；同步重试和超时策略�
 
 ## 等待完成与查询
 
-`WaitToken` 是一次等待实例使用的不透明、一次性凭据。存储只保存令牌摘要，并据此找到所属流程实例；调用方不能自行提供恢复位置。Durable 内核不要求应用建立令牌表；如果外部系统只提供自己的任务 ID，集成层可以保存两者的映射。原始令牌属于敏感凭据，不能写入日志、URL、指标或运维视图。
+`WaitToken` 是一次等待实例使用的不透明、一次性凭据。等待记录只保存令牌摘要，并据此找到所属流程实例；调用方不能自行提供恢复位置。为保证可靠投递，活动 Outbox 记录会暂存原始令牌，因此必须按凭据存储保护 Outbox。令牌保留与清理规则见[等待令牌安全](../durable-key-rotation.md)。
+
+Durable 内核不要求应用建立令牌表；如果外部系统只提供自己的任务 ID，集成层可以保存两者的映射。原始令牌不能写入日志、URL、指标或运维视图。
 
 流程实例、时间线和 Outbox 查询使用类型化精确条件与键集游标。Durable 不提供模糊搜索；适配器可以另建不参与执行决策的搜索视图。
 
@@ -59,10 +62,10 @@ Durable 不接受非默认的 `invocationPolicy`；同步重试和超时策略�
 流程实例、调用、请求、租约以及外部操作和 Outbox 记录都使用显式状态转换。存储实现必须保证转换的原子性、锁顺序、比较并设置、数据库时间语义和令牌隔离。PostgreSQL 与 MySQL 是自带数据库变更脚本的官方实现；H2 仅用于测试。
 
 物理表结构由存储实现负责。Durable 内核约束事务和恢复语义，不限定表的数量。通用测试套件用于校验 Store
-契约；进入支持面还需提供[支持面清单](supported-surfaces.md)要求的数据库事务、并发、故障恢复和迁移证据。
+契约；进入支持面还需提供[支持范围与兼容性](supported-surfaces.md)要求的数据库事务、并发、故障恢复和迁移证据。
 
 ## 保留与可观测性
 
 只有在没有保留的流程实例引用某个流程定义，且备份与回滚窗口允许时，才能删除该定义。生成的运行时可以更早释放。保留策略必须根据引用关系判断，不能只保留最近若干版本。
 
-流程实例视图和指标只展示必要的状态与结果，不得暴露载荷变量、凭据、路由键、租约令牌或其他敏感信息。参见 [Durable Process](../durable-process.md)、[Durable 运维](../durable-operations-runbook.md)和[支持面清单](supported-surfaces.md)。
+流程实例视图和指标只展示必要的状态与结果，不得暴露载荷变量、凭据、路由键、租约令牌或其他敏感信息。参见 [Durable Process](../durable-process.md)、[Durable 运维](../durable-operations-runbook.md)和[支持范围与兼容性](supported-surfaces.md)。

@@ -53,7 +53,7 @@ BPMN 子集，并提供直接执行、版本化部署、持久化执行和可视
 
 ## 后续阅读
 
-- [支持面清单](architecture/supported-surfaces.md)
+- [支持范围与兼容性](architecture/supported-surfaces.md)
 - [快速开始](quick-start.md)
 - [流程格式参考](specifications/process-formats.md)
 - [Durable Process](durable-process.md)

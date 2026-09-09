@@ -2,7 +2,7 @@ import type { Graph, Node } from '@antv/x6'
 import { configureStore } from '@reduxjs/toolkit'
 import { describe, expect, it } from 'vitest'
 
-import uiReducer from '../../store/uiSlice'
+import uiReducer, { setSidePanelsCollapsed } from '../../store/uiSlice'
 import {
   registerSelectionEvents,
   registerSelectionSync,
@@ -13,6 +13,23 @@ import {
 import type { AppDispatch } from '@/app/store'
 
 describe('canvas edge selection', () => {
+  it.each(['node', 'edge'])('opens editing explicitly on %s double-click', (kind) => {
+    const handlers = new Map<string, (event: unknown) => void>()
+    const graph = {
+      on: (name: string, handler: (event: unknown) => void) => handlers.set(name, handler),
+    } as unknown as Graph
+    const store = configureStore({ reducer: { ui: uiReducer } })
+    const connection = { id: 'edge-1', sourceId: 'start', targetId: 'end' }
+    registerSelectionEvents(graph, store.dispatch as AppDispatch, { current: [connection] })
+    store.dispatch(setSidePanelsCollapsed({ left: true, right: true }))
+    const event = { node: { id: 'start' }, edge: { id: connection.id } }
+    handlers.get(`${kind}:click`)?.(event)
+    expect(store.getState().ui.rightPanelCollapsed).toBe(true)
+    handlers.get(`${kind}:dblclick`)?.(event)
+    expect(store.getState().ui.rightPanelCollapsed).toBe(false)
+    expect(store.getState().ui.rightPanelTab).toBe(kind === 'node' ? 'properties' : 'edge')
+  })
+
   it.each(['edge:click', 'selection:changed'])(
     'keeps the edge properties selected after %s',
     (eventName) => {

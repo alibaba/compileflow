@@ -1,6 +1,6 @@
 # 威胁模型
 
-CompileFlow 的安全评估覆盖引擎、Deploy、Durable 和 Workbench，说明项目已经缓解的威胁、嵌入应用或部署环境负责的控制，以及仍需关注的风险。支持级别见[支持面清单](architecture/supported-surfaces.md)，具体配置和操作方法见[安全指南](security.md)。
+CompileFlow 的安全评估覆盖引擎、Deploy、Durable 和 Workbench，说明项目已经缓解的威胁、嵌入应用或部署环境负责的控制，以及仍需关注的风险。支持级别见[支持范围与兼容性](architecture/supported-surfaces.md)，具体配置和操作方法见[安全指南](security.md)。
 
 ## 1. 范围与信任边界
 

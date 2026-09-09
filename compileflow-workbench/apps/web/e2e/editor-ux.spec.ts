@@ -152,8 +152,16 @@ test.describe('editor interaction feedback', () => {
     await page.getByRole('button', { name: '展开节点面板' }).click()
     const nodes = page.locator('.x6-node')
     const initialCount = await nodes.count()
-    await expect(page.getByRole('button', { name: '左对齐' })).toBeDisabled()
-    await expect(page.getByRole('button', { name: '水平分布' })).toBeDisabled()
+    await page.getByRole('button', { name: '更多画布操作' }).click()
+    await expect(page.getByRole('menuitem', { name: /左对齐/ })).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    )
+    await expect(page.getByRole('menuitem', { name: /水平分布/ })).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    )
+    await page.keyboard.press('Escape')
     await expect(page.getByRole('button', { name: /创建选中节点的副本/ })).toBeDisabled()
     await expect(page.getByRole('button', { name: /删除选中节点/ })).toBeDisabled()
     await expect(page.getByRole('button', { name: /全选/ })).toBeDisabled()
@@ -172,7 +180,11 @@ test.describe('editor interaction feedback', () => {
     await expect(page.getByRole('tab', { name: /任务属性/ })).toBeVisible()
     await expect(page.getByRole('button', { name: /创建选中节点的副本/ })).toBeEnabled()
     await expect(page.getByRole('button', { name: /删除选中节点/ })).toBeEnabled()
-    await expect(page.getByRole('button', { name: '左对齐' })).toBeDisabled()
+    await page.getByRole('button', { name: '更多画布操作' }).click()
+    await expect(page.getByRole('menuitem', { name: /左对齐/ })).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    )
   })
 
   test('connection gesture exposes valid targets, snaps to a port, and creates one edge', async ({

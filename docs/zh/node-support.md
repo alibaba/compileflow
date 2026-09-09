@@ -37,12 +37,12 @@
 
 ### Durable 边界与动作语义
 
-- `timerTask` - 持久化挂起，直到字面 duration、duration 表达式或绝对唤醒时间表达式到期。
+- `timerTask` - 持久化挂起，直到固定时长、时长表达式或绝对唤醒时间表达式指定的时间到期。
 
 `timerTask` 由 TBBPM Schema 与 Durable 编译器支持，也可以位于循环内；ProcessEngine 没有持久化调度器，因此会拒绝它。
 Effect 不是节点。Durable TBBPM 模型中的每个可执行 Action 必须显式声明 `execution="replayable|effect"`。
 BPMN service Action 同样要求显式声明；BPMN `scriptTask` 默认 `replayable`，也可显式选择 `cf:execution="effect"`。Effect Action 仍使用普通
-Java、Bean、Inline 或已注册脚本实现；Durable 内核只负责持久化投递状态和结果未知状态。
+Java 方法、Spring Bean 方法或已注册语言的脚本实现；Durable 内核负责持久化投递状态和执行结果，包括结果未知的状态。
 
 Durable TBBPM 能力集支持 `start`、`end`、`autoTask`、`scriptTask`、`exclusive`、两个 Wait 节点、`timerTask`、
 `while`、`foreach`、`break`、`continue`、结构化 `parallel`/`inclusive`、`subBpm` 与 `bpmCall`。Parallel/Inclusive 使用持久化的
@@ -68,7 +68,7 @@ Durable `bpmCall` 可以在直接调用图中声明精确的应用类路径，�
 - `startEvent` - 开始事件
 - `endEvent` - 结束事件
 - 带 `messageEventDefinition` 的 `intermediateCatchEvent` - 根据引用的消息名称选择 Durable Wait 边界。
-- 带 `timerEventDefinition` 的 `intermediateCatchEvent` - 使用字面 duration、duration 表达式或绝对唤醒时间表达式的
+- 带 `timerEventDefinition` 的 `intermediateCatchEvent` - 使用固定时长、时长表达式或绝对唤醒时间表达式的
   Durable Timer 边界；不支持 `timeCycle`。
 
 ### 任务
@@ -185,7 +185,7 @@ ProcessResult<Map<String, Object>> result = engine.trigger(
 
 该调用从指定入口启动一次新执行；CompileFlow 不存储或恢复之前的调用状态。
 
-### Durable 人在回路编排
+### Durable 人工任务集成
 
 对于持久化流程实例，应将人工步骤建模为 `waitTask`。Durable 内核提交 Wait 及其 `WAIT_COMMITTED` Outbox 事件。应用的任务模块可以据此创建和管理任务，包括分配、授权、表单、评论和 SLA 策略。完成授权并按事件去重后，通过 `DurableProcessEngine.completeWait(...)` 完成对应的 Wait。
 
@@ -193,7 +193,7 @@ ProcessResult<Map<String, Object>> result = engine.trigger(
 durable.completeWait(waitToken, Map.of("approved", true));
 ```
 
-`waitToken` 是持有者凭证，必须按敏感凭据进行保护。CompileFlow 提供人在回路编排能力，但不内置 `humanTask` 节点或人工任务管理模块。
+`waitToken` 是持有者凭证，必须按敏感凭据进行保护。CompileFlow 支持将人工处理接入流程，但不内置 `humanTask` 节点或人工任务管理模块。
 
 ### 进程内定时任务
 

@@ -19,7 +19,7 @@
 - Timer 触发和 Effect 完成会作为已提交的恢复事实；
 - Outbox 事件的身份、类型和载荷保持稳定，正确记录重试次数，并通过隔离令牌拒绝过期操作；
 - Run、Effect 和 Outbox 领取的有界批量续租、部分执行权丢失、整毫秒时长校验与崩溃恢复；
-- 发生次数修订、终态保留，以及以 Run 为先的竞争与死锁安全。
+- Effect 与 Outbox 的修订号校验、终态数据保留，以及先锁定 Run 记录的并发与死锁测试。
 
 运行时续租测试另行验证 Run、Effect 与 Outbox 通道相互隔离、有界分块可以继续执行、Store 出现未知故障后的重试、卡住调用检测，以及健康状态
 降级与恢复；Spring 测试证明优雅停机先停止领取，再无中断地排空在途工作。
@@ -31,7 +31,7 @@
 
 ## 第一方数据库测试
 
-有 Docker 时，普通 Maven Suite 通过 Testcontainers 执行
+有 Docker 时，常规 Maven 测试通过 Testcontainers 执行
 `PostgresDurableStoreContractTest`：
 
 ```bash
@@ -69,8 +69,8 @@ MySQL 8.4 契约由独立实现提供，并通过 Testcontainers 执行：
 测试已有的可丢弃 MySQL 数据库时，设置 `COMPILEFLOW_DURABLE_MYSQL_URL`、
 `COMPILEFLOW_DURABLE_MYSQL_USER` 和 `COMPILEFLOW_DURABLE_MYSQL_PASSWORD`。
 通过 `COMPILEFLOW_DURABLE_MYSQL_MIGRATION_USER` 和 `COMPILEFLOW_DURABLE_MYSQL_MIGRATION_PASSWORD`
-提供独立的数据库结构变更身份。该测试在每个用例前清空数据库，并使用非 UTC 会话；绝不能指向含有重要数据的数据库。
-数据库结构变更身份负责 DDL 和触发器创建，运行身份不需要 `SUPER` 权限，也不需要修改全局信任设置。
+提供独立的数据库迁移账号。该测试在每个用例前清空数据库，并使用非 UTC 会话；绝不能指向含有重要数据的数据库。
+迁移账号负责 DDL 和触发器创建，运行时账号不需要 `SUPER` 权限，也不需要修改全局信任设置。
 
 ```bash
 ./mvnw test \
@@ -112,17 +112,17 @@ MySQL 8.4 契约由独立实现提供，并通过 Testcontainers 执行：
 ## 验证结果
 
 共享的[生产演练证据 Schema](../specs/compileflow-durable-production-drill-evidence-v1.schema.json)仅认证 PostgreSQL
-演练，必须提供 PostgreSQL System 与 Timeline Identity。MySQL 契约测试结果不能替代该 Provider 的故障切换、恢复及生产容量证据。
+演练，必须提供 PostgreSQL 系统标识和时间线标识。MySQL 契约测试结果不能替代 MySQL 的故障切换、恢复及生产容量验证。
 
 验证记录包括：
 
-- Maven 与精确数据库 Provider/版本；
-- Migration Checksum 与 Schema Contract 结果；
-- 继承的 Kernel Store Contract 结果；
-- Race/Stress 时长与 Seed；
+- Maven 版本、数据库实现及其准确版本；
+- 数据库迁移脚本的校验和与结构契约测试结果；
+- 继承的内核存储契约测试结果；
+- 并发与压力测试的时长和随机种子；
 - PITR 演练结果；
-- Claim 与 Operator Index 的 Query Plan；
-- Stale Token 未修改任何 Row 的证明；
+- 任务领取和运维查询的执行计划与索引使用情况；
+- 过期令牌未修改任何记录的验证结果；
 - 确认响应丢失的进程级证据：重放前后 Outbox 事件 ID、类型和逻辑载荷不变。
 
 参见 [Durable 架构](architecture/durable-architecture.md)。

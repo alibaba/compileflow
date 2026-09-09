@@ -155,7 +155,7 @@ compatibility commitments.
 | Configure and size an application | [Configuration](docs/en/configuration.md)                        | [配置指南](docs/zh/configuration.md)                     |
 | Use persisted execution           | [Durable Process](docs/en/durable-process.md)                    | [Durable Process](docs/zh/durable-process.md)            |
 | Understand the architecture       | [Architecture](docs/en/architecture/README.md)                   | [架构文档](docs/zh/architecture/README.md)               |
-| Check supported surfaces          | [Supported Surfaces](docs/en/architecture/supported-surfaces.md) | [支持面清单](docs/zh/architecture/supported-surfaces.md) |
+| Check supported surfaces          | [Supported Surfaces](docs/en/architecture/supported-surfaces.md) | [支持范围与兼容性](docs/zh/architecture/supported-surfaces.md) |
 | Operate a deployment              | [Operations](docs/en/operations-playbook.md)                     | [运维手册](docs/zh/operations-playbook.md)               |
 | Contribute                        | [Contributing](CONTRIBUTING.md)                                  | [贡献指南（英文）](CONTRIBUTING.md)                      |
 
