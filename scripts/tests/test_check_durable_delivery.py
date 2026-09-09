@@ -19,12 +19,12 @@ from scripts.check_durable_delivery import (
 
 class DurableDeliveryGateTest(unittest.TestCase):
     ARCHITECTURE = """
-Admission materializes one exact immutable stored Process and binds the Run to its `processId`.
-Alias is Deploy control-plane state; admission records attribution before resolving Alias once.
+Starting a Run stores an immutable Process definition and binds the Run to its `processId`.
+Aliases belong to the Deploy control plane; the Engine rejects a reused Run ID before resolving an Alias.
 The Kernel does not persist generated Java source, classes, bytecode, live object instances,
 executor state, or an in-memory route. Declared application values are serialized as typed state.
 A missing binding is an application/runtime capability problem.
-The Wait token is an opaque, one-shot bearer capability and does not require an application token table.
+The Wait token is an opaque, one-shot credential. An application token table is not required.
 Recovery does not provide fuzzy matching and uses a content-addressed `processId`.
 Namespace and optional Version belong to Run admission attribution, not stored semantic identity.
 Every Run stores one exact root `processId`.

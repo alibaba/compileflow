@@ -876,14 +876,14 @@ def check_documented_boundary() -> None:
     architecture = read("docs/en/architecture/durable-architecture.md")
     normalized_architecture = " ".join(architecture.lower().split())
     for marker in (
-        "admission materializes one exact immutable stored process",
+        "starting a run stores an immutable process definition",
         "binds the run to its `processid`",
-        "alias is deploy control-plane state",
-        "before resolving alias once",
+        "aliases belong to the deploy control plane",
+        "before resolving an alias",
         "kernel does not persist generated java source, classes, bytecode, live object instances",
         "application/runtime capability problem",
-        "opaque, one-shot bearer capability",
-        "does not require an application token table",
+        "opaque, one-shot credential",
+        "application token table is not required",
         "does not provide fuzzy",
     ):
         require(
