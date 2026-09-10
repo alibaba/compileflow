@@ -14,7 +14,7 @@ ENV VITE_COMPILEFLOW_DEBUG=$VITE_COMPILEFLOW_DEBUG
 ENV VITE_COMPILEFLOW_USE_BUILT_IN_EXAMPLES=$VITE_COMPILEFLOW_USE_BUILT_IN_EXAMPLES
 RUN pnpm --filter @compileflow/workbench-web build
 
-FROM eclipse-temurin:17.0.20_8-jdk-noble@sha256:61a94244559f2e89e4edb02bae37eeb8762ecf5deaf237251fa630e5120a8798 AS server-build
+FROM eclipse-temurin:24.0.2_12-jdk-noble@sha256:dacac8e9a0df0d2bd24e702b4431132875c249930b70555ebd7ca285b5bee684 AS server-build
 WORKDIR /src
 COPY .mvn .mvn
 COPY mvnw pom.xml ./
@@ -38,7 +38,7 @@ RUN chmod +x ./mvnw && ./mvnw package -pl compileflow-workbench-server -am \
 
 # The bundled distribution remains one Java process. PostgreSQL and the
 # production authentication gateway are external deployment dependencies.
-FROM eclipse-temurin:17.0.20_8-jdk-noble@sha256:61a94244559f2e89e4edb02bae37eeb8762ecf5deaf237251fa630e5120a8798
+FROM eclipse-temurin:24.0.2_12-jdk-noble@sha256:dacac8e9a0df0d2bd24e702b4431132875c249930b70555ebd7ca285b5bee684
 WORKDIR /app
 RUN useradd --system --uid 10001 --create-home --shell /usr/sbin/nologin compileflow
 COPY --from=server-build /src/compileflow-workbench-server/target/compileflow-workbench-all-in-one-*.jar app.jar

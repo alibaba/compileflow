@@ -1,5 +1,5 @@
 # Build compileflow-workbench-server from monorepo root with the repository-owned Maven Wrapper.
-FROM eclipse-temurin:17.0.20_8-jdk-noble@sha256:61a94244559f2e89e4edb02bae37eeb8762ecf5deaf237251fa630e5120a8798 AS build
+FROM eclipse-temurin:24.0.2_12-jdk-noble@sha256:dacac8e9a0df0d2bd24e702b4431132875c249930b70555ebd7ca285b5bee684 AS build
 WORKDIR /src
 COPY .mvn .mvn
 COPY mvnw .
@@ -21,7 +21,7 @@ COPY compileflow-workbench-server compileflow-workbench-server
 RUN chmod +x ./mvnw && ./mvnw package -pl compileflow-workbench-server -am -DskipTests -B -V --no-transfer-progress
 
 # Generated flows compile at runtime through the standard jdk.compiler module.
-FROM eclipse-temurin:17.0.20_8-jdk-noble@sha256:61a94244559f2e89e4edb02bae37eeb8762ecf5deaf237251fa630e5120a8798 AS runtime
+FROM eclipse-temurin:24.0.2_12-jdk-noble@sha256:dacac8e9a0df0d2bd24e702b4431132875c249930b70555ebd7ca285b5bee684 AS runtime
 WORKDIR /app
 RUN useradd --system --uid 10001 --create-home --shell /usr/sbin/nologin compileflow
 COPY --from=build /src/compileflow-workbench-server/target/compileflow-workbench-server-*.jar app.jar
