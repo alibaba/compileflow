@@ -81,7 +81,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
           package_json_file: compileflow-workbench/package.json
 
@@ -143,7 +143,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
           package_json_file: compileflow-workbench/package.json
 
@@ -181,7 +181,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
           package_json_file: compileflow-workbench/package.json
 
@@ -237,7 +237,7 @@ jobs:
           distribution: "temurin"
           cache: "maven"
 
-      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
           package_json_file: compileflow-workbench/package.json
 
