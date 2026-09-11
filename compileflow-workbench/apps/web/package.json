@@ -28,7 +28,7 @@
     "clean": "node -e \"const fs=require('node:fs'); ['dist','coverage','playwright-report','test-results'].forEach(path=>fs.rmSync(path,{recursive:true,force:true}))\""
   },
   "dependencies": {
-    "@ant-design/icons": "^5.6.1",
+    "@ant-design/icons": "^6.3.4",
     "@antv/x6": "^3.1.8",
     "@antv/x6-react-shape": "^3.0.1",
     "@monaco-editor/react": "^4.7.0",
