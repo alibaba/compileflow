@@ -77,7 +77,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "fake-indexeddb": "^6.2.5",
-    "jsdom": "^26.1.0",
+    "jsdom": "^30.0.1",
     "terser": "^5.51.2",
     "typescript": "^5.9.3",
     "vite": "^6.4.3",
