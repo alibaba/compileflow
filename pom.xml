@@ -165,7 +165,7 @@
         <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
         <maven-dependency-plugin.version>3.11.0</maven-dependency-plugin.version>
         <maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
-        <checkstyle.version>12.3.1</checkstyle.version>
+        <checkstyle.version>14.1.0</checkstyle.version>
         <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
         <japicmp-maven-plugin.version>0.23.1</japicmp-maven-plugin.version>
         <spotbugs-maven-plugin.version>4.10.2.0</spotbugs-maven-plugin.version>
