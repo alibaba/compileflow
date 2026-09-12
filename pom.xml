@@ -171,7 +171,7 @@
         <spotbugs-maven-plugin.version>4.10.2.0</spotbugs-maven-plugin.version>
         <spotless-maven-plugin.version>3.9.0</spotless-maven-plugin.version>
         <prince-of-space.version>2.2.0</prince-of-space.version>
-        <dependency-check-maven-plugin.version>12.2.2</dependency-check-maven-plugin.version>
+        <dependency-check-maven-plugin.version>13.0.0</dependency-check-maven-plugin.version>
         <cyclonedx-maven-plugin.version>2.9.2</cyclonedx-maven-plugin.version>
         <central-publishing-maven-plugin.version>0.11.0</central-publishing-maven-plugin.version>
     </properties>
